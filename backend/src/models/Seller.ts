@@ -11,7 +11,7 @@ export interface ISeller extends Document {
   // Store Info
   storeName: string;
   panCard?: string;
-  category: string;
+  category: mongoose.Types.ObjectId;
   taxName?: string;
   address: string;
   taxNumber?: string;
@@ -54,6 +54,7 @@ export interface ISeller extends Document {
   profile?: string;
   idProof?: string;
   addressProof?: string;
+  businessLicense?: string;
 
   // Settings
   requireProductApproval: boolean;
@@ -61,8 +62,12 @@ export interface ISeller extends Document {
   commission: number;
   commissionRate?: number; // Individual commission rate (overrides global setting)
 
+
   // Status
-  status: 'Approved' | 'Pending' | 'Rejected';
+  status: 'Approved' | 'Pending' | 'Rejected' | 'Blocked';
+  rejectionReason?: string;
+  approvedBy?: mongoose.Types.ObjectId;
+  approvedAt?: Date;
   balance: number;
   categories: string[];
   logo?: string;
@@ -127,9 +132,9 @@ const SellerSchema = new Schema<ISeller>(
       trim: true,
     },
     category: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: "Category",
       required: [true, 'Category is required'],
-      trim: true,
     },
     taxName: {
       type: String,
@@ -243,6 +248,10 @@ const SellerSchema = new Schema<ISeller>(
       type: String,
       trim: true,
     },
+    businessLicense: {
+      type: String,
+      trim: true,
+    },
 
     // Settings
     requireProductApproval: {
@@ -265,11 +274,23 @@ const SellerSchema = new Schema<ISeller>(
       max: [100, 'Commission rate cannot exceed 100%'],
     },
 
+
     // Status
     status: {
       type: String,
-      enum: ['Approved', 'Pending', 'Rejected'],
+      enum: ['Approved', 'Pending', 'Rejected', 'Blocked'],
       default: 'Pending',
+    },
+    rejectionReason: {
+      type: String,
+      trim: true,
+    },
+    approvedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'Admin',
+    },
+    approvedAt: {
+      type: Date,
     },
     balance: {
       type: Number,

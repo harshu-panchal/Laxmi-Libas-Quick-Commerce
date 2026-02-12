@@ -184,14 +184,14 @@ export default function CategoryTileSection({
                             target.style.display = 'none';
                             const parent = target.parentElement;
                             if (parent) {
-                              parent.innerHTML = `<div class="w-full h-full flex items-center justify-center text-3xl text-neutral-300">${tile.name.charAt(0)}</div>`;
+                              parent.innerHTML = `<div class="w-full h-full flex items-center justify-center text-3xl text-neutral-300">${tile.name ? tile.name.charAt(0) : '?'}</div>`;
                             }
                           }}
                         />
                       )
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-3xl text-neutral-300">
-                        {tile.name.charAt(0)}
+                        {tile.name ? tile.name.charAt(0) : '?'}
                       </div>
                     )}
                   </div>
@@ -214,13 +214,15 @@ export default function CategoryTileSection({
                 </Link>
 
                 {/* Category name - outside card for non-bestsellers */}
-                {!showProductCount && (
-                  <div className="mt-1.5 text-center">
-                    <span className="text-xs font-semibold text-neutral-900 line-clamp-2 leading-tight">
-                      {tile.name}
-                    </span>
-                  </div>
-                )}
+                {
+                  !showProductCount && (
+                    <div className="mt-1.5 text-center">
+                      <span className="text-xs font-semibold text-neutral-900 line-clamp-2 leading-tight">
+                        {tile.name}
+                      </span>
+                    </div>
+                  )
+                }
               </motion.div>
             );
           })}

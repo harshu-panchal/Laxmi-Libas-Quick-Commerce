@@ -19,8 +19,8 @@ export default function Categories() {
         setError(null);
         const response = await getHomeContent(
           undefined,
-          location?.latitude,
-          location?.longitude
+          location?.latitude || undefined,
+          location?.longitude || undefined
         );
         if (response.success && response.data) {
           setHomeData(response.data);
@@ -38,11 +38,11 @@ export default function Categories() {
     fetchData();
   }, [location?.latitude, location?.longitude]);
 
-  if (loading && !homeData.homeSections.length) {
+  if (loading && !homeData.homeSections?.length && !homeData.categories?.length) {
     return null; // Let global IconLoader handle it
   }
 
-  if (error && !homeData.homeSections.length) {
+  if (error && !homeData.homeSections?.length && !homeData.categories?.length) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center bg-white">
         <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-4">
@@ -71,8 +71,25 @@ export default function Categories() {
       </div>
 
       <div className="bg-neutral-50 pt-1 space-y-5 md:space-y-8 md:pt-4">
+        {/* Render All Categories if available */}
+        {homeData.categories && homeData.categories.length > 0 && (
+          <CategoryTileSection
+            title="Shop by Category"
+            tiles={homeData.categories.map((cat: any) => ({
+              id: cat._id,
+              name: cat.name,
+              image: cat.image,
+              slug: cat.slug,
+              categoryId: cat.slug || cat._id,
+              type: "category",
+              bgColor: cat.color,
+            }))}
+            columns={4}
+          />
+        )}
+
         {/* Render all admin-created home sections */}
-        {homeData.homeSections && homeData.homeSections.length > 0 ? (
+        {homeData.homeSections && homeData.homeSections.length > 0 && (
           <>
             {homeData.homeSections.map((section: any) => {
               const columnCount = Number(section.columns) || 4;
@@ -128,7 +145,9 @@ export default function Categories() {
               );
             })}
           </>
-        ) : (
+        )}
+
+        {(!homeData.categories?.length && !homeData.homeSections?.length) && (
           <div className="text-center py-12 md:py-16 text-neutral-500 px-4">
             <p className="text-lg md:text-xl mb-2">No categories found</p>
             <p className="text-sm md:text-base">

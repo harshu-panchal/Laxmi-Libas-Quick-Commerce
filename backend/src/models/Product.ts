@@ -90,6 +90,39 @@ export interface IProduct extends Document {
   isShopByStoreOnly?: boolean;
   shopId?: mongoose.Types.ObjectId;
 
+  // Category Specific Fields (Merged from RoomRent, Service, etc.)
+  brandName?: string;
+  size?: string;
+  color?: string;
+  fabric?: string;
+  material?: string;
+  gender?: string;
+  quantityInsidePack?: string;
+  expiryDate?: Date;
+  dishName?: string;
+  prepTime?: string;
+  ingredients?: string;
+  skinType?: string;
+  modelName?: string;
+  specifications?: string;
+  warranty?: string;
+  ageGroup?: string;
+  weight?: string;
+  frameType?: string;
+  lensType?: string;
+  power?: string;
+  rentAmount?: number;
+  securityDeposit?: number;
+  bhk?: string;
+  furnishingStatus?: string;
+  areaSize?: string;
+  contactNumber?: string;
+  vehicleModel?: string;
+  partNumber?: string;
+  serviceName?: string;
+  experience?: string;
+  availability?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -327,6 +360,38 @@ const ProductSchema = new Schema<IProduct>(
       type: Schema.Types.ObjectId,
       ref: "Shop",
     },
+    // Category Specific Fields
+    brandName: { type: String, trim: true },
+    size: { type: String, trim: true },
+    color: { type: String, trim: true },
+    fabric: { type: String, trim: true },
+    material: { type: String, trim: true },
+    gender: { type: String, trim: true },
+    quantityInsidePack: { type: String, trim: true },
+    expiryDate: { type: Date },
+    dishName: { type: String, trim: true },
+    prepTime: { type: String, trim: true },
+    ingredients: { type: String, trim: true },
+    skinType: { type: String, trim: true },
+    modelName: { type: String, trim: true },
+    specifications: { type: String, trim: true },
+    warranty: { type: String, trim: true },
+    ageGroup: { type: String, trim: true },
+    weight: { type: String, trim: true },
+    frameType: { type: String, trim: true },
+    lensType: { type: String, trim: true },
+    power: { type: String, trim: true },
+    rentAmount: { type: Number },
+    securityDeposit: { type: Number },
+    bhk: { type: String, trim: true },
+    furnishingStatus: { type: String, trim: true },
+    areaSize: { type: String, trim: true },
+    contactNumber: { type: String, trim: true },
+    vehicleModel: { type: String, trim: true },
+    partNumber: { type: String, trim: true },
+    serviceName: { type: String, trim: true },
+    experience: { type: String, trim: true },
+    availability: { type: String, trim: true },
   },
   {
     timestamps: true,

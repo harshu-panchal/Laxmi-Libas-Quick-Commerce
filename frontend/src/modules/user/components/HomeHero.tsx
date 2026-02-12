@@ -9,6 +9,7 @@ import { getCategories } from '../../../services/api/customerProductService';
 import { Category } from '../../../types/domain';
 import { getHeaderCategoriesPublic } from '../../../services/api/headerCategoryService';
 import { getIconByName } from '../../../utils/iconLibrary';
+import CategoryTabBar from '../../../components/CategoryTabBar';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -289,17 +290,17 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
             {/* Left: Text content */}
             <div className="flex-1 pr-2">
               {/* Service name - small, dark */}
-              <div className="text-neutral-800 font-medium text-[10px] md:text-xs mb-0 leading-tight">Dhakad Snazzy Quick Commerce</div>
+              <div className="text-neutral-800 font-medium text-[10px] md:text-xs mb-0 leading-tight">LaxMart Quick Commerce</div>
               {/* Delivery time - large, bold, dark grey/black */}
               <div className="text-neutral-900 font-extrabold text-2xl md:text-xl mb-0 md:mb-0.5 leading-tight">{appConfig.estimatedDeliveryTime}</div>
               {/* Location with dropdown indicator - only show if location is provided */}
               {locationDisplayText && (
-              <div className="text-neutral-700 text-[10px] md:text-xs flex items-center gap-0.5 leading-tight">
-                <span className="line-clamp-1" title={locationDisplayText}>{locationDisplayText}</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
+                <div className="text-neutral-700 text-[10px] md:text-xs flex items-center gap-0.5 leading-tight">
+                  <span className="line-clamp-1" title={locationDisplayText}>{locationDisplayText}</span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
               )}
             </div>
           </div>
@@ -326,7 +327,7 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
           {/* Search Bar */}
           <div
             onClick={() => navigate('/search')}
-            className="w-full md:w-auto md:max-w-xl md:mx-auto rounded-xl shadow-lg px-3 py-2 md:px-3 md:py-1.5 flex items-center gap-2 cursor-pointer hover:shadow-xl transition-all duration-300 mb-2 md:mb-1.5 bg-white"
+            className="w-full md:w-auto md:max-w-xl md:mx-auto rounded-xl shadow-lg px-3 py-2 md:px-3 md:py-1.5 flex items-center gap-2 cursor-pointer hover:shadow-xl transition-all duration-300 mb-2 bg-white"
             style={{
               backgroundColor: scrollProgress > 0.1 ? `rgba(249, 250, 251, ${scrollProgress})` : 'white',
               border: scrollProgress > 0.1 ? `1px solid rgba(229, 231, 235, ${scrollProgress})` : 'none',
@@ -367,71 +368,15 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
               <path d="M16 11V17" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
-        </div>
 
-        {/* Category Tabs */}
-        <div className="border-b border-neutral-400/40 w-full" style={{ paddingBottom: 0 }}>
-          <div
-            ref={tabsContainerRef}
-            className="relative flex gap-2 md:gap-3 overflow-x-auto scrollbar-hide -mx-4 md:mx-0 px-4 md:px-6 lg:px-8 md:justify-center scroll-smooth"
-            style={{ paddingBottom: '12px' }}
-            data-padding-bottom="md:8px"
-          >
-            {/* Sliding Indicator */}
-            {indicatorStyle.width > 0 && (
-              <div
-                className="absolute bottom-0 h-1 bg-neutral-900 rounded-t-md transition-all duration-300 ease-out pointer-events-none"
-                style={{
-                  left: `${indicatorStyle.left}px`,
-                  width: `${indicatorStyle.width}px`,
-                  transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  zIndex: 0,
-                }}
-              />
-            )}
-
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              const tabColor = isActive
-                ? 'text-neutral-900'
-                : scrollProgress > 0.5
-                  ? 'text-neutral-600'
-                  : 'text-neutral-800';
-
-              return (
-                <button
-                  key={tab.id}
-                  ref={(el) => {
-                    if (el) {
-                      tabRefs.current.set(tab.id, el);
-                    } else {
-                      tabRefs.current.delete(tab.id);
-                    }
-                  }}
-                  onClick={() => handleTabClick(tab.id)}
-                  className={`flex-shrink-0 flex flex-col md:flex-row items-center justify-center min-w-[50px] md:min-w-fit md:px-3 py-1 md:py-1.5 relative ${tabColor} z-10`}
-                  style={{
-                    transition: 'color 0.3s ease-out',
-                  }}
-                  type="button"
-                >
-                  <div className={`mb-0.5 md:hidden w-5 h-5 flex items-center justify-center ${tabColor}`} style={{
-                    transition: 'color 0.3s ease-out, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                  }}>
-                    {tab.icon}
-                  </div>
-                  <span
-                    className={`text-[10px] md:text-xs md:whitespace-nowrap ${isActive ? 'font-semibold' : 'font-medium'}`}
-                    style={{
-                      transition: 'font-weight 0.3s ease-out',
-                    }}
-                  >
-                    {tab.label}
-                  </span>
-                </button>
-              )
-            })}
+          {/* Category Tabs Section - Substituted with circular icons bar */}
+          <div className="mt-1">
+            <CategoryTabBar
+              activeCategory={activeTab}
+              onCategoryChange={onTabChange}
+              onTabClick={handleTabClick}
+              isLightMode={scrollProgress > 0.5}
+            />
           </div>
         </div>
       </div>

@@ -1,10 +1,10 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { register, sendOTP, verifyOTP } from '../../../services/api/auth/sellerAuthService';
 import OTPInput from '../../../components/OTPInput';
 import GoogleMapsAutocomplete from '../../../components/GoogleMapsAutocomplete';
 import { useAuth } from '../../../context/AuthContext';
-import { getHeaderCategoriesPublic, HeaderCategory } from '../../../services/api/headerCategoryService';
+import { getCategories, Category } from '../../../services/api/categoryService';
 import LocationPickerMap from '../../../components/LocationPickerMap';
 import { useEffect } from 'react';
 
@@ -33,17 +33,20 @@ export default function SellerSignUp() {
     accountNumber: '',
     ifsc: '',
   });
+  const [idProofFile, setIdProofFile] = useState<File | null>(null);
+  const [businessLicenseFile, setBusinessLicenseFile] = useState<File | null>(null);
+  const [uploadingDocs, setUploadingDocs] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [categories, setCategories] = useState<HeaderCategory[]>([]);
+  const [dbCategories, setDbCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     const fetchCats = async () => {
       try {
-        const res = await getHeaderCategoriesPublic();
-        if (Array.isArray(res)) {
-          setCategories(res.filter(cat => cat.status === 'Published'));
+        const res = await getCategories();
+        if (res.success && Array.isArray(res.data)) {
+          setDbCategories(res.data.filter(cat => cat.status === 'Active'));
         }
       } catch (err) {
         console.error('Error fetching categories:', err);
@@ -79,18 +82,12 @@ export default function SellerSignUp() {
     }
   };
 
-  const toggleCategory = (cat: string) => {
-    setFormData(prev => {
-      const exists = prev.categories.includes(cat);
-      const nextCategories = exists
-        ? prev.categories.filter(c => c !== cat)
-        : [...prev.categories, cat];
-      return {
-        ...prev,
-        categories: nextCategories,
-        category: nextCategories[0] || '',
-      };
-    });
+  const handleCategorySelect = (catId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      category: catId,
+      categories: [catId]
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,8 +110,8 @@ export default function SellerSignUp() {
       setError('Please enter your store name');
       return;
     }
-    if (formData.categories.length === 0) {
-      setError('Please select at least one category');
+    if (!formData.category) {
+      setError('Please select a category');
       return;
     }
     if (!formData.address && !formData.searchLocation) {
@@ -148,19 +145,62 @@ export default function SellerSignUp() {
         return;
       }
 
+      // Upload documents first if provided
+      let idProofUrl = '';
+      let businessLicenseUrl = '';
+
+      if (idProofFile || businessLicenseFile) {
+        setUploadingDocs(true);
+        try {
+          if (idProofFile) {
+            const formData = new FormData();
+            formData.append('file', idProofFile);
+            const uploadRes = await fetch('/api/v1/upload/single', {
+              method: 'POST',
+              body: formData,
+            });
+            const uploadData = await uploadRes.json();
+            if (uploadData.success) {
+              idProofUrl = uploadData.data.url;
+            }
+          }
+
+          if (businessLicenseFile) {
+            const formData = new FormData();
+            formData.append('file', businessLicenseFile);
+            const uploadRes = await fetch('/api/v1/upload/single', {
+              method: 'POST',
+              body: formData,
+            });
+            const uploadData = await uploadRes.json();
+            if (uploadData.success) {
+              businessLicenseUrl = uploadData.data.url;
+            }
+          }
+        } catch (uploadErr) {
+          console.error('Document upload error:', uploadErr);
+          setError('Failed to upload documents. Please try again.');
+          return;
+        } finally {
+          setUploadingDocs(false);
+        }
+      }
+
       const response = await register({
         sellerName: formData.sellerName,
         mobile: formData.mobile,
         email: formData.email,
         storeName: formData.storeName,
-        category: formData.categories[0], // primary
-        categories: formData.categories,
+        category: formData.category,
+        categories: [formData.category],
         address: formData.address || formData.searchLocation,
         city: formData.city,
         searchLocation: formData.searchLocation,
         latitude: formData.latitude,
         longitude: formData.longitude,
         serviceRadiusKm: formData.serviceRadiusKm,
+        idProof: idProofUrl,
+        businessLicense: businessLicenseUrl,
       });
 
       if (response.success) {
@@ -200,6 +240,7 @@ export default function SellerSignUp() {
           status: response.data.user.status,
           address: response.data.user.address,
           city: response.data.user.city,
+          categories: response.data.user.categories,
         });
         // Navigate to seller dashboard
         navigate('/seller', { replace: true });
@@ -230,8 +271,8 @@ export default function SellerSignUp() {
         <div className="px-6 py-4 text-center border-b border-green-700" style={{ backgroundColor: 'rgb(21 178 74 / var(--tw-bg-opacity, 1))' }}>
           <div className="mb-0 -mt-4">
             <img
-              src="/assets/dhakadsnazzy1.png"
-              alt="Dhakad Snazzy"
+              src="/assets/ChatGPT Image Feb 11, 2026, 01_01_14 PM.png"
+              alt="LaxMart"
               className="h-44 w-full max-w-xs mx-auto object-fill object-bottom"
             />
           </div>
@@ -324,34 +365,102 @@ export default function SellerSignUp() {
 
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Categories <span className="text-red-500">*</span>
+                    Store Category <span className="text-red-500">*</span>
                   </label>
-                  {categories.length === 0 ? (
-                    <div className="text-sm text-neutral-500 py-2">
-                      Loading categories...
+                  {dbCategories.length === 0 ? (
+                    <div className="text-sm text-red-500 bg-red-50 p-3 rounded-lg border border-red-100 italic">
+                      No categories available at the moment. Please contact admin.
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 border border-neutral-200 rounded-lg">
-                      {categories.map((cat) => {
-                        const checked = formData.categories.includes(cat.name);
+                    <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto p-3 border border-neutral-200 rounded-lg bg-neutral-50 shadow-inner">
+                      {dbCategories.map((cat) => {
+                        const isSelected = formData.category === cat._id;
                         return (
-                          <label key={cat._id} className="flex items-center gap-2 text-sm text-neutral-700">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleCategory(cat.name)}
-                              disabled={loading}
-                              className="h-4 w-4 text-teal-600 border-neutral-300 rounded focus:ring-teal-500"
-                            />
-                            <span>{cat.name}</span>
-                          </label>
+                          <button
+                            key={cat._id}
+                            type="button"
+                            onClick={() => handleCategorySelect(cat._id)}
+                            disabled={loading}
+                            className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all duration-200 text-center ${isSelected
+                              ? 'border-teal-500 bg-white shadow-md scale-[1.02]'
+                              : 'border-neutral-200 bg-white hover:border-teal-200 hover:scale-[1.01]'
+                              }`}
+                          >
+                            {cat.image && (
+                              <img src={cat.image} alt={cat.name} className="w-10 h-10 object-contain mb-2" />
+                            )}
+                            <span className={`text-xs font-semibold ${isSelected ? 'text-teal-700' : 'text-neutral-700'}`}>
+                              {cat.name}
+                            </span>
+                          </button>
                         );
                       })}
                     </div>
                   )}
-                  {formData.categories.length === 0 && categories.length > 0 && (
-                    <p className="text-xs text-red-600 mt-1">Select at least one category</p>
+                  {!formData.category && dbCategories.length > 0 && (
+                    <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      Category selection is required to proceed
+                    </p>
                   )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      ID Proof (Optional)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) {
+                            setError('File size must be less than 5MB');
+                            e.target.value = '';
+                            return;
+                          }
+                          setIdProofFile(file);
+                        }
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+                      disabled={loading || uploadingDocs}
+                    />
+                    {idProofFile && (
+                      <p className="text-xs text-green-600 mt-1">✓ {idProofFile.name}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Business License (Optional)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) {
+                            setError('File size must be less than 5MB');
+                            e.target.value = '';
+                            return;
+                          }
+                          setBusinessLicenseFile(file);
+                        }
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+                      disabled={loading || uploadingDocs}
+                    />
+                    {businessLicenseFile && (
+                      <p className="text-xs text-green-600 mt-1">✓ {businessLicenseFile.name}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -419,7 +528,7 @@ export default function SellerSignUp() {
 
                   {formData.latitude && formData.longitude ? (
                     <div className="mt-4 animate-fadeIn">
-                       <p className="text-sm font-medium text-neutral-700 mb-2">
+                      <p className="text-sm font-medium text-neutral-700 mb-2">
                         Exact Location <span className="text-teal-600 text-xs font-normal">(Move the map to place the pin on your store's entrance)</span>
                       </p>
                       <LocationPickerMap
@@ -640,7 +749,7 @@ export default function SellerSignUp() {
 
       {/* Footer Text */}
       <p className="mt-6 text-xs text-neutral-500 text-center max-w-md">
-        By continuing, you agree to Dhakad Snazzy's Terms of Service and Privacy Policy
+        By continuing, you agree to LaxMart's Terms of Service and Privacy Policy
       </p>
     </div>
   );

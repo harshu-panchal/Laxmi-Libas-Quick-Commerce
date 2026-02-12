@@ -35,6 +35,11 @@ import paymentRoutes from "./paymentRoutes";
 import sellerWalletRoutes from "./sellerWalletRoutes";
 import deliveryWalletRoutes from "./deliveryWalletRoutes";
 import adminWithdrawalRoutes from "./adminWithdrawalRoutes";
+import bannerRoutes from "./bannerRoutes";
+
+// Multi-category controllers
+import * as serviceController from "../modules/seller/controllers/serviceController";
+import * as roomRentController from "../modules/seller/controllers/roomRentController";
 
 import {
   createOrder,
@@ -159,6 +164,25 @@ router.use("/delivery/wallet", authenticate, requireUserType("Delivery"), delive
 
 // Admin withdrawal management routes (protected, admin only)
 router.use("/admin/withdrawals", authenticate, requireUserType("Admin"), adminWithdrawalRoutes);
+
+// Banners routes
+router.use("/banners", bannerRoutes);
+
+// Service routes (protected, seller only)
+router.post("/seller/services", authenticate, requireUserType("Seller"), serviceController.createService);
+router.get("/seller/services", authenticate, requireUserType("Seller"), serviceController.getSellerServices);
+router.get("/seller/services/:id", authenticate, requireUserType("Seller"), serviceController.getServiceById);
+router.put("/seller/services/:id", authenticate, requireUserType("Seller"), serviceController.updateService);
+router.delete("/seller/services/:id", authenticate, requireUserType("Seller"), serviceController.deleteService);
+router.patch("/seller/services/:id/toggle-status", authenticate, requireUserType("Seller"), serviceController.toggleServiceStatus);
+
+// Room Rent routes (protected, seller only)
+router.post("/seller/room-rent", authenticate, requireUserType("Seller"), roomRentController.createRoomRent);
+router.get("/seller/room-rent", authenticate, requireUserType("Seller"), roomRentController.getSellerRoomRents);
+router.get("/seller/room-rent/:id", authenticate, requireUserType("Seller"), roomRentController.getRoomRentById);
+router.put("/seller/room-rent/:id", authenticate, requireUserType("Seller"), roomRentController.updateRoomRent);
+router.delete("/seller/room-rent/:id", authenticate, requireUserType("Seller"), roomRentController.deleteRoomRent);
+router.patch("/seller/room-rent/:id/toggle-status", authenticate, requireUserType("Seller"), roomRentController.toggleRoomRentStatus);
 
 // Admin commission management routes (protected, admin only)
 

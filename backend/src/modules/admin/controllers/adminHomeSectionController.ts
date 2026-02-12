@@ -66,7 +66,7 @@ export const getHomeSectionById = async (req: Request, res: Response) => {
 // Create new home section
 export const createHomeSection = async (req: Request, res: Response) => {
     try {
-        const { title, slug, categories, subCategories, displayType, columns, limit, order, isActive, pageLocation, targetHeaderCategory } = req.body;
+        const { title, slug, categories, subCategories, displayType, bannerData, columns, limit, order, isActive, pageLocation, targetHeaderCategory } = req.body;
 
         // Validate required fields
         if (!title || !slug || !displayType) {
@@ -98,6 +98,7 @@ export const createHomeSection = async (req: Request, res: Response) => {
             categories: categories || [],
             subCategories: subCategories || [],
             displayType,
+            bannerData: bannerData || [],
             columns: columns || 4,
             limit: limit || 8,
             order: sectionOrder,
@@ -120,6 +121,32 @@ export const createHomeSection = async (req: Request, res: Response) => {
             data: populatedSection,
         });
     } catch (error: any) {
+        console.error("Create Home Section Error:", error);
+
+        if (error.name === "ValidationError") {
+            return res.status(400).json({
+                success: false,
+                message: "Validation Error",
+                error: Object.values(error.errors).map((val: any) => val.message).join(", "),
+            });
+        }
+
+        if (error.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                message: "Duplicate Key Error",
+                error: "A section with this slug or unique field already exists.",
+            });
+        }
+
+        if (error.name === "CastError") {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid Data Type",
+                error: `Invalid value for field: ${error.path}`,
+            });
+        }
+
         return res.status(500).json({
             success: false,
             message: "Error creating home section",
@@ -132,7 +159,7 @@ export const createHomeSection = async (req: Request, res: Response) => {
 export const updateHomeSection = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { title, slug, categories, subCategories, displayType, columns, limit, order, isActive, pageLocation, targetHeaderCategory } = req.body;
+        const { title, slug, categories, subCategories, displayType, bannerData, columns, limit, order, isActive, pageLocation, targetHeaderCategory } = req.body;
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
@@ -166,6 +193,7 @@ export const updateHomeSection = async (req: Request, res: Response) => {
         if (categories !== undefined) section.categories = categories || [];
         if (subCategories !== undefined) section.subCategories = subCategories || [];
         if (displayType !== undefined) section.displayType = displayType;
+        if (bannerData !== undefined) section.bannerData = bannerData || [];
         if (columns !== undefined) section.columns = columns;
         if (limit !== undefined) section.limit = limit;
         if (order !== undefined) section.order = order;
@@ -187,6 +215,32 @@ export const updateHomeSection = async (req: Request, res: Response) => {
             data: updatedSection,
         });
     } catch (error: any) {
+        console.error("Update Home Section Error:", error);
+
+        if (error.name === "ValidationError") {
+            return res.status(400).json({
+                success: false,
+                message: "Validation Error",
+                error: Object.values(error.errors).map((val: any) => val.message).join(", "),
+            });
+        }
+
+        if (error.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                message: "Duplicate Key Error",
+                error: "A section with this slug or unique field already exists.",
+            });
+        }
+
+        if (error.name === "CastError") {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid Data Type",
+                error: `Invalid value for field: ${error.path}`,
+            });
+        }
+
         return res.status(500).json({
             success: false,
             message: "Error updating home section",
@@ -251,8 +305,8 @@ export const reorderHomeSections = async (req: Request, res: Response) => {
         await Promise.all(updatePromises);
 
         const updatedSections = await HomeSection.find()
-            .populate("category", "name slug image")
-            .populate("subCategory", "name")
+            .populate("categories", "name slug image")
+            .populate("subCategories", "name")
             .sort({ order: 1 })
             .lean();
 

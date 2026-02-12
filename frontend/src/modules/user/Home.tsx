@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import HomeHero from "./components/HomeHero";
+import BannerSlider from "./components/BannerSlider";
 import PromoStrip from "./components/PromoStrip";
 import LowestPricesEver from "./components/LowestPricesEver";
 import CategoryTileSection from "./components/CategoryTileSection";
@@ -11,6 +12,7 @@ import { getHeaderCategoriesPublic } from "../../services/api/headerCategoryServ
 import { useLocation } from "../../hooks/useLocation";
 import { useLoading } from "../../context/LoadingContext";
 import PageLoader from "../../components/PageLoader";
+import CategoryTabBar from "../../components/CategoryTabBar";
 
 import { useThemeContext } from "../../context/ThemeContext";
 
@@ -262,6 +264,7 @@ export default function Home() {
       {/* Promo Strip */}
       <PromoStrip activeTab={activeTab} />
 
+
       {/* LOWEST PRICES EVER Section */}
       <LowestPricesEver activeTab={activeTab} products={homeData.lowestPrices} />
 
@@ -273,6 +276,35 @@ export default function Home() {
           <>
             {homeData.homeSections.map((section: any) => {
               const columnCount = Number(section.columns) || 4;
+
+              if (section.displayType === "banners" && section.data && section.data.length > 0) {
+                return (
+                  <div key={section.id} className="px-4 md:px-6 lg:px-8 mb-6 md:mb-8">
+                    <div className="relative w-full overflow-hidden rounded-xl">
+                      <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4">
+                        {section.data.map((banner: any, index: number) => (
+                          <div
+                            key={index}
+                            onClick={() => banner.link && (window.location.href = banner.link)}
+                            className="relative flex-none w-full snap-start cursor-pointer aspect-[21/9] md:aspect-[3/1]"
+                          >
+                            <img
+                              src={banner.imageUrl}
+                              alt={banner.title || 'Banner'}
+                              className="w-full h-full object-cover rounded-xl"
+                            />
+                            {banner.title && (
+                              <div className="absolute bottom-4 left-4 bg-black/30 backdrop-blur-md px-4 py-2 rounded-lg text-white">
+                                <h3 className="text-sm md:text-lg font-bold">{banner.title}</h3>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
 
               if (section.displayType === "products" && section.data && section.data.length > 0) {
                 // Strict column mapping as requested - applies to ALL screen sizes including mobile
@@ -328,25 +360,36 @@ export default function Home() {
         )}
 
         {/* Filtered Products Section */}
-        {/* Filtered Products Section */}
-        {activeTab !== "all" && filteredProducts.length > 0 && (
-          <div data-products-section className="mt-6 mb-6 md:mt-8 md:mb-8">
+        {activeTab !== "all" && (
+          <div data-products-section className="mt-6 mb-6 md:mt-8 md:mb-8 min-h-[40vh]">
             <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight capitalize">
               {activeTab === "grocery" ? "Grocery Items" : activeTab}
             </h2>
             <div className="px-4 md:px-6 lg:px-8">
-              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    categoryStyle={true}
-                    showBadge={true}
-                    showPackBadge={false}
-                    showStockInfo={true}
-                  />
-                ))}
-              </div>
+              {filteredProducts.length > 0 ? (
+                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4">
+                  {filteredProducts.map((product) => (
+                    <ProductCard
+                      key={product.id || product._id}
+                      product={product}
+                      categoryStyle={true}
+                      showBadge={true}
+                      showPackBadge={false}
+                      showStockInfo={true}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 px-4 bg-white rounded-2xl shadow-sm border border-neutral-100">
+                  <div className="w-16 h-16 bg-neutral-50 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-neutral-900">No products available</h3>
+                  <p className="text-sm text-neutral-500 mt-1">We're working on bringing more items to this category soon.</p>
+                </div>
+              )}
             </div>
           </div>
         )}

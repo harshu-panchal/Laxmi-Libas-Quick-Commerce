@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Product from "../../../models/Product";
 import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
+import Seller from "../../../models/Seller";
 import mongoose from "mongoose";
 import { findSellersWithinRange } from "../../../utils/locationHelper";
 
@@ -38,40 +39,19 @@ export const getProducts = async (req: Request, res: Response) => {
     const userLng = longitude ? parseFloat(longitude as string) : null;
 
     if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
-      // Find sellers within user's location range
+      // Find sellers within user's location range (now returns all approved sellers)
       const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
 
-      if (nearbySellerIds.length === 0) {
-        // No sellers within range, return empty result
-        return res.status(200).json({
-          success: true,
-          data: [],
-          pagination: {
-            page: Number(page),
-            limit: Number(limit),
-            total: 0,
-            pages: 0,
-          },
-          message:
-            "No sellers available in your area. Please update your location.",
-        });
+      if (nearbySellerIds.length > 0) {
+        // Filter products by sellers within range
+        query.seller = { $in: nearbySellerIds };
       }
-
-      // Filter products by sellers within range
-      query.seller = { $in: nearbySellerIds };
     } else {
-      // If no location provided, return empty result (strictly enforce location)
-      return res.status(200).json({
-        success: true,
-        data: [],
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total: 0,
-          pages: 0,
-        },
-        message: "Please provide your location to see products available in your area.",
-      });
+      // If no location provided, fallback to all approved sellers to show content
+      const sellers = await Seller.find({ status: "Approved" }).select("_id");
+      if (sellers.length > 0) {
+        query.seller = { $in: sellers.map(s => s._id) };
+      }
     }
 
     // Helper to resolve category/subcategory ID from slug or ID
@@ -118,15 +98,15 @@ export const getProducts = async (req: Request, res: Response) => {
 
       // Special handling for Category and "and" -> "&"
       if (modelName === "Category" && value.includes("and")) {
-         const withAmpersand = value.replace(/-and-/g, " & ").replace(/-/g, " ");
-         item = await model
-           .findOne({
-             ...baseQuery,
-             name: { $regex: new RegExp(`^${withAmpersand}$`, "i") },
-           })
-           .select("_id")
-           .lean();
-         if (item) return item._id;
+        const withAmpersand = value.replace(/-and-/g, " & ").replace(/-/g, " ");
+        item = await model
+          .findOne({
+            ...baseQuery,
+            name: { $regex: new RegExp(`^${withAmpersand}$`, "i") },
+          })
+          .select("_id")
+          .lean();
+        if (item) return item._id;
       }
 
       return null;
@@ -241,7 +221,7 @@ export const getProductById = async (req: Request, res: Response) => {
       .populate("brand", "name")
       .populate(
         "seller",
-        "storeName city fssaiLicNo address location serviceRadiusKm"
+        "storeName mobile city fssaiLicNo address location serviceRadiusKm"
       );
 
     if (!product) {

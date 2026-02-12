@@ -6,6 +6,8 @@ import {
 } from "../../../services/otpService";
 import { generateToken } from "../../../services/jwtService";
 import { asyncHandler } from "../../../utils/asyncHandler";
+import Category from "../../../models/Category";
+import mongoose from "mongoose";
 
 /**
  * Send OTP to seller mobile number
@@ -76,8 +78,37 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
+  // Check seller status
+  if (seller.status === 'Pending') {
+    return res.status(403).json({
+      success: false,
+      message: "Your account is pending admin approval. Please wait for approval before logging in.",
+      status: 'pending',
+    });
+  }
+
+  if (seller.status === 'Rejected') {
+    return res.status(403).json({
+      success: false,
+      message: seller.rejectionReason
+        ? `Your account application was rejected. Reason: ${seller.rejectionReason}`
+        : "Your account application was rejected. Please contact support for more information.",
+      status: 'rejected',
+    });
+  }
+
+  if (seller.status === 'Blocked') {
+    return res.status(403).json({
+      success: false,
+      message: seller.rejectionReason
+        ? `Your account has been blocked. Reason: ${seller.rejectionReason}`
+        : "Your account has been blocked. Please contact support for more information.",
+      status: 'blocked',
+    });
+  }
+
   // Generate JWT token
-  const token = generateToken(seller._id.toString(), "Seller");
+  const token = generateToken(seller._id.toString(), "Seller", undefined, seller.category.toString());
 
   return res.status(200).json({
     success: true,
@@ -94,6 +125,8 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
         logo: seller.logo,
         address: seller.address,
         city: seller.city,
+        categories: seller.categories,
+        category: seller.category,
       },
     },
   });
@@ -127,6 +160,22 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     return res.status(400).json({
       success: false,
       message: "Valid 10-digit mobile number is required",
+    });
+  }
+
+  // Validate category is a valid ObjectId and exists
+  if (!mongoose.Types.ObjectId.isValid(category)) {
+    return res.status(400).json({
+      success: false,
+      message: "A valid Category ID is required",
+    });
+  }
+
+  const categoryExists = await Category.findById(category);
+  if (!categoryExists) {
+    return res.status(400).json({
+      success: false,
+      message: "The selected category does not exist. Please select an existing category.",
     });
   }
 
@@ -189,9 +238,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   const location =
     longitude && latitude
       ? {
-          type: "Point" as const,
-          coordinates: [longitude, latitude],
-        }
+        type: "Point" as const,
+        coordinates: [longitude, latitude],
+      }
       : undefined;
 
   // Create new seller with GeoJSON location (password not required during signup)
@@ -219,7 +268,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   });
 
   // Generate token
-  const token = generateToken(seller._id.toString(), "Seller");
+  const token = generateToken(seller._id.toString(), "Seller", undefined, seller.category.toString());
 
   return res.status(201).json({
     success: true,
@@ -235,6 +284,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         status: seller.status,
         address: seller.address,
         city: seller.city,
+        categories: seller.categories,
+        category: seller.category,
       },
     },
   });

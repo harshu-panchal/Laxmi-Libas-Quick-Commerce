@@ -40,7 +40,7 @@ const calculateItemPrice = (product: any, variationSelector: any) => {
 };
 
 // Helper to calculate cart total with location filtering
-const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.ObjectId[] = []) => {
+const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.ObjectId[] | null = null) => {
     const items = await CartItem.find({ cart: cartId }).populate({
         path: 'product',
         select: 'price discPrice variations seller status publish productName'
@@ -51,7 +51,7 @@ const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.O
         const product = item.product as any;
         if (product && product.status === 'Active' && product.publish) {
             // Check if seller is in range
-            const isAvailable = nearbySellerIds.some(id => id.toString() === product.seller.toString());
+            const isAvailable = !nearbySellerIds || nearbySellerIds.some(id => id.toString() === product.seller.toString());
             if (isAvailable) {
                 const price = calculateItemPrice(product, item.variation);
                 total += price * item.quantity;
@@ -148,16 +148,14 @@ export const getCart = async (req: Request, res: Response) => {
         const userLat = latitude ? parseFloat(latitude as string) : null;
         const userLng = longitude ? parseFloat(longitude as string) : null;
 
-        // Strictly enforce location
-        if (userLat === null || userLng === null || isNaN(userLat) || isNaN(userLng)) {
-            return res.status(200).json({
-                success: true,
-                message: 'Location required to view available items',
-                data: { items: [], total: 0 }
-            });
-        }
+        // Fetch nearby sellers if location is provided
+        let nearbySellerIds: mongoose.Types.ObjectId[] = [];
+        let locationProvided = false;
 
-        const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+        if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
+            nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+            locationProvided = true;
+        }
 
         let cart = await Cart.findOne({ customer: userId }).populate({
             path: 'items',
@@ -179,7 +177,8 @@ export const getCart = async (req: Request, res: Response) => {
         for (const item of (cart.items as any)) {
             const product = item.product;
             if (product && product.status === 'Active' && product.publish) {
-                const isAvailable = nearbySellerIds.some(id => id.toString() === product.seller.toString());
+                // If location not provided, all active products are "available"
+                const isAvailable = !locationProvided || nearbySellerIds.some(id => id.toString() === product.seller.toString());
                 if (isAvailable) {
                     filteredItems.push(item);
                     const price = calculateItemPrice(product, item.variation);
@@ -230,12 +229,12 @@ export const addToCart = async (req: Request, res: Response) => {
         // Parse location
         const userLat = latitude ? parseFloat(latitude as string) : null;
         const userLng = longitude ? parseFloat(longitude as string) : null;
+        let locationProvided = false;
+        let nearbySellerIds: mongoose.Types.ObjectId[] = [];
 
-        if (userLat === null || userLng === null || isNaN(userLat) || isNaN(userLng)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Location is required to add items to cart'
-            });
+        if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
+            nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+            locationProvided = true;
         }
 
         // Verify product exists and is available at location
@@ -253,14 +252,16 @@ export const addToCart = async (req: Request, res: Response) => {
             });
         }
 
-        const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
-        const isAvailable = nearbySellerIds.some(id => id.toString() === (seller._id || seller).toString());
+        // Check availability if location provided
+        if (locationProvided) {
+            const isAvailable = nearbySellerIds.some(id => id.toString() === (seller._id || seller).toString());
 
-        if (!isAvailable) {
-            return res.status(403).json({
-                success: false,
-                message: 'This product is not available in your current location'
-            });
+            if (!isAvailable) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'This product is not available in your current location'
+                });
+            }
         }
 
         // Get or create cart
@@ -291,8 +292,8 @@ export const addToCart = async (req: Request, res: Response) => {
             cart.items.push(cartItem._id as any);
         }
 
-        // Update total with location filtering
-        cart.total = await calculateCartTotal(cart._id, nearbySellerIds);
+        // Update total (filter by location if provided)
+        cart.total = await calculateCartTotal(cart._id, locationProvided ? nearbySellerIds : null);
         await cart.save();
 
         // Return updated cart with filtering
@@ -346,15 +347,13 @@ export const updateCartItem = async (req: Request, res: Response) => {
         // Parse location
         const userLat = latitude ? parseFloat(latitude as string) : null;
         const userLng = longitude ? parseFloat(longitude as string) : null;
+        let locationProvided = false;
+        let nearbySellerIds: mongoose.Types.ObjectId[] = [];
 
-        if (userLat === null || userLng === null || isNaN(userLat) || isNaN(userLng)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Location is required to update cart'
-            });
+        if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
+            nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+            locationProvided = true;
         }
-
-        const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
 
         const cart = await Cart.findOne({ customer: userId });
         if (!cart) {
@@ -366,21 +365,23 @@ export const updateCartItem = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, message: 'Item not found in cart' });
         }
 
-        // Verify item is still available at location
+        // Verify item is still available at location (if provided)
         const product = cartItem.product as any;
-        const isAvailable = product && nearbySellerIds.some(id => id.toString() === product.seller.toString());
+        if (locationProvided) {
+            const isAvailable = product && nearbySellerIds.some(id => id.toString() === product.seller.toString());
 
-        if (!isAvailable) {
-            return res.status(403).json({
-                success: false,
-                message: 'This item is no longer available in your location'
-            });
+            if (!isAvailable) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'This item is no longer available in your location'
+                });
+            }
         }
 
         cartItem.quantity = quantity;
         await cartItem.save();
 
-        cart.total = await calculateCartTotal(cart._id, nearbySellerIds);
+        cart.total = await calculateCartTotal(cart._id, locationProvided ? nearbySellerIds : null);
         await cart.save();
 
         const updatedCart = await Cart.findById(cart._id).populate({
@@ -441,11 +442,13 @@ export const removeFromCart = async (req: Request, res: Response) => {
 
         // Calculate total with location if provided
         let nearbySellerIds: mongoose.Types.ObjectId[] = [];
+        let locationProvided = false;
         if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
             nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+            locationProvided = true;
         }
 
-        cart.total = await calculateCartTotal(cart._id, nearbySellerIds);
+        cart.total = await calculateCartTotal(cart._id, locationProvided ? nearbySellerIds : null);
         await cart.save();
 
         const updatedCart = await Cart.findById(cart._id).populate({
@@ -458,10 +461,8 @@ export const removeFromCart = async (req: Request, res: Response) => {
 
         const filteredItems = (updatedCart?.items as any[] || []).filter(item => {
             const prod = item.product;
-            if (nearbySellerIds.length > 0) {
-                return prod && nearbySellerIds.some(id => id.toString() === prod.seller.toString());
-            }
-            return true; // If no location provided for removal, just return all (though getCart will filter)
+            if (!locationProvided) return true;
+            return prod && nearbySellerIds.some(id => id.toString() === prod.seller.toString());
         });
 
         // Calculate fees

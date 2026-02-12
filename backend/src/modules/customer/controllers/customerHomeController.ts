@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Product from "../../../models/Product";
 import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
+import Seller from "../../../models/Seller";
 import Shop from "../../../models/Shop";
 import HeaderCategory from "../../../models/HeaderCategory";
 import HomeSection from "../../../models/HomeSection";
@@ -120,7 +121,6 @@ async function fetchSectionData(
 
         results.push(...mappedChildCats);
       }
-
       return results;
     }
 
@@ -230,6 +230,11 @@ async function fetchSectionData(
       }
     }
 
+    // If displayType is "banners", return the banners from the section itself
+    if (displayType === "banners") {
+      return section.bannerData || [];
+    }
+
     return [];
   } catch (error) {
     console.error("Error fetching section data:", error);
@@ -250,8 +255,9 @@ export const getHomeContent = async (req: Request, res: Response) => {
     if (userLat !== null && userLng !== null) {
       nearbySellerIds = await findSellersWithinRange(userLat, userLng);
     } else {
-      // If no location provided, return empty sellers list to enforce filtering
-      nearbySellerIds = [];
+      // If no location provided, fallback to all approved sellers to show content
+      const sellers = await Seller.find({ status: "Approved" }).select("_id");
+      nearbySellerIds = sellers.map(s => s._id as mongoose.Types.ObjectId);
     }
 
     // 1. Featured / Bestsellers - Get bestseller cards from admin configuration
@@ -553,6 +559,8 @@ export const getHomeContent = async (req: Request, res: Response) => {
 
     // 9. Dynamic Home Sections - Fetch from database
     let homeSectionQuery: any = { isActive: true };
+    let fallbackCategoryProducts: any[] = [];
+    let isRegularCategory = false;
 
     if (headerCategorySlug && headerCategorySlug !== "all") {
       const headerCategoryForSection = await HeaderCategory.findOne({
@@ -564,8 +572,56 @@ export const getHomeContent = async (req: Request, res: Response) => {
         homeSectionQuery.pageLocation = "Header Category Page";
         homeSectionQuery.targetHeaderCategory = headerCategoryForSection._id;
       } else {
-        // If header category not found, return empty sections
-        homeSectionQuery = { _id: { $exists: false } };
+        // Check if it's a regular category
+        const regularCategory = await Category.findOne({
+          slug: headerCategorySlug,
+          status: "Active"
+        }).select("_id name");
+
+        if (regularCategory) {
+          isRegularCategory = true;
+          // Fetch products for this category to show as a dynamic section
+          const prodQuery: any = {
+            category: regularCategory._id,
+            status: "Active",
+            publish: true
+          };
+
+          const rawProducts = await Product.find(prodQuery)
+            .sort({ createdAt: -1 })
+            .limit(20)
+            .select("productName mainImage price mrp discount rating reviewsCount pack seller variations")
+            .lean();
+
+          fallbackCategoryProducts = rawProducts.map((p: any) => {
+            const isAvailable = nearbySellerIds && nearbySellerIds.length > 0 && p.seller
+              ? nearbySellerIds.some(id => id.toString() === p.seller.toString())
+              : false;
+
+            return {
+              id: p._id.toString(),
+              productId: p._id.toString(),
+              name: p.productName,
+              productName: p.productName,
+              image: p.mainImage,
+              mainImage: p.mainImage,
+              price: p.price,
+              discount: p.discount || (p.mrp && p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0),
+              rating: p.rating || 0,
+              reviewsCount: p.reviewsCount || 0,
+              pack: p.pack || "",
+              type: "product",
+              isAvailable,
+              seller: p.seller,
+            };
+          });
+
+          // Don't show regular home sections if we are viewing a specific category
+          homeSectionQuery = { _id: { $exists: false } };
+        } else {
+          // If neither header nor regular category found, return empty portions
+          homeSectionQuery = { _id: { $exists: false } };
+        }
       }
     } else {
       homeSectionQuery.$or = [
@@ -589,11 +645,24 @@ export const getHomeContent = async (req: Request, res: Response) => {
           title: section.title,
           slug: section.slug,
           displayType: section.displayType,
+          bannerData: section.displayType === "banners" ? section.bannerData : undefined,
           columns: section.columns,
           data: sectionData,
         };
       })
     );
+
+    // If we have fallback category products, add them as a section
+    if (isRegularCategory && fallbackCategoryProducts.length > 0) {
+      dynamicSections.push({
+        id: "category-products",
+        title: `Products in ${headerCategorySlug}`,
+        slug: "category-products",
+        displayType: "products",
+        columns: 4,
+        data: fallbackCategoryProducts,
+      });
+    }
 
     // 10. Fetch PromoStrip for the current header category (with caching)
     const currentHeaderCategorySlug = (headerCategorySlug as string) || "all";
@@ -801,41 +870,15 @@ export const getStoreProducts = async (req: Request, res: Response) => {
       const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
       console.log(`[getStoreProducts] Found ${nearbySellerIds.length} sellers within range`);
 
-      if (nearbySellerIds.length === 0) {
-        // No sellers within range, return shop data but empty products
-        console.log(`[getStoreProducts] No sellers in range, returning empty products`);
-        return res.status(200).json({
-          success: true,
-          data: [],
-          shop: shopData,
-          pagination: {
-            page: 1,
-            limit: 50,
-            total: 0,
-            pages: 0,
-          },
-          message: "No sellers available in your area. Please update your location.",
-        });
+      if (nearbySellerIds.length > 0) {
+        // Filter products by sellers within range
+        query.seller = { $in: nearbySellerIds };
+        console.log(`[getStoreProducts] Added seller filter to query`);
       }
-
-      // Filter products by sellers within range
-      query.seller = { $in: nearbySellerIds };
-      console.log(`[getStoreProducts] Added seller filter to query`);
     } else {
-      // If no location provided, return empty (require location for marketplace)
-      console.log(`[getStoreProducts] No location provided, returning empty products`);
-      return res.status(200).json({
-        success: true,
-        data: [],
-        shop: shopData,
-        pagination: {
-          page: 1,
-          limit: 50,
-          total: 0,
-          pages: 0,
-        },
-        message: "Location is required to view products. Please enable location access.",
-      });
+      // If no location provided, still show all products (don't filter by seller location)
+      console.log(`[getStoreProducts] No location provided, showing all matching products`);
+      // No seller filter added to query
     }
 
     console.log(`[getStoreProducts] Final query:`, JSON.stringify(query, null, 2));

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getCategories, Category } from '../../../services/api/categoryService';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function SellerCategory() {
+    const { user } = useAuth();
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
@@ -35,10 +37,21 @@ export default function SellerCategory() {
         fetchCategories();
     }, [searchTerm]);
 
-    // Client-side filtering for display (API handles search, but we can filter further if needed)
-    const filteredCategories = categories.filter(cat =>
-        cat.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Client-side filtering for display
+    const filteredCategories = categories.filter(cat => {
+        // First filter by search term
+        const matchesSearch = cat.name.toLowerCase().includes(searchTerm.toLowerCase());
+        if (!matchesSearch) return false;
+
+        // Then filter by seller's assigned category
+        if (user?.categoryId) {
+            return (cat._id || (cat as any).id) === user.categoryId;
+        }
+        if (user?.categories && user.categories.length > 0) {
+            return user.categories.includes(cat._id || (cat as any).id);
+        }
+        return true; // Show all if no category assigned yet
+    });
 
     return (
         <div className="flex flex-col h-full">

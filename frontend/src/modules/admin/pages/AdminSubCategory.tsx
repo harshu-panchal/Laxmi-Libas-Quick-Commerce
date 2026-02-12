@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { uploadImage } from "../../../services/api/uploadService";
 import {
   validateImageFile,
@@ -147,7 +147,7 @@ export default function AdminSubCategory() {
       if (subcategoryImageFile) {
         const imageResult = await uploadImage(
           subcategoryImageFile,
-          "dhakadsnazzy/subcategories"
+          "laxmart/subcategories"
         );
         imageUrl = imageResult.secureUrl;
       }
@@ -751,9 +751,9 @@ export default function AdminSubCategory() {
 
       {/* Footer */}
       <div className="text-center text-sm text-neutral-500 py-4">
-        Copyright Â© 2025. Developed By{" "}
+        Copyright © 2025. Developed By{" "}
         <a href="#" className="text-teal-600 hover:text-teal-700">
-          Dhakad Snazzy - 10 Minute App
+          LaxMart - 10 Minute App
         </a>
       </div>
     </div>

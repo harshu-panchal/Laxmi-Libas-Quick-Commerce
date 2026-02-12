@@ -46,6 +46,7 @@ import * as faqController from "../modules/admin/controllers/adminFAQController"
 import * as paymentController from "../modules/admin/controllers/adminPaymentController";
 import * as policyController from "../modules/admin/controllers/adminPolicyController";
 import * as sellerController from "../modules/admin/controllers/adminSellerController";
+import * as sellerApprovalController from "../modules/admin/controllers/adminSellerApprovalController";
 
 // Profile Controllers
 import * as profileController from "../modules/admin/controllers/adminProfileController";
@@ -300,6 +301,15 @@ router.delete("/policies/:id", policyController.deletePolicy);
 
 // ==================== Seller Routes ====================
 router.get("/sellers", sellerController.getAllSellers);
+
+// ==================== Seller Approval Routes ====================
+router.get("/sellers/pending", sellerApprovalController.getPendingSellers);
+router.get("/sellers/status/:status", sellerApprovalController.getSellersByStatus);
+router.get("/sellers/:id/details", sellerApprovalController.getSellerDetails);
+router.post("/sellers/:id/approve", sellerApprovalController.approveSeller);
+router.post("/sellers/:id/reject", sellerApprovalController.rejectSeller);
+router.post("/sellers/:id/block", sellerApprovalController.blockSeller);
+router.post("/sellers/:id/unblock", sellerApprovalController.unblockSeller);
 
 // ==================== Shop Management ====================
 // Legacy routes (keep for backward compatibility)

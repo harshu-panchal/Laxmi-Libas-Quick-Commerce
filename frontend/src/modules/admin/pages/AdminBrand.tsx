@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { uploadImage } from "../../../services/api/uploadService";
 import { validateImageFile, createImagePreview } from "../../../utils/imageUpload";
 import {
@@ -118,7 +118,7 @@ export default function AdminBrand() {
 
       // Upload brand image if a new file is selected
       if (brandImageFile) {
-        const imageResult = await uploadImage(brandImageFile, "dhakadsnazzy/brands");
+        const imageResult = await uploadImage(brandImageFile, "laxmart/brands");
         imageUrl = imageResult.secureUrl;
       }
 
@@ -682,9 +682,9 @@ export default function AdminBrand() {
 
       {/* Footer */}
       <div className="text-center text-sm text-neutral-500 py-4">
-        Copyright Â© 2025. Developed By{" "}
+        Copyright © 2025. Developed By{" "}
         <a href="#" className="text-teal-600 hover:text-teal-700">
-          Dhakad Snazzy - 10 Minute App
+          LaxMart - 10 Minute App
         </a>
       </div>
     </div>

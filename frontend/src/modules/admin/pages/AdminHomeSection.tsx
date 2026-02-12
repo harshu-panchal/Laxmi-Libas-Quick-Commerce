@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
     getHomeSections,
     createHomeSection,
@@ -14,6 +14,7 @@ const DISPLAY_TYPE_OPTIONS = [
     { value: "subcategories", label: "Subcategories" },
     { value: "products", label: "Products" },
     { value: "categories", label: "Categories" },
+    { value: "banners", label: "Banners" },
 ];
 
 const COLUMNS_OPTIONS = [2, 3, 4, 6, 8];
@@ -25,9 +26,11 @@ export default function AdminHomeSection() {
     const [selectedHeaderCategory, setSelectedHeaderCategory] = useState<string>("");
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([]);
-    const [displayType, setDisplayType] = useState<"subcategories" | "products" | "categories">("subcategories");
+    const [displayType, setDisplayType] = useState<"subcategories" | "products" | "categories" | "banners">("subcategories");
+    const [bannerData, setBannerData] = useState<Array<{ imageUrl: string; link?: string; title?: string }>>([]);
     const [columns, setColumns] = useState(4);
     const [limit, setLimit] = useState(8);
+    const [order, setOrder] = useState(0);
     const [isActive, setIsActive] = useState(true);
     const [pageLocation, setPageLocation] = useState<"Home Page" | "Header Category Page">("Home Page");
     const [targetPageHeaderCategory, setTargetPageHeaderCategory] = useState<string>("");
@@ -169,6 +172,21 @@ export default function AdminHomeSection() {
         }
     };
 
+    const handleAddBanner = () => {
+        setBannerData([...bannerData, { imageUrl: "", link: "", title: "" }]);
+    };
+
+    const handleRemoveBanner = (index: number) => {
+        const newBanners = bannerData.filter((_, i) => i !== index);
+        setBannerData(newBanners);
+    };
+
+    const handleUpdateBanner = (index: number, field: string, value: string) => {
+        const newBanners = [...bannerData];
+        newBanners[index] = { ...newBanners[index], [field]: value };
+        setBannerData(newBanners);
+    };
+
     const handleSubmit = async () => {
         setError("");
         setSuccess("");
@@ -198,15 +216,24 @@ export default function AdminHomeSection() {
             return;
         }
 
+        if (displayType === "banners") {
+            const validBanners = bannerData.filter(b => b.imageUrl.trim() !== "");
+            if (validBanners.length === 0) {
+                setError("Please add at least one banner with a valid image URL");
+                return;
+            }
+        }
+
         const formData: HomeSectionFormData = {
             title: title.trim(),
             slug: slug.trim(),
-            categories: selectedCategories.length > 0 ? selectedCategories : undefined,
-            // Only include subcategories if displayType is not "categories"
-            subCategories: displayType !== "categories" && selectedSubCategories.length > 0 ? selectedSubCategories : undefined,
+            categories: displayType === "categories" && selectedCategories.length > 0 ? selectedCategories : undefined,
+            subCategories: displayType === "subcategories" && selectedSubCategories.length > 0 ? selectedSubCategories : undefined,
             displayType,
-            columns,
-            limit,
+            bannerData: displayType === "banners" ? bannerData.filter(b => b.imageUrl.trim() !== "") : undefined,
+            columns: displayType === "banners" ? 4 : columns,
+            limit: displayType === "banners" ? 10 : limit,
+            order,
             isActive,
             pageLocation,
             targetHeaderCategory: pageLocation === "Header Category Page" ? targetPageHeaderCategory : undefined,
@@ -271,8 +298,10 @@ export default function AdminHomeSection() {
 
         setSelectedCategories(section.categories?.map(c => c._id) || []);
         setSelectedSubCategories(section.subCategories?.map(s => s._id) || []);
+        setBannerData(section.bannerData || []);
         setColumns(section.columns);
         setLimit(section.limit);
+        setOrder(section.order || 0);
         setIsActive(section.isActive);
         setPageLocation(section.pageLocation || "Home Page");
         setTargetPageHeaderCategory(
@@ -310,8 +339,10 @@ export default function AdminHomeSection() {
         setSelectedCategories([]);
         setSelectedSubCategories([]);
         setDisplayType("subcategories");
+        setBannerData([]);
         setColumns(4);
         setLimit(8);
+        setOrder(0);
         setIsActive(true);
         setPageLocation("Home Page");
         setTargetPageHeaderCategory("");
@@ -461,13 +492,22 @@ export default function AdminHomeSection() {
                                 <select
                                     value={displayType}
                                     onChange={(e) => {
-                                        const newDisplayType = e.target.value as "subcategories" | "products" | "categories";
+                                        const newDisplayType = e.target.value as "subcategories" | "products" | "categories" | "banners";
                                         setDisplayType(newDisplayType);
                                         // Clear selections when switching display types
                                         if (newDisplayType === "categories") {
                                             setSelectedSubCategories([]);
+                                            setBannerData([]);
+                                        } else if (newDisplayType === "banners") {
+                                            setSelectedSubCategories([]);
+                                            setSelectedCategories([]);
+                                            setSelectedHeaderCategory("");
+                                            if (bannerData.length === 0) {
+                                                setBannerData([{ imageUrl: "", link: "", title: "" }]);
+                                            }
                                         } else {
                                             setSelectedHeaderCategory("");
+                                            setBannerData([]);
                                         }
                                     }}
                                     className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
@@ -480,158 +520,234 @@ export default function AdminHomeSection() {
                                 </select>
                             </div>
 
-                            {/* Header Category - Only show when displayType is "categories" */}
-                            {displayType === "categories" && (
+                            {/* Categories Selection - Only for non-banners */}
+                            {displayType !== "banners" && (
+                                <>
+                                    {/* Header Category - Only show when displayType is "categories" */}
+                                    {displayType === "categories" && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                                Header Category <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                value={selectedHeaderCategory}
+                                                onChange={(e) => {
+                                                    setSelectedHeaderCategory(e.target.value);
+                                                    setSelectedCategories([]); // Clear selected categories when header category changes
+                                                }}
+                                                className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                                            >
+                                                <option value="">Select a header category</option>
+                                                {headerCategories
+                                                    .filter((hc) => hc.status === "Published")
+                                                    .map((hc) => (
+                                                        <option key={hc._id} value={hc._id}>
+                                                            {hc.name}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {/* Categories - Checkbox List */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                            Categories
+                                            {displayType === "categories" && (
+                                                <span className="text-red-500 ml-1">*</span>
+                                            )}
+                                        </label>
+                                        <div className={`border border-neutral-300 rounded max-h-40 overflow-y-auto p-2 ${displayType === "categories" && !selectedHeaderCategory ? 'bg-gray-100' : 'bg-white'
+                                            }`}>
+                                            {displayType === "categories" && !selectedHeaderCategory ? (
+                                                <p className="text-sm text-neutral-400 p-2">Please select a header category first</p>
+                                            ) : filteredCategories.length === 0 ? (
+                                                <p className="text-sm text-neutral-400 p-2">
+                                                    {displayType === "categories"
+                                                        ? "No categories found for selected header category"
+                                                        : "Loading categories..."}
+                                                </p>
+                                            ) : (
+                                                filteredCategories.map((cat) => (
+                                                    <label
+                                                        key={cat._id}
+                                                        className="flex items-center p-2 hover:bg-neutral-50 rounded cursor-pointer"
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedCategories.includes(cat._id)}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setSelectedCategories([...selectedCategories, cat._id]);
+                                                                } else {
+                                                                    setSelectedCategories(
+                                                                        selectedCategories.filter((id) => id !== cat._id)
+                                                                    );
+                                                                }
+                                                            }}
+                                                            className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                                                        />
+                                                        <span className="ml-2 text-sm text-neutral-700">{cat.name}</span>
+                                                    </label>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* SubCategories - Checkbox List - Only show when displayType is NOT "categories" */}
+                                    {displayType !== "categories" && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                                SubCategories
+                                            </label>
+                                            <div className={`border border-neutral-300 rounded max-h-40 overflow-y-auto p-2 ${selectedCategories.length === 0 ? 'bg-gray-100' : 'bg-white'
+                                                }`}>
+                                                {selectedCategories.length === 0 ? (
+                                                    <p className="text-sm text-neutral-400 p-2">Select categories first</p>
+                                                ) : subCategories.length === 0 ? (
+                                                    <p className="text-sm text-neutral-400 p-2">No subcategories available</p>
+                                                ) : (
+                                                    subCategories.map((sub) => (
+                                                        <label
+                                                            key={sub._id || sub.id}
+                                                            className="flex items-center p-2 hover:bg-neutral-50 rounded cursor-pointer"
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedSubCategories.includes(sub._id || sub.id || '')}
+                                                                onChange={(e) => {
+                                                                    const subId = sub._id || sub.id || '';
+                                                                    if (e.target.checked) {
+                                                                        setSelectedSubCategories([...selectedSubCategories, subId]);
+                                                                    } else {
+                                                                        setSelectedSubCategories(
+                                                                            selectedSubCategories.filter((id) => id !== subId)
+                                                                        );
+                                                                    }
+                                                                }}
+                                                                className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                                                            />
+                                                            <span className="ml-2 text-sm text-neutral-700">{sub.subcategoryName}</span>
+                                                        </label>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Banners Selection - Only for banners */}
+                            {displayType === "banners" && (
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <label className="block text-sm font-medium text-neutral-700">
+                                            Banners <span className="text-red-500">*</span>
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={handleAddBanner}
+                                            className="text-xs bg-teal-50 text-teal-600 px-2 py-1 rounded border border-teal-200 hover:bg-teal-100"
+                                        >
+                                            + Add Banner
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                                        {bannerData.map((banner, index) => (
+                                            <div key={index} className="p-3 border border-neutral-200 rounded bg-neutral-50 relative group">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveBanner(index)}
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                    </svg>
+                                                </button>
+
+                                                <div className="space-y-2">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Image URL"
+                                                        value={banner.imageUrl}
+                                                        onChange={(e) => handleUpdateBanner(index, "imageUrl", e.target.value)}
+                                                        className="w-full px-2 py-1.5 text-xs border border-neutral-300 rounded focus:ring-1 focus:ring-teal-500 outline-none"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Link (optional)"
+                                                        value={banner.link}
+                                                        onChange={(e) => handleUpdateBanner(index, "link", e.target.value)}
+                                                        className="w-full px-2 py-1.5 text-xs border border-neutral-300 rounded focus:ring-1 focus:ring-teal-500 outline-none"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Title (optional)"
+                                                        value={banner.title}
+                                                        onChange={(e) => handleUpdateBanner(index, "title", e.target.value)}
+                                                        className="w-full px-2 py-1.5 text-xs border border-neutral-300 rounded focus:ring-1 focus:ring-teal-500 outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Columns - Hidden for Banners */}
+                            {displayType !== "banners" && (
                                 <div>
                                     <label className="block text-sm font-medium text-neutral-700 mb-2">
-                                        Header Category <span className="text-red-500">*</span>
+                                        Number of Columns <span className="text-red-500">*</span>
                                     </label>
                                     <select
-                                        value={selectedHeaderCategory}
-                                        onChange={(e) => {
-                                            setSelectedHeaderCategory(e.target.value);
-                                            setSelectedCategories([]); // Clear selected categories when header category changes
-                                        }}
+                                        value={columns}
+                                        onChange={(e) => setColumns(Number(e.target.value))}
                                         className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
                                     >
-                                        <option value="">Select a header category</option>
-                                        {headerCategories
-                                            .filter((hc) => hc.status === "Published")
-                                            .map((hc) => (
-                                                <option key={hc._id} value={hc._id}>
-                                                    {hc.name}
-                                                </option>
-                                            ))}
+                                        {COLUMNS_OPTIONS.map((col) => (
+                                            <option key={col} value={col}>
+                                                {col} Columns
+                                            </option>
+                                        ))}
                                     </select>
-                                    <p className="text-xs text-neutral-500 mt-1">
-                                        Select a header category to filter categories
-                                    </p>
                                 </div>
                             )}
 
-                            {/* Categories - Checkbox List */}
-                            <div>
-                                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                                    Categories
-                                    {displayType === "categories" && (
-                                        <span className="text-red-500 ml-1">*</span>
-                                    )}
-                                </label>
-                                <div className={`border border-neutral-300 rounded max-h-40 overflow-y-auto p-2 ${displayType === "categories" && !selectedHeaderCategory ? 'bg-gray-100' : 'bg-white'
-                                    }`}>
-                                    {displayType === "categories" && !selectedHeaderCategory ? (
-                                        <p className="text-sm text-neutral-400 p-2">Please select a header category first</p>
-                                    ) : filteredCategories.length === 0 ? (
-                                        <p className="text-sm text-neutral-400 p-2">
-                                            {displayType === "categories"
-                                                ? "No categories found for selected header category"
-                                                : "Loading categories..."}
-                                        </p>
-                                    ) : (
-                                        filteredCategories.map((cat) => (
-                                            <label
-                                                key={cat._id}
-                                                className="flex items-center p-2 hover:bg-neutral-50 rounded cursor-pointer"
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedCategories.includes(cat._id)}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) {
-                                                            setSelectedCategories([...selectedCategories, cat._id]);
-                                                        } else {
-                                                            setSelectedCategories(
-                                                                selectedCategories.filter((id) => id !== cat._id)
-                                                            );
-                                                        }
-                                                    }}
-                                                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
-                                                />
-                                                <span className="ml-2 text-sm text-neutral-700">{cat.name}</span>
-                                            </label>
-                                        ))
-                                    )}
-                                </div>
-                                <p className="text-xs text-neutral-500 mt-1">
-                                    {selectedCategories.length} selected
-                                </p>
-                            </div>
-
-                            {/* SubCategories - Checkbox List - Only show when displayType is NOT "categories" */}
-                            {displayType !== "categories" && (
+                            {/* Limit - Hidden for Banners */}
+                            {displayType !== "banners" && (
                                 <div>
                                     <label className="block text-sm font-medium text-neutral-700 mb-2">
-                                        SubCategories
+                                        Item Limit <span className="text-red-500">*</span>
                                     </label>
-                                    <div className={`border border-neutral-300 rounded max-h-40 overflow-y-auto p-2 ${selectedCategories.length === 0 ? 'bg-gray-100' : 'bg-white'
-                                        }`}>
-                                        {selectedCategories.length === 0 ? (
-                                            <p className="text-sm text-neutral-400 p-2">Select categories first</p>
-                                        ) : subCategories.length === 0 ? (
-                                            <p className="text-sm text-neutral-400 p-2">No subcategories available</p>
-                                        ) : (
-                                            subCategories.map((sub) => (
-                                                <label
-                                                    key={sub._id || sub.id}
-                                                    className="flex items-center p-2 hover:bg-neutral-50 rounded cursor-pointer"
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedSubCategories.includes(sub._id || sub.id || '')}
-                                                        onChange={(e) => {
-                                                            const subId = sub._id || sub.id || '';
-                                                            if (e.target.checked) {
-                                                                setSelectedSubCategories([...selectedSubCategories, subId]);
-                                                            } else {
-                                                                setSelectedSubCategories(
-                                                                    selectedSubCategories.filter((id) => id !== subId)
-                                                                );
-                                                            }
-                                                        }}
-                                                        className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
-                                                    />
-                                                    <span className="ml-2 text-sm text-neutral-700">{sub.subcategoryName}</span>
-                                                </label>
-                                            ))
-                                        )}
-                                    </div>
-                                    <p className="text-xs text-neutral-500 mt-1">
-                                        {selectedSubCategories.length} selected
-                                    </p>
+                                    <input
+                                        type="number"
+                                        value={limit}
+                                        onChange={(e) => setLimit(Number(e.target.value))}
+                                        min="1"
+                                        max="50"
+                                        className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                                    />
                                 </div>
                             )}
 
-                            {/* Columns */}
+                            {/* Order Field */}
                             <div>
                                 <label className="block text-sm font-medium text-neutral-700 mb-2">
-                                    Number of Columns <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    value={columns}
-                                    onChange={(e) => setColumns(Number(e.target.value))}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
-                                >
-                                    {COLUMNS_OPTIONS.map((col) => (
-                                        <option key={col} value={col}>
-                                            {col} Columns
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Limit */}
-                            <div>
-                                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                                    Item Limit <span className="text-red-500">*</span>
+                                    Display Order
                                 </label>
                                 <input
                                     type="number"
-                                    value={limit}
-                                    onChange={(e) => setLimit(Number(e.target.value))}
-                                    min="1"
-                                    max="50"
+                                    value={order}
+                                    onChange={(e) => setOrder(Number(e.target.value))}
+                                    placeholder="0"
                                     className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
                                 />
+                                <p className="text-xs text-neutral-500 mt-1">
+                                    Lower numbers appear first. Default is last.
+                                </p>
                             </div>
 
                             {/* Active Status */}
@@ -708,9 +824,10 @@ export default function AdminHomeSection() {
                                         <th className="p-4">Order</th>
                                         <th className="p-4">Title</th>
                                         <th className="p-4">Type</th>
-                                        <th className="p-4">Categories</th>
-                                        <th className="p-4">Columns</th>
-                                        <th className="p-4">Status</th>
+                                        <th className="p-4 text-left font-medium text-neutral-500">Items</th>
+                                        <th className="p-4 text-left font-medium text-neutral-500">Columns</th>
+                                        <th className="p-4 text-left font-medium text-neutral-500">Order</th>
+                                        <th className="p-4 text-left font-medium text-neutral-500">Status</th>
                                         <th className="p-4">Action</th>
                                     </tr>
                                 </thead>
@@ -743,11 +860,14 @@ export default function AdminHomeSection() {
                                                 <td className="p-4 font-medium">{section.title}</td>
                                                 <td className="p-4 capitalize">{section.displayType}</td>
                                                 <td className="p-4">
-                                                    {section.categories && section.categories.length > 0
-                                                        ? section.categories.map((c: any) => c.name).join(", ")
-                                                        : "All"}
+                                                    {section.displayType === "banners"
+                                                        ? `${section.bannerData?.length || 0} Banners`
+                                                        : section.categories && section.categories.length > 0
+                                                            ? section.categories.map((c: any) => c.name).join(", ")
+                                                            : "All"}
                                                 </td>
                                                 <td className="p-4">{section.columns}</td>
+                                                <td className="p-4">{section.order}</td>
                                                 <td className="p-4">
                                                     <span
                                                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${section.isActive
@@ -877,13 +997,14 @@ export default function AdminHomeSection() {
             </div>
 
             {/* Footer */}
-            <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white">
-                Copyright Â© 2025. Developed By{" "}
+            <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white mt-auto">
+                Copyright © 2025. Developed By{" "}
                 <a href="#" className="text-blue-600 hover:underline">
-                    Dhakad Snazzy - 10 Minute App
+                    LaxMart - 10 Minute App
                 </a>
             </footer>
-        </div >
-    );
+        </div>
+    )
 }
+
 

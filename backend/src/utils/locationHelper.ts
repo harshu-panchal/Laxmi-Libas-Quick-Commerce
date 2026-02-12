@@ -21,9 +21,9 @@ export function calculateDistance(
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -48,47 +48,15 @@ export async function findSellersWithinRange(
   }
 
   try {
-    // Fetch all approved sellers with location
+    // Fetch all approved sellers
     const sellers = await Seller.find({
       status: "Approved",
-    }).select("_id location serviceRadiusKm latitude longitude");
+    }).select("_id");
 
-    // Filter sellers where user is within their service radius
-    const nearbySellerIds: mongoose.Types.ObjectId[] = [];
-
-    for (const seller of sellers) {
-      let sellerLat: number | null = null;
-      let sellerLng: number | null = null;
-
-      // Try GeoJSON first
-      if (seller.location && seller.location.coordinates && seller.location.coordinates.length === 2) {
-        sellerLng = seller.location.coordinates[0];
-        sellerLat = seller.location.coordinates[1];
-      }
-      // Fallback to string fields if GeoJSON missing
-      else if (seller.latitude && seller.longitude) {
-         sellerLat = parseFloat(seller.latitude);
-         sellerLng = parseFloat(seller.longitude);
-      }
-
-      if (sellerLat !== null && sellerLng !== null && !isNaN(sellerLat) && !isNaN(sellerLng)) {
-        const distance = calculateDistance(
-          userLat,
-          userLng,
-          sellerLat,
-          sellerLng
-        );
-        const serviceRadius = seller.serviceRadiusKm || 10; // Default to 10km if not set
-
-        if (distance <= serviceRadius) {
-          nearbySellerIds.push(seller._id as mongoose.Types.ObjectId);
-        }
-      }
-    }
-
-    return nearbySellerIds;
+    // Temporarily return all sellers to make service available everywhere
+    return sellers.map(s => s._id as mongoose.Types.ObjectId);
   } catch (error) {
-    console.error("Error finding nearby sellers:", error);
+    console.error("Error finding sellers:", error);
     return [];
   }
 }

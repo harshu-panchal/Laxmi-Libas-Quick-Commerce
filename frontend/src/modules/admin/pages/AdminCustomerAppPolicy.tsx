@@ -1,7 +1,7 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 
 export default function AdminCustomerAppPolicy() {
-  const [policyContent, setPolicyContent] = useState(`Welcome to Dhakad Snazzy - 10 Minute App!
+  const [policyContent, setPolicyContent] = useState(`Welcome to LaxMart - 10 Minute App!
 
 By using our customer app, you agree to the following terms and conditions:
 

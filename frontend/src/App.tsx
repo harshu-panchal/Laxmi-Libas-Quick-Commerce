@@ -135,6 +135,7 @@ const AdminOrders = lazy(() => import("./modules/admin/pages/AdminOrders"));
 const AdminOrderDetail = lazy(() => import("./modules/admin/pages/AdminOrderDetail"));
 const AdminManageCustomer = lazy(() => import("./modules/admin/pages/AdminManageCustomer"));
 const AdminProfile = lazy(() => import("./modules/admin/pages/AdminProfile"));
+const AdminBanners = lazy(() => import("./modules/admin/pages/AdminBanners"));
 
 const AdminWithdrawals = lazy(() => import("./modules/admin/pages/AdminWithdrawals"));
 const AdminPayments = lazy(() => import("./modules/admin/pages/AdminPayments"));
@@ -346,6 +347,7 @@ function App() {
                                       <Route path="orders/delivered" element={<AdminDeliveredOrders />} />
                                       <Route path="orders/cancelled" element={<AdminCancelledOrders />} />
                                       <Route path="orders/:id" element={<AdminOrderDetail />} />
+                                      <Route path="banners" element={<AdminBanners />} />
 
                                       <Route path="withdrawals" element={<AdminWithdrawals />} />
                                       <Route path="payments" element={<AdminPayments />} />

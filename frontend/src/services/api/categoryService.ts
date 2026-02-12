@@ -10,6 +10,7 @@ export interface ApiResponse<T> {
 export interface Category {
   _id: string;
   name: string;
+  slug: string;
   image?: string;
   parentId?: string;
   headerCategoryId?: string | any; // Can be string ID or populated object
@@ -18,6 +19,7 @@ export interface Category {
   groupCategory?: string;
   totalSubcategory?: number;
   totalProduct?: number;
+  status: 'Active' | 'Inactive';
   createdAt?: string;
   updatedAt?: string;
 }

@@ -14,7 +14,12 @@ export interface HomeSection {
         _id: string;
         name: string;
     }>;
-    displayType: "subcategories" | "products" | "categories";
+    displayType: "subcategories" | "products" | "categories" | "banners";
+    bannerData?: Array<{
+        imageUrl: string;
+        link?: string;
+        title?: string;
+    }>;
     columns: number;
     limit: number;
     pageLocation?: "Home Page" | "Header Category Page";
@@ -33,7 +38,12 @@ export interface HomeSectionFormData {
     slug: string;
     categories?: string[];
     subCategories?: string[];
-    displayType: "subcategories" | "products" | "categories";
+    displayType: "subcategories" | "products" | "categories" | "banners";
+    bannerData?: Array<{
+        imageUrl: string;
+        link?: string;
+        title?: string;
+    }>;
     columns: number;
     limit: number;
     pageLocation?: "Home Page" | "Header Category Page";

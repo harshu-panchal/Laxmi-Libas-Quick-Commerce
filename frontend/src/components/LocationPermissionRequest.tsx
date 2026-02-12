@@ -59,87 +59,70 @@ export default function LocationPermissionRequest({
   };
 
   const handleManualLocationSelect = (address: string, lat: number, lng: number, placeName: string, components?: { city?: string; state?: string; pincode?: string }) => {
+    console.log("[LocationPermissionRequest] Manual location selected:", { address, lat, lng, city: components?.city });
     setManualAddress(address);
     setManualLat(lat);
     setManualLng(lng);
     setManualCity(components?.city || '');
     setManualState(components?.state || '');
     setManualPincode(components?.pincode || '');
+
+    // Auto-save if we have full coordinates (meaning user clicked a suggestion)
+    if (lat && lng && address) {
+      console.log("[LocationPermissionRequest] Auto-saving selected location...");
+      handleSaveManualLocation({
+        address,
+        lat,
+        lng,
+        city: components?.city || '',
+        state: components?.state || '',
+        pincode: components?.pincode || ''
+      });
+    }
   };
 
-  const handleSaveManualLocation = async () => {
-    if (!manualAddress) {
+  const handleSaveManualLocation = async (providedData?: { address: string; lat: number; lng: number; city: string; state: string; pincode: string }) => {
+    const addressToSave = providedData?.address || manualAddress;
+
+    if (!addressToSave) {
+      alert("Please enter or select a valid address.");
       return;
     }
 
     setIsSaving(true);
-    let lat = manualLat;
-    let lng = manualLng;
-    // Start with manual values, but prioritize fetched ones
-    let finalAddress = manualAddress;
-    let city = manualCity;
-    let state = manualState;
-    let pincode = manualPincode;
-
-    // Track if we successfully resolved the address
-    let isResolved = false;
 
     try {
-      const geocoder = new window.google.maps.Geocoder();
+      let finalLat = providedData?.lat || manualLat;
+      let finalLng = providedData?.lng || manualLng;
+      let finalAddress = addressToSave;
+      let city = providedData?.city || manualCity;
+      let state = providedData?.state || manualState;
+      let pincode = providedData?.pincode || manualPincode;
 
-      // Strategy 1: If we have coordinates, try valid REVERSE geocoding first
-      if (lat && lng) {
+      // Only attempt geocoding if coordinates are missing (rare cases where user types without selecting)
+      if (!finalLat || !finalLng) {
+        console.log("[LocationPermissionRequest] Coordinates missing, attempting geocoding for:", addressToSave);
         try {
-          const result = await new Promise<any>((resolve, reject) => {
-            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-              if (status === 'OK' && results && results[0]) {
-                resolve(results[0]);
-              } else {
-                reject(status);
-              }
-            });
-          });
-
-          if (result && result.formatted_address) {
-            finalAddress = result.formatted_address;
-
-            // Update components
-            if (result.address_components) {
-              city = ''; state = ''; pincode = '';
-              result.address_components.forEach((comp: any) => {
-                if (comp.types.includes('locality')) city = comp.long_name;
-                if (comp.types.includes('administrative_area_level_1')) state = comp.long_name;
-                if (comp.types.includes('postal_code')) pincode = comp.long_name;
-              });
-            }
-            isResolved = true;
+          if (!window.google?.maps?.Geocoder) {
+            throw new Error("Google Maps Geocoder not available");
           }
-        } catch (error) {
-          console.warn('Strategy 1 (Reverse Geocode) failed:', error);
-          // If this fails (e.g. invalid coords), we continue to Strategy 2 (Text Geocode)
-        }
-      }
-
-      // Strategy 2: If Strategy 1 failed or we didn't have coords, Geocode the TEXT
-      if (!isResolved) {
-        try {
+          const geocoder = new window.google.maps.Geocoder();
           const result = await new Promise<any>((resolve, reject) => {
-            // Constrain to India to match Autocomplete behavior and prevent weird matches
             geocoder.geocode({
-              address: manualAddress,
+              address: addressToSave,
               componentRestrictions: { country: 'in' }
             }, (results, status) => {
               if (status === 'OK' && results && results[0]) {
                 resolve(results[0]);
               } else {
-                reject(status);
+                reject(new Error(`Geocoding failed with status: ${status}`));
               }
             });
           });
 
           if (result && result.geometry && result.geometry.location) {
-            lat = result.geometry.location.lat();
-            lng = result.geometry.location.lng();
+            finalLat = result.geometry.location.lat();
+            finalLng = result.geometry.location.lng();
 
             if (result.formatted_address) {
               finalAddress = result.formatted_address;
@@ -153,36 +136,42 @@ export default function LocationPermissionRequest({
                 if (comp.types.includes('postal_code')) pincode = comp.long_name;
               });
             }
-            isResolved = true;
           }
-        } catch (error) {
-          console.error('Strategy 2 (Text Geocode) failed:', error);
+        } catch (geocodeError) {
+          console.error('[LocationPermissionRequest] Geocoding fallback failed:', geocodeError);
+          setIsSaving(false);
+          alert("Could not find coordinates for this address. Please select a location from the dropdown suggestions.");
+          return;
         }
       }
 
-      // Final Check: Do we have coordinates?
-      if (!lat || !lng) {
-        console.error("Could not resolve coordinates for address");
+      if (!finalLat || !finalLng) {
         setIsSaving(false);
+        alert("Please select a valid location from the search suggestions.");
         return;
       }
 
-      console.log("Saving location:", { lat, lng, finalAddress, city, state });
+      console.log("[LocationPermissionRequest] Saving final location data:", {
+        lat: finalLat,
+        lng: finalLng,
+        address: finalAddress
+      });
 
-      // Save manual location with the CORRECT full address and components
+      // Save manual location
       await updateLocation({
-        latitude: lat,
-        longitude: lng,
+        latitude: finalLat,
+        longitude: finalLng,
         address: finalAddress,
         city: city,
         state: state,
         pincode: pincode
       });
 
-      // Close modal
+      // Notify parent that location is now granted/set
       onLocationGranted();
-    } catch (error) {
-      console.error('Failed to save manual location:', error);
+    } catch (err) {
+      console.error('[LocationPermissionRequest] Critical error saving manual location:', err);
+      alert("Something went wrong while saving your location. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -287,7 +276,13 @@ export default function LocationPermissionRequest({
             </div>
           </>
         ) : (
-          <div className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveManualLocation();
+            }}
+            className="space-y-4"
+          >
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-2">
                 Search and select your location
@@ -302,6 +297,7 @@ export default function LocationPermissionRequest({
 
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={() => setShowManualInput(false)}
                 className="flex-1 py-2 bg-neutral-100 text-neutral-700 rounded-lg font-semibold hover:bg-neutral-200 transition-colors"
                 disabled={isSaving}
@@ -309,7 +305,7 @@ export default function LocationPermissionRequest({
                 Back
               </button>
               <button
-                onClick={handleSaveManualLocation}
+                type="submit"
                 disabled={!manualAddress || isSaving}
                 className="flex-1 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
@@ -326,7 +322,7 @@ export default function LocationPermissionRequest({
                 )}
               </button>
             </div>
-          </div>
+          </form>
         )}
       </div>
     </div>

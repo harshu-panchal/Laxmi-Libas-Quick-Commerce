@@ -115,7 +115,7 @@ export default function Checkout() {
 
   // Check if user has placeholder data (needs profile completion)
   const isPlaceholderUser =
-    user?.name === "User" || user?.email?.endsWith("@dhakadsnazzy.temp");
+    user?.name === "User" || user?.email?.endsWith("@laxmart.temp");
 
   // Redirect if empty
   useEffect(() => {
@@ -415,7 +415,7 @@ export default function Checkout() {
     if (!bypassProfileCheck && isPlaceholderUser) {
       setProfileFormData({
         name: user?.name === "User" ? "" : user?.name || "",
-        email: user?.email?.endsWith("@dhakadsnazzy.temp")
+        email: user?.email?.endsWith("@laxmart.temp")
           ? ""
           : user?.email || "",
       });
@@ -2045,7 +2045,7 @@ export default function Checkout() {
         </button>
       </div>
 
-      {/* Made with love by Dhakad Snazzy */}
+      {/* Made with love by LaxMart */}
       <div className="px-4 py-2">
         <div className="w-full flex flex-col items-center justify-center">
           <div className="flex items-center gap-1.5 text-neutral-500">
@@ -2058,7 +2058,7 @@ export default function Checkout() {
             </motion.span>
             <span className="text-[10px] font-medium">by</span>
             <span className="text-[10px] font-semibold text-green-600">
-              Dhakad Snazzy
+              LaxMart
             </span>
           </div>
         </div>
@@ -2212,7 +2212,7 @@ export default function Checkout() {
                 </h3>
                 <p>
                   For any cancellation requests or queries, please contact our
-                  customer support team at support@dhakadsnazzy.com or call
+                  customer support team at support@laxmart.com or call
                   +91-XXXXX-XXXXX
                 </p>
               </div>

@@ -30,23 +30,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Check serviceability when user location changes
   useEffect(() => {
-    const performCheck = async () => {
-      if (userLocation && userLocation.latitude && userLocation.longitude) {
-        try {
-          const result = await checkServiceability(userLocation.latitude, userLocation.longitude);
-          setIsServiceAvailable(result.isServiceAvailable);
-        } catch (error) {
-          console.error("Failed to check serviceability:", error);
-          // Default to true on error to avoid blocking user due to network issues
-          setIsServiceAvailable(true);
-        }
-      } else {
-        // If no location, we can't determine, so we assume available or waiting for location
-        setIsServiceAvailable(true);
-      }
-    };
-
-    performCheck();
+    // Temporarily disabled: service is available everywhere
+    setIsServiceAvailable(true);
   }, [userLocation]);
 
   const isActive = (path: string) => location.pathname === path;
@@ -55,14 +40,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Check if location is required for current route
   const requiresLocation = () => {
-    const publicRoutes = ['/login', '/signup', '/seller/login', '/seller/signup', '/delivery/login', '/delivery/signup', '/admin/login'];
-    // Don't require location on login/signup pages
-    if (publicRoutes.includes(location.pathname)) {
-      return false;
-    }
-    // Require location for ALL routes (not just authenticated users)
-    // This ensures location is mandatory for everyone visiting the platform
-    return true;
+    // Temporarily disabled: location is not mandatory for now
+    return false;
   };
 
   // ... (rest of the component logic)

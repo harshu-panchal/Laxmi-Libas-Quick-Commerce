@@ -44,27 +44,27 @@ export interface IOrder extends Document {
 
   // Order Status
   status:
-    | "Received"
-    | "Accepted"
-    | "Pending"
-    | "Processed"
-    | "Shipped"
-    | "Picked up"
-    | "On the way"
-    | "Out for Delivery"
-    | "Delivered"
-    | "Cancelled"
-    | "Rejected"
-    | "Returned";
+  | "Received"
+  | "Accepted"
+  | "Pending"
+  | "Processed"
+  | "Shipped"
+  | "Picked up"
+  | "On the way"
+  | "Out for Delivery"
+  | "Delivered"
+  | "Cancelled"
+  | "Rejected"
+  | "Returned";
 
   // Delivery Assignment
   deliveryBoy?: mongoose.Types.ObjectId;
   deliveryBoyStatus?:
-    | "Assigned"
-    | "Picked Up"
-    | "In Transit"
-    | "Delivered"
-    | "Failed";
+  | "Assigned"
+  | "Picked Up"
+  | "In Transit"
+  | "Delivered"
+  | "Failed";
   assignedAt?: Date;
 
   // Tracking
@@ -365,11 +365,11 @@ const OrderSchema = new Schema<IOrder>(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 // Generate order number before validation
-OrderSchema.pre("validate", async function (this: IOrder, next) {
+OrderSchema.pre("validate", async function (this: IOrder) {
   if (!this.orderNumber) {
     const timestamp = Date.now().toString();
     const random = Math.floor(Math.random() * 1000)
@@ -377,7 +377,6 @@ OrderSchema.pre("validate", async function (this: IOrder, next) {
       .padStart(3, "0");
     this.orderNumber = `ORD${timestamp}${random}`;
   }
-  next();
 });
 
 // Indexes for faster queries
@@ -385,10 +384,10 @@ OrderSchema.index({ customer: 1, orderDate: -1 });
 OrderSchema.index({ status: 1 });
 OrderSchema.index({ orderDate: -1 });
 OrderSchema.index({ deliveryBoy: 1 });
-OrderSchema.index({ orderNumber: 1 });
 
 const Order =
   (mongoose.models.Order as mongoose.Model<IOrder>) ||
   mongoose.model<IOrder>("Order", OrderSchema);
 
 export default Order;
+

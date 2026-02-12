@@ -12,6 +12,8 @@ export { default as Category } from "./Category";
 export { default as SubCategory } from "./SubCategory";
 export { default as Brand } from "./Brand";
 export { default as Product } from "./Product";
+export { default as Service } from "./Service";
+export { default as RoomRent } from "./RoomRent";
 export { default as Order } from "./Order";
 export { default as OrderItem } from "./OrderItem";
 export { default as Coupon } from "./Coupon";
@@ -21,6 +23,7 @@ export { default as HomeSection } from "./HomeSection";
 export { default as Notification } from "./Notification";
 export { default as AppSettings } from "./AppSettings";
 export { default as PromoStrip } from "./PromoStrip";
+export { default as Banner } from "./Banner";
 
 // Support & Reference Models
 export { default as Address } from "./Address";

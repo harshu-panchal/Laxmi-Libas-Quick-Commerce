@@ -30,7 +30,7 @@ const menuItems: MenuItem[] = [
     hasSubmenu: true,
     submenuItems: [
       {
-        label: "Add new Product",
+        label: "Add Product/Service",
         path: "/seller/product/add",
         icon: (
           <svg

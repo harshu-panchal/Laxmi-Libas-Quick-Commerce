@@ -6,7 +6,12 @@ export interface IHomeSection extends Document {
     categories?: mongoose.Types.ObjectId[]; // Changed to array
     subCategories?: mongoose.Types.ObjectId[]; // Changed to array
     products?: mongoose.Types.ObjectId[]; // Manual product selection
-    displayType: "subcategories" | "products" | "categories";
+    displayType: "subcategories" | "products" | "categories" | "banners";
+    bannerData?: {
+        imageUrl: string;
+        link?: string;
+        title?: string;
+    }[];
     columns: number;
     limit: number;
     pageLocation: "Home Page" | "Header Category Page";
@@ -47,10 +52,17 @@ const HomeSectionSchema = new Schema<IHomeSection>(
         },
         displayType: {
             type: String,
-            enum: ["subcategories", "products", "categories"],
+            enum: ["subcategories", "products", "categories", "banners"],
             required: [true, "Display type is required"],
             default: "subcategories",
         },
+        bannerData: [
+            {
+                imageUrl: { type: String, required: true },
+                link: { type: String },
+                title: { type: String },
+            },
+        ],
         columns: {
             type: Number,
             required: [true, "Number of columns is required"],

@@ -63,8 +63,41 @@ export interface Product {
   brandId?: string;
   taxId?: string;
   // Shop by Store fields
+  // Shop by Store fields
   isShopByStoreOnly?: boolean;
   shopId?: string | any;
+  // Category Specific Fields
+  brandName?: string;
+  size?: string;
+  color?: string;
+  fabric?: string;
+  material?: string;
+  gender?: string;
+  quantityInsidePack?: string;
+  expiryDate?: string | Date;
+  dishName?: string;
+  prepTime?: string;
+  ingredients?: string;
+  skinType?: string;
+  modelName?: string;
+  specifications?: string;
+  warranty?: string;
+  ageGroup?: string;
+  weight?: string;
+  frameType?: string;
+  lensType?: string;
+  power?: string;
+  rentAmount?: number;
+  securityDeposit?: number;
+  bhk?: string;
+  furnishingStatus?: string;
+  areaSize?: string;
+  contactNumber?: string;
+  vehicleModel?: string;
+  partNumber?: string;
+  serviceName?: string;
+  experience?: string;
+  availability?: string;
 }
 
 export interface CreateProductData {
@@ -96,6 +129,38 @@ export interface CreateProductData {
   variationType?: string;
   isShopByStoreOnly?: boolean;
   shopId?: string;
+  // Category Specific Fields
+  brandName?: string;
+  size?: string;
+  color?: string;
+  fabric?: string;
+  material?: string;
+  gender?: string;
+  quantityInsidePack?: string;
+  expiryDate?: string | Date;
+  dishName?: string;
+  prepTime?: string;
+  ingredients?: string;
+  skinType?: string;
+  modelName?: string;
+  specifications?: string;
+  warranty?: string;
+  ageGroup?: string;
+  weight?: string;
+  frameType?: string;
+  lensType?: string;
+  power?: string;
+  rentAmount?: number;
+  securityDeposit?: number;
+  bhk?: string;
+  furnishingStatus?: string;
+  areaSize?: string;
+  contactNumber?: string;
+  vehicleModel?: string;
+  partNumber?: string;
+  serviceName?: string;
+  experience?: string;
+  availability?: string;
 }
 
 export interface Shop {
@@ -105,7 +170,7 @@ export interface Shop {
   image?: string;
 }
 
-export interface UpdateProductData extends Partial<CreateProductData> {}
+export interface UpdateProductData extends Partial<CreateProductData> { }
 
 export interface GetProductsParams {
   search?: string;

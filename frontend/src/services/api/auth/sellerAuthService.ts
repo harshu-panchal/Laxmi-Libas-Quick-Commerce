@@ -20,6 +20,7 @@ export interface VerifyOTPResponse {
       logo?: string;
       address?: string;
       city?: string;
+      categories?: string[];
     };
   };
 }
@@ -38,6 +39,8 @@ export interface RegisterData {
   latitude?: string;
   longitude?: string;
   serviceRadiusKm?: string | number;
+  idProof?: string;
+  businessLicense?: string;
 }
 
 export interface RegisterResponse {

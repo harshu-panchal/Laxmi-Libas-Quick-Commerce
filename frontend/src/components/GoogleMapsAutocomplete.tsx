@@ -65,18 +65,13 @@ export default function GoogleMapsAutocomplete({
     }
   }, [loadError]);
 
-  const initializeAutocomplete = useCallback(() => {
-    if (!inputRef.current || !window.google?.maps?.places) return;
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
-    // Clean up any existing autocomplete
-    if (autocompleteRef.current) {
-      try {
-        window.google?.maps?.event?.clearInstanceListeners?.(autocompleteRef.current);
-      } catch {
-        // Ignore cleanup errors
-      }
-      autocompleteRef.current = null;
-    }
+  const initializeAutocomplete = useCallback(() => {
+    if (!inputRef.current || !window.google?.maps?.places || autocompleteRef.current) return;
 
     try {
       const places = window.google.maps.places as any;
@@ -104,12 +99,13 @@ export default function GoogleMapsAutocomplete({
 
         const lat = place.geometry.location.lat();
         const lng = place.geometry.location.lng();
-        const rawAddress = place.formatted_address || place.name || value;
+        const rawAddress = place.formatted_address || place.name || '';
         const address = cleanAddress(rawAddress);
         const placeName = place.name || address;
 
         let city = '';
         let state = '';
+        let pincode = '';
 
         if (place.address_components) {
           for (const component of place.address_components) {
@@ -119,12 +115,14 @@ export default function GoogleMapsAutocomplete({
               city = component.long_name;
             } else if (component.types.includes('administrative_area_level_1')) {
               state = component.long_name;
+            } else if (component.types.includes('postal_code')) {
+              pincode = component.long_name;
             }
           }
         }
 
         setInputValue(address);
-        onChange(address, lat, lng, placeName, { city, state });
+        onChangeRef.current(address, lat, lng, placeName, { city, state, pincode } as any);
         setError('');
       });
     } catch (err: unknown) {
@@ -132,23 +130,37 @@ export default function GoogleMapsAutocomplete({
       console.error('Autocomplete initialization error:', err);
       setError(`Failed to initialize autocomplete: ${errorMessage}`);
     }
-  }, [onChange, value]);
+  }, []); // Stable since it uses onChangeRef
 
   useEffect(() => {
     if (isLoaded && inputRef.current && !autocompleteRef.current) {
       initializeAutocomplete();
     }
 
+    // Fix for Google Autocomplete in modals (event propagation)
+    // ONLY stop propagation for click events to prevent modal closure,
+    // but allow mousedown/mouseup for Google's own processing.
+    const handlePacClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.pac-item')) {
+        // Stop bubbling but don't stop capture/target phase for Google's own listeners
+        e.stopPropagation();
+      }
+    };
+
+    document.addEventListener('click', handlePacClick, true);
+
     return () => {
-       if (autocompleteRef.current) {
+      document.removeEventListener('click', handlePacClick, true);
+      if (autocompleteRef.current) {
         try {
           window.google?.maps?.event?.clearInstanceListeners?.(autocompleteRef.current);
         } catch {
-           // Ignore
+          // Ignore
         }
-       }
+      }
     }
-  }, [isLoaded, initializeAutocomplete]);
+  }, [isLoaded, initializeAutocomplete]); // Removed 'initializeAutocomplete' if possible or ensure stable
 
   return (
     <div className="w-full">

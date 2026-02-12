@@ -31,6 +31,32 @@ export const createProduct = asyncHandler(
       galleryImages: productData.galleryImageUrls,
     };
 
+    // Strict Category Validation: Ensure product category matches seller's assigned category
+    const sellerCategoryId = (req as any).user.categoryId;
+    if (!sellerCategoryId) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have a category assigned. Please contact admin.",
+      });
+    }
+
+    // Check for Super Seller Bypass (Phone: 9111966732)
+    const Seller = require("../../../models/Seller").default;
+    const seller = await Seller.findById(sellerId);
+    const isSuperSeller = seller && seller.mobile === "9111966732";
+
+    if (!isSuperSeller && newProductData.category && newProductData.category.toString() !== sellerCategoryId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only upload products for your assigned category",
+      });
+    }
+
+    // Force the category to be the one from the seller's JWT to prevent bypass, UNLESS it's the super seller
+    if (!isSuperSeller) {
+      newProductData.category = sellerCategoryId;
+    }
+
     // Map variations: Ensure 'title' from frontend is mapped to 'value' (or name) expected by Schema
     if (newProductData.variations) {
       newProductData.variations = newProductData.variations.map((v: any) => ({
@@ -295,6 +321,26 @@ export const updateProduct = asyncHandler(
     if (updateData.galleryImageUrls) {
       updateData.galleryImages = updateData.galleryImageUrls;
       delete updateData.galleryImageUrls;
+    }
+
+    // Strict Category Validation for updates
+    const sellerCategoryId = (req as any).user.categoryId;
+
+    // Check for Super Seller Bypass (Phone: 9111966732)
+    const Seller = require("../../../models/Seller").default;
+    const seller = await Seller.findById(sellerId);
+    const isSuperSeller = seller && seller.mobile === "9111966732";
+
+    if (!isSuperSeller && updateData.category && updateData.category.toString() !== sellerCategoryId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You cannot change the product category to one outside your assignment",
+      });
+    }
+
+    // Force the category if it was attempted to be changed or just to be safe, UNLESS it's the super seller
+    if (updateData.category && !isSuperSeller) {
+      updateData.category = sellerCategoryId;
     }
 
     // Validate variations if provided
