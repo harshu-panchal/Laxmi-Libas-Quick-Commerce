@@ -5,7 +5,7 @@ import { sendNotification } from '../../../services/notificationService';
 /**
  * Get all pending sellers
  */
-export const getPendingSellers = async (req: Request, res: Response) => {
+export const getPendingSellers = async (_req: Request, res: Response) => {
     try {
         const sellers = await Seller.find({ status: 'Pending' })
             .select('-password')

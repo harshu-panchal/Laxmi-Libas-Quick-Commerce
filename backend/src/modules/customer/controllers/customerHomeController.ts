@@ -659,6 +659,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
         title: `Products in ${headerCategorySlug}`,
         slug: "category-products",
         displayType: "products",
+        bannerData: undefined,
         columns: 4,
         data: fallbackCategoryProducts,
       });

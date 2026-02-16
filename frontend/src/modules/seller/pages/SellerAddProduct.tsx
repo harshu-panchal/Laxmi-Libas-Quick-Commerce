@@ -1194,7 +1194,7 @@ export default function SellerAddProduct() {
                       ))}
                     </div>
                   </div>
-                )/* variations.length > 0 */}
+                )}
               </div>
             </div>
           )}
@@ -1456,8 +1456,8 @@ export default function SellerAddProduct() {
             </button>
           </div>
         </form>
-      </div >
-    </div >
+      </div>
+    </div>
   );
 }
 
