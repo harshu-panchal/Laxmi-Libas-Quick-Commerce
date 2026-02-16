@@ -2,15 +2,15 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
-// Firebase configuration (Production credentials)
+// Firebase configuration (Replace with your actual credentials or use a build-time injection)
 const firebaseConfig = {
-    apiKey: 'AIzaSyDdzURk5KJykQwmtUdOg-Lbdj4HjUT9G8g',
-    authDomain: 'dhakadsnazzy2.firebaseapp.com',
-    projectId: 'dhakadsnazzy2',
-    storageBucket: 'dhakadsnazzy2.firebasestorage.app',
-    messagingSenderId: '88524532800',
-    appId: '1:88524532800:web:347183dc062e619a48c3a5',
-    measurementId: 'G-GCPBFW3F1B'
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID",
+    measurementId: "YOUR_MEASUREMENT_ID"
 };
 
 // Initialize Firebase in service worker
