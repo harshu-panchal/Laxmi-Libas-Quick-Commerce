@@ -1,19 +1,18 @@
-
 import { Request, Response } from "express";
 import Banner from "../../../models/Banner";
 
 /**
  * Get all banners
  */
-export const getBanners = async (req: Request, res: Response) => {
+export const getBanners = async (_req: Request, res: Response) => {
     try {
         const banners = await Banner.find().sort({ order: 1 });
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: banners,
         });
     } catch (error: any) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message,
         });
@@ -26,12 +25,12 @@ export const getBanners = async (req: Request, res: Response) => {
 export const createBanner = async (req: Request, res: Response) => {
     try {
         const banner = await Banner.create(req.body);
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
             data: banner,
         });
     } catch (error: any) {
-        res.status(400).json({
+        return res.status(400).json({
             success: false,
             message: error.message,
         });
@@ -53,12 +52,12 @@ export const updateBanner = async (req: Request, res: Response) => {
                 message: "Banner not found",
             });
         }
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: banner,
         });
     } catch (error: any) {
-        res.status(400).json({
+        return res.status(400).json({
             success: false,
             message: error.message,
         });
@@ -77,12 +76,12 @@ export const deleteBanner = async (req: Request, res: Response) => {
                 message: "Banner not found",
             });
         }
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: "Banner deleted successfully",
         });
     } catch (error: any) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message,
         });
@@ -100,12 +99,12 @@ export const getActiveBanners = async (req: Request, res: Response) => {
             query.pageLocation = (location as string).trim();
         }
         const banners = await Banner.find(query).sort({ order: 1 });
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: banners,
         });
     } catch (error: any) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message,
         });

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Service, Seller } from '../../../models';
-import { uploadToCloudinary } from '../../../services/cloudinaryService';
+import { uploadImageFromBuffer } from '../../../services/cloudinaryService';
 
 // Create a new service
 export const createService = async (req: Request, res: Response) => {
@@ -58,10 +58,10 @@ export const createService = async (req: Request, res: Response) => {
         let portfolioImages: string[] = [];
         if (req.files && Array.isArray(req.files)) {
             const uploadPromises = req.files.map((file: any) =>
-                uploadToCloudinary(file.buffer, 'services')
+                uploadImageFromBuffer(file.buffer, { folder: 'services' })
             );
             const uploadResults = await Promise.all(uploadPromises);
-            portfolioImages = uploadResults.map((result) => result.secure_url);
+            portfolioImages = uploadResults.map((result: any) => result.secureUrl);
         }
 
         // Strict Category Validation: Ensure service category matches seller's assigned category
@@ -244,10 +244,10 @@ export const updateService = async (req: Request, res: Response) => {
         let newPortfolioImages: string[] = [];
         if (req.files && Array.isArray(req.files)) {
             const uploadPromises = req.files.map((file: any) =>
-                uploadToCloudinary(file.buffer, 'services')
+                uploadImageFromBuffer(file.buffer, { folder: 'services' })
             );
             const uploadResults = await Promise.all(uploadPromises);
-            newPortfolioImages = uploadResults.map((result) => result.secure_url);
+            newPortfolioImages = uploadResults.map((result: any) => result.secureUrl);
         }
 
         // Strict Category Validation for updates

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { RoomRent, Seller } from '../../../models';
-import { uploadToCloudinary } from '../../../services/cloudinaryService';
+import { uploadImageFromBuffer } from '../../../services/cloudinaryService';
 
 // Create a new room rent listing
 export const createRoomRent = async (req: Request, res: Response) => {
@@ -62,10 +62,10 @@ export const createRoomRent = async (req: Request, res: Response) => {
         let propertyImages: string[] = [];
         if (req.files && Array.isArray(req.files)) {
             const uploadPromises = req.files.map((file: any) =>
-                uploadToCloudinary(file.buffer, 'room-rent')
+                uploadImageFromBuffer(file.buffer, { folder: 'room-rent' })
             );
             const uploadResults = await Promise.all(uploadPromises);
-            propertyImages = uploadResults.map((result) => result.secure_url);
+            propertyImages = uploadResults.map((result: any) => result.secureUrl);
         }
 
         // Strict Category Validation: Ensure room rent category matches seller's assigned category
@@ -247,10 +247,10 @@ export const updateRoomRent = async (req: Request, res: Response) => {
         let newPropertyImages: string[] = [];
         if (req.files && Array.isArray(req.files)) {
             const uploadPromises = req.files.map((file: any) =>
-                uploadToCloudinary(file.buffer, 'room-rent')
+                uploadImageFromBuffer(file.buffer, { folder: 'room-rent' })
             );
             const uploadResults = await Promise.all(uploadPromises);
-            newPropertyImages = uploadResults.map((result) => result.secure_url);
+            newPropertyImages = uploadResults.map((result: any) => result.secureUrl);
         }
 
         // Strict Category Validation for updates
@@ -260,7 +260,8 @@ export const updateRoomRent = async (req: Request, res: Response) => {
         if (title) roomRent.title = title;
         if (propertyType) roomRent.propertyType = propertyType;
         if (furnishingStatus) roomRent.furnishingStatus = furnishingStatus;
-        if (category) roomRent.category = sellerCategoryId; // Force assigned category        if (bedrooms) roomRent.bedrooms = bedrooms;
+        if (sellerCategoryId) roomRent.category = sellerCategoryId;
+        if (bedrooms) roomRent.bedrooms = bedrooms;
         if (bathrooms) roomRent.bathrooms = bathrooms;
         if (rentAmount) roomRent.rentAmount = rentAmount;
         if (securityDeposit !== undefined) roomRent.securityDeposit = securityDeposit;

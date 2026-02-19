@@ -254,7 +254,7 @@ export default function SellerAddProduct() {
               material: product.material || "",
               gender: product.gender || "",
               quantityInsidePack: product.quantityInsidePack || "",
-              expiryDate: product.expiryDate || "",
+              expiryDate: product.expiryDate?.toString() || "",
               dishName: product.dishName || "",
               prepTime: product.prepTime || "",
               ingredients: product.ingredients || "",
@@ -267,8 +267,8 @@ export default function SellerAddProduct() {
               frameType: product.frameType || "",
               lensType: product.lensType || "",
               power: product.power || "",
-              rentAmount: product.rentAmount || "",
-              securityDeposit: product.securityDeposit || "",
+              rentAmount: product.rentAmount?.toString() || "",
+              securityDeposit: product.securityDeposit?.toString() || "",
               bhk: product.bhk || "",
               furnishingStatus: product.furnishingStatus || "",
               areaSize: product.areaSize || "",
@@ -1198,7 +1198,7 @@ export default function SellerAddProduct() {
                       ))}
                     </div>
                   </div>
-                )/* variations.length > 0 */}
+                )}
               </div>
             </div>
           )}
@@ -1322,7 +1322,11 @@ export default function SellerAddProduct() {
                 </div>
               )}
               {successMessage && (
+<<<<<<< HEAD
                 <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg">
+=======
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+>>>>>>> 013f4e4f654180b643abc088bb660e6f5342981f
                   {successMessage}
                 </div>
               )}
@@ -1557,8 +1561,13 @@ export default function SellerAddProduct() {
             </button>
           </div>
         </form>
+<<<<<<< HEAD
       </div >
     </div >
+=======
+      </div>
+    </div>
+>>>>>>> 013f4e4f654180b643abc088bb660e6f5342981f
   );
 }
 
