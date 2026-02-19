@@ -409,7 +409,7 @@ export default function AdminCoupon() {
                   <button
                     type="button"
                     onClick={generateCouponCode}
-                    className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-full transition-colors"
+                    className="p-2 bg-primary-dark hover:bg-yellow-700 text-white rounded-full transition-colors"
                     title="Generate Code">
                     <svg
                       width="16"
@@ -534,7 +534,7 @@ export default function AdminCoupon() {
               disabled={uploading}
               className={`w-full px-6 py-3 rounded font-medium transition-colors ${uploading
                 ? "bg-neutral-400 cursor-not-allowed text-white"
-                : "bg-green-600 hover:bg-green-700 text-white"
+                : "bg-primary-dark hover:bg-yellow-700 text-white"
                 }`}>
               {uploading ? "Creating Coupon..." : "Add Coupon"}
             </button>

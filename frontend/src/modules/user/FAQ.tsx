@@ -87,7 +87,7 @@ export default function FAQ() {
   return (
     <div className="pb-24 md:pb-8 bg-white min-h-screen">
       {/* Header */}
-      <div className="bg-gradient-to-b from-green-200 via-green-100 to-white pb-6 md:pb-8 pt-12 md:pt-16">
+      <div className="bg-gradient-to-b from-yellow-200 via-yellow-100 to-white pb-6 md:pb-8 pt-12 md:pt-16">
         <div className="px-4 md:px-6 lg:px-8">
           <button
             onClick={() => navigate(-1)}
@@ -111,7 +111,7 @@ export default function FAQ() {
                 height="40"
                 viewBox="0 0 24 24"
                 fill="none"
-                className="text-green-600 md:w-12 md:h-12"
+                className="text-primary-dark md:w-12 md:h-12"
               >
                 <path
                   d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
@@ -181,14 +181,14 @@ export default function FAQ() {
           </div>
 
           {/* Contact Support Section */}
-          <div className="mt-8 bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200">
+          <div className="mt-8 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-6 border border-yellow-200">
             <div className="text-center">
               <svg
                 width="48"
                 height="48"
                 viewBox="0 0 24 24"
                 fill="none"
-                className="mx-auto mb-4 text-green-600"
+                className="mx-auto mb-4 text-primary-dark"
               >
                 <path
                   d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
@@ -213,7 +213,7 @@ export default function FAQ() {
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
                   href="mailto:help@laxmart.com"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors text-sm"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary-dark text-white rounded-lg font-semibold hover:bg-yellow-700 transition-colors text-sm"
                 >
                   <svg
                     width="18"
@@ -240,7 +240,7 @@ export default function FAQ() {
                 </a>
                 <a
                   href="tel:+91-XXXXX-XXXXX"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-green-600 border-2 border-green-600 rounded-lg font-semibold hover:bg-green-50 transition-colors text-sm"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-primary-dark border-2 border-primary-dark rounded-lg font-semibold hover:bg-yellow-50 transition-colors text-sm"
                 >
                   <svg
                     width="18"

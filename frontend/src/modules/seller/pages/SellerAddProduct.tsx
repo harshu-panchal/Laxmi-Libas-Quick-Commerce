@@ -821,7 +821,7 @@ export default function SellerAddProduct() {
                         <option
                           key={cat._id || cat.id}
                           value={cat._id || cat.id}>
-                          {cat.name}
+                          {cat.name === 'Room Rent' ? 'Rent' : cat.name}
                         </option>
                       ))}
                   </select>
@@ -852,7 +852,7 @@ export default function SellerAddProduct() {
                     </option>
                     {subcategories.map((sub) => (
                       <option key={sub._id} value={sub._id}>
-                        {sub.subcategoryName}
+                        {sub.subcategoryName || (sub as any).name}
                       </option>
                     ))}
                   </select>
@@ -970,6 +970,10 @@ export default function SellerAddProduct() {
                   </h3>
                   <DynamicCategoryFields
                     categoryName={categoryName}
+                    subcategoryName={(() => {
+                      const selectedSub = subcategories.find(s => s._id === formData.subcategory);
+                      return selectedSub ? (selectedSub.subcategoryName || (selectedSub as any).name || "") : "";
+                    })()}
                     formData={formData}
                     handleChange={handleChange}
                   />
@@ -1172,7 +1176,7 @@ export default function SellerAddProduct() {
                             <span className="font-medium">{variation.title}</span>{" "}
                             - ₹{variation.price}
                             {variation.discPrice > 0 && (
-                              <span className="text-green-600 ml-2">
+                              <span className="text-primary-dark ml-2">
                                 (₹{variation.discPrice})
                               </span>
                             )}
@@ -1205,260 +1209,356 @@ export default function SellerAddProduct() {
                 <h2 className="text-lg font-semibold">Add Other Details</h2>
               </div>
               <div className="p-4 sm:p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Manufacturer Name
+                    </label>
+                    <input
+                      type="text"
+                      name="manufacturer"
+                      value={formData.manufacturer}
+                      onChange={handleChange}
+                      placeholder="Enter Manufacturer Name"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Made In
+                    </label>
+                    <input
+                      type="text"
+                      name="madeIn"
+                      value={formData.madeIn}
+                      onChange={handleChange}
+                      placeholder="e.g. India"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Select Tax
+                  </label>
+                  <select
+                    name="tax"
+                    value={formData.tax}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
+                    <option value="">Select Tax</option>
+                    <option value="5">5%</option>
+                    <option value="12">12%</option>
+                    <option value="18">18%</option>
+                    <option value="28">28%</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Is Returnable?
+                    </label>
+                    <select
+                      name="isReturnable"
+                      value={formData.isReturnable}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                  </div>
+                  {formData.isReturnable === "Yes" && (
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Max Return Days
+                      </label>
+                      <input
+                        type="number"
+                        name="maxReturnDays"
+                        value={formData.maxReturnDays}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    FSSAI License Number (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    name="fssaiLicNo"
+                    value={formData.fssaiLicNo}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Total Allowed Quantity per Order
+                  </label>
+                  <input
+                    type="number"
+                    name="totalAllowedQuantity"
+                    value={formData.totalAllowedQuantity}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                </div>
               </div>
-            </div>
             </div>
           )}
 
-      {/* Add Images Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-        <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
-          <h2 className="text-lg font-semibold">Add Images</h2>
-        </div>
-        <div className="p-4 sm:p-6 space-y-6">
-          {uploadError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {uploadError}
+          {/* Add Images Section */}
+          <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+            <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+              <h2 className="text-lg font-semibold">Add Images</h2>
             </div>
-          )}
-          {successMessage && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-              {successMessage}
-            </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-2">
-              Product Main Image <span className="text-red-500">*</span>
-            </label>
-            <label className="block border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center hover:border-teal-500 transition-colors cursor-pointer">
-              {mainImagePreview ? (
-                <div className="space-y-2">
-                  <img
-                    src={mainImagePreview}
-                    alt="Main product preview"
-                    className="max-h-48 mx-auto rounded-lg object-cover"
-                  />
-                  <p className="text-sm text-neutral-600">
-                    {mainImageFile?.name}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setMainImageFile(null);
-                      setMainImagePreview("");
-                    }}
-                    className="text-sm text-red-600 hover:text-red-700">
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <svg
-                    width="48"
-                    height="48"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="mx-auto mb-2 text-neutral-400">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                  </svg>
-                  <p className="text-sm text-neutral-600 font-medium">
-                    Upload Main Image
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-1">
-                    Max 5MB, JPG/PNG/WEBP
-                  </p>
+            <div className="p-4 sm:p-6 space-y-6">
+              {uploadError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  {uploadError}
                 </div>
               )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleMainImageChange}
-                className="hidden"
-                disabled={uploading}
-              />
-            </label>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-2">
-              Product Gallery Images (Optional)
-            </label>
-            <div className="block border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center bg-white">
-              {galleryImagePreviews.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {galleryImagePreviews.map((preview, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={preview}
-                          alt={`Gallery ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-lg shadow-sm"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeGalleryImage(index)}
-                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1.5 hover:bg-red-700 shadow-md transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                          title="Remove image">
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
-                    {/* Visual "Add More" Placeholder - Acts as Label for Input */}
-                    <label
-                      htmlFor="gallery-image-upload"
-                      className="w-full h-32 border-2 border-dashed border-neutral-300 rounded-lg flex flex-col items-center justify-center text-neutral-400 hover:text-teal-600 hover:border-teal-500 hover:bg-teal-50 transition-all bg-neutral-50 cursor-pointer">
+              {successMessage && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg">
+                  {successMessage}
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Product Main Image <span className="text-red-500">*</span>
+                </label>
+                <label className="block border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center hover:border-teal-500 transition-colors cursor-pointer">
+                  {mainImagePreview ? (
+                    <div className="space-y-2">
+                      <img
+                        src={mainImagePreview}
+                        alt="Main product preview"
+                        className="max-h-48 mx-auto rounded-lg object-cover"
+                      />
+                      <p className="text-sm text-neutral-600">
+                        {mainImageFile?.name}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setMainImageFile(null);
+                          setMainImagePreview("");
+                        }}
+                        className="text-sm text-red-600 hover:text-red-700">
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
                       <svg
-                        width="32"
-                        height="32"
+                        width="48"
+                        height="48"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="mb-1">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        className="mx-auto mb-2 text-neutral-400">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
                       </svg>
-                      <span className="text-xs font-semibold">Add Image</span>
-                    </label>
-                  </div>
-                  <p className="text-sm text-neutral-600">
-                    {galleryImageFiles.length} image(s) selected
-                  </p>
-                </div>
-              ) : (
-                <label
-                  htmlFor="gallery-image-upload"
-                  className="cursor-pointer block w-full h-full">
-                  <div className="flex flex-col items-center justify-center">
-                    <svg
-                      width="48"
-                      height="48"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mx-auto mb-2 text-neutral-400">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                      <polyline points="17 8 12 3 7 8"></polyline>
-                      <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    <p className="text-sm text-neutral-600 font-medium">
-                      Upload Other Product Images Here
-                    </p>
-                    <p className="text-xs text-neutral-500 mt-1">
-                      Max 5MB per image, up to 10 images
-                    </p>
-                  </div>
+                      <p className="text-sm text-neutral-600 font-medium">
+                        Upload Main Image
+                      </p>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        Max 5MB, JPG/PNG/WEBP
+                      </p>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleMainImageChange}
+                    className="hidden"
+                    disabled={uploading}
+                  />
                 </label>
-              )}
-              <input
-                id="gallery-image-upload"
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleGalleryImagesChange}
-                className="hidden"
-                disabled={uploading}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Shop by Store Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-        <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
-          <h2 className="text-lg font-semibold">Shop by Store</h2>
-        </div>
-        <div className="p-4 sm:p-6 space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> If you select "Show in Shop by Store only", this product will only be visible in the Shop by Store section and will not appear on category pages, home page, or any other pages.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Show in Shop by Store only?
-              </label>
-              <select
-                name="isShopByStoreOnly"
-                value={formData.isShopByStoreOnly}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
-                <option value="No">No</option>
-                <option value="Yes">Yes</option>
-              </select>
-            </div>
-            {formData.isShopByStoreOnly === "Yes" && (
+              </div>
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  Select Store <span className="text-red-500">*</span>
+                  Product Gallery Images (Optional)
                 </label>
-                <select
-                  name="shopId"
-                  value={formData.shopId}
-                  onChange={handleChange}
-                  required={formData.isShopByStoreOnly === "Yes"}
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
-                  <option value="">Select Store</option>
-                  {shops.map((shop) => (
-                    <option key={shop._id} value={shop._id}>
-                      {shop.name}
-                    </option>
-                  ))}
-                </select>
-                {shops.length === 0 && (
-                  <p className="text-xs text-neutral-500 mt-1">
-                    No active stores available. Please contact admin to create stores.
-                  </p>
+                <div className="block border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center bg-white">
+                  {galleryImagePreviews.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {galleryImagePreviews.map((preview, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={preview}
+                              alt={`Gallery ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg shadow-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeGalleryImage(index)}
+                              className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1.5 hover:bg-red-700 shadow-md transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                              title="Remove image">
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                        {/* Visual "Add More" Placeholder - Acts as Label for Input */}
+                        <label
+                          htmlFor="gallery-image-upload"
+                          className="w-full h-32 border-2 border-dashed border-neutral-300 rounded-lg flex flex-col items-center justify-center text-neutral-400 hover:text-teal-600 hover:border-teal-500 hover:bg-teal-50 transition-all bg-neutral-50 cursor-pointer">
+                          <svg
+                            width="32"
+                            height="32"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="mb-1">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                          </svg>
+                          <span className="text-xs font-semibold">Add Image</span>
+                        </label>
+                      </div>
+                      <p className="text-sm text-neutral-600">
+                        {galleryImageFiles.length} image(s) selected
+                      </p>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="gallery-image-upload"
+                      className="cursor-pointer block w-full h-full">
+                      <div className="flex flex-col items-center justify-center">
+                        <svg
+                          width="48"
+                          height="48"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="mx-auto mb-2 text-neutral-400">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                          <polyline points="17 8 12 3 7 8"></polyline>
+                          <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p className="text-sm text-neutral-600 font-medium">
+                          Upload Other Product Images Here
+                        </p>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          Max 5MB per image, up to 10 images
+                        </p>
+                      </div>
+                    </label>
+                  )}
+                  <input
+                    id="gallery-image-upload"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleGalleryImagesChange}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Shop by Store Section */}
+          <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+            <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+              <h2 className="text-lg font-semibold">Shop by Store</h2>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> If you select "Show in Shop by Store only", this product will only be visible in the Shop by Store section and will not appear on category pages, home page, or any other pages.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Show in Shop by Store only?
+                  </label>
+                  <select
+                    name="isShopByStoreOnly"
+                    value={formData.isShopByStoreOnly}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
+                    <option value="No">No</option>
+                    <option value="Yes">Yes</option>
+                  </select>
+                </div>
+                {formData.isShopByStoreOnly === "Yes" && (
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Select Store <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="shopId"
+                      value={formData.shopId}
+                      onChange={handleChange}
+                      required={formData.isShopByStoreOnly === "Yes"}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
+                      <option value="">Select Store</option>
+                      {shops.map((shop) => (
+                        <option key={shop._id} value={shop._id}>
+                          {shop.name}
+                        </option>
+                      ))}
+                    </select>
+                    {shops.length === 0 && (
+                      <p className="text-xs text-neutral-500 mt-1">
+                        No active stores available. Please contact admin to create stores.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Submit Button */}
-      <div className="flex justify-end pb-6">
-        <button
-          type="submit"
-          disabled={uploading}
-          className={`px-8 py-3 rounded-lg font-medium text-lg transition-colors shadow-sm ${uploading
-            ? "bg-neutral-400 cursor-not-allowed text-white"
-            : "bg-teal-600 hover:bg-teal-700 text-white"
-            }`}>
-          {uploading
-            ? "Processing..."
-            : id
-              ? "Update Product"
-              : "Add Product"}
-        </button>
-      </div>
-    </form>
+          {/* Submit Button */}
+          <div className="flex justify-end pb-6">
+            <button
+              type="submit"
+              disabled={uploading}
+              className={`px-8 py-3 rounded-lg font-medium text-lg transition-colors shadow-sm ${uploading
+                ? "bg-neutral-400 cursor-not-allowed text-white"
+                : "bg-teal-600 hover:bg-teal-700 text-white"
+                }`}>
+              {uploading
+                ? "Processing..."
+                : id
+                  ? "Update Product"
+                  : "Add Product"}
+            </button>
+          </div>
+        </form>
+      </div >
     </div >
-  </div >
   );
 }
 

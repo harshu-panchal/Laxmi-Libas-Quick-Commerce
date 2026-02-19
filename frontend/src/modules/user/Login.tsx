@@ -42,8 +42,7 @@ const FloatingItem = ({ delay, x, y, scale, blur, duration, children }: Floating
     style={{
       left: x,
       top: y,
-      fontSize: `${3 * scale}rem`,
-      filter: `blur(${blur}px)`,
+      fontSize: `${2 * scale}rem`,
       zIndex: Math.floor(scale * 10)
     }}
   >
@@ -54,7 +53,7 @@ const FloatingItem = ({ delay, x, y, scale, blur, duration, children }: Floating
 const SuccessAnimation = ({ onComplete }: { onComplete: () => void }) => {
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-green-600 overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-primary-dark overflow-hidden"
       initial={{
         clipPath: "circle(0% at 50% 90%)",
         opacity: 1
@@ -88,9 +87,9 @@ const SuccessAnimation = ({ onComplete }: { onComplete: () => void }) => {
       </div>
 
       <motion.div
-        initial={{ scale: 0, rotate: -20, x: -200 }}
-        animate={{ scale: 1.5, rotate: 0, x: 0 }}
-        transition={{ type: "spring", stiffness: 120, damping: 12, delay: 0.1 }}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
         className="text-9xl relative z-20 drop-shadow-2xl filter brightness-110"
       >
         🛒
@@ -100,7 +99,7 @@ const SuccessAnimation = ({ onComplete }: { onComplete: () => void }) => {
             key={i}
             initial={{ opacity: 0, x: 400, y: -400 }}
             animate={{ opacity: 1, x: 0, y: 0, scale: [1.5, 0.5] }}
-            transition={{ delay: 0.5 + i * 0.1, duration: 0.5, type: "spring" }}
+            transition={{ delay: 0.5 + i * 0.1, duration: 0.3, ease: "easeOut" }}
             className="absolute top-0 left-0 text-6xl"
           >
             {item}
@@ -119,9 +118,9 @@ const SuccessAnimation = ({ onComplete }: { onComplete: () => void }) => {
 
       {/* Cart zooms away */}
       <motion.div
-        initial={{ x: 0 }}
-        animate={{ x: 1500, opacity: 0 }}
-        transition={{ delay: 2.2, duration: 0.4, ease: "easeIn" }}
+        initial={{ opacity: 1 }}
+        animate={{ opacity: 0 }}
+        transition={{ delay: 1.8, duration: 0.4 }}
         onAnimationComplete={onComplete}
         className="absolute inset-0"
       />
@@ -212,7 +211,7 @@ export default function Login() {
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center font-sans tracking-wide bg-neutral-900">
 
       {/* Scene 1: Cinematic Living Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-green-900 via-emerald-800 to-black z-0">
+      <div className="absolute inset-0 bg-gradient-to-br from-yellow-900 via-emerald-800 to-black z-0">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_50%,_rgba(255,255,255,0.1),_transparent_70%)]"></div>
         {/* Floating Parallax Items */}
         {bgItems.map((props, i) => (
@@ -249,10 +248,9 @@ export default function Login() {
             {/* Logo Pulse */}
             <motion.div
               className="mb-4 relative"
-              animate={{
-                filter: ["drop-shadow(0 0 0px rgba(74, 222, 128, 0))", "drop-shadow(0 0 15px rgba(74, 222, 128, 0.5))", "drop-shadow(0 0 0px rgba(74, 222, 128, 0))"]
-              }}
-              transition={{ duration: 3, repeat: Infinity }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
             >
               <img
                 src="/assets/ChatGPT Image Feb 11, 2026, 01_01_14 PM.png"
@@ -271,7 +269,7 @@ export default function Login() {
             </motion.h2>
 
             <motion.p
-              className="text-green-100/70 text-sm mb-6 max-w-[250px]"
+              className="text-yellow-100/70 text-sm mb-6 max-w-[250px]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.4 }}
@@ -323,7 +321,7 @@ export default function Login() {
                     whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(74, 222, 128, 0.4)" }}
                     whileTap={{ scale: 0.95 }}
                     className={`w-full py-4 rounded-xl font-bold text-lg relative overflow-hidden ${mobileNumber.length === 10 && !loading
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-900/20'
+                      ? 'bg-gradient-to-r from-yellow-500 to-primary-dark text-white shadow-lg shadow-yellow-900/20'
                       : 'bg-white/10 text-white/30 cursor-not-allowed'
                       }`}
                   >

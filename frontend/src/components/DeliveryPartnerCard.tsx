@@ -69,7 +69,7 @@ export default function DeliveryPartnerCard({
             <div className="p-4">
                 <div className="flex items-center gap-3">
                     {/* Profile Image */}
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center overflow-hidden">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-400 to-primary-dark flex items-center justify-center overflow-hidden">
                         {partner?.profileImage ? (
                             <img
                                 src={partner.profileImage}
@@ -94,11 +94,11 @@ export default function DeliveryPartnerCard({
                         {isTracking && (
                             <div className="flex items-center gap-1 mt-1">
                                 <motion.div
-                                    className="w-2 h-2 rounded-full bg-green-500"
+                                    className="w-2 h-2 rounded-full bg-yellow-500"
                                     animate={{ opacity: [1, 0.3, 1] }}
                                     transition={{ duration: 2, repeat: Infinity }}
                                 />
-                                <span className="text-xs text-green-600 font-medium">
+                                <span className="text-xs text-primary-dark font-medium">
                                     On the way
                                 </span>
                             </div>
@@ -108,7 +108,7 @@ export default function DeliveryPartnerCard({
                     {/* Call Button */}
                     {partner?.phone && onCall && (
                         <motion.button
-                            className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center hover:bg-green-200"
+                            className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center hover:bg-yellow-200"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={onCall}
@@ -157,7 +157,7 @@ export default function DeliveryPartnerCard({
                 <div className="px-4 pb-4">
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                         <motion.div
-                            className="h-full bg-gradient-to-r from-green-400 to-green-600"
+                            className="h-full bg-gradient-to-r from-yellow-400 to-primary-dark"
                             initial={{ width: '0%' }}
                             animate={{ width: `${Math.max(10, Math.min(90, 100 - (distance / 50)))}%` }}
                             transition={{ duration: 0.5 }}
@@ -178,7 +178,7 @@ export default function DeliveryPartnerCard({
 
                     <div className="flex items-center gap-3">
                         <div className="flex-1 bg-white px-4 py-2.5 rounded-lg border border-neutral-100 shadow-sm flex items-center justify-between group">
-                            <span className="text-2xl font-black tracking-[0.25em] text-green-700">{deliveryOtp}</span>
+                            <span className="text-2xl font-black tracking-[0.25em] text-yellow-700">{deliveryOtp}</span>
                             <motion.button
                                 onClick={handleCopyOtp}
                                 className="p-1.5 hover:bg-neutral-50 rounded-md transition-colors relative"

@@ -219,7 +219,7 @@ export default function ProductDetail() {
         <p className="text-gray-600 mb-6 max-w-xs">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition-colors"
+          className="px-6 py-2 bg-primary-dark text-white rounded-full font-medium hover:bg-yellow-700 transition-colors"
         >
           Try Refreshing
         </button>
@@ -524,7 +524,7 @@ export default function ProductDetail() {
                       setTimeout(() => setIsTransitioning(false), 300);
                     }}
                     className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${index === selectedImageIndex
-                      ? "border-green-600 ring-2 ring-green-200"
+                      ? "border-primary-dark ring-2 ring-yellow-200"
                       : "border-neutral-200 hover:border-neutral-300"
                       }`}>
                     <img
@@ -592,10 +592,10 @@ export default function ProductDetail() {
                       onClick={() => setSelectedVariantIndex(index)}
                       disabled={isOutOfStock}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border-2 ${isSelected
-                        ? "border-green-600 bg-green-50 text-green-700"
+                        ? "border-primary-dark bg-yellow-50 text-yellow-700"
                         : isOutOfStock
                           ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
-                          : "border-neutral-300 bg-white text-neutral-700 hover:border-green-500 hover:bg-green-50"
+                          : "border-neutral-300 bg-white text-neutral-700 hover:border-yellow-500 hover:bg-yellow-50"
                         }`}>
                       {variantTitle}
                       {isOutOfStock && (
@@ -647,7 +647,7 @@ export default function ProductDetail() {
             onClick={() =>
               setIsProductDetailsExpanded(!isProductDetailsExpanded)
             }
-            className="flex items-center gap-0.5 text-sm text-green-600 font-medium">
+            className="flex items-center gap-0.5 text-sm text-primary-dark font-medium">
             View product details
             <svg
               width="11"
@@ -1092,7 +1092,7 @@ export default function ProductDetail() {
                                   e.stopPropagation();
                                   addToCart(similarProduct);
                                 }}
-                                className="w-full border-2 border-green-600 text-green-600 bg-transparent hover:bg-green-50 rounded-full font-semibold text-sm h-9">
+                                className="w-full border-2 border-primary-dark text-primary-dark bg-transparent hover:bg-yellow-50 rounded-full font-semibold text-sm h-9">
                                 ADD
                               </Button>
                             </motion.div>
@@ -1103,7 +1103,7 @@ export default function ProductDetail() {
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.8 }}
                               transition={{ duration: 0.2 }}
-                              className="flex items-center justify-center gap-2 bg-white border-2 border-green-600 rounded-full px-2 py-1.5 w-full">
+                              className="flex items-center justify-center gap-2 bg-white border-2 border-primary-dark rounded-full px-2 py-1.5 w-full">
                               <motion.div whileTap={{ scale: 0.9 }}>
                                 <Button
                                   variant="default"
@@ -1129,7 +1129,7 @@ export default function ProductDetail() {
                                   stiffness: 500,
                                   damping: 15,
                                 }}
-                                className="text-sm font-bold text-green-600 min-w-[1.5rem] text-center">
+                                className="text-sm font-bold text-primary-dark min-w-[1.5rem] text-center">
                                 {similarInCartQty}
                               </motion.span>
                               <motion.div whileTap={{ scale: 0.9 }}>
@@ -1250,7 +1250,7 @@ export default function ProductDetail() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.2 }}
-                    className="flex items-center gap-2 bg-white border-2 border-green-600 rounded-full px-2 py-1 h-[36px]">
+                    className="flex items-center gap-2 bg-white border-2 border-primary-dark rounded-full px-2 py-1 h-[36px]">
                     <motion.button
                       whileTap={{ scale: 0.9 }}
                       onClick={() => {
@@ -1258,7 +1258,7 @@ export default function ProductDetail() {
                         const variantId = selectedVariant?._id;
                         updateQuantity(productId, inCartQty - 1, variantId, variantTitle);
                       }}
-                      className="w-6 h-6 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors border border-green-600 p-0 leading-none text-base"
+                      className="w-6 h-6 flex items-center justify-center text-primary-dark font-bold hover:bg-yellow-50 rounded-full transition-colors border border-primary-dark p-0 leading-none text-base"
                       style={{ lineHeight: 1 }}>
                       <span className="relative top-[-1px]">−</span>
                     </motion.button>
@@ -1266,8 +1266,8 @@ export default function ProductDetail() {
                       key={inCartQty}
                       initial={{ scale: 1.2, y: -2 }}
                       animate={{ scale: 1, y: 0 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                      className="text-sm font-bold text-green-600 min-w-[1.5rem] text-center">
+                      transition={{ duration: 0.3, ease: 'easeOut' }}
+                      className="text-sm font-bold text-primary-dark min-w-[1.5rem] text-center">
                       {inCartQty}
                     </motion.span>
                     <motion.button
@@ -1277,7 +1277,7 @@ export default function ProductDetail() {
                         const variantId = selectedVariant?._id;
                         updateQuantity(productId, inCartQty + 1, variantId, variantTitle);
                       }}
-                      className="w-6 h-6 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors border border-green-600 p-0 leading-none text-base"
+                      className="w-6 h-6 flex items-center justify-center text-primary-dark font-bold hover:bg-yellow-50 rounded-full transition-colors border border-primary-dark p-0 leading-none text-base"
                       style={{ lineHeight: 1 }}>
                       <span className="relative top-[-1px]">+</span>
                     </motion.button>

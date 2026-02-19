@@ -11,7 +11,6 @@ export default function Categories() {
   const [homeData, setHomeData] = useState<any>({
     homeSections: [],
   });
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -54,7 +53,7 @@ export default function Categories() {
         <p className="text-gray-600 mb-6 max-w-xs">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition-colors"
+          className="px-6 py-2 bg-primary-dark text-white rounded-full font-medium hover:bg-yellow-700 transition-colors"
         >
           Try Refreshing
         </button>
@@ -77,7 +76,7 @@ export default function Categories() {
             title="Shop by Category"
             tiles={homeData.categories.map((cat: any) => ({
               id: cat._id,
-              name: cat.name,
+              name: cat.name === 'Room Rent' ? 'Rent' : cat.name,
               image: cat.image,
               slug: cat.slug,
               categoryId: cat.slug || cat._id,

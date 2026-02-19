@@ -291,10 +291,10 @@ export default function DeliveryDashboard() {
         {/* Wallet Balance Card */}
         <div
           onClick={() => navigate("/delivery/wallet")}
-          className="bg-gradient-to-br from-green-500 to-green-700 rounded-xl p-4 text-white shadow-md cursor-pointer active:scale-[0.98] transition-transform">
+          className="bg-gradient-to-br from-yellow-500 to-yellow-700 rounded-xl p-4 text-white shadow-md cursor-pointer active:scale-[0.98] transition-transform">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-green-100 text-xs">Available Wallet Balance</p>
-            <div className="bg-green-400/30 p-1.5 rounded-lg">
+            <p className="text-yellow-100 text-xs">Available Wallet Balance</p>
+            <div className="bg-yellow-400/30 p-1.5 rounded-lg">
               <svg
                 width="18"
                 height="18"
@@ -313,7 +313,7 @@ export default function DeliveryDashboard() {
             <p className="text-2xl font-bold">
               ₹ {stats?.walletBalance?.toFixed(2) || "0.00"}
             </p>
-            <p className="text-green-100 text-[10px] flex items-center gap-1">
+            <p className="text-yellow-100 text-[10px] flex items-center gap-1">
               View Details
               <svg
                 width="10"

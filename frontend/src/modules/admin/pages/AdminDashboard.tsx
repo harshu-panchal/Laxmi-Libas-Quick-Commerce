@@ -518,7 +518,7 @@ export default function AdminDashboard() {
               ?{salesToday.toFixed(2)}
             </p>
             {salesDifference >= 0 ? (
-              <p className="text-sm text-green-600 mt-1">
+              <p className="text-sm text-primary-dark mt-1">
                 ▲ ?{Math.abs(salesDifference).toFixed(2)} (+{salesPercentChange}%)
                 vs same day last week
               </p>

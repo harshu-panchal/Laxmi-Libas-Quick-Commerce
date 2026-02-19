@@ -301,7 +301,7 @@ const SellerAccountSettings = () => {
                                             <div className="space-y-8">
                                                 <div className="flex flex-col sm:flex-row items-center gap-6 pb-8 border-b border-gray-100">
                                                     <div className="relative group">
-                                                        <div className="absolute inset-0 bg-gradient-to-tr from-teal-500 to-emerald-500 rounded-full blur opacity-25 group-hover:opacity-40 transition-opacity"></div>
+                                                        <div className="absolute inset-0 bg-gradient-to-tr from-teal-500 to-primary rounded-full blur opacity-25 group-hover:opacity-40 transition-opacity"></div>
                                                         <img
                                                             src={sellerData.profile || 'https://placehold.co/150'}
                                                             alt="Profile"

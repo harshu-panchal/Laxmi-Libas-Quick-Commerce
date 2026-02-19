@@ -336,11 +336,11 @@ export default function AdminSystemUser() {
             
             {/* Success Message */}
             {successMessage && (
-              <div className="p-4 bg-green-50 border-l-4 border-green-500 text-green-700 flex items-center justify-between">
+              <div className="p-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 flex items-center justify-between">
                 <p className="text-sm">{successMessage}</p>
                 <button
                   onClick={() => setSuccessMessage('')}
-                  className="text-green-700 hover:text-green-900 ml-4 text-lg font-bold"
+                  className="text-yellow-700 hover:text-yellow-900 ml-4 text-lg font-bold"
                   type="button"
                 >
                   ×
@@ -620,7 +620,7 @@ export default function AdminSystemUser() {
                                 <button
                                   onClick={() => handleEdit(user.id)}
                                   disabled={loading}
-                                  className="p-1.5 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors"
+                                  className="p-1.5 bg-yellow-500 hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors"
                                   title="Edit"
                                 >
                                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

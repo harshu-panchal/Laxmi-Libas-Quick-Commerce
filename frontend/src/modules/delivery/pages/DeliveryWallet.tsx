@@ -177,7 +177,7 @@ export default function DeliveryWallet() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
       </div>
     );
   }
@@ -213,13 +213,13 @@ export default function DeliveryWallet() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="m-4 bg-gradient-to-br from-green-500 to-green-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+        className="m-4 bg-gradient-to-br from-yellow-500 to-yellow-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-green-100 text-sm font-medium">
+            <p className="text-yellow-100 text-sm font-medium">
               Available Balance
             </p>
-            <div className="bg-green-400/30 p-2 rounded-xl">
+            <div className="bg-yellow-400/30 p-2 rounded-xl">
               <svg
                 width="24"
                 height="24"
@@ -239,13 +239,13 @@ export default function DeliveryWallet() {
           </h1>
           <button
             onClick={() => setShowWithdrawModal(true)}
-            className="w-full bg-white text-green-700 py-3.5 rounded-xl font-bold hover:bg-green-50 transition-all shadow-md active:scale-[0.98]">
+            className="w-full bg-white text-yellow-700 py-3.5 rounded-xl font-bold hover:bg-yellow-50 transition-all shadow-md active:scale-[0.98]">
             Request Withdrawal
           </button>
         </div>
         {/* Decorative background circle */}
         <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-green-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-yellow-400/20 rounded-full blur-3xl"></div>
       </motion.div>
 
       {/* Admin Payout Card (COD Collection) */}
@@ -310,7 +310,7 @@ export default function DeliveryWallet() {
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <p className="text-xs text-gray-600 mb-1">Paid</p>
-          <p className="text-lg font-bold text-green-600">
+          <p className="text-lg font-bold text-primary-dark">
             ₹{commissions.paid?.toFixed(2) || "0.00"}
           </p>
         </div>
@@ -329,7 +329,7 @@ export default function DeliveryWallet() {
             onClick={() => setActiveTab("transactions")}
             className={`flex-1 py-3 text-sm font-semibold transition-colors ${
               activeTab === "transactions"
-                ? "text-green-600 border-b-2 border-green-600"
+                ? "text-primary-dark border-b-2 border-primary-dark"
                 : "text-gray-600"
             }`}>
             Transactions
@@ -338,7 +338,7 @@ export default function DeliveryWallet() {
             onClick={() => setActiveTab("withdrawals")}
             className={`flex-1 py-3 text-sm font-semibold transition-colors ${
               activeTab === "withdrawals"
-                ? "text-green-600 border-b-2 border-green-600"
+                ? "text-primary-dark border-b-2 border-primary-dark"
                 : "text-gray-600"
             }`}>
             Withdrawals
@@ -347,7 +347,7 @@ export default function DeliveryWallet() {
             onClick={() => setActiveTab("commissions")}
             className={`flex-1 py-3 text-sm font-semibold transition-colors ${
               activeTab === "commissions"
-                ? "text-green-600 border-b-2 border-green-600"
+                ? "text-primary-dark border-b-2 border-primary-dark"
                 : "text-gray-600"
             }`}>
             Commissions
@@ -382,7 +382,7 @@ export default function DeliveryWallet() {
                       </p>
                     </div>
                     <p
-                      className={`font-bold text-lg ${txn.type === "Credit" ? "text-green-600" : "text-red-600"}`}>
+                      className={`font-bold text-lg ${txn.type === "Credit" ? "text-primary-dark" : "text-red-600"}`}>
                       {txn.type === "Credit" ? "+" : "-"}₹
                       {txn.amount.toFixed(2)}
                     </p>
@@ -416,7 +416,7 @@ export default function DeliveryWallet() {
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-semibold ${
                           withdrawal.status === "Completed"
-                            ? "bg-green-100 text-green-700"
+                            ? "bg-yellow-100 text-yellow-700"
                             : withdrawal.status === "Approved"
                               ? "bg-blue-100 text-blue-700"
                               : withdrawal.status === "Rejected"
@@ -466,7 +466,7 @@ export default function DeliveryWallet() {
                           Rate: {comm.rate}%
                         </p>
                       </div>
-                      <p className="font-bold text-green-600">
+                      <p className="font-bold text-primary-dark">
                         ₹{comm.amount.toFixed(2)}
                       </p>
                     </div>
@@ -504,7 +504,7 @@ export default function DeliveryWallet() {
                   type="number"
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg pl-8 pr-4 py-2.5 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg pl-8 pr-4 py-2.5 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                   placeholder="Enter amount"
                   min="0"
                   step="0.01"
@@ -521,7 +521,7 @@ export default function DeliveryWallet() {
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value as any)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
                 <option value="Bank Transfer">Bank Transfer</option>
                 <option value="UPI">UPI</option>
               </select>
@@ -538,7 +538,7 @@ export default function DeliveryWallet() {
               </button>
               <button
                 onClick={handleWithdrawRequest}
-                className="flex-1 bg-green-600 text-white rounded-lg py-2.5 font-semibold hover:bg-green-700 transition disabled:opacity-50"
+                className="flex-1 bg-primary-dark text-white rounded-lg py-2.5 font-semibold hover:bg-yellow-700 transition disabled:opacity-50"
                 disabled={isSubmitting}>
                 {isSubmitting ? "Submitting..." : "Submit Request"}
               </button>

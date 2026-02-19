@@ -12,6 +12,7 @@ import AppSettings from "../../../models/AppSettings";
 import { getRoadDistances } from "../../../services/mapService";
 import { Server as SocketIOServer } from "socket.io";
 import { getOrderItemCommissionRate } from "../../../services/commissionService";
+import { DiscountService } from "../../../services/discountService";
 
 // Create a new order
 export const createOrder = async (req: Request, res: Response) => {
@@ -45,6 +46,57 @@ export const createOrder = async (req: Request, res: Response) => {
             return res.status(400).json({
                 success: false,
                 message: "Order must have at least one item",
+            });
+        }
+
+        // Validate Quantity-Based Discounts before proceeding
+        try {
+            // Map items for DiscountService.validateOrderDiscount
+            const itemsForValidation = await Promise.all(items.map(async (item: any) => {
+                const product = await Product.findById(item.product.id || item.product._id).select('category seller price variations discPrice');
+                if (!product) throw new Error(`Product ${item.product.id} not found`);
+
+                // Determine base price (consistent with calculation logic later)
+                const variationValue = item.variant || item.variation;
+                let selectedVariation;
+                if (variationValue && product.variations) {
+                    selectedVariation = product.variations.find((v: any) =>
+                        (v._id && v._id.toString() === variationValue) ||
+                        v.value === variationValue ||
+                        v.title === variationValue ||
+                        v.pack === variationValue
+                    );
+                }
+                const itemPrice = (selectedVariation?.discPrice && selectedVariation.discPrice > 0)
+                    ? selectedVariation.discPrice
+                    : (product.discPrice && product.discPrice > 0)
+                        ? product.discPrice
+                        : (selectedVariation?.price || product.price || 0);
+
+                return {
+                    productId: product._id.toString(),
+                    categoryId: product.category?.toString(),
+                    sellerId: product.seller?.toString(),
+                    quantity: Number(item.quantity),
+                    price: itemPrice,
+                    claimedDiscountPercent: item.claimedDiscountPercent,
+                    claimedDiscountAmount: item.claimedDiscountAmount
+                };
+            }));
+
+            const validation = await DiscountService.validateOrderDiscount(itemsForValidation);
+            if (!validation.valid) {
+                if (session) await session.abortTransaction();
+                return res.status(400).json({
+                    success: false,
+                    message: validation.message || "Invalid discount claimed",
+                });
+            }
+        } catch (discountErr: any) {
+            if (session) await session.abortTransaction();
+            return res.status(400).json({
+                success: false,
+                message: discountErr.message || "Failed to validate discounts",
             });
         }
 
@@ -151,6 +203,7 @@ export const createOrder = async (req: Request, res: Response) => {
         });
 
         let calculatedSubtotal = 0;
+        let totalQuantityDiscount = 0;
         const orderItemIds: mongoose.Types.ObjectId[] = [];
         const sellerIds = new Set<string>(); // Track unique sellers
 
@@ -280,6 +333,27 @@ export const createOrder = async (req: Request, res: Response) => {
                 : (product.discPrice && product.discPrice > 0)
                     ? product.discPrice
                     : (selectedVariation?.price || product.price || 0);
+
+            // Calculate Quantity-Based Discount for this item
+            let itemDiscountPercent = 0;
+            let itemDiscountAmount = 0;
+            let appliedRuleId = null;
+
+            try {
+                const calculation = await DiscountService.calculateDiscount({
+                    productId: product._id.toString(),
+                    categoryId: product.category?.toString(),
+                    sellerId: product.seller?.toString(),
+                    quantity: qty,
+                    price: itemPrice
+                });
+                itemDiscountPercent = calculation.discountPercent;
+                itemDiscountAmount = calculation.discountAmount;
+                appliedRuleId = calculation.appliedRuleId;
+            } catch (err) {
+                console.error("Discount calculation error for item", err);
+            }
+
             const itemTotal = itemPrice * qty;
             calculatedSubtotal += itemTotal;
 
@@ -288,7 +362,7 @@ export const createOrder = async (req: Request, res: Response) => {
             const commAmount = (itemTotal * commRate) / 100;
 
             // Create OrderItem
-            const newOrderItemData = {
+            const newOrderItemData: any = {
                 order: newOrder._id,
                 product: product._id,
                 seller: product.seller,
@@ -297,7 +371,10 @@ export const createOrder = async (req: Request, res: Response) => {
                 sku: product.sku,
                 unitPrice: itemPrice,
                 quantity: qty,
-                total: itemTotal,
+                total: itemTotal - itemDiscountAmount, // Deduct discount from item total
+                discountPercent: itemDiscountPercent,
+                discountAmount: itemDiscountAmount,
+                appliedDiscountRuleId: appliedRuleId,
                 commissionRate: commRate,
                 commissionAmount: commAmount,
                 variation: variationValue,
@@ -414,10 +491,11 @@ export const createOrder = async (req: Request, res: Response) => {
             // Fallback to provided fee or 0
         }
 
-        const finalTotal = calculatedSubtotal + platformFee + deliveryFee;
+        const finalTotal = calculatedSubtotal + platformFee + deliveryFee - totalQuantityDiscount;
 
         // Update Order with calculated values and items
         newOrder.subtotal = Number(calculatedSubtotal.toFixed(2));
+        newOrder.discount = Number(totalQuantityDiscount.toFixed(2));
         newOrder.total = Number(finalTotal.toFixed(2));
         newOrder.items = orderItemIds;
         newOrder.shipping = deliveryFee; // Update with calculated fee

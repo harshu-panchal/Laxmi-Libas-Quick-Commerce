@@ -405,7 +405,7 @@ export default function SellerStockManagement() {
                                         <div className="flex items-center gap-2">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.stock === 0
                                                 ? 'bg-red-50 text-red-600'
-                                                : 'bg-green-50 text-green-600'
+                                                : 'bg-yellow-50 text-primary-dark'
                                                 }`}>
                                                 {item.stock}
                                             </span>

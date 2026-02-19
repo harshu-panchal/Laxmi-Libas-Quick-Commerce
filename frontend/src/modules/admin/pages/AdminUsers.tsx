@@ -331,7 +331,7 @@ export default function AdminUsers() {
                                             <td className="p-4 align-middle">{new Date(user.registrationDate).toLocaleString()}</td>
                                             <td className="p-4 align-middle">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.status === 'Active'
-                                                    ? 'bg-green-100 text-green-800'
+                                                    ? 'bg-yellow-100 text-yellow-800'
                                                     : user.status === 'Suspended'
                                                         ? 'bg-red-100 text-red-800'
                                                         : 'bg-yellow-100 text-yellow-800'
@@ -349,7 +349,7 @@ export default function AdminUsers() {
                                                         onClick={() => handleStatusChange(user._id, user.status === 'Active' ? 'Suspended' : 'Active')}
                                                         className={`p-1.5 text-white rounded transition-colors ${user.status === 'Active'
                                                             ? 'bg-red-600 hover:bg-red-700'
-                                                            : 'bg-green-600 hover:bg-green-700'
+                                                            : 'bg-primary-dark hover:bg-yellow-700'
                                                             }`}
                                                         title={user.status === 'Active' ? 'Suspend User' : 'Activate User'}
                                                     >

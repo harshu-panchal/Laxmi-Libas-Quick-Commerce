@@ -376,7 +376,7 @@ export default function AdminHomeSection() {
             {(success || error) && (
                 <div className="px-6">
                     {success && (
-                        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+                        <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded mb-4">
                             {success}
                         </div>
                     )}
@@ -871,7 +871,7 @@ export default function AdminHomeSection() {
                                                 <td className="p-4">
                                                     <span
                                                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${section.isActive
-                                                            ? "bg-green-100 text-green-800"
+                                                            ? "bg-yellow-100 text-yellow-800"
                                                             : "bg-gray-100 text-gray-800"
                                                             }`}
                                                     >

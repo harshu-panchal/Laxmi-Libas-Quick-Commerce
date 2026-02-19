@@ -2,11 +2,12 @@ import React from 'react';
 
 interface DynamicCategoryFieldsProps {
     categoryName: string;
+    subcategoryName?: string;
     formData: any;
     handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
 }
 
-export default function DynamicCategoryFields({ categoryName, formData, handleChange }: DynamicCategoryFieldsProps) {
+export default function DynamicCategoryFields({ categoryName, subcategoryName, formData, handleChange }: DynamicCategoryFieldsProps) {
     const name = categoryName.toLowerCase();
 
     // Fast Fashion / Fashion
@@ -220,8 +221,43 @@ export default function DynamicCategoryFields({ categoryName, formData, handleCh
         );
     }
 
-    // Room Rent
+    // Rent (Room, Bike, etc.)
     if (name.includes('room') || name.includes('rent')) {
+        const subName = (subcategoryName || '').toLowerCase();
+
+        // Bike Rent
+        if (subName.includes('bike') || subName.includes('vehicle')) {
+            return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">Rent Amount (Daily/Monthly)</label>
+                        <input type="number" name="rentAmount" value={formData.rentAmount || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">Security Deposit</label>
+                        <input type="number" name="securityDeposit" value={formData.securityDeposit || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">Vehicle Model</label>
+                        <input type="text" name="vehicleModel" value={formData.vehicleModel || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Splendor Plus" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">Brand</label>
+                        <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">Year</label>
+                        <input type="text" name="specifications" value={formData.specifications || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="Manufacturing Year" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">Mileage (kmpl)</label>
+                        <input type="text" name="experience" value={formData.experience || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                </div>
+            );
+        }
+
+        // Room Rent (Default if subcategory not specified yet or matches room)
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

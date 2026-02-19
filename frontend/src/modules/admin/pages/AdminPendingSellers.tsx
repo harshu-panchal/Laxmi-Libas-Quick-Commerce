@@ -165,7 +165,7 @@ export default function AdminPendingSellers() {
     const getStatusBadge = (status: string) => {
         const badges = {
             Pending: 'bg-yellow-100 text-yellow-700',
-            Approved: 'bg-green-100 text-green-700',
+            Approved: 'bg-yellow-100 text-yellow-700',
             Rejected: 'bg-red-100 text-red-700',
             Blocked: 'bg-gray-100 text-gray-700',
         };
@@ -373,7 +373,7 @@ export default function AdminPendingSellers() {
                                             <button
                                                 onClick={() => handleApprove(selectedSeller._id)}
                                                 disabled={actionLoading}
-                                                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50"
+                                                className="flex-1 bg-primary-dark text-white px-4 py-2 rounded-lg font-medium hover:bg-yellow-700 disabled:opacity-50"
                                             >
                                                 {actionLoading ? 'Processing...' : 'Approve'}
                                             </button>

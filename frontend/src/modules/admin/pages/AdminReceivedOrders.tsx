@@ -204,7 +204,7 @@ export default function AdminReceivedOrders() {
       case 'Out For Delivery':
         return 'bg-orange-100 text-orange-800';
       case 'Delivered':
-        return 'bg-green-100 text-green-800';
+        return 'bg-yellow-100 text-yellow-800';
       case 'Cancelled':
         return 'bg-red-100 text-red-800';
       default:
@@ -215,7 +215,7 @@ export default function AdminReceivedOrders() {
   const getDeliveryBoyStatusColor = (status: string) => {
     switch (status) {
       case 'Assigned':
-        return 'bg-green-100 text-green-800';
+        return 'bg-yellow-100 text-yellow-800';
       case 'Not Assigned':
         return 'bg-red-100 text-red-800';
       default:
@@ -247,7 +247,7 @@ export default function AdminReceivedOrders() {
         {/* White Card Container */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
           {/* Green Banner */}
-          <div className="bg-green-600 text-white px-4 sm:px-6 py-2 sm:py-3">
+          <div className="bg-primary-dark text-white px-4 sm:px-6 py-2 sm:py-3">
             <h2 className="text-base sm:text-lg font-semibold">View Order List</h2>
           </div>
 
@@ -308,7 +308,7 @@ export default function AdminReceivedOrders() {
                     setSeller(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500"
                 >
                   <option>All Sellers</option>
                   <option>Seller 1</option>
@@ -328,7 +328,7 @@ export default function AdminReceivedOrders() {
                     setStatus(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500"
                 >
                   <option>Received</option>
                   <option>All Status</option>
@@ -349,7 +349,7 @@ export default function AdminReceivedOrders() {
                     setEntriesPerPage(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500"
                 >
                   <option>10</option>
                   <option>25</option>
@@ -363,7 +363,7 @@ export default function AdminReceivedOrders() {
                 <div className="relative">
                   <button
                     onClick={handleExport}
-                    className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto"
+                    className="flex items-center justify-center gap-2 bg-primary-dark hover:bg-yellow-700 text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto"
                   >
                     <svg
                       width="16"
@@ -413,7 +413,7 @@ export default function AdminReceivedOrders() {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="flex-1 w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  className="flex-1 w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500"
                   placeholder="Search by Order ID, Customer, or Amount"
                 />
               </div>

@@ -271,7 +271,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {(showHeader || isSearchPage) && (
             <header className="sticky top-0 z-50 bg-white shadow-sm md:shadow-md md:top-[60px]">
               {/* Delivery info line */}
-              <div className="px-4 md:px-6 lg:px-8 py-1.5 bg-green-50 text-xs text-green-700 text-center">
+              <div className="px-4 md:px-6 lg:px-8 py-1.5 bg-yellow-50 text-xs text-yellow-700 text-center">
                 Delivering in 10–15 mins
               </div>
 

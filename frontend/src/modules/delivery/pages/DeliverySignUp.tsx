@@ -246,7 +246,7 @@ export default function DeliverySignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-green-50 flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-yellow-50 flex flex-col items-center justify-center px-4 py-8">
       {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
@@ -273,7 +273,7 @@ export default function DeliverySignUp() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Header Section */}
         <div
-          className="px-6 py-4 text-center border-b border-green-700"
+          className="px-6 py-4 text-center border-b border-yellow-700"
           style={{
             backgroundColor: "rgb(21 178 74 / var(--tw-bg-opacity, 1))",
           }}>
@@ -287,7 +287,7 @@ export default function DeliverySignUp() {
           <h1 className="text-2xl font-bold text-white mb-1 -mt-12">
             Delivery Sign Up
           </h1>
-          <p className="text-green-50 text-sm -mt-2">
+          <p className="text-yellow-50 text-sm -mt-2">
             Create your delivery partner account
           </p>
         </div>

@@ -555,7 +555,7 @@ export default function DeliveryOrderDetail() {
                 <span className="ml-2 font-semibold text-lg text-neutral-800">Order Details</span>
 
                 <div className="ml-auto">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.status === 'Delivered' ? 'bg-yellow-100 text-yellow-700' :
                         order.status === 'Picked up' ? 'bg-indigo-100 text-indigo-700' :
                             order.status === 'Ready for pickup' ? 'bg-yellow-100 text-yellow-700' :
                                 'bg-orange-100 text-orange-700'
@@ -653,7 +653,7 @@ export default function DeliveryOrderDetail() {
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <p className="font-semibold text-neutral-900">{seller.storeName}</p>
                                                     {isPickedUp && (
-                                                        <span className="flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                                        <span className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
                                                             <Icons.CheckCircle size={12} />
                                                             Picked Up
                                                         </span>
@@ -661,7 +661,7 @@ export default function DeliveryOrderDetail() {
                                                 </div>
                                                 <p className="text-sm text-neutral-600">{seller.address}, {seller.city}</p>
                                                 {distance !== undefined && (
-                                                    <p className={`text-xs mt-1 font-medium ${withinRange ? 'text-green-600' :
+                                                    <p className={`text-xs mt-1 font-medium ${withinRange ? 'text-primary-dark' :
                                                             distance < 1000 ? 'text-yellow-600' : 'text-red-600'
                                                         }`}>
                                                         {distance < 1000 ? `${distance}m away` : `${(distance / 1000).toFixed(1)}km away`}
@@ -675,7 +675,7 @@ export default function DeliveryOrderDetail() {
                                                 onClick={() => handleSellerPickup(seller.sellerId)}
                                                 disabled={!withinRange || isLoading}
                                                 className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all ${withinRange && !isLoading
-                                                        ? 'bg-green-600 text-white hover:bg-green-700 active:scale-[0.98]'
+                                                        ? 'bg-primary-dark text-white hover:bg-yellow-700 active:scale-[0.98]'
                                                         : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                                                     }`}
                                             >
@@ -752,7 +752,7 @@ export default function DeliveryOrderDetail() {
                             </div>
                             <button
                                 onClick={() => window.open(`tel:${order.customerPhone}`, '_system')}
-                                className="ml-auto p-3 bg-green-500 text-white rounded-full hover:bg-green-600 shadow-md transition-transform hover:scale-105 active:scale-95"
+                                className="ml-auto p-3 bg-yellow-500 text-white rounded-full hover:bg-primary-dark shadow-md transition-transform hover:scale-105 active:scale-95"
                             >
                                 <Icons.Phone size={20} />
                             </button>
@@ -775,10 +775,10 @@ export default function DeliveryOrderDetail() {
 
                 {/* Delivery Earning Card - Show only if delivered or has earning */}
                 {(order.status === 'Delivered' || (order.deliveryEarning && order.deliveryEarning > 0)) && (
-                    <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-5 shadow-sm text-white mb-4">
+                    <div className="bg-gradient-to-r from-yellow-500 to-primary-dark rounded-2xl p-5 shadow-sm text-white mb-4">
                         <div className="flex justify-between items-center">
                             <div>
-                                <p className="text-green-100 text-xs font-medium mb-1">Your Earning</p>
+                                <p className="text-yellow-100 text-xs font-medium mb-1">Your Earning</p>
                                 <h3 className="text-2xl font-bold">₹ {order.deliveryEarning?.toFixed(2) || '0.00'}</h3>
                             </div>
                             <div className="bg-white/20 p-2 rounded-lg">
@@ -845,7 +845,7 @@ export default function DeliveryOrderDetail() {
 
                         {/* Distance indicator */}
                         {customerProximity && (
-                            <p className={`text-xs mb-2 font-medium ${customerProximity.withinRange ? 'text-green-600' :
+                            <p className={`text-xs mb-2 font-medium ${customerProximity.withinRange ? 'text-primary-dark' :
                                     customerProximity.distance < 1000 ? 'text-yellow-600' : 'text-red-600'
                                 }`}>
                                 {customerProximity.distance < 1000
@@ -872,7 +872,7 @@ export default function DeliveryOrderDetail() {
                                     onClick={handleSendOtp}
                                     disabled={!getOtpEnabled || otpSending}
                                     className={`flex-1 py-3 rounded-xl font-semibold transition-all ${getOtpEnabled && !otpSending
-                                            ? 'bg-green-600 text-white hover:bg-green-700 active:scale-[0.98]'
+                                            ? 'bg-primary-dark text-white hover:bg-yellow-700 active:scale-[0.98]'
                                             : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                                         }`}
                                 >

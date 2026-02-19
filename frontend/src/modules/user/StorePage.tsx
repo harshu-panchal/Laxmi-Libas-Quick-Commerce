@@ -160,7 +160,7 @@ export default function StorePage() {
 
                 {loading ? (
                     <div className="flex justify-center p-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-dark"></div>
                     </div>
                 ) : products.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
@@ -178,7 +178,7 @@ export default function StorePage() {
                 ) : (
                     <div className="text-center py-20 text-neutral-500">
                         <p>No products found in this store yet.</p>
-                        <Link to="/" className="text-green-600 font-medium mt-2 inline-block">Explore other categories</Link>
+                        <Link to="/" className="text-primary-dark font-medium mt-2 inline-block">Explore other categories</Link>
                     </div>
                 )}
             </div>

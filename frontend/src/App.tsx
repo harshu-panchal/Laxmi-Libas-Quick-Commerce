@@ -141,6 +141,7 @@ const AdminWithdrawals = lazy(() => import("./modules/admin/pages/AdminWithdrawa
 const AdminPayments = lazy(() => import("./modules/admin/pages/AdminPayments"));
 const AdminWallet = lazy(() => import("./modules/admin/pages/AdminWallet"));
 const AdminBillingSettings = lazy(() => import("./modules/admin/pages/AdminBillingSettings"));
+const AdminDiscountRules = lazy(() => import("./modules/admin/pages/AdminDiscountRules"));
 
 function App() {
   // Initialize push notifications on app load
@@ -321,6 +322,7 @@ function App() {
                                       <Route path="manage-location/seller-location" element={<AdminSellerLocation />} />
 
                                       <Route path="coupon" element={<AdminCoupon />} />
+                                      <Route path="discount-rules" element={<AdminDiscountRules />} />
                                       <Route path="return" element={<AdminReturnRequest />} />
                                       <Route path="notification" element={<AdminNotification />} />
                                       <Route path="orders" element={<AdminOrders />} />

@@ -4,6 +4,10 @@ export interface CartItem {
   product: Product;
   quantity: number;
   variant?: any;
+  discountPercent?: number;
+  discountAmount?: number;
+  appliedRuleId?: string;
+  originalItemTotal?: number;
 }
 
 export interface Cart {
@@ -11,6 +15,8 @@ export interface Cart {
   totalItemCount?: number;
   itemCount?: number;
   total: number;
+  totalDiscount?: number;
+  finalTotal?: number;
   estimatedDeliveryFee?: number;
   platformFee?: number;
   freeDeliveryThreshold?: number;

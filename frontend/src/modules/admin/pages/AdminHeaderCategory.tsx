@@ -434,7 +434,7 @@ export default function AdminHeaderCategory() {
                           className={`
                             px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
                             ${category.status === 'Published'
-                              ? 'bg-green-100 text-green-800 border border-green-200'
+                              ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
                               : 'bg-red-100 text-red-800 border border-red-200'}
                           `}
                         >

@@ -449,7 +449,7 @@ export default function AdminManageCustomer() {
                       <td className="p-4 border border-neutral-200">
                         <span
                           className={`px-2 py-1 rounded text-xs font-medium ${customer.status === "Active"
-                            ? "bg-green-100 text-green-800"
+                            ? "bg-yellow-100 text-yellow-800"
                             : "bg-red-100 text-red-800"
                             }`}>
                           {customer.status}
@@ -481,7 +481,7 @@ export default function AdminManageCustomer() {
                             </svg>
                           </button>
                           <button
-                            className="p-1.5 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                            className="p-1.5 bg-primary-dark hover:bg-yellow-700 text-white rounded transition-colors"
                             title="Edit">
                             <svg
                               width="14"

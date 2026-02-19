@@ -12,6 +12,8 @@ import {
   clearCart as apiClearCart
 } from '../services/api/customerCartService';
 import { calculateProductPrice } from '../utils/priceUtils';
+import { getActiveDiscounts } from '../services/api/customerDiscountService';
+import { DiscountRule, findBestRule, calculateDiscountForItem } from '../utils/discountFrontendUtils';
 
 const CART_STORAGE_KEY = 'saved_cart';
 
@@ -55,11 +57,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
   });
   const [lastAddEvent, setLastAddEvent] = useState<AddToCartEvent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeRules, setActiveRules] = useState<DiscountRule[]>([]);
   const pendingOperationsRef = useRef<Set<string>>(new Set());
 
   const { isAuthenticated, user } = useAuth();
   const { location } = useLocation();
   const { showToast } = useToast();
+
+  const fetchDiscounts = async () => {
+    try {
+      const response = await getActiveDiscounts();
+      if (response && response.success) {
+        setActiveRules(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch discounts:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchDiscounts();
+  }, []);
 
   // Helper to map API cart items to internal CartItem structure
   const mapApiItemsToState = (apiItems: any[]): ExtendedCartItem[] => {
@@ -78,7 +96,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           pack: item.product.pack || '1 unit',
           categoryId: item.product.category || '',
           description: item.product.description,
-          variantId: item.variation // Preserving variation ID/value
+          variantId: item.variation, // Preserving variation ID/value
+          sellerId: item.product.sellerId || item.product.seller
         },
         quantity: item.quantity,
         variant: item.variation // Also preserve it here for order placement
@@ -93,10 +112,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Helper to sync cart from API
   const fetchCart = async (lat?: number, lng?: number) => {
     if (!isAuthenticated || user?.userType !== 'Customer') {
-      // If we cleared it above but had things in localStorage, we keep them for guests?
-      // For now, if logged out, we clear if it was an authenticated session.
-      // But if guest, we might want to keep it.
-      // Let's only clear if we are transition from logged in to logged out.
       setLoading(false);
       return;
     }
@@ -148,14 +163,45 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const cart: Cart = useMemo(() => {
     // Filter out any items with null products before computing totals
     const validItems = items.filter(item => item?.product);
-    const total = validItems.reduce((sum, item) => {
+
+    let totalDiscount = 0;
+    const processedItems = validItems.map(item => {
       const { displayPrice } = calculateProductPrice(item.product, item.variant);
-      return sum + displayPrice * (item.quantity || 0);
-    }, 0);
-    const itemCount = validItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+      const originalItemTotal = displayPrice * (item.quantity || 0);
+
+      const productId = item.product.id || item.product._id;
+      const sellerId = (item.product as any).sellerId || (item.product as any).seller;
+      const categoryId = item.product.categoryId || (item.product as any).category;
+
+      const bestRule = findBestRule(
+        activeRules,
+        item.quantity,
+        productId,
+        sellerId,
+        categoryId
+      );
+
+      const discountData = calculateDiscountForItem(displayPrice, item.quantity, bestRule);
+      totalDiscount += discountData.discountAmount;
+
+      return {
+        ...item,
+        originalItemTotal,
+        discountPercent: discountData.discountPercent,
+        discountAmount: discountData.discountAmount,
+        appliedRuleId: discountData.ruleId
+      };
+    });
+
+    const totalBeforeDiscount = processedItems.reduce((sum, item) => sum + (item.originalItemTotal || 0), 0);
+    const finalTotal = totalBeforeDiscount - totalDiscount;
+    const itemCount = processedItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+
     return {
-      items: validItems,
-      total,
+      items: processedItems,
+      total: totalBeforeDiscount,
+      totalDiscount,
+      finalTotal,
       itemCount,
       estimatedDeliveryFee: estimatedFee,
       platformFee,
@@ -163,7 +209,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       debug_config: (items as any).debug_config,
       backendTotal: (items as any).backendTotal
     };
-  }, [items, estimatedFee, platformFee, freeDeliveryThreshold]);
+  }, [items, estimatedFee, platformFee, freeDeliveryThreshold, activeRules]);
 
   const addToCart = async (product: Product, sourceElement?: HTMLElement | null) => {
     // Get consistent product ID - MongoDB returns _id, frontend expects id

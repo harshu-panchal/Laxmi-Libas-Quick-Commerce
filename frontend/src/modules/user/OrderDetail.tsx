@@ -315,7 +315,7 @@ const PromoCarousel = () => {
               <p className="text-xs text-gray-600 mt-1">
                 {promos[currentSlide].subtext}
               </p>
-              <button className="text-green-700 font-medium text-sm mt-2 flex items-center gap-1">
+              <button className="text-yellow-700 font-medium text-sm mt-2 flex items-center gap-1">
                 Apply now <ChevronRightIcon className="w-4 h-4" />
               </button>
             </div>
@@ -332,7 +332,7 @@ const PromoCarousel = () => {
           <button
             key={index}
             onClick={() => setCurrentSlide(index)}
-            className={`w-2 h-2 rounded-full transition-all duration-300 ${index === currentSlide ? "bg-green-600 w-4" : "bg-gray-300"
+            className={`w-2 h-2 rounded-full transition-all duration-300 ${index === currentSlide ? "bg-primary-dark w-4" : "bg-gray-300"
               }`}
           />
         ))}
@@ -366,7 +366,7 @@ const TipSection = () => {
               setCustomTip("");
             }}
             className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${selectedTip === tip
-              ? "border-green-600 bg-green-50 text-green-700"
+              ? "border-primary-dark bg-yellow-50 text-yellow-700"
               : "border-gray-200 text-gray-700 hover:border-gray-300"
               }`}
             whileTap={{ scale: 0.95 }}>
@@ -378,7 +378,7 @@ const TipSection = () => {
             setSelectedTip("other");
           }}
           className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${selectedTip === "other"
-            ? "border-green-600 bg-green-50 text-green-700"
+            ? "border-primary-dark bg-yellow-50 text-yellow-700"
             : "border-gray-200 text-gray-700 hover:border-gray-300"
             }`}
           whileTap={{ scale: 0.95 }}>
@@ -398,7 +398,7 @@ const TipSection = () => {
               placeholder="Enter custom amount"
               value={customTip}
               onChange={(e) => setCustomTip(e.target.value)}
-              className="mt-3 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="mt-3 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
             />
           </motion.div>
         )}
@@ -702,7 +702,7 @@ export default function OrderDetail() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-dark"></div>
           <p className="text-sm text-neutral-500">Loading order details...</p>
         </div>
       </div>
@@ -731,22 +731,22 @@ export default function OrderDetail() {
     Received: {
       title: "Order received",
       subtitle: "Order will reach you shortly",
-      color: "bg-green-700",
+      color: "bg-yellow-700",
     },
     Accepted: {
       title: "Preparing your order",
       subtitle: `Arriving in ${estimatedTime} mins`,
-      color: "bg-green-700",
+      color: "bg-yellow-700",
     },
     "On the way": {
       title: "Order picked up",
       subtitle: `Arriving in ${estimatedTime} mins`,
-      color: "bg-green-700",
+      color: "bg-yellow-700",
     },
     Delivered: {
       title: "Order delivered",
       subtitle: "Enjoy your meal!",
-      color: "bg-green-600",
+      color: "bg-primary-dark",
     },
     // Backend status mappings
     Pending: {
@@ -757,7 +757,7 @@ export default function OrderDetail() {
     Processed: {
       title: "Order processed",
       subtitle: "Preparing for delivery",
-      color: "bg-green-700",
+      color: "bg-yellow-700",
     },
     Shipped: {
       title: "Order shipped",
@@ -767,7 +767,7 @@ export default function OrderDetail() {
     "Out for Delivery": {
       title: "Out for delivery",
       subtitle: `Arriving in ${estimatedTime} mins`,
-      color: "bg-green-700",
+      color: "bg-yellow-700",
     },
     Cancelled: {
       title: "Order cancelled",
@@ -818,7 +818,7 @@ export default function OrderDetail() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.5 }}
                 className="mt-8">
-                <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto" />
                 <p className="text-sm text-gray-500 mt-3">
                   Loading order details...
                 </p>
@@ -871,7 +871,7 @@ export default function OrderDetail() {
             {(orderStatus === "Accepted" || orderStatus === "On the way") && (
               <>
                 <span className="w-1 h-1 rounded-full bg-white" />
-                <span className="text-sm text-green-200">On time</span>
+                <span className="text-sm text-yellow-200">On time</span>
               </>
             )}
             <motion.button
@@ -1079,10 +1079,10 @@ export default function OrderDetail() {
               </p>
             </div>
             <motion.button
-              className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center"
+              className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center"
               whileTap={{ scale: 0.9 }}
               onClick={handleCallStore}>
-              <PhoneIcon className="w-5 h-5 text-green-700" />
+              <PhoneIcon className="w-5 h-5 text-yellow-700" />
             </motion.button>
           </div>
 
@@ -1102,8 +1102,8 @@ export default function OrderDetail() {
                     <div
                       key={index}
                       className="flex items-center gap-2 text-sm text-gray-600">
-                      <span className="w-4 h-4 rounded border border-green-600 flex items-center justify-center">
-                        <span className="w-2 h-2 rounded-full bg-green-600" />
+                      <span className="w-4 h-4 rounded border border-primary-dark flex items-center justify-center">
+                        <span className="w-2 h-2 rounded-full bg-primary-dark" />
                       </span>
                       <span>
                         {item.quantity} x{" "}
@@ -1162,7 +1162,7 @@ export default function OrderDetail() {
           transition={{ delay: 0.85 }}>
           {order?.invoiceEnabled ? (
             <Link to={`/orders/${id}/invoice`} className="flex-1">
-              <Button className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white">
+              <Button className="w-full bg-gradient-to-r from-primary-dark to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white">
                 View Invoice
               </Button>
             </Link>
@@ -1253,7 +1253,7 @@ export default function OrderDetail() {
                 Share details to help the delivery partner find you
               </p>
               <textarea
-                className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                 rows={4}
                 maxLength={200}
                 placeholder="e.g., Ring the bell, Leave at door, etc."
@@ -1271,7 +1271,7 @@ export default function OrderDetail() {
                   Cancel
                 </Button>
                 <Button
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  className="flex-1 bg-primary-dark hover:bg-yellow-700 text-white"
                   onClick={handleSaveInstructions}>
                   Save
                 </Button>
@@ -1337,7 +1337,7 @@ export default function OrderDetail() {
                 ))}
               </div>
               <Button
-                className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white"
+                className="w-full mt-4 bg-primary-dark hover:bg-yellow-700 text-white"
                 onClick={() => setShowItemsModal(false)}>
                 Close
               </Button>
@@ -1368,7 +1368,7 @@ export default function OrderDetail() {
                 Let the store know if you have any special preferences
               </p>
               <textarea
-                className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                 rows={4}
                 maxLength={200}
                 placeholder="e.g., No onions, Extra napkins, etc."
@@ -1386,7 +1386,7 @@ export default function OrderDetail() {
                   Cancel
                 </Button>
                 <Button
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  className="flex-1 bg-primary-dark hover:bg-yellow-700 text-white"
                   onClick={handleSaveSpecialRequests}>
                   Save
                 </Button>

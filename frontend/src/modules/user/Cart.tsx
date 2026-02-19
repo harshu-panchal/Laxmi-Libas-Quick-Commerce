@@ -8,9 +8,9 @@ export default function Cart() {
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
   const navigate = useNavigate();
 
-  const deliveryFee = cart.total >= appConfig.freeDeliveryThreshold ? 0 : appConfig.deliveryFee;
+  const deliveryFee = (cart.finalTotal || cart.total) >= appConfig.freeDeliveryThreshold ? 0 : appConfig.deliveryFee;
   const platformFee = appConfig.platformFee;
-  const totalAmount = cart.total + deliveryFee + platformFee;
+  const totalAmount = (cart.finalTotal || cart.total) + deliveryFee + platformFee;
 
   const handleCheckout = () => {
     navigate('/checkout');
@@ -53,6 +53,8 @@ export default function Cart() {
       <div className="px-4 md:px-6 lg:px-8 space-y-4 md:space-y-6 mb-4 md:mb-6">
         {cart.items.map((item) => {
           const { displayPrice, mrp, hasDiscount } = calculateProductPrice(item.product, item.variant);
+          const hasQuantityDiscount = (item.discountAmount || 0) > 0;
+
           return (
             <div
               key={item.product.id}
@@ -97,7 +99,7 @@ export default function Cart() {
                       variant="outline"
                       size="icon"
                       onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.variant)}
-                      className="w-8 h-8 md:w-10 md:h-10 p-0 border-neutral-300 text-neutral-600 hover:border-green-600 hover:text-green-600 md:text-lg"
+                      className="w-8 h-8 md:w-10 md:h-10 p-0 border-neutral-300 text-neutral-600 hover:border-primary-dark hover:text-primary-dark md:text-lg"
                     >
                       −
                     </Button>
@@ -108,14 +110,19 @@ export default function Cart() {
                       variant="outline"
                       size="icon"
                       onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variant)}
-                      className="w-8 h-8 md:w-10 md:h-10 p-0 border-neutral-300 text-neutral-600 hover:border-green-600 hover:text-green-600 md:text-lg"
+                      className="w-8 h-8 md:w-10 md:h-10 p-0 border-neutral-300 text-neutral-600 hover:border-primary-dark hover:text-primary-dark md:text-lg"
                     >
                       +
                     </Button>
                     <div className="ml-auto text-right">
                       <div className="text-sm md:text-base font-bold text-neutral-900">
-                        ₹{(displayPrice * item.quantity).toFixed(0)}
+                        ₹{(displayPrice * item.quantity - (item.discountAmount || 0)).toFixed(0)}
                       </div>
+                      {hasQuantityDiscount && (
+                        <div className="text-[10px] md:text-xs text-primary-dark font-medium">
+                          Saved ₹{(item.discountAmount || 0).toFixed(0)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -143,19 +150,34 @@ export default function Cart() {
               <span>Subtotal</span>
               <span className="font-medium">₹{cart.total.toLocaleString('en-IN')}</span>
             </div>
+
+            {(cart.totalDiscount || 0) > 0 && (
+              <div className="flex justify-between text-primary-dark md:text-base font-medium">
+                <span>Quantity Discount</span>
+                <span>- ₹{cart.totalDiscount?.toLocaleString('en-IN')}</span>
+              </div>
+            )}
+
             <div className="flex justify-between text-neutral-700 md:text-base">
               <span>Platform Fee</span>
               <span className="font-medium">₹{platformFee.toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between text-neutral-700 md:text-base">
               <span>Delivery Charges</span>
-              <span className={`font-medium ${deliveryFee === 0 ? 'text-green-600' : ''}`}>
+              <span className={`font-medium ${deliveryFee === 0 ? 'text-primary-dark' : ''}`}>
                 {deliveryFee === 0 ? 'Free' : `₹${deliveryFee.toLocaleString('en-IN')}`}
               </span>
             </div>
-            {cart.total < appConfig.freeDeliveryThreshold && (
-              <div className="text-xs md:text-sm text-green-600 bg-green-50 px-2 py-1 rounded">
-                Add ₹{(appConfig.freeDeliveryThreshold - cart.total).toLocaleString('en-IN')} more for free delivery
+
+            {(cart.totalDiscount || 0) > 0 && (
+              <div className="bg-yellow-50 text-yellow-700 px-3 py-2 rounded-lg text-xs md:text-sm font-medium border border-yellow-100">
+                🎉 You saved ₹{cart.totalDiscount?.toLocaleString('en-IN')} on this order!
+              </div>
+            )}
+
+            {(cart.finalTotal || cart.total) < appConfig.freeDeliveryThreshold && (
+              <div className="text-xs md:text-sm text-primary-dark bg-yellow-50 px-2 py-1 rounded">
+                Add ₹{(appConfig.freeDeliveryThreshold - (cart.finalTotal || cart.total)).toLocaleString('en-IN')} more for free delivery
               </div>
             )}
           </div>

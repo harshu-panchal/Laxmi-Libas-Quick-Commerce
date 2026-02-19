@@ -58,7 +58,7 @@ export default function DeliveryAbout() {
               <h3 className="text-neutral-900 text-lg font-bold">{profile.name}</h3>
               <p className="text-neutral-500 text-sm mb-1">+91 {profile.mobile}</p>
               <p className="text-neutral-400 text-xs mb-3">{profile.email}</p>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${profile.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${profile.status === 'Active' ? 'bg-yellow-100 text-yellow-700' : 'bg-yellow-100 text-yellow-700'
                 }`}>
                 {profile.status}
               </span>

@@ -5,6 +5,9 @@ export interface ICartItem extends Document {
   product: mongoose.Types.ObjectId;
   quantity: number;
   variation?: string;
+  discountPercent?: number;
+  discountAmount?: number;
+  appliedDiscountRuleId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +32,20 @@ const CartItemSchema = new Schema<ICartItem>(
     variation: {
       type: String,
       trim: true,
+    },
+    discountPercent: {
+      type: Number,
+      default: 0,
+      min: [0, "Discount percent cannot be negative"],
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
+      min: [0, "Discount amount cannot be negative"],
+    },
+    appliedDiscountRuleId: {
+      type: Schema.Types.ObjectId,
+      ref: "DiscountRule",
     },
   },
   {

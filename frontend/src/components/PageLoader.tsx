@@ -9,7 +9,7 @@ export default function PageLoader({ children }: { children?: ReactNode }) {
     <div className="min-h-screen bg-white flex items-center justify-center">
       {children || (
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-primary-dark border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-neutral-500">Loading...</p>
         </div>
       )}

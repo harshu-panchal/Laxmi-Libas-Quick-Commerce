@@ -212,7 +212,7 @@ export default function ProductCard({
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2 }}
-      className={`${categoryStyle ? 'bg-green-50' : 'bg-white'} rounded-lg shadow-sm overflow-hidden flex flex-col relative`}
+      className={`${categoryStyle ? 'bg-yellow-50' : 'bg-white'} rounded-lg shadow-sm overflow-hidden flex flex-col relative`}
     >
       <div
         onClick={handleCardClick}
@@ -246,7 +246,7 @@ export default function ProductCard({
           )}
 
           {categoryStyle && showBadge && discount > 0 && (
-            <div className="absolute top-2 left-2 z-10 bg-green-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded">
+            <div className="absolute top-2 left-2 z-10 bg-primary-dark text-white text-[10px] font-semibold px-2 py-0.5 rounded">
               {discount}% off
             </div>
           )}
@@ -323,7 +323,7 @@ export default function ProductCard({
                     }}
                     className={`w-full border rounded-full font-semibold text-xs h-7 px-3 flex items-center justify-center uppercase tracking-wide ${product.isAvailable === false || ((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")
                       ? 'border-neutral-300 text-neutral-400 bg-neutral-50 cursor-not-allowed'
-                      : 'border-green-600 text-green-600 bg-transparent hover:bg-green-50'
+                      : 'border-primary-dark text-primary-dark bg-transparent hover:bg-yellow-50'
                       }`}
                   >
                     {product.isAvailable === false ? 'Out of Range' : ((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out") ? 'Out of Stock' : 'ADD'}
@@ -331,7 +331,7 @@ export default function ProductCard({
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-1.5 bg-white border border-green-600 rounded-full px-1.5 py-0.5 h-7 w-full">
+              <div className="flex items-center justify-center gap-1.5 bg-white border border-primary-dark rounded-full px-1.5 py-0.5 h-7 w-full">
                 <Button
                   variant="default"
                   size="icon"
@@ -339,12 +339,12 @@ export default function ProductCard({
                     e.stopPropagation();
                     handleDecrease(e);
                   }}
-                  className="w-5 h-5 p-0 bg-transparent text-green-600 hover:bg-green-50 shadow-none"
+                  className="w-5 h-5 p-0 bg-transparent text-primary-dark hover:bg-yellow-50 shadow-none"
                   aria-label="Decrease quantity"
                 >
                   −
                 </Button>
-                <span className="text-xs font-bold text-green-600 min-w-[1rem] text-center">
+                <span className="text-xs font-bold text-primary-dark min-w-[1rem] text-center">
                   {inCartQty}
                 </span>
                 <Button
@@ -355,7 +355,7 @@ export default function ProductCard({
                     e.stopPropagation();
                     handleIncrease(e);
                   }}
-                  className={`w-5 h-5 p-0 bg-transparent text-green-600 shadow-none ${product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : 'hover:bg-green-50'
+                  className={`w-5 h-5 p-0 bg-transparent text-primary-dark shadow-none ${product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : 'hover:bg-yellow-50'
                     }`}
                   aria-label="Increase quantity"
                 >
@@ -403,7 +403,7 @@ export default function ProductCard({
 
               {/* 4. % OFF */}
               {discount > 0 && (
-                <p className="text-[9px] font-semibold text-green-600 mb-0.5 leading-tight">
+                <p className="text-[9px] font-semibold text-primary-dark mb-0.5 leading-tight">
                   {discount}% OFF
                 </p>
               )}
@@ -446,14 +446,14 @@ export default function ProductCard({
               </div>
 
               {showStockInfo && (
-                <p className="text-xs text-green-600 mb-2 font-medium">
+                <p className="text-xs text-primary-dark mb-2 font-medium">
                   Fast delivery
                 </p>
               )}
 
               {showVegetarianIcon && (
                 <div className="flex items-center gap-1 mb-2">
-                  <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                  <div className="w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
                     <div className="w-2 h-2 bg-white rounded-full"></div>
                   </div>
                   <span className="text-xs text-neutral-600">Vegetarian</span>
@@ -490,7 +490,7 @@ export default function ProductCard({
                   onClick={handleAdd}
                   className={`w-full border h-8 text-xs font-semibold uppercase tracking-wide ${product.isAvailable === false || ((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")
                     ? 'border-neutral-300 text-neutral-400 bg-neutral-50 cursor-not-allowed'
-                    : 'border-green-600 text-green-600 hover:bg-green-50'
+                    : 'border-primary-dark text-primary-dark hover:bg-yellow-50'
                     }`}
                 >
                   {product.isAvailable === false ? 'Out of Range' : ((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out") ? 'Out of Stock' : 'Add'}
@@ -499,17 +499,17 @@ export default function ProductCard({
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-2 bg-white border border-green-600 rounded-full px-2 py-0.5 h-8">
+              <div className="flex items-center justify-center gap-2 bg-white border border-primary-dark rounded-full px-2 py-0.5 h-8">
                 <Button
                   variant="default"
                   size="icon"
                   onClick={handleDecrease}
-                  className="w-6 h-6 p-0 bg-transparent text-green-600 hover:bg-green-50 shadow-none"
+                  className="w-6 h-6 p-0 bg-transparent text-primary-dark hover:bg-yellow-50 shadow-none"
                   aria-label="Decrease quantity"
                 >
                   −
                 </Button>
-                <span className="text-xs font-bold text-green-600 min-w-[1.5rem] text-center">
+                <span className="text-xs font-bold text-primary-dark min-w-[1.5rem] text-center">
                   {inCartQty}
                 </span>
                 <Button
@@ -517,7 +517,7 @@ export default function ProductCard({
                   size="icon"
                   disabled={product.isAvailable === false}
                   onClick={handleIncrease}
-                  className={`w-6 h-6 p-0 bg-transparent text-green-600 shadow-none ${product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : 'hover:bg-green-50'
+                  className={`w-6 h-6 p-0 bg-transparent text-primary-dark shadow-none ${product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : 'hover:bg-yellow-50'
                     }`}
                   aria-label="Increase quantity"
                 >

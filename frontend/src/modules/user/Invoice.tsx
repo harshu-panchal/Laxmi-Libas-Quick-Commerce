@@ -110,7 +110,7 @@ export default function Invoice() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-dark"></div>
           <p className="text-sm text-neutral-500">Loading invoice...</p>
         </div>
       </div>
@@ -226,7 +226,7 @@ export default function Invoice() {
                 </p>
                 <p>
                   <span className="font-medium">Status:</span>{" "}
-                  <span className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded text-sm font-medium">
+                  <span className="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-sm font-medium">
                     {order.status || "Placed"}
                   </span>
                 </p>

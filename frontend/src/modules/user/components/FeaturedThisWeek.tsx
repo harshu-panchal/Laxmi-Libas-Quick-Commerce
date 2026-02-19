@@ -37,8 +37,8 @@ const featuredCards: FeaturedCard[] = [
     type: 'featured',
     title: 'Fresh Arrivals',
     categoryId: 'fruits-veg',
-    bgColor: 'bg-green-600',
-    borderColor: 'border-green-400',
+    bgColor: 'bg-primary-dark',
+    borderColor: 'border-yellow-400',
   },
 ];
 
@@ -203,13 +203,13 @@ export default function FeaturedThisWeek() {
           <div className="flex-shrink-0 w-[110px]">
             <Link
               to="/category/fruits-veg"
-              className="block bg-gradient-to-br from-green-600 via-green-500 to-green-600 border-2 border-green-400 rounded-2xl overflow-hidden relative h-48 shadow-lg hover:shadow-xl transition-shadow group"
+              className="block bg-gradient-to-br from-primary-dark via-yellow-500 to-primary-dark border-2 border-yellow-400 rounded-2xl overflow-hidden relative h-48 shadow-lg hover:shadow-xl transition-shadow group"
             >
               <div className="absolute inset-0 opacity-10">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,_white_2px,_transparent_2px)] bg-[length:30px_30px]"></div>
               </div>
               <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20">
-                <div className="bg-gradient-to-r from-green-700 to-green-600 px-3 py-1 rounded-full shadow-lg border border-green-400/50">
+                <div className="bg-gradient-to-r from-yellow-700 to-primary-dark px-3 py-1 rounded-full shadow-lg border border-yellow-400/50">
                   <span className="text-white text-[9px] font-black tracking-wide">Featured</span>
                 </div>
               </div>

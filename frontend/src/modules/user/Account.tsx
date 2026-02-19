@@ -61,7 +61,7 @@ export default function Account() {
   if (!user) {
     return (
       <div className="pb-24 md:pb-8 bg-white min-h-screen">
-        <div className="bg-gradient-to-b from-green-200 via-green-100 to-white pb-6 md:pb-8 pt-12 md:pt-16">
+        <div className="bg-gradient-to-b from-yellow-200 via-yellow-100 to-white pb-6 md:pb-8 pt-12 md:pt-16">
           <div className="px-4 md:px-6 lg:px-8">
             <button onClick={() => navigate(-1)} className="mb-4 text-neutral-900" aria-label="Back">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -125,7 +125,7 @@ export default function Account() {
 
   return (
     <div className="pb-24 md:pb-8 bg-white min-h-screen">
-      <div className="bg-gradient-to-b from-green-200 via-green-100 to-white pb-6 md:pb-8 pt-12 md:pt-16">
+      <div className="bg-gradient-to-b from-yellow-200 via-yellow-100 to-white pb-6 md:pb-8 pt-12 md:pt-16">
         <div className="px-4 md:px-6 lg:px-8">
           <button onClick={() => navigate(-1)} className="mb-4 text-neutral-900" aria-label="Back">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>

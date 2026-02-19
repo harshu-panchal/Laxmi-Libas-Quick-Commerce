@@ -655,11 +655,11 @@ export default function AdminShopByStore() {
               </div>
             )}
             {successMessage && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
+              <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg flex items-center justify-between">
                 <span>{successMessage}</span>
                 <button
                   onClick={() => setSuccessMessage("")}
-                  className="text-green-700 hover:text-green-900 ml-4 text-lg font-bold"
+                  className="text-yellow-700 hover:text-yellow-900 ml-4 text-lg font-bold"
                   type="button"
                 >
                   ×

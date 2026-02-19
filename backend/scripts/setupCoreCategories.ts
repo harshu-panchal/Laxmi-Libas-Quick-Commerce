@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import Category from '../src/models/Category';
+import SubCategory from '../src/models/SubCategory';
 import connectDB from '../src/config/db';
 
 dotenv.config();
@@ -15,7 +16,7 @@ const CORE_CATEGORIES = [
     { name: 'Toys', slug: 'toys', order: 7 },
     { name: 'Home & Furniture', slug: 'home-furniture', order: 8 },
     { name: 'Eyeglasses', slug: 'eyeglasses', order: 9 },
-    { name: 'Room Rent', slug: 'room-rent', order: 10 },
+    { name: 'Rent', slug: 'rent', order: 10 },
     { name: 'Automotive Parts', slug: 'automotive-parts', order: 11 },
     { name: 'Services', slug: 'services', order: 12 },
 ];
@@ -34,7 +35,21 @@ async function setupCategories() {
 
         // 2. Create or Update core categories
         for (const coreCat of CORE_CATEGORIES) {
+            // Rename 'Room Rent' to 'Rent' if exists
+            if (coreCat.name === 'Rent') {
+                const oldCat = await Category.findOne({ name: 'Room Rent' });
+                if (oldCat) {
+                    oldCat.name = 'Rent';
+                    oldCat.slug = 'rent';
+                    oldCat.order = coreCat.order;
+                    oldCat.status = 'Active';
+                    await oldCat.save();
+                    console.log("Renamed 'Room Rent' to 'Rent'.");
+                }
+            }
+
             const existing = await Category.findOne({ name: coreCat.name });
+            let categoryId;
 
             if (existing) {
                 await Category.updateOne(
@@ -48,13 +63,32 @@ async function setupCategories() {
                         }
                     }
                 );
+                categoryId = existing._id;
                 console.log(`Updated core category: ${coreCat.name}`);
             } else {
-                await Category.create({
+                const newCat = await Category.create({
                     ...coreCat,
                     status: 'Active',
                 });
+                categoryId = newCat._id;
                 console.log(`Created core category: ${coreCat.name}`);
+            }
+
+            // Create subcategories for 'Rent'
+            if (coreCat.name === 'Rent' && categoryId) {
+                const rentSubCats = ['Room Rent', 'Bike Rent'];
+                for (const subName of rentSubCats) {
+                    const existingSub = await SubCategory.findOne({ category: categoryId, name: subName });
+
+                    if (!existingSub) {
+                        await SubCategory.create({
+                            category: categoryId,
+                            name: subName,
+                            order: 1
+                        });
+                        console.log(`Created subcategory '${subName}' for 'Rent'.`);
+                    }
+                }
             }
         }
 

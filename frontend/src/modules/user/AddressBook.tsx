@@ -106,7 +106,7 @@ export default function AddressBook() {
 
   const defaultBadge = useMemo(
     () => (
-      <span className="ml-2 inline-flex items-center px-2 py-0.5 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-100 rounded-full">
+      <span className="ml-2 inline-flex items-center px-2 py-0.5 text-[10px] font-semibold text-yellow-700 bg-yellow-50 border border-yellow-100 rounded-full">
         Default
       </span>
     ),
@@ -202,7 +202,7 @@ export default function AddressBook() {
                         </span>
                         {addr.isDefault && defaultBadge}
                       </div>
-                      <p className="text-xs text-green-700 font-semibold mt-0.5">
+                      <p className="text-xs text-yellow-700 font-semibold mt-0.5">
                         Saved address
                       </p>
                       <p className="text-sm text-neutral-800 leading-relaxed mt-2">

@@ -120,10 +120,10 @@ export default function DeliveryEarnings() {
         </div>
 
         {/* Current Wallet Balance Card */}
-        <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-xl p-6 text-white mb-4 shadow-md">
+        <div className="bg-gradient-to-br from-yellow-500 to-yellow-700 rounded-xl p-6 text-white mb-4 shadow-md">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-green-100 text-sm">Available Balance</p>
-            <div className="bg-green-400/30 p-2 rounded-lg">
+            <p className="text-yellow-100 text-sm">Available Balance</p>
+            <div className="bg-yellow-400/30 p-2 rounded-lg">
               <svg
                 width="20"
                 height="20"
@@ -141,7 +141,7 @@ export default function DeliveryEarnings() {
           <p className="text-4xl font-bold mb-1">
             ₹ {stats?.walletBalance?.toFixed(2) || "0.00"}
           </p>
-          <p className="text-green-100 text-xs mt-2">Ready for withdrawal</p>
+          <p className="text-yellow-100 text-xs mt-2">Ready for withdrawal</p>
         </div>
 
         {/* Total Earnings Card */}

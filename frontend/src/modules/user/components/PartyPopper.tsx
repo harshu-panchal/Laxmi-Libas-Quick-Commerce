@@ -189,18 +189,18 @@ export default function PartyPopper({ show, onComplete }: PartyPopperProps) {
                 ease: [0.34, 1.56, 0.64, 1]
               }}
             >
-              <div className="bg-white rounded-lg px-3 py-2 shadow-lg border border-green-200 flex items-center gap-2">
+              <div className="bg-white rounded-lg px-3 py-2 shadow-lg border border-yellow-200 flex items-center gap-2">
                 <motion.div
                   animate={{ scale: [1, 1.15, 1] }}
                   transition={{ duration: 0.25, delay: 0.35, repeat: 1 }}
-                  className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0"
+                  className="w-5 h-5 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M20 6L9 17l-5-5" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </motion.div>
                 <div className="flex items-center gap-1.5">
-                  <p className="text-xs font-semibold text-green-700">Coupon Applied</p>
+                  <p className="text-xs font-semibold text-yellow-700">Coupon Applied</p>
                 </div>
               </div>
             </motion.div>

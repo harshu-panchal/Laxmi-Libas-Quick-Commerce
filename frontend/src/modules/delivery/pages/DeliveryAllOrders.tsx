@@ -35,7 +35,7 @@ export default function DeliveryAllOrders() {
       case 'Assigned':
         return 'bg-blue-100 text-blue-700';
       case 'Delivered':
-        return 'bg-green-100 text-green-700';
+        return 'bg-yellow-100 text-yellow-700';
       case 'Cancelled':
       case 'Returned':
         return 'bg-red-100 text-red-700';
@@ -106,7 +106,7 @@ export default function DeliveryAllOrders() {
                     <div className="text-right">
                       <p className="text-neutral-900 font-bold">₹ {order.totalAmount}</p>
                       {order.deliveryEarning > 0 && (
-                        <p className="text-green-600 text-xs font-semibold">+ ₹{order.deliveryEarning}</p>
+                        <p className="text-primary-dark text-xs font-semibold">+ ₹{order.deliveryEarning}</p>
                       )}
                     </div>
                   </div>

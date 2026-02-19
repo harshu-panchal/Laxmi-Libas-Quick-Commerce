@@ -318,7 +318,7 @@ export default function CheckoutAddress() {
               value="myself"
               checked={orderingFor === 'myself'}
               onChange={(e) => setOrderingFor(e.target.value as 'myself' | 'someone-else')}
-              className="w-4 h-4 appearance-none border-2 border-neutral-300 rounded-full bg-white checked:bg-white checked:border-green-600 focus:ring-2 focus:ring-green-500 focus:ring-offset-0"
+              className="w-4 h-4 appearance-none border-2 border-neutral-300 rounded-full bg-white checked:bg-white checked:border-primary-dark focus:ring-2 focus:ring-yellow-500 focus:ring-offset-0"
               style={{
                 backgroundImage: orderingFor === 'myself'
                   ? 'radial-gradient(circle, rgb(22, 163, 74) 35%, transparent 40%)'
@@ -337,7 +337,7 @@ export default function CheckoutAddress() {
               value="someone-else"
               checked={orderingFor === 'someone-else'}
               onChange={(e) => setOrderingFor(e.target.value as 'myself' | 'someone-else')}
-              className="w-4 h-4 appearance-none border-2 border-neutral-300 rounded-full bg-white checked:bg-white checked:border-green-600 focus:ring-2 focus:ring-green-500 focus:ring-offset-0"
+              className="w-4 h-4 appearance-none border-2 border-neutral-300 rounded-full bg-white checked:bg-white checked:border-primary-dark focus:ring-2 focus:ring-yellow-500 focus:ring-offset-0"
               style={{
                 backgroundImage: orderingFor === 'someone-else'
                   ? 'radial-gradient(circle, rgb(22, 163, 74) 35%, transparent 40%)'
@@ -369,7 +369,7 @@ export default function CheckoutAddress() {
                 key={type.id}
                 onClick={() => setAddressType(type.id as typeof addressType)}
                 className={`px-3 py-1.5 rounded-lg border-2 text-xs font-medium transition-colors flex items-center gap-1.5 ${addressType === type.id
-                  ? 'border-green-600 bg-green-50 text-green-700'
+                  ? 'border-primary-dark bg-yellow-50 text-yellow-700'
                   : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
                   }`}
               >
@@ -391,7 +391,7 @@ export default function CheckoutAddress() {
             type="text"
             value={address.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.name ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 transition-colors ${errors.name ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="Enter your name"
           />
@@ -406,7 +406,7 @@ export default function CheckoutAddress() {
             type="tel"
             value={address.phone}
             onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, ''))}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.phone ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 transition-colors ${errors.phone ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="Enter mobile number"
             maxLength={10}
@@ -422,7 +422,7 @@ export default function CheckoutAddress() {
             type="text"
             value={address.flat}
             onChange={(e) => handleInputChange('flat', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.flat ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 transition-colors ${errors.flat ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="Flat/House No."
           />
@@ -437,7 +437,7 @@ export default function CheckoutAddress() {
             type="text"
             value={address.street}
             onChange={(e) => handleInputChange('street', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.street ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 transition-colors ${errors.street ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="Street/Area"
           />
@@ -452,7 +452,7 @@ export default function CheckoutAddress() {
             type="text"
             value={address.city}
             onChange={(e) => handleInputChange('city', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.city ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 transition-colors ${errors.city ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="City"
           />
@@ -467,7 +467,7 @@ export default function CheckoutAddress() {
             type="text"
             value={address.state || ''}
             onChange={(e) => handleInputChange('state', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.state ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 transition-colors ${errors.state ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="State"
           />
@@ -482,7 +482,7 @@ export default function CheckoutAddress() {
             type="text"
             value={address.pincode}
             onChange={(e) => handleInputChange('pincode', e.target.value.replace(/\D/g, ''))}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.pincode ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 transition-colors ${errors.pincode ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="Pincode"
             maxLength={6}
@@ -526,7 +526,7 @@ export default function CheckoutAddress() {
             </div>
             <div className="flex justify-between text-xs text-neutral-700">
               <span>Delivery Charges</span>
-              <span className={`font-medium ${deliveryFee === 0 ? 'text-green-600' : ''}`}>
+              <span className={`font-medium ${deliveryFee === 0 ? 'text-primary-dark' : ''}`}>
                 {deliveryFee === 0 ? 'Free' : `₹${deliveryFee}`}
               </span>
             </div>
@@ -546,7 +546,7 @@ export default function CheckoutAddress() {
           onClick={handleSaveAddress}
           disabled={!isFormValid || isSaving}
           className={`w-full py-3 px-4 font-semibold text-sm transition-colors ${isFormValid && !isSaving
-            ? 'bg-green-600 text-white hover:bg-green-700'
+            ? 'bg-primary-dark text-white hover:bg-yellow-700'
             : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
             }`}
         >

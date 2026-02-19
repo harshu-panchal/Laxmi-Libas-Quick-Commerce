@@ -258,7 +258,7 @@ export default function SellerDashboard() {
           <p className="text-sm text-gray-500">Overview of your store performance</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-          <span className={`text-sm font-medium ${isShopOpen ? 'text-green-600' : 'text-red-500'}`}>
+          <span className={`text-sm font-medium ${isShopOpen ? 'text-primary-dark' : 'text-red-500'}`}>
             {isShopOpen ? 'Shop is Live' : 'Shop is Closed'}
           </span>
           <button

@@ -287,11 +287,11 @@ export default function OrderNotificationCard({
                     </div>
 
                     {/* Delivery Boy Earning - Highlighted Section */}
-                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 -mx-1">
-                        <p className="text-xs sm:text-sm text-green-700 font-medium flex items-center gap-1">
-                            <span className="text-green-600">💰</span> Your Earning
+                    <div className="bg-gradient-to-r from-yellow-50 to-emerald-50 border border-yellow-200 rounded-lg p-3 -mx-1">
+                        <p className="text-xs sm:text-sm text-yellow-700 font-medium flex items-center gap-1">
+                            <span className="text-primary-dark">💰</span> Your Earning
                         </p>
-                        <p className="text-xl sm:text-2xl font-bold text-green-600">
+                        <p className="text-xl sm:text-2xl font-bold text-primary-dark">
                             ₹{notification.deliveryBoyEarning?.toFixed(2) || '0.00'}
                         </p>
                     </div>

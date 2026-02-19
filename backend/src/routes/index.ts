@@ -25,9 +25,11 @@ import customerCouponRoutes from "./customerCouponRoutes";
 import customerAddressRoutes from "./customerAddressRoutes";
 import customerHomeRoutes from "./customerHomeRoutes";
 import customerCartRoutes from "./customerCartRoutes";
+import customerDiscountRoutes from "./customerDiscountRoutes";
 import wishlistRoutes from "./wishlistRoutes";
 import productReviewRoutes from "./productReviewRoutes";
 import adminRoutes from "./adminRoutes";
+import adminDiscountRoutes from "./adminDiscountRoutes";
 import customerTrackingRoutes from "../modules/customer/routes/trackingRoutes";
 import deliveryTrackingRoutes from "../modules/delivery/routes/trackingRoutes";
 import fcmTokenRoutes from "./fcmTokenRoutes";
@@ -114,6 +116,7 @@ router.use("/customer/home", customerHomeRoutes);
 router.use("/customer/cart", customerCartRoutes);
 router.use("/customer/wishlist", wishlistRoutes);
 router.use("/customer/reviews", productReviewRoutes);
+router.use("/customer/discounts", customerDiscountRoutes);
 // General customer route (must be last to avoid intercepting specific routes)
 router.use("/customer", customerRoutes);
 
@@ -125,6 +128,9 @@ router.use("/sellers", sellerRoutes);
 
 // Admin routes (protected, admin only)
 router.use("/admin", adminRoutes);
+
+// Admin discount routes
+router.use("/admin/discounts", adminDiscountRoutes);
 
 // Upload routes (protected)
 router.use("/upload", uploadRoutes);

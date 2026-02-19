@@ -75,7 +75,7 @@ export default function DeliveryLogin() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-green-50 flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-yellow-50 flex flex-col items-center justify-center px-4 py-8">
       {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
@@ -90,7 +90,7 @@ export default function DeliveryLogin() {
       {/* Login Card */}
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Header Section */}
-        <div className="px-6 py-4 text-center border-b border-green-700" style={{ backgroundColor: 'rgb(21 178 74 / var(--tw-bg-opacity, 1))' }}>
+        <div className="px-6 py-4 text-center border-b border-yellow-700" style={{ backgroundColor: 'rgb(21 178 74 / var(--tw-bg-opacity, 1))' }}>
           <div className="mb-0 -mt-4">
             <img
               src="/assets/ChatGPT Image Feb 11, 2026, 01_01_14 PM.png"
@@ -99,7 +99,7 @@ export default function DeliveryLogin() {
             />
           </div>
           <h1 className="text-2xl font-bold text-white mb-1 -mt-12">Delivery Login</h1>
-          <p className="text-green-50 text-sm -mt-2">Access your delivery dashboard</p>
+          <p className="text-yellow-50 text-sm -mt-2">Access your delivery dashboard</p>
         </div>
 
         {/* Login Form */}

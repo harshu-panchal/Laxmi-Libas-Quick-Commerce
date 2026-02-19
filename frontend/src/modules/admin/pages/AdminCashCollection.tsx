@@ -172,7 +172,7 @@ export default function AdminCashCollection() {
         <h1 className="text-white text-xl sm:text-2xl font-semibold">
           Delivery Boy Cash Collection List
         </h1>
-        <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
+        <button className="bg-yellow-500 hover:bg-primary-dark text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
           <svg
             width="16"
             height="16"
@@ -337,7 +337,7 @@ export default function AdminCashCollection() {
               {/* Export Button */}
               <button
                 onClick={handleExport}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
+                className="bg-yellow-500 hover:bg-primary-dark text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
                 <svg
                   width="16"
                   height="16"

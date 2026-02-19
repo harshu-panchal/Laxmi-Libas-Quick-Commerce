@@ -474,7 +474,7 @@ export default function GoogleMapsTracking({
             <div className={`absolute ${isFullScreen ? 'left-6 top-6' : 'left-3 top-3'} flex flex-col gap-2 z-10`}>
                 {isTracking && (
                     <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div>
+                        <div className="h-3 w-3 rounded-full bg-yellow-500 animate-pulse"></div>
                         <span className="text-white bg-black/70 px-2 py-1 rounded text-sm font-medium">Live</span>
                     </div>
                 )}

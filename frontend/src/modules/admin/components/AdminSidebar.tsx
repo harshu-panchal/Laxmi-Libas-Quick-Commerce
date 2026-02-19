@@ -787,6 +787,23 @@ const menuSections: MenuSection[] = [
         ),
       },
       {
+        label: "Discount Rules",
+        path: "/admin/discount-rules",
+        icon: (
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round">
+            <path d="M12 2L12 22M2 12L22 12M5 19L19 5"></path>
+          </svg>
+        ),
+      },
+      {
         label: "Lowest Prices",
         path: "/admin/lowest-prices",
         icon: (
