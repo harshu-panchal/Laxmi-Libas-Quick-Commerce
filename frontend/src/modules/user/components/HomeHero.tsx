@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useLayoutEffect, useRef, useState, useEffect, useMemo } from 'react';
+import { Bell } from 'lucide-react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { getTheme } from '../../../utils/themes';
@@ -66,7 +67,7 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
   const [, setIsSticky] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  const [, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
   // Format location display text - only show if user has provided location
   const locationDisplayText = useMemo(() => {
@@ -128,10 +129,12 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
         return ['clothing', 'shoes', 'accessories', 'watches', 'bags', 'jewelry'];
       case 'sports':
         return ['cricket bat', 'football', 'badminton', 'fitness equipment', 'sports shoes', 'gym wear'];
+      case 'home-furniture':
+        return ['bedsheet', 'sofa cover', 'cushions', 'wall decor', 'lamps', 'storage boxes'];
       default: // 'all'
         return ['atta', 'milk', 'dal', 'coke', 'bread', 'eggs', 'rice', 'oil'];
     }
-  }, [activeTab]);
+  }, [activeTab, categories]);
 
   useLayoutEffect(() => {
     const hero = heroRef.current;
@@ -303,6 +306,18 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
                 </div>
               )}
             </div>
+
+            {/* Right: Notification Bell */}
+            <div className="flex-shrink-0 mt-1">
+              <button
+                onClick={() => navigate('/notifications')}
+                className="flex items-center justify-center transition-all duration-300 relative"
+              >
+                <Bell size={26} className="text-neutral-950" />
+                {/* Notification Badge - always show red dot for demo if no real count service yet */}
+                <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></div>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -327,15 +342,15 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
           {/* Search Bar */}
           <div
             onClick={() => navigate('/search')}
-            className="w-full md:w-auto md:max-w-xl md:mx-auto rounded-xl shadow-lg px-3 py-2 md:px-3 md:py-1.5 flex items-center gap-2 cursor-pointer hover:shadow-xl transition-all duration-300 mb-2 bg-white"
+            className="w-full md:w-auto md:max-w-xl md:mx-auto rounded-none shadow-lg px-4 py-4 md:px-5 md:py-3.5 flex items-center gap-2 cursor-pointer hover:shadow-xl transition-all duration-300 mb-2 bg-white"
             style={{
               backgroundColor: scrollProgress > 0.1 ? `rgba(249, 250, 251, ${scrollProgress})` : 'white',
               border: scrollProgress > 0.1 ? `1px solid rgba(229, 231, 235, ${scrollProgress})` : 'none',
             }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4">
-              <circle cx="11" cy="11" r="8" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" />
-              <path d="m21 21-4.35-4.35" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" strokeLinecap="round" />
+              <circle cx="11" cy="11" r="8" stroke={scrollProgress > 0.5 ? "#9ca3af" : theme.primary[0]} strokeWidth="2.5" />
+              <path d="m21 21-4.35-4.35" stroke={scrollProgress > 0.5 ? "#9ca3af" : theme.primary[0]} strokeWidth="2.5" strokeLinecap="round" />
             </svg>
             <div className="flex-1 relative h-4 md:h-4 overflow-hidden">
               {searchSuggestions.map((suggestion, index) => {
@@ -383,4 +398,3 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
     </div>
   );
 }
-

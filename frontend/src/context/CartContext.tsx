@@ -175,10 +175,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       const bestRule = findBestRule(
         activeRules,
-        item.quantity,
-        productId,
-        sellerId,
-        categoryId
+        item.quantity || 0,
+        (productId || '') as string,
+        (sellerId || '') as string,
+        (categoryId || '') as string
       );
 
       const discountData = calculateDiscountForItem(displayPrice, item.quantity, bestRule);

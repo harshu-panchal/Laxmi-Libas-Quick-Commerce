@@ -1,12 +1,12 @@
 import { ReactNode, useEffect, useRef, useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Bell } from 'lucide-react';
 import FloatingCartPill from './FloatingCartPill';
 import { useLocation as useLocationContext } from '../hooks/useLocation';
 import LocationPermissionRequest from './LocationPermissionRequest';
 import { useThemeContext } from '../context/ThemeContext';
 import ServiceNotAvailable from './ServiceNotAvailable';
-import { checkServiceability } from '../services/api/customerHomeService';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -145,6 +145,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const showSearchBar = isSearchPage && !isCheckoutPage && !isCartPage;
   const showFooter = !isCheckoutPage && !isProductDetailPage;
 
+  const isHomePage = location.pathname === '/' || location.pathname === '/user/home';
+  const showStickyHeader = showHeader || isSearchPage || !isHomePage;
+
   return (
     <div className="flex flex-col min-h-screen w-full overflow-x-hidden">
       {/* Desktop Container Wrapper */}
@@ -264,11 +267,26 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </svg>
                 <span className="font-medium text-sm">Profile</span>
               </Link>
+
+              {/* Notifications */}
+              <Link
+                to="/notifications"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isActive('/notifications')
+                  ? 'bg-white shadow-md font-semibold'
+                  : 'hover:bg-white/20'
+                  }`}
+                style={{
+                  color: isActive('/notifications') ? currentTheme.accentColor : currentTheme.headerTextColor
+                }}
+              >
+                <Bell size={20} />
+                <span className="font-medium text-sm">Notifications</span>
+              </Link>
             </nav>
           )}
 
-          {/* Sticky Header - Show on search page and other non-home pages, excluding account page */}
-          {(showHeader || isSearchPage) && (
+          {/* Sticky Header - Show on search page and other non-home pages */}
+          {showStickyHeader && (
             <header className="sticky top-0 z-50 bg-white shadow-sm md:shadow-md md:top-[60px]">
               {/* Delivery info line */}
               <div className="px-4 md:px-6 lg:px-8 py-1.5 bg-yellow-50 text-xs text-yellow-700 text-center">
@@ -296,6 +314,30 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </div>
               )}
 
+              {/* Header Title & Notification Bell for Non-Search pages */}
+              {!isSearchPage && (
+                <div className="px-4 py-2 flex items-center justify-between border-b border-neutral-100">
+                  <button onClick={() => navigate(-1)} className="p-1">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <h2 className="text-sm font-bold text-neutral-900">
+                    {location.pathname === '/account' ? 'My Account' :
+                      location.pathname === '/orders' ? 'My Orders' :
+                        location.pathname === '/categories' ? 'All Categories' :
+                          location.pathname === '/wishlist' ? 'My Wishlist' : 'LaxMart'}
+                  </h2>
+                  <button
+                    onClick={() => navigate('/notifications')}
+                    className="p-1 relative"
+                  >
+                    <Bell size={24} className="text-neutral-950" />
+                    <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></div>
+                  </button>
+                </div>
+              )}
+
               {/* Search bar - Hidden on Order Again page */}
               {showSearchBar && (
                 <div className="px-4 md:px-6 lg:px-8 pb-3">
@@ -305,7 +347,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       value={searchQuery}
                       onChange={(e) => handleSearchChange(e.target.value)}
                       placeholder="Search for products..."
-                      className="w-full px-4 py-2.5 pl-10 bg-neutral-50 border border-neutral-200 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent md:py-3"
+                      className="w-full px-4 py-4.5 pl-10 bg-neutral-50 border border-neutral-200 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent md:py-5"
                     />
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">🔍</span>
                   </div>

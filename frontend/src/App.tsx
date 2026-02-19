@@ -37,6 +37,7 @@ const Categories = lazy(() => import("./modules/user/Categories"));
 const Category = lazy(() => import("./modules/user/Category"));
 const Invoice = lazy(() => import("./modules/user/Invoice"));
 const Login = lazy(() => import("./modules/user/Login"));
+const Notifications = lazy(() => import("./modules/user/Notifications"));
 
 const AboutUs = lazy(() => import("./modules/user/AboutUs"));
 const FAQ = lazy(() => import("./modules/user/FAQ"));
@@ -373,6 +374,7 @@ function App() {
                                     <Route path="/user/home" element={<Home />} />
                                     <Route path="/search" element={<Search />} />
                                     <Route path="/orders" element={<Orders />} />
+                                    <Route path="/notifications" element={<Notifications />} />
                                     <Route path="/orders/:id" element={<OrderDetail />} />
                                     <Route path="/order-again" element={<OrderAgain />} />
                                     <Route path="/account" element={<Account />} />
