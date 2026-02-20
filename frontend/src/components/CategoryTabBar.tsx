@@ -77,7 +77,7 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
     };
 
     return (
-        <div className="w-full pb-2">
+        <div className="w-full pb-1">
             <div
                 ref={scrollContainerRef}
                 className="flex overflow-x-auto scrollbar-hide px-4 py-1 gap-4 md:gap-5"
@@ -91,16 +91,16 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
                 <button
                     onClick={() => handleCategoryChange('all')}
                     data-category="all"
-                    className={`flex flex-col items-center justify-center min-w-[64px] group transition-all relative pb-2 ${activeCategory === 'all' ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
+                    className={`flex flex-col items-center justify-center min-w-[50px] md:min-w-[64px] group transition-all relative pb-2 ${activeCategory === 'all' ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
                 >
-                    <div className={`w-11 h-11 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${activeCategory === 'all' ? 'bg-black text-yellow-400 rounded-xl' : 'text-black'}`}>
-                        <LayoutGrid size={24} strokeWidth={2.5} />
+                    <div className={`w-9 h-9 md:w-11 md:h-11 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${activeCategory === 'all' ? 'bg-black text-yellow-400 rounded-lg md:rounded-xl' : 'text-black'}`}>
+                        <LayoutGrid className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2.5} />
                     </div>
-                    <span className={`mt-1 text-[11px] font-bold text-center leading-tight transition-colors text-black`}>
+                    <span className={`mt-0.5 md:mt-1 text-[9px] md:text-[11px] font-bold text-center leading-tight transition-colors text-black`}>
                         All
                     </span>
                     {activeCategory === 'all' && (
-                        <div className="absolute bottom-0 left-2 right-2 h-[3px] bg-black rounded-full" />
+                        <div className="absolute bottom-0 left-1 right-1 md:left-2 md:right-2 h-[2px] md:h-[3px] bg-black rounded-full" />
                     )}
                 </button>
 
@@ -113,20 +113,20 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
                             key={category.id}
                             data-category={category.slug}
                             onClick={() => handleCategoryChange(category.slug)}
-                            className={`flex flex-col items-center justify-center min-w-[64px] group transition-all relative pb-2 ${isActive ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
+                            className={`flex flex-col items-center justify-center min-w-[50px] md:min-w-[64px] group transition-all relative pb-2 ${isActive ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
                         >
-                            <div className={`w-11 h-11 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${isActive ? 'bg-black text-yellow-400 rounded-xl' : 'text-black'}`}>
+                            <div className={`w-9 h-9 md:w-11 md:h-11 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${isActive ? 'bg-black text-yellow-400 rounded-lg md:rounded-xl' : 'text-black'}`}>
                                 <Icon
-                                    size={24}
+                                    className="w-5 h-5 md:w-6 md:h-6"
                                     strokeWidth={2.5}
                                 />
                             </div>
 
-                            <span className={`mt-1 text-[11px] font-bold text-center leading-tight transition-colors text-black`}>
+                            <span className={`mt-0.5 md:mt-1 text-[9px] md:text-[11px] font-bold text-center leading-tight transition-colors text-black`}>
                                 {category.name}
                             </span>
                             {isActive && (
-                                <div className="absolute bottom-0 left-2 right-2 h-[3px] bg-black rounded-full" />
+                                <div className="absolute bottom-0 left-1 right-1 md:left-2 md:right-2 h-[2px] md:h-[3px] bg-black rounded-full" />
                             )}
                         </button>
                     );
