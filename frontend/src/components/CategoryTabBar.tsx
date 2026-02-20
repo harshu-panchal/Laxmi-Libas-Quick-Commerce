@@ -80,7 +80,7 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
         <div className="w-full pb-1">
             <div
                 ref={scrollContainerRef}
-                className="flex overflow-x-auto scrollbar-hide px-2 py-1 gap-1 md:gap-5"
+                className="flex overflow-x-auto scrollbar-hide px-2 py-1 gap-3 md:gap-5"
                 style={{
                     scrollbarWidth: 'none',
                     msOverflowStyle: 'none',
@@ -96,7 +96,7 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
                     <div className={`w-8 h-8 md:w-11 md:h-11 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${activeCategory === 'all' ? 'bg-black text-yellow-400 rounded-lg md:rounded-xl' : 'text-black'}`}>
                         <LayoutGrid className="w-4.5 h-4.5 md:w-6 md:h-6" strokeWidth={2.5} />
                     </div>
-                    <span className={`mt-0 md:mt-1 text-[8.5px] md:text-[11px] font-bold text-center leading-tight transition-colors text-black`}>
+                    <span className={`mt-0.5 md:mt-1 text-[8.5px] md:text-[11px] font-bold text-center leading-tight transition-colors text-black`}>
                         All
                     </span>
                     {activeCategory === 'all' && (
@@ -122,7 +122,7 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
                                 />
                             </div>
 
-                            <span className={`mt-0 md:mt-1 text-[8.5px] md:text-[11px] font-bold text-center leading-tight transition-colors text-black`}>
+                            <span className={`mt-0.5 md:mt-1 text-[8.5px] md:text-[11px] font-bold text-center leading-tight transition-colors text-black`}>
                                 {category.name}
                             </span>
                             {isActive && (
