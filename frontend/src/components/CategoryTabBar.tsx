@@ -80,7 +80,7 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
         <div className="w-full pb-1">
             <div
                 ref={scrollContainerRef}
-                className="flex overflow-x-auto scrollbar-hide px-4 py-1 gap-4 md:gap-5"
+                className="flex overflow-x-auto scrollbar-hide px-2 py-1 gap-1 md:gap-5"
                 style={{
                     scrollbarWidth: 'none',
                     msOverflowStyle: 'none',
@@ -91,12 +91,12 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
                 <button
                     onClick={() => handleCategoryChange('all')}
                     data-category="all"
-                    className={`flex flex-col items-center justify-center min-w-[50px] md:min-w-[64px] group transition-all relative pb-2 ${activeCategory === 'all' ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
+                    className={`flex flex-col items-center justify-center min-w-[45px] md:min-w-[64px] group transition-all relative pb-1 ${activeCategory === 'all' ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
                 >
-                    <div className={`w-9 h-9 md:w-11 md:h-11 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${activeCategory === 'all' ? 'bg-black text-yellow-400 rounded-lg md:rounded-xl' : 'text-black'}`}>
-                        <LayoutGrid className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2.5} />
+                    <div className={`w-8 h-8 md:w-11 md:h-11 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${activeCategory === 'all' ? 'bg-black text-yellow-400 rounded-lg md:rounded-xl' : 'text-black'}`}>
+                        <LayoutGrid className="w-4.5 h-4.5 md:w-6 md:h-6" strokeWidth={2.5} />
                     </div>
-                    <span className={`mt-0.5 md:mt-1 text-[9px] md:text-[11px] font-bold text-center leading-tight transition-colors text-black`}>
+                    <span className={`mt-0 md:mt-1 text-[8.5px] md:text-[11px] font-bold text-center leading-tight transition-colors text-black`}>
                         All
                     </span>
                     {activeCategory === 'all' && (
@@ -113,16 +113,16 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
                             key={category.id}
                             data-category={category.slug}
                             onClick={() => handleCategoryChange(category.slug)}
-                            className={`flex flex-col items-center justify-center min-w-[50px] md:min-w-[64px] group transition-all relative pb-2 ${isActive ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
+                            className={`flex flex-col items-center justify-center min-w-[45px] md:min-w-[64px] group transition-all relative pb-1 ${isActive ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
                         >
-                            <div className={`w-9 h-9 md:w-11 md:h-11 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${isActive ? 'bg-black text-yellow-400 rounded-lg md:rounded-xl' : 'text-black'}`}>
+                            <div className={`w-8 h-8 md:w-11 md:h-11 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${isActive ? 'bg-black text-yellow-400 rounded-lg md:rounded-xl' : 'text-black'}`}>
                                 <Icon
-                                    className="w-5 h-5 md:w-6 md:h-6"
+                                    className="w-4.5 h-4.5 md:w-6 md:h-6"
                                     strokeWidth={2.5}
                                 />
                             </div>
 
-                            <span className={`mt-0.5 md:mt-1 text-[9px] md:text-[11px] font-bold text-center leading-tight transition-colors text-black`}>
+                            <span className={`mt-0 md:mt-1 text-[8.5px] md:text-[11px] font-bold text-center leading-tight transition-colors text-black`}>
                                 {category.name}
                             </span>
                             {isActive && (
