@@ -359,6 +359,7 @@ export default function SellerAddProduct() {
   };
 
   const categoryType = getCategoryType(categoryName);
+  const isProduce = categoryName.toLowerCase().includes("fruit") || categoryName.toLowerCase().includes("vegetable");
 
   // Clear category and subcategory when header category changes
   useEffect(() => {
@@ -926,23 +927,25 @@ export default function SellerAddProduct() {
                       <option value="Yes">Yes</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Select Brand
-                    </label>
-                    <select
-                      name="brand"
-                      value={formData.brand}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
-                      <option value="">Select Brand</option>
-                      {brands.map((brand) => (
-                        <option key={brand._id} value={brand._id}>
-                          {brand.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {!isProduce && (
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Select Brand
+                      </label>
+                      <select
+                        name="brand"
+                        value={formData.brand}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
+                        <option value="">Select Brand</option>
+                        {brands.map((brand) => (
+                          <option key={brand._id} value={brand._id}>
+                            {brand.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
                       Select Tags
@@ -996,7 +999,7 @@ export default function SellerAddProduct() {
             </div>
           </div>
 
-          {categoryType === "product" && (
+          {categoryType === "product" && !isProduce && (
             <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
               <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
                 <h2 className="text-lg font-semibold">SEO Details</h2>
@@ -1060,183 +1063,202 @@ export default function SellerAddProduct() {
             </div>
           )}
 
-          {categoryType === "product" && (
-            <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-              <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
-                <h2 className="text-lg font-semibold">Add Variation</h2>
-              </div>
-              <div className="p-4 sm:p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Select Product Variation Type
-                  </label>
-                  <select
-                    name="variationType"
-                    value={formData.variationType}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
-                    <option value="">Select Product Type</option>
-                    <option value="Size">Size</option>
-                    <option value="Weight">Weight</option>
-                    <option value="Color">Color</option>
-                    <option value="Pack">Pack</option>
-                  </select>
+          {
+            categoryType === "product" && (
+              <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+                <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+                  <h2 className="text-lg font-semibold">Add Variation</h2>
                 </div>
+                <div className="p-4 sm:p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Select Product Variation Type
+                    </label>
+                    <select
+                      name="variationType"
+                      value={formData.variationType}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
+                      <option value="">Select Product Type</option>
+                      {!isProduce && <option value="Size">Size</option>}
+                      <option value="Weight">Weight</option>
+                      {!isProduce && <option value="Color">Color</option>}
+                      <option value="Pack">Pack</option>
+                    </select>
+                  </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-neutral-50 rounded-lg">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Title (e.g., 100g)
-                    </label>
-                    <input
-                      type="text"
-                      value={variationForm.title}
-                      onChange={(e) =>
-                        setVariationForm({
-                          ...variationForm,
-                          title: e.target.value,
-                        })
-                      }
-                      placeholder="100g"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Price *
-                    </label>
-                    <input
-                      type="number"
-                      value={variationForm.price}
-                      onChange={(e) =>
-                        setVariationForm({
-                          ...variationForm,
-                          price: e.target.value,
-                        })
-                      }
-                      placeholder="100"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Discounted Price
-                    </label>
-                    <input
-                      type="number"
-                      value={variationForm.discPrice}
-                      onChange={(e) =>
-                        setVariationForm({
-                          ...variationForm,
-                          discPrice: e.target.value,
-                        })
-                      }
-                      placeholder="80"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Stock (0 = Unlimited)
-                    </label>
-                    <input
-                      type="number"
-                      value={variationForm.stock}
-                      onChange={(e) =>
-                        setVariationForm({
-                          ...variationForm,
-                          stock: e.target.value,
-                        })
-                      }
-                      placeholder="0"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <button
-                      type="button"
-                      onClick={addVariation}
-                      className="w-full px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium">
-                      Add Variation
-                    </button>
-                  </div>
-                </div>
-
-                {variations.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="text-sm font-medium text-neutral-700 mb-2">
-                      Added Variations:
-                    </h3>
-                    <div className="space-y-2">
-                      {variations.map((variation, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 bg-white border border-neutral-200 rounded-lg">
-                          <div className="flex-1">
-                            <span className="font-medium">{variation.title}</span>{" "}
-                            - ₹{variation.price}
-                            {variation.discPrice > 0 && (
-                              <span className="text-primary-dark ml-2">
-                                (₹{variation.discPrice})
-                              </span>
-                            )}
-                            <span className="ml-4 text-sm text-neutral-600">
-                              Stock:{" "}
-                              {variation.stock === 0
-                                ? "Unlimited"
-                                : variation.stock}{" "}
-                              | Status: {variation.status}
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeVariation(index)}
-                            className="text-red-600 hover:text-red-700 ml-4">
-                            Remove
-                          </button>
-                        </div>
-                      ))}
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-neutral-50 rounded-lg">
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Title (e.g., 100g)
+                      </label>
+                      <input
+                        type="text"
+                        value={variationForm.title}
+                        onChange={(e) =>
+                          setVariationForm({
+                            ...variationForm,
+                            title: e.target.value,
+                          })
+                        }
+                        placeholder="100g"
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Price *
+                      </label>
+                      <input
+                        type="number"
+                        value={variationForm.price}
+                        onChange={(e) =>
+                          setVariationForm({
+                            ...variationForm,
+                            price: e.target.value,
+                          })
+                        }
+                        placeholder="100"
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Discounted Price
+                      </label>
+                      <input
+                        type="number"
+                        value={variationForm.discPrice}
+                        onChange={(e) =>
+                          setVariationForm({
+                            ...variationForm,
+                            discPrice: e.target.value,
+                          })
+                        }
+                        placeholder="80"
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Stock (0 = Unlimited)
+                      </label>
+                      <input
+                        type="number"
+                        value={variationForm.stock}
+                        onChange={(e) =>
+                          setVariationForm({
+                            ...variationForm,
+                            stock: e.target.value,
+                          })
+                        }
+                        placeholder="0"
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={addVariation}
+                        className="w-full px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium">
+                        Add Variation
+                      </button>
                     </div>
                   </div>
-                )}
-              </div>
-            </div>
-          )}
 
-          {categoryType === "product" && (
+                  {variations.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-sm font-medium text-neutral-700 mb-2">
+                        Added Variations:
+                      </h3>
+                      <div className="space-y-2">
+                        {variations.map((variation, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-white border border-neutral-200 rounded-lg">
+                            <div className="flex-1">
+                              <span className="font-medium">{variation.title}</span>{" "}
+                              - ₹{variation.price}
+                              {variation.discPrice > 0 && (
+                                <span className="text-primary-dark ml-2">
+                                  (₹{variation.discPrice})
+                                </span>
+                              )}
+                              <span className="ml-4 text-sm text-neutral-600">
+                                Stock:{" "}
+                                {variation.stock === 0
+                                  ? "Unlimited"
+                                  : variation.stock}{" "}
+                                | Status: {variation.status}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeVariation(index)}
+                              className="text-red-600 hover:text-red-700 ml-4">
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          }
+
+          {categoryType === "product" && !isProduce && (
             <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
               <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
                 <h2 className="text-lg font-semibold">Add Other Details</h2>
               </div>
               <div className="p-4 sm:p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Manufacturer Name
-                    </label>
-                    <input
-                      type="text"
-                      name="manufacturer"
-                      value={formData.manufacturer}
-                      onChange={handleChange}
-                      placeholder="Enter Manufacturer Name"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                    />
+                {!isProduce && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Manufacturer Name
+                      </label>
+                      <input
+                        type="text"
+                        name="manufacturer"
+                        value={formData.manufacturer}
+                        onChange={handleChange}
+                        placeholder="Enter Manufacturer Name"
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Made In
+                      </label>
+                      <input
+                        type="text"
+                        name="madeIn"
+                        value={formData.madeIn}
+                        onChange={handleChange}
+                        placeholder="e.g. India"
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
                   </div>
+                )}
+                {isProduce && (
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Made In
+                      Origin
                     </label>
                     <input
                       type="text"
                       name="madeIn"
                       value={formData.madeIn}
                       onChange={handleChange}
-                      placeholder="e.g. India"
+                      placeholder="e.g. Local Farm"
                       className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     />
                   </div>
-                </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
                     Select Tax
@@ -1253,35 +1275,37 @@ export default function SellerAddProduct() {
                     <option value="28">28%</option>
                   </select>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Is Returnable?
-                    </label>
-                    <select
-                      name="isReturnable"
-                      value={formData.isReturnable}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
-                      <option value="No">No</option>
-                      <option value="Yes">Yes</option>
-                    </select>
-                  </div>
-                  {formData.isReturnable === "Yes" && (
+                {!isProduce && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Max Return Days
+                        Is Returnable?
                       </label>
-                      <input
-                        type="number"
-                        name="maxReturnDays"
-                        value={formData.maxReturnDays}
+                      <select
+                        name="isReturnable"
+                        value={formData.isReturnable}
                         onChange={handleChange}
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                      />
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                      </select>
                     </div>
-                  )}
-                </div>
+                    {formData.isReturnable === "Yes" && (
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">
+                          Max Return Days
+                        </label>
+                        <input
+                          type="number"
+                          name="maxReturnDays"
+                          value={formData.maxReturnDays}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
                     FSSAI License Number (Optional)
@@ -1556,9 +1580,9 @@ export default function SellerAddProduct() {
                   : "Add Product"}
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+        </form >
+      </div >
+    </div >
   );
 }
 

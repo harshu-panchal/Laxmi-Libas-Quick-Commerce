@@ -10,8 +10,8 @@ interface DynamicCategoryFieldsProps {
 export default function DynamicCategoryFields({ categoryName, subcategoryName, formData, handleChange }: DynamicCategoryFieldsProps) {
     const name = categoryName.toLowerCase();
 
-    // Fast Fashion / Fashion
-    if (name.includes('fashion')) {
+    // Clothing / Fashion
+    if (name.includes('clothing') || name.includes('fashion')) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -245,8 +245,8 @@ export default function DynamicCategoryFields({ categoryName, subcategoryName, f
         );
     }
 
-    // Rent (Room, Bike, etc.)
-    if (name.includes('room') || name.includes('rent')) {
+    // Rental (Room, Bike, etc.)
+    if (name.includes('room') || name.includes('rental') || name.includes('rent')) {
         const subName = (subcategoryName || '').toLowerCase();
 
         // Bike Rent

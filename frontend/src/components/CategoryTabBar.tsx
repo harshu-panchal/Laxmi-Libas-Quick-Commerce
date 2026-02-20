@@ -42,7 +42,7 @@ interface CategoryTabBarProps {
 const CATEGORIES: Category[] = [
     { id: '13', name: 'Fruits & Vegetables', icon: Apple, slug: 'fruits-vegetables', color: 'lime' },
     { id: '3', name: 'Grocery', icon: ShoppingBasket, slug: 'grocery', color: 'green' },
-    { id: '1', name: 'Fast Fashion', icon: Shirt, slug: 'fast-fashion', color: 'pink', accentIcon: Crown },
+    { id: '1', name: 'Clothing', icon: Shirt, slug: 'clothing', color: 'pink', accentIcon: Crown },
     { id: '2', name: 'Footwear', icon: Footprints, slug: 'footwear', color: 'blue' },
     { id: '4', name: 'Food', icon: Soup, slug: 'food', color: 'orange' },
     { id: '5', name: 'Beauty', icon: Flower2, slug: 'beauty', color: 'purple', accentIcon: Sparkles },
@@ -50,8 +50,8 @@ const CATEGORIES: Category[] = [
     { id: '7', name: 'Toys', icon: Gamepad2, slug: 'toys', color: 'yellow' },
     { id: '8', name: 'Home & Furniture', icon: Home, slug: 'home-furniture', color: 'amber' },
     { id: '9', name: 'Eyeglasses', icon: Glasses, slug: 'eyeglasses', color: 'indigo' },
-    { id: '10', name: 'Rentals', icon: Key, slug: 'rent', color: 'teal' },
-    { id: '11', name: 'Car Parts', icon: Car, slug: 'automotive-parts', color: 'slate' },
+    { id: '10', name: 'Rental', icon: Key, slug: 'rental', color: 'teal' },
+    { id: '11', name: 'Automotive Parts', icon: Car, slug: 'automotive-parts', color: 'slate' },
     { id: '12', name: 'Services', icon: Wrench, slug: 'services', color: 'rose' },
 ];
 
@@ -93,11 +93,11 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
                     data-category="all"
                     className={`flex flex-col items-center justify-center min-w-[64px] group transition-all relative pb-2 ${activeCategory === 'all' ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
                 >
-                    <div className={`w-11 h-11 flex items-center justify-center transition-all duration-300 group-hover:scale-110 text-black`}>
+                    <div className={`w-11 h-11 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${activeCategory === 'all' ? 'bg-black text-yellow-400 rounded-xl' : 'text-black'}`}>
                         <LayoutGrid size={24} strokeWidth={2.5} />
                     </div>
                     <span className={`mt-1 text-[11px] font-bold text-center leading-tight transition-colors text-black`}>
-                        Everything
+                        All
                     </span>
                     {activeCategory === 'all' && (
                         <div className="absolute bottom-0 left-2 right-2 h-[3px] bg-black rounded-full" />
@@ -115,7 +115,7 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
                             onClick={() => handleCategoryChange(category.slug)}
                             className={`flex flex-col items-center justify-center min-w-[64px] group transition-all relative pb-2 ${isActive ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
                         >
-                            <div className={`w-11 h-11 flex items-center justify-center transition-all duration-300 group-hover:scale-110 text-black`}>
+                            <div className={`w-11 h-11 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${isActive ? 'bg-black text-yellow-400 rounded-xl' : 'text-black'}`}>
                                 <Icon
                                     size={24}
                                     strokeWidth={2.5}

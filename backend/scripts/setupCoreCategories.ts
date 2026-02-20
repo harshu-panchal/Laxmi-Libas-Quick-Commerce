@@ -7,7 +7,8 @@ import connectDB from '../src/config/db';
 dotenv.config();
 
 const CORE_CATEGORIES = [
-    { name: 'Fast Fashion', slug: 'fast-fashion', order: 1 },
+    { name: 'Fruits & Vegetables', slug: 'fruits-vegetables', order: 0 },
+    { name: 'Clothing', slug: 'clothing', order: 1 },
     { name: 'Footwear', slug: 'footwear', order: 2 },
     { name: 'Grocery', slug: 'grocery', order: 3 },
     { name: 'Food', slug: 'food', order: 4 },
@@ -16,7 +17,7 @@ const CORE_CATEGORIES = [
     { name: 'Toys', slug: 'toys', order: 7 },
     { name: 'Home & Furniture', slug: 'home-furniture', order: 8 },
     { name: 'Eyeglasses', slug: 'eyeglasses', order: 9 },
-    { name: 'Rent', slug: 'rent', order: 10 },
+    { name: 'Rental', slug: 'rental', order: 10 },
     { name: 'Automotive Parts', slug: 'automotive-parts', order: 11 },
     { name: 'Services', slug: 'services', order: 12 },
 ];
@@ -39,12 +40,12 @@ async function setupCategories() {
             if (coreCat.name === 'Rent') {
                 const oldCat = await Category.findOne({ name: 'Room Rent' });
                 if (oldCat) {
-                    oldCat.name = 'Rent';
-                    oldCat.slug = 'rent';
+                    oldCat.name = 'Rental';
+                    oldCat.slug = 'rental';
                     oldCat.order = coreCat.order;
                     oldCat.status = 'Active';
                     await oldCat.save();
-                    console.log("Renamed 'Room Rent' to 'Rent'.");
+                    console.log("Renamed 'Room Rent' to 'Rental'.");
                 }
             }
 
@@ -75,7 +76,7 @@ async function setupCategories() {
             }
 
             // Create subcategories for 'Rent'
-            if (coreCat.name === 'Rent' && categoryId) {
+            if (coreCat.name === 'Rental' && categoryId) {
                 const rentSubCats = ['Room Rent', 'Bike Rent'];
                 for (const subName of rentSubCats) {
                     const existingSub = await SubCategory.findOne({ category: categoryId, name: subName });
@@ -86,7 +87,7 @@ async function setupCategories() {
                             name: subName,
                             order: 1
                         });
-                        console.log(`Created subcategory '${subName}' for 'Rent'.`);
+                        console.log(`Created subcategory '${subName}' for 'Rental'.`);
                     }
                 }
             }

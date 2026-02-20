@@ -108,7 +108,7 @@ export default function OrderAgain() {
   return (
     <div className="pb-4">
       {/* BESSELLERS SECTION REMOVED - If you see this comment, new code is loaded */}
-      {/* Header - Same as Home page */}
+      {/* Header - Same as Home page but with redundant info hidden */}
       <HomeHero />
 
       {/* Orders Section - Show when orders exist */}

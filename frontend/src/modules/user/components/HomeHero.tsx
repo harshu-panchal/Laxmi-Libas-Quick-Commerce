@@ -17,6 +17,7 @@ gsap.registerPlugin(ScrollTrigger);
 interface HomeHeroProps {
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
+  hideTopContent?: boolean;
 }
 
 interface Tab {
@@ -36,7 +37,7 @@ const ALL_TAB: Tab = {
   ),
 };
 
-export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroProps) {
+export default function HomeHero({ activeTab = 'all', onTabChange, hideTopContent = false }: HomeHeroProps) {
   const [tabs, setTabs] = useState<Tab[]>([ALL_TAB]);
 
   useEffect(() => {
@@ -287,40 +288,42 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
       }}
     >
       {/* Top section with delivery info and buttons - NOT sticky */}
-      <div>
-        <div ref={topSectionRef} className="px-4 md:px-6 lg:px-8 pt-2 md:pt-3 pb-0">
-          <div className="flex items-start justify-between mb-2 md:mb-2">
-            {/* Left: Text content */}
-            <div className="flex-1 pr-2">
-              {/* Service name - small, dark */}
-              <div className="text-neutral-800 font-medium text-[10px] md:text-xs mb-0 leading-tight">LaxMart Quick Commerce</div>
-              {/* Delivery time - large, bold, dark grey/black */}
-              <div className="text-neutral-900 font-extrabold text-2xl md:text-xl mb-0 md:mb-0.5 leading-tight">{appConfig.estimatedDeliveryTime}</div>
-              {/* Location with dropdown indicator - only show if location is provided */}
-              {locationDisplayText && (
-                <div className="text-neutral-700 text-[10px] md:text-xs flex items-center gap-0.5 leading-tight">
-                  <span className="line-clamp-1" title={locationDisplayText}>{locationDisplayText}</span>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-              )}
-            </div>
+      {!hideTopContent && (
+        <div>
+          <div ref={topSectionRef} className="px-4 md:px-6 lg:px-8 pt-2 md:pt-3 pb-0">
+            <div className="flex items-start justify-between mb-2 md:mb-2">
+              {/* Left: Text content */}
+              <div className="flex-1 pr-2">
+                {/* Service name - small, dark */}
+                <div className="text-neutral-800 font-medium text-[10px] md:text-xs mb-0 leading-tight">LaxMart Quick Commerce</div>
+                {/* Delivery time - large, bold, dark grey/black */}
+                <div className="text-neutral-900 font-extrabold text-2xl md:text-xl mb-0 md:mb-0.5 leading-tight">{appConfig.estimatedDeliveryTime}</div>
+                {/* Location with dropdown indicator - only show if location is provided */}
+                {locationDisplayText && (
+                  <div className="text-neutral-700 text-[10px] md:text-xs flex items-center gap-0.5 leading-tight">
+                    <span className="line-clamp-1" title={locationDisplayText}>{locationDisplayText}</span>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                )}
+              </div>
 
-            {/* Right: Notification Bell */}
-            <div className="flex-shrink-0 mt-1">
-              <button
-                onClick={() => navigate('/notifications')}
-                className="flex items-center justify-center transition-all duration-300 relative"
-              >
-                <Bell size={26} className="text-neutral-950" />
-                {/* Notification Badge - always show red dot for demo if no real count service yet */}
-                <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></div>
-              </button>
+              {/* Right: Notification Bell */}
+              <div className="flex-shrink-0 mt-1">
+                <button
+                  onClick={() => navigate('/notifications')}
+                  className="flex items-center justify-center transition-all duration-300 relative"
+                >
+                  <Bell size={26} className="text-neutral-950" />
+                  {/* Notification Badge - always show red dot for demo if no real count service yet */}
+                  <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></div>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Sticky section: Search Bar and Category Tabs - Always sticky */}
       <div

@@ -146,7 +146,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const showFooter = !isCheckoutPage && !isProductDetailPage;
 
   const isHomePage = location.pathname === '/' || location.pathname === '/user/home';
-  const showStickyHeader = showHeader || isSearchPage || !isHomePage;
+  const isOrderAgainPage = location.pathname.toLowerCase().includes('order-again');
+  const isAccountPage = location.pathname.startsWith('/account');
+  const isCategoriesPage = location.pathname === '/categories' || location.pathname.startsWith('/category/');
+  const shouldHideDeliveryInfo = isAccountPage || isCategoriesPage;
+
+  const showStickyHeader = (showHeader || isSearchPage || !isHomePage) && !isOrderAgainPage;
 
   return (
     <div className="flex flex-col min-h-screen w-full overflow-x-hidden">
@@ -154,7 +159,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <div className="md:w-full md:bg-white md:min-h-screen overflow-x-hidden">
         <div className="md:w-full md:min-h-screen md:flex md:flex-col overflow-x-hidden">
           {/* Top Navigation Bar - Desktop Only */}
-          {showFooter && (
+          {showFooter && !isOrderAgainPage && (
             <nav
               className="hidden md:flex items-center justify-center gap-8 px-6 lg:px-8 py-3 shadow-sm transition-colors duration-300"
               style={{
@@ -285,16 +290,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </nav>
           )}
 
+
           {/* Sticky Header - Show on search page and other non-home pages */}
           {showStickyHeader && (
-            <header className="sticky top-0 z-50 bg-white shadow-sm md:shadow-md md:top-[60px]">
-              {/* Delivery info line */}
-              <div className="px-4 md:px-6 lg:px-8 py-1.5 bg-yellow-50 text-xs text-yellow-700 text-center">
-                Delivering in 10–15 mins
-              </div>
+            <header className={`sticky z-50 shadow-sm md:shadow-md ${isOrderAgainPage ? 'top-0 bg-yellow-50' : 'top-0 md:top-[60px] bg-white'}`}>
+              {/* Delivery info line - hide on account/categories pages */}
+              {!shouldHideDeliveryInfo && (
+                <div className="px-4 md:px-6 lg:px-8 py-1.5 bg-yellow-50 text-xs text-yellow-700 text-center relative">
+                  Delivering in 10–15 mins
+                </div>
+              )}
 
-              {/* Location line - only show if user has provided location */}
-              {userLocation && (userLocation.address || userLocation.city) && (
+              {/* Location line - only show if user has provided location, hide on order-again */}
+              {userLocation && (userLocation.address || userLocation.city) && !isOrderAgainPage && (
                 <div className="px-4 md:px-6 lg:px-8 py-2 flex items-center justify-between text-sm">
                   <span className="text-neutral-700 line-clamp-1" title={userLocation?.address || ''}>
                     {userLocation?.address
@@ -315,7 +323,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
               )}
 
               {/* Header Title & Notification Bell for Non-Search pages */}
-              {!isSearchPage && (
+              {/* Header line with Title & Bell - show for non-search pages, skip on order-again */}
+              {!isSearchPage && !isOrderAgainPage && (
                 <div className="px-4 py-2 flex items-center justify-between border-b border-neutral-100">
                   <button onClick={() => navigate(-1)} className="p-1">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
