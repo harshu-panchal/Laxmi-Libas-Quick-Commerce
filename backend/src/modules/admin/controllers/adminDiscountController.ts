@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import DiscountRule from '../../../models/DiscountRule';
-import mongoose from 'mongoose';
 
 // Create a new discount rule
 export const createDiscountRule = async (req: Request, res: Response) => {
@@ -21,14 +20,14 @@ export const createDiscountRule = async (req: Request, res: Response) => {
         });
 
         await rule.save();
-        res.status(201).json({ success: true, data: rule });
+        return res.status(201).json({ success: true, data: rule });
     } catch (error: any) {
-        res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
 // Get all discount rules
-export const getDiscountRules = async (req: Request, res: Response) => {
+export const getDiscountRules = async (_req: Request, res: Response) => {
     try {
         const rules = await DiscountRule.find({})
             .populate('categoryId', 'name')
@@ -36,9 +35,9 @@ export const getDiscountRules = async (req: Request, res: Response) => {
             .populate('productId', 'name')
             .sort({ createdAt: -1 });
 
-        res.status(200).json({ success: true, data: rules });
+        return res.status(200).json({ success: true, data: rules });
     } catch (error: any) {
-        res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -52,9 +51,9 @@ export const updateDiscountRule = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, message: 'Discount rule not found' });
         }
 
-        res.status(200).json({ success: true, data: rule });
+        return res.status(200).json({ success: true, data: rule });
     } catch (error: any) {
-        res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -68,9 +67,9 @@ export const deleteDiscountRule = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, message: 'Discount rule not found' });
         }
 
-        res.status(200).json({ success: true, message: 'Discount rule deleted successfully' });
+        return res.status(200).json({ success: true, message: 'Discount rule deleted successfully' });
     } catch (error: any) {
-        res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -87,8 +86,8 @@ export const toggleDiscountRuleStatus = async (req: Request, res: Response) => {
         rule.isActive = !rule.isActive;
         await rule.save();
 
-        res.status(200).json({ success: true, data: rule });
+        return res.status(200).json({ success: true, data: rule });
     } catch (error: any) {
-        res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
