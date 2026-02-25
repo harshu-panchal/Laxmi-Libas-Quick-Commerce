@@ -13,7 +13,7 @@ import { useLocation } from "../../hooks/useLocation";
 import { useLoading } from "../../context/LoadingContext";
 import PageLoader from "../../components/PageLoader";
 import CategoryTabBar from "../../components/CategoryTabBar";
-
+import { getTheme } from "../../utils/themes";
 import { useThemeContext } from "../../context/ThemeContext";
 
 export default function Home() {
@@ -232,6 +232,9 @@ export default function Home() {
     [activeTab, products]
   );
 
+  const theme = getTheme(activeTab);
+  const isDefaultTheme = activeTab === 'all';
+
   if (loading && !products.length) {
     return <PageLoader />; // Let the global IconLoader handle the initial loading state
   }
@@ -257,7 +260,13 @@ export default function Home() {
   }
 
   return (
-    <div className="bg-white min-h-screen pb-20 md:pb-0" ref={contentRef}>
+    <div
+      className="min-h-screen pb-20 md:pb-0 transition-colors duration-500"
+      ref={contentRef}
+      style={{
+        backgroundColor: theme.backgroundColor || '#ffffff'
+      }}
+    >
       {/* Hero Header with Gradient and Tabs */}
       <HomeHero activeTab={activeTab} onTabChange={setActiveTab} />
 
@@ -270,7 +279,11 @@ export default function Home() {
 
       {/* Main content */}
       <div
-        className="bg-neutral-50 -mt-2 pt-1 space-y-5 md:space-y-8 md:pt-4">
+        className="transition-colors duration-500 -mt-2 pt-1 space-y-5 md:space-y-8 md:pt-4"
+        style={{
+          backgroundColor: theme.surfaceColor || '#f8fafc'
+        }}
+      >
         {/* Dynamic Home Sections - Render sections created by admin */}
         {homeData.homeSections && homeData.homeSections.length > 0 && (
           <>

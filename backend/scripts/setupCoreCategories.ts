@@ -7,11 +7,11 @@ import connectDB from '../src/config/db';
 dotenv.config();
 
 const CORE_CATEGORIES = [
-    { name: 'Fruits & Vegetables', slug: 'fruits-vegetables', order: 0 },
-    { name: 'Clothing', slug: 'clothing', order: 1 },
-    { name: 'Footwear', slug: 'footwear', order: 2 },
-    { name: 'Grocery', slug: 'grocery', order: 3 },
-    { name: 'Food', slug: 'food', order: 4 },
+    { name: 'Clothing', slug: 'clothing', order: 0 },
+    { name: 'Footwear', slug: 'footwear', order: 1 },
+    { name: 'Grocery', slug: 'grocery', order: 2 },
+    { name: 'Food', slug: 'food', order: 3 },
+    { name: 'Fruits & Vegetables', slug: 'fruits-vegetables', order: 4 },
     { name: 'Beauty', slug: 'beauty', order: 5 },
     { name: 'Electronics', slug: 'electronics', order: 6 },
     { name: 'Toys', slug: 'toys', order: 7 },

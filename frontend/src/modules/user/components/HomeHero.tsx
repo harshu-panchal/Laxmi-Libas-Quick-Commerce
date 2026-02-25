@@ -295,9 +295,19 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
               {/* Left: Text content */}
               <div className="flex-1 pr-2">
                 {/* Service name - small, dark */}
-                <div className="text-neutral-800 font-medium text-[10px] md:text-xs mb-0 leading-tight">LaxMart Quick Commerce</div>
+                <div
+                  className="font-medium text-[10px] md:text-xs mb-0 leading-tight"
+                  style={{ color: theme.headerTextColor }}
+                >
+                  LaxMart Quick Commerce
+                </div>
                 {/* Delivery time - large, bold, dark grey/black */}
-                <div className="text-neutral-900 font-extrabold text-2xl md:text-xl mb-0 md:mb-0.5 leading-tight">{appConfig.estimatedDeliveryTime}</div>
+                <div
+                  className="font-extrabold text-2xl md:text-xl mb-0 md:mb-0.5 leading-tight"
+                  style={{ color: theme.headerTextColor || '#000000' }}
+                >
+                  {appConfig.estimatedDeliveryTime}
+                </div>
                 {/* Location with dropdown indicator - only show if location is provided */}
                 {locationDisplayText && (
                   <div className="text-neutral-700 text-[10px] md:text-xs flex items-center gap-0.5 leading-tight">
@@ -315,7 +325,7 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
                   onClick={() => navigate('/notifications')}
                   className="flex items-center justify-center transition-all duration-300 relative"
                 >
-                  <Bell size={26} className="text-neutral-950" />
+                  <Bell size={26} style={{ color: theme.headerTextColor || '#000000' }} />
                   {/* Notification Badge - always show red dot for demo if no real count service yet */}
                   <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></div>
                 </button>
