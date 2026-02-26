@@ -1,5 +1,4 @@
 import { useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
     Shirt,
     Footprints,
@@ -49,12 +48,10 @@ const CATEGORIES: Category[] = [
     { id: '12', name: 'Services', icon: Settings, slug: 'services', color: 'rose' },
 ];
 
-const colorConfig: Record<string, { from: string, to: string, dark: string, light: string }> = {
-    yellow: { from: 'from-yellow-400', to: 'to-yellow-500', dark: 'bg-neutral-900', light: 'bg-yellow-50' },
-};
-
 export default function CategoryTabBar({ activeCategory, onCategoryChange, onTabClick, isLightMode = false }: CategoryTabBarProps) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const activeTextClass = isLightMode ? 'text-neutral-900' : 'text-neutral-900';
+    const inactiveTextClass = isLightMode ? 'text-neutral-500' : 'text-neutral-700';
 
     useEffect(() => {
         if (activeCategory && scrollContainerRef.current) {
@@ -71,10 +68,10 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
     };
 
     return (
-        <div className="w-full pb-2">
+        <div className="w-full pb-1">
             <div
                 ref={scrollContainerRef}
-                className="flex overflow-x-auto scrollbar-hide px-4 py-2 gap-4 md:gap-6"
+                className="flex overflow-x-auto scrollbar-hide px-4 py-1 gap-5 md:gap-6"
                 style={{
                     scrollbarWidth: 'none',
                     msOverflowStyle: 'none',
@@ -85,18 +82,15 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
                 <button
                     onClick={() => handleCategoryChange('all')}
                     data-category="all"
-                    className={`flex flex-col items-center justify-center min-w-[64px] group transition-opacity ${activeCategory === 'all' ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
+                    className="flex flex-col items-center justify-center min-w-[64px] group"
                 >
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors relative shadow-sm border ${activeCategory === 'all'
-                        ? 'bg-neutral-900 border-neutral-800 text-primary shadow-primary/10'
-                        : 'bg-white/10 text-white border-white/10'
-                        }`}>
-                        <LayoutGrid size={20} strokeWidth={2} />
+                    <div className="w-9 h-9 flex items-center justify-center">
+                        <LayoutGrid size={22} strokeWidth={1.8} className={activeCategory === 'all' ? activeTextClass : inactiveTextClass} />
                     </div>
-                    <span className={`mt-2 text-[9px] font-bold uppercase tracking-wider text-center leading-tight transition-colors ${activeCategory === 'all' ? 'text-white' : 'text-white/70 group-hover:text-white'
-                        }`}>
+                    <span className={`mt-1 text-[11px] font-medium text-center leading-tight ${activeCategory === 'all' ? activeTextClass : inactiveTextClass}`}>
                         Everything
                     </span>
+                    <span className={`mt-1 h-0.5 w-7 rounded-full ${activeCategory === 'all' ? 'bg-neutral-900' : 'bg-transparent'}`} />
                 </button>
 
                 {CATEGORIES.map((category) => {
@@ -108,24 +102,16 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
                             key={category.id}
                             data-category={category.slug}
                             onClick={() => handleCategoryChange(category.slug)}
-                            className={`flex flex-col items-center justify-center min-w-[64px] group transition-opacity ${isActive ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
+                            className="flex flex-col items-center justify-center min-w-[64px] group"
                         >
-                            <div className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-colors border shadow-sm ${isActive
-                                ? `bg-neutral-900 border-neutral-800 text-primary`
-                                : `bg-white/10 border-white/10 text-white`
-                                }`}>
-                                <Icon
-                                    size={20}
-                                    strokeWidth={2}
-                                />
+                            <div className="w-9 h-9 flex items-center justify-center">
+                                <Icon size={22} strokeWidth={1.8} className={isActive ? activeTextClass : inactiveTextClass} />
                             </div>
 
-                            <span className={`mt-2 text-[9px] font-bold uppercase tracking-wider text-center leading-tight transition-colors ${isActive
-                                ? 'text-white'
-                                : 'text-white/70 group-hover:text-white'
-                                }`}>
+                            <span className={`mt-1 text-[11px] font-medium text-center leading-tight ${isActive ? activeTextClass : inactiveTextClass}`}>
                                 {category.name}
                             </span>
+                            <span className={`mt-1 h-0.5 w-7 rounded-full ${isActive ? 'bg-neutral-900' : 'bg-transparent'}`} />
                         </button>
                     );
                 })}

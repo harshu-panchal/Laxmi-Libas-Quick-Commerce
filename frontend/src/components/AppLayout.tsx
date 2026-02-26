@@ -368,9 +368,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {/* Fixed Bottom Navigation - Mobile Only, Hidden on checkout pages */}
           {showFooter && (
             <nav
-              className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200/10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)] z-50 md:hidden"
+              className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-yellow-100 shadow-[0_-2px_8px_rgba(0,0,0,0.08)] z-50 md:hidden"
             >
-              <div className="flex justify-around items-center h-16">
+              <div className="flex justify-around items-center h-[68px]">
                 {/* Home */}
                 <motion.div
                   whileTap={{ scale: 0.95 }}
@@ -379,15 +379,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 >
                   <Link
                     to="/"
-                    className="flex flex-col items-center justify-center h-full relative"
+                    className="flex flex-col items-center justify-center h-full relative gap-1"
                   >
-                    <div className="flex flex-col items-center justify-center relative z-10">
+                    <div
+                      className={`flex items-center justify-center rounded-full w-10 h-10 transition-colors ${isActive('/') ? 'bg-yellow-300' : 'bg-transparent'
+                        }`}
+                    >
                       <motion.svg
                         width="24"
                         height="24"
                         viewBox="0 0 24 24"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
+                        className={isActive('/') ? 'text-neutral-900' : 'text-neutral-500'}
                         animate={isActive('/') ? {
                           scale: [1, 1.1, 1],
                           y: [0, -2, 0]
@@ -402,29 +406,29 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         {isActive('/') ? (
                           <>
                             {/* Roof */}
-                            <path d="M2 12L12 4L22 12" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="#22c55e" />
+                            <path d="M2 12L12 4L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" />
                             {/* House body */}
-                            <rect x="4" y="12" width="16" height="8" fill="#22c55e" stroke="#1f2937" strokeWidth="2" strokeLinejoin="round" />
+                            <rect x="4" y="12" width="16" height="8" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
                             {/* Chimney */}
-                            <rect x="15" y="5" width="4" height="5" fill="#1f2937" stroke="#1f2937" strokeWidth="2" />
+                            <rect x="15" y="5" width="4" height="5" fill="currentColor" stroke="currentColor" strokeWidth="2" />
                             {/* Door */}
-                            <rect x="8" y="15" width="4" height="5" fill="#1f2937" />
+                            <rect x="8" y="15" width="4" height="5" fill="#ffffff" />
                           </>
                         ) : (
                           <>
                             {/* Roof */}
-                            <path d="M2 12L12 4L22 12" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                            <path d="M2 12L12 4L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                             {/* House body */}
-                            <rect x="4" y="12" width="16" height="8" stroke="#6b7280" strokeWidth="2" strokeLinejoin="round" fill="none" />
+                            <rect x="4" y="12" width="16" height="8" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" fill="none" />
                             {/* Chimney */}
-                            <rect x="15" y="5" width="4" height="5" stroke="#6b7280" strokeWidth="2" fill="none" />
+                            <rect x="15" y="5" width="4" height="5" stroke="currentColor" strokeWidth="2" fill="none" />
                             {/* Door */}
-                            <rect x="8" y="15" width="4" height="5" stroke="#6b7280" strokeWidth="2" fill="none" />
+                            <rect x="8" y="15" width="4" height="5" stroke="currentColor" strokeWidth="2" fill="none" />
                           </>
                         )}
                       </motion.svg>
                     </div>
-                    <span className={`text-xs mt-0.5 relative z-10 ${isActive('/') ? 'font-medium text-neutral-700' : 'font-medium text-neutral-500'}`}>
+                    <span className={`text-xs relative z-10 ${isActive('/') ? 'font-semibold text-yellow-700' : 'font-medium text-neutral-900'}`}>
                       Home
                     </span>
                   </Link>
@@ -438,15 +442,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 >
                   <Link
                     to="/order-again"
-                    className="flex flex-col items-center justify-center h-full relative"
+                    className="flex flex-col items-center justify-center h-full relative gap-1"
                   >
-                    <div className="flex flex-col items-center justify-center relative z-10">
+                    <div
+                      className={`flex items-center justify-center rounded-full w-10 h-10 transition-colors ${isActive('/order-again') ? 'bg-yellow-300' : 'bg-transparent'
+                        }`}
+                    >
                       <motion.svg
                         width="24"
                         height="24"
                         viewBox="0 0 24 24"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
+                        className={isActive('/order-again') ? 'text-neutral-900' : 'text-neutral-500'}
                         animate={isActive('/order-again') ? {
                           scale: [1, 1.1, 1],
                           y: [0, -2, 0]
@@ -461,16 +469,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         {isActive('/order-again') ? (
                           <>
                             {/* Shopping bag body */}
-                            <path d="M5 8V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V8H21C21.5523 8 22 8.44772 22 9V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V9C2 8.44772 2.44772 8 3 8H5Z" fill="#22c55e" stroke="#1f2937" strokeWidth="2" strokeLinejoin="round" />
+                            <path d="M5 8V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V8H21C21.5523 8 22 8.44772 22 9V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V9C2 8.44772 2.44772 8 3 8H5Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
                             {/* Handles */}
-                            <path d="M7 8V6C7 5.44772 7.44772 5 8 5H16C16.5523 5 17 5.44772 17 6V8" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" fill="none" />
+                            <path d="M7 8V6C7 5.44772 7.44772 5 8 5H16C16.5523 5 17 5.44772 17 6V8" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" fill="none" />
                           </>
                         ) : (
                           <>
                             {/* Shopping bag body */}
-                            <path d="M5 8V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V8H21C21.5523 8 22 8.44772 22 9V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V9C2 8.44772 2.44772 8 3 8H5Z" stroke="#6b7280" strokeWidth="2" strokeLinejoin="round" fill="none" />
+                            <path d="M5 8V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V8H21C21.5523 8 22 8.44772 22 9V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V9C2 8.44772 2.44772 8 3 8H5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" fill="none" />
                             {/* Handles */}
-                            <path d="M7 8V6C7 5.44772 7.44772 5 8 5H16C16.5523 5 17 5.44772 17 6V8" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" fill="none" />
+                            <path d="M7 8V6C7 5.44772 7.44772 5 8 5H16C16.5523 5 17 5.44772 17 6V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
                           </>
                         )}
                         {/* Heart inside basket - grows when active, shrinks when inactive */}
@@ -479,7 +487,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                             <motion.path
                               key="heart"
                               d="M12 17C11.5 16.5 8 13.5 8 11.5C8 10 9 9 10.5 9C11.2 9 11.8 9.3 12 9.7C12.2 9.3 12.8 9 13.5 9C15 9 16 10 16 11.5C16 13.5 12.5 16.5 12 17Z"
-                              fill="#1f2937"
+                              fill="#ffffff"
                               initial={{ scale: 0, opacity: 0 }}
                               animate={{ scale: 1, opacity: 1 }}
                               exit={{ scale: 0, opacity: 0 }}
@@ -489,7 +497,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         </AnimatePresence>
                       </motion.svg>
                     </div>
-                    <span className={`text-xs mt-0.5 relative z-10 ${isActive('/order-again') ? 'font-medium text-neutral-700' : 'font-medium text-neutral-500'}`}>
+                    <span className={`text-xs relative z-10 ${isActive('/order-again') ? 'font-semibold text-yellow-700' : 'font-medium text-neutral-900'}`}>
                       Order Again
                     </span>
                   </Link>
@@ -503,15 +511,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 >
                   <Link
                     to="/categories"
-                    className="flex flex-col items-center justify-center h-full relative"
+                    className="flex flex-col items-center justify-center h-full relative gap-1"
                   >
-                    <div className="flex flex-col items-center justify-center relative z-10">
+                    <div
+                      className={`flex items-center justify-center rounded-full w-10 h-10 transition-colors ${isActive('/categories') || location.pathname.startsWith('/category/') ? 'bg-yellow-300' : 'bg-transparent'
+                        }`}
+                    >
                       <motion.svg
                         width="24"
                         height="24"
                         viewBox="0 0 24 24"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
+                        className={(isActive('/categories') || location.pathname.startsWith('/category/')) ? 'text-neutral-900' : 'text-neutral-500'}
                         animate={{
                           rotate: categoriesRotation
                         }}
@@ -524,22 +536,22 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         {(isActive('/categories') || location.pathname.startsWith('/category/')) ? (
                           <>
                             {/* Top-left and bottom-right are black when active */}
-                            <circle cx="7" cy="7" r="2.5" fill="#1f2937" stroke="#1f2937" strokeWidth="2" />
-                            <circle cx="17" cy="7" r="2.5" fill="#22c55e" stroke="#1f2937" strokeWidth="2" />
-                            <circle cx="7" cy="17" r="2.5" fill="#22c55e" stroke="#1f2937" strokeWidth="2" />
-                            <circle cx="17" cy="17" r="2.5" fill="#1f2937" stroke="#1f2937" strokeWidth="2" />
+                            <circle cx="7" cy="7" r="2.5" fill="currentColor" stroke="currentColor" strokeWidth="2" />
+                            <circle cx="17" cy="7" r="2.5" fill="currentColor" stroke="currentColor" strokeWidth="2" />
+                            <circle cx="7" cy="17" r="2.5" fill="currentColor" stroke="currentColor" strokeWidth="2" />
+                            <circle cx="17" cy="17" r="2.5" fill="currentColor" stroke="currentColor" strokeWidth="2" />
                           </>
                         ) : (
                           <>
-                            <circle cx="7" cy="7" r="2.5" stroke="#6b7280" strokeWidth="2" fill="none" />
-                            <circle cx="17" cy="7" r="2.5" stroke="#6b7280" strokeWidth="2" fill="none" />
-                            <circle cx="7" cy="17" r="2.5" stroke="#6b7280" strokeWidth="2" fill="none" />
-                            <circle cx="17" cy="17" r="2.5" stroke="#6b7280" strokeWidth="2" fill="none" />
+                            <circle cx="7" cy="7" r="2.5" stroke="currentColor" strokeWidth="2" fill="none" />
+                            <circle cx="17" cy="7" r="2.5" stroke="currentColor" strokeWidth="2" fill="none" />
+                            <circle cx="7" cy="17" r="2.5" stroke="currentColor" strokeWidth="2" fill="none" />
+                            <circle cx="17" cy="17" r="2.5" stroke="currentColor" strokeWidth="2" fill="none" />
                           </>
                         )}
                       </motion.svg>
                     </div>
-                    <span className={`text-xs mt-0.5 relative z-10 ${(isActive('/categories') || location.pathname.startsWith('/category/')) ? 'font-medium text-neutral-700' : 'font-medium text-neutral-500'}`}>
+                    <span className={`text-xs relative z-10 ${(isActive('/categories') || location.pathname.startsWith('/category/')) ? 'font-semibold text-yellow-700' : 'font-medium text-neutral-900'}`}>
                       Categories
                     </span>
                   </Link>
@@ -553,15 +565,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 >
                   <Link
                     to="/account"
-                    className="flex flex-col items-center justify-center h-full relative"
+                    className="flex flex-col items-center justify-center h-full relative gap-1"
                   >
-                    <div className="flex flex-col items-center justify-center relative z-10">
+                    <div
+                      className={`flex items-center justify-center rounded-full w-10 h-10 transition-colors ${isActive('/account') ? 'bg-yellow-300' : 'bg-transparent'
+                        }`}
+                    >
                       <motion.svg
                         width="24"
                         height="24"
                         viewBox="0 0 24 24"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
+                        className={isActive('/account') ? 'text-neutral-900' : 'text-neutral-500'}
                         animate={isActive('/account') ? {
                           scale: [1, 1.05, 1]
                         } : {}}
@@ -579,8 +595,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                               cx="12"
                               cy="8"
                               r="4"
-                              fill="#22c55e"
-                              stroke="#1f2937"
+                              fill="currentColor"
+                              stroke="currentColor"
                               strokeWidth="2"
                               animate={{
                                 scale: [1, 1.1, 1]
@@ -593,19 +609,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
                               }}
                             />
                             {/* Profile body */}
-                            <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" fill="#22c55e" />
+                            <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="currentColor" />
                           </>
                         ) : (
                           <>
                             {/* Profile head */}
-                            <circle cx="12" cy="8" r="4" stroke="#6b7280" strokeWidth="2" fill="none" />
+                            <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" fill="none" />
                             {/* Profile body */}
-                            <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" fill="none" />
+                            <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
                           </>
                         )}
                       </motion.svg>
                     </div>
-                    <span className={`text-xs mt-0.5 relative z-10 ${isActive('/account') ? 'font-medium text-neutral-700' : 'font-medium text-neutral-500'}`}>
+                    <span className={`text-xs relative z-10 ${isActive('/account') ? 'font-semibold text-yellow-700' : 'font-medium text-neutral-900'}`}>
                       Profile
                     </span>
                   </Link>

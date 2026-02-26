@@ -108,30 +108,31 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
 
   // Search suggestions based on active tab or fetched categories
   const searchSuggestions = useMemo(() => {
+    const baseSuggestion = 'your desired items or stores';
     if (activeTab === 'all' && categories.length > 0) {
       // Use real category names for 'all' tab suggestions
-      return categories.slice(0, 8).map(c => c.name.toLowerCase());
+      return [baseSuggestion, ...categories.slice(0, 7).map(c => c.name.toLowerCase())];
     }
 
     switch (activeTab) {
       case 'wedding':
-        return ['gift packs', 'dry fruits', 'sweets', 'decorative items', 'wedding cards', 'return gifts'];
+        return [baseSuggestion, 'gift packs', 'dry fruits', 'sweets', 'decorative items', 'wedding cards', 'return gifts'];
       case 'winter':
-        return ['woolen clothes', 'caps', 'gloves', 'blankets', 'heater', 'winter wear'];
+        return [baseSuggestion, 'woolen clothes', 'caps', 'gloves', 'blankets', 'heater', 'winter wear'];
       case 'electronics':
-        return ['chargers', 'cables', 'power banks', 'earphones', 'phone cases', 'screen guards'];
+        return [baseSuggestion, 'chargers', 'cables', 'power banks', 'earphones', 'phone cases', 'screen guards'];
       case 'beauty':
-        return ['lipstick', 'makeup', 'skincare', 'kajal', 'face wash', 'moisturizer'];
+        return [baseSuggestion, 'lipstick', 'makeup', 'skincare', 'kajal', 'face wash', 'moisturizer'];
       case 'grocery':
-        return ['atta', 'milk', 'dal', 'rice', 'oil', 'vegetables'];
+        return [baseSuggestion, 'atta', 'milk', 'dal', 'rice', 'oil', 'vegetables'];
       case 'fashion':
-        return ['clothing', 'shoes', 'accessories', 'watches', 'bags', 'jewelry'];
+        return [baseSuggestion, 'clothing', 'shoes', 'accessories', 'watches', 'bags', 'jewelry'];
       case 'sports':
-        return ['cricket bat', 'football', 'badminton', 'fitness equipment', 'sports shoes', 'gym wear'];
+        return [baseSuggestion, 'cricket bat', 'football', 'badminton', 'fitness equipment', 'sports shoes', 'gym wear'];
       default: // 'all'
-        return ['atta', 'milk', 'dal', 'coke', 'bread', 'eggs', 'rice', 'oil'];
+        return [baseSuggestion, 'atta', 'milk', 'dal', 'coke', 'bread', 'eggs', 'rice', 'oil'];
     }
-  }, [activeTab]);
+  }, [activeTab, categories.length]);
 
   useLayoutEffect(() => {
     const hero = heroRef.current;
@@ -267,7 +268,7 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
   };
 
   const theme = getTheme(activeTab || 'all');
-  const heroGradient = `linear-gradient(to bottom right, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`;
+  const heroGradient = `linear-gradient(180deg, ${theme.primary[1]} 0%, ${theme.primary[2]} 55%, ${theme.primary[3]} 100%)`;
 
   // Helper to convert RGB to RGBA
   const rgbToRgba = (rgb: string, alpha: number) => {
@@ -286,23 +287,37 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
       {/* Top section with delivery info and buttons - NOT sticky */}
       <div>
         <div ref={topSectionRef} className="px-4 md:px-6 lg:px-8 pt-2 md:pt-3 pb-0">
-          <div className="flex items-start justify-between mb-2 md:mb-2">
+          <div className="flex items-start justify-between mb-2 md:mb-2 gap-2">
             {/* Left: Text content */}
             <div className="flex-1 pr-2">
               {/* Service name - small, dark */}
-              <div className="text-neutral-800 font-medium text-[10px] md:text-xs mb-0 leading-tight">LaxMart Quick Commerce</div>
+              <div className="text-neutral-800 font-medium text-[11px] md:text-xs mb-0 leading-tight">LaxMart Quick Commerce</div>
               {/* Delivery time - large, bold, dark grey/black */}
-              <div className="text-neutral-900 font-extrabold text-2xl md:text-xl mb-0 md:mb-0.5 leading-tight">{appConfig.estimatedDeliveryTime}</div>
+              <div className="text-neutral-900 font-extrabold text-[28px] md:text-2xl mb-0 md:mb-0.5 leading-tight">
+                {appConfig.estimatedDeliveryTime}
+              </div>
               {/* Location with dropdown indicator - only show if location is provided */}
               {locationDisplayText && (
-                <div className="text-neutral-700 text-[10px] md:text-xs flex items-center gap-0.5 leading-tight">
+                <div className="text-neutral-700 text-[11px] md:text-xs flex items-center gap-1 leading-tight">
                   <span className="line-clamp-1" title={locationDisplayText}>{locationDisplayText}</span>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
                     <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
               )}
             </div>
+
+            {/* Right: Notification icon */}
+            <button
+              type="button"
+              aria-label="Notifications"
+              className="w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-white/70 border border-white/60 shadow-sm text-neutral-900 hover:bg-white transition-colors"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -327,15 +342,15 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
           {/* Search Bar */}
           <div
             onClick={() => navigate('/search')}
-            className="w-full md:w-auto md:max-w-xl md:mx-auto rounded-xl shadow-lg px-3 py-2 md:px-3 md:py-1.5 flex items-center gap-2 cursor-pointer hover:shadow-xl transition-all duration-300 mb-2 bg-white"
+            className="w-full md:w-auto md:max-w-xl md:mx-auto rounded-xl shadow-sm px-3 py-2 md:px-3 md:py-2 flex items-center gap-2 cursor-pointer hover:shadow-md transition-all duration-300 mb-2 bg-white"
             style={{
               backgroundColor: scrollProgress > 0.1 ? `rgba(249, 250, 251, ${scrollProgress})` : 'white',
-              border: scrollProgress > 0.1 ? `1px solid rgba(229, 231, 235, ${scrollProgress})` : 'none',
+              border: scrollProgress > 0.1 ? `1px solid rgba(229, 231, 235, ${scrollProgress})` : '1px solid rgba(255,255,255,0.6)',
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4">
-              <circle cx="11" cy="11" r="8" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" />
-              <path d="m21 21-4.35-4.35" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" strokeLinecap="round" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4 text-yellow-700">
+              <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
+              <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
             <div className="flex-1 relative h-4 md:h-4 overflow-hidden">
               {searchSuggestions.map((suggestion, index) => {
@@ -353,19 +368,18 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
                         : 'translate-y-full opacity-0'
                       }`}
                   >
-                    <span className={`text-xs md:text-xs`} style={{ color: scrollProgress > 0.5 ? '#9ca3af' : '#6b7280' }}>
-                      Search &apos;{suggestion}&apos;
+                    <span className="text-xs md:text-xs text-neutral-500">
+                      Search {suggestion}
                     </span>
                   </div>
                 );
               })}
             </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4">
-              <path d="M12 1C13.1 1 14 1.9 14 3C14 4.1 13.1 5 12 5C10.9 5 10 4.1 10 3C10 1.9 10.9 1 12 1Z" fill={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} />
-              <path d="M19 10V17C19 18.1 18.1 19 17 19H7C5.9 19 5 18.1 5 17V10" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M12 11V17" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" strokeLinecap="round" />
-              <path d="M8 11V17" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" strokeLinecap="round" />
-              <path d="M16 11V17" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" strokeLinecap="round" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4 text-neutral-500">
+              <path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M12 19v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M8 23h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
 

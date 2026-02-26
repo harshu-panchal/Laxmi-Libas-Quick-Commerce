@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { uploadImage, uploadImages } from "../../../services/api/uploadService";
+import { uploadImage, uploadImages, uploadVideo } from "../../../services/api/uploadService";
+
 import {
   validateImageFile,
   createImagePreview,
@@ -36,6 +37,17 @@ export default function SellerAddProduct() {
   const { user } = useAuth();
   const { id } = useParams();
   const [categoryName, setCategoryName] = useState<string>("");
+  // Categories that support video upload
+  const VIDEO_SUPPORTED_CATEGORIES = [
+    "clothing", "footwear", "electronics", "beauty", "toys",
+    "home", "furniture", "eyeglasses", "eyewear",
+    "home and furniture", "home & furniture",
+  ];
+  const isVideoCategory = (name: string) =>
+    VIDEO_SUPPORTED_CATEGORIES.some((cat) =>
+      name.toLowerCase().includes(cat)
+    );
+
   const [formData, setFormData] = useState({
     productName: "",
     headerCategory: "",
@@ -62,7 +74,9 @@ export default function SellerAddProduct() {
     totalAllowedQuantity: "10",
     mainImageUrl: "",
     galleryImageUrls: [] as string[],
+    productVideoUrl: "",
     isShopByStoreOnly: "No",
+
     shopId: "",
     // Category Specific Fields
     brandName: "",
@@ -113,7 +127,11 @@ export default function SellerAddProduct() {
   const [galleryImagePreviews, setGalleryImagePreviews] = useState<string[]>(
     []
   );
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string>("");
+  const [videoUploadProgress, setVideoUploadProgress] = useState<number>(0);
   const [uploading, setUploading] = useState(false);
+
   const [uploadError, setUploadError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
 
@@ -278,6 +296,7 @@ export default function SellerAddProduct() {
               serviceName: product.serviceName || "",
               experience: product.experience || "",
               availability: product.availability || "",
+              productVideoUrl: (product as any).productVideoUrl || "",
             });
             if (product.category) {
               setCategoryName((product.category as any).name || "");
@@ -291,6 +310,11 @@ export default function SellerAddProduct() {
             if (product.galleryImageUrls) {
               setGalleryImagePreviews(product.galleryImageUrls);
             }
+            if ((product as any).productVideoUrl) {
+              setVideoPreview((product as any).productVideoUrl);
+              setFormData(prev => ({ ...prev, productVideoUrl: (product as any).productVideoUrl }));
+            }
+
           }
         } catch (err) {
           console.error("Error fetching product:", err);
@@ -464,6 +488,35 @@ export default function SellerAddProduct() {
     setGalleryImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowedVideoTypes = ["video/mp4", "video/quicktime", "video/x-msvideo", "video/webm", "video/x-matroska"];
+    if (!allowedVideoTypes.includes(file.type)) {
+      setUploadError("Invalid video type. Allowed: MP4, MOV, AVI, WEBM, MKV");
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      setUploadError("Video file too large. Maximum size is 100MB.");
+      return;
+    }
+    setVideoFile(file);
+    setUploadError("");
+    const objectUrl = URL.createObjectURL(file);
+    setVideoPreview(objectUrl);
+    e.target.value = "";
+  };
+
+  const removeVideo = () => {
+    if (videoPreview && videoPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(videoPreview);
+    }
+    setVideoFile(null);
+    setVideoPreview("");
+    setFormData(prev => ({ ...prev, productVideoUrl: "" }));
+  };
+
+
   const addVariation = () => {
     if (!variationForm.title || !variationForm.price) {
       setUploadError("Please fill in variation title and price");
@@ -554,6 +607,16 @@ export default function SellerAddProduct() {
         setFormData((prev) => ({ ...prev, galleryImageUrls }));
       }
 
+      // Upload product video if provided
+      let productVideoUrl = formData.productVideoUrl;
+      if (videoFile) {
+        setVideoUploadProgress(10);
+        const videoResult = await uploadVideo(videoFile, "laxmart/products/videos");
+        productVideoUrl = videoResult.secureUrl;
+        setVideoUploadProgress(100);
+        setFormData((prev) => ({ ...prev, productVideoUrl }));
+      }
+
       // Validate variations
       let finalVariations = [...variations];
       if (categoryType !== "product") {
@@ -613,6 +676,8 @@ export default function SellerAddProduct() {
         variationType: formData.variationType || undefined,
         isShopByStoreOnly: formData.isShopByStoreOnly === "Yes",
         shopId: formData.isShopByStoreOnly === "Yes" && formData.shopId ? formData.shopId : undefined,
+        productVideoUrl: productVideoUrl || undefined,
+
         // Category Specific Fields
         brandName: formData.brandName || undefined,
         size: formData.size || undefined,
@@ -688,7 +753,9 @@ export default function SellerAddProduct() {
               totalAllowedQuantity: "10",
               mainImageUrl: "",
               galleryImageUrls: [],
+              productVideoUrl: "",
               isShopByStoreOnly: "No",
+
               shopId: "",
               // Category Specific Fields
               brandName: "",
@@ -728,6 +795,8 @@ export default function SellerAddProduct() {
             setMainImagePreview("");
             setGalleryImageFiles([]);
             setGalleryImagePreviews([]);
+            removeVideo();
+
           }
           setSuccessMessage("");
           // Navigate to product list
@@ -1322,14 +1391,11 @@ export default function SellerAddProduct() {
                 </div>
               )}
               {successMessage && (
-<<<<<<< HEAD
-                <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg">
-=======
                 <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
->>>>>>> 013f4e4f654180b643abc088bb660e6f5342981f
                   {successMessage}
                 </div>
               )}
+
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-2">
                   Product Main Image <span className="text-red-500">*</span>
@@ -1490,7 +1556,90 @@ export default function SellerAddProduct() {
             </div>
           </div>
 
-          {/* Shop by Store Section */}
+          {/* Video Upload Section - Only for supported categories */}
+          {categoryName && isVideoCategory(categoryName) && (
+            <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+              <div className="bg-teal-600 text-white px-4 sm:px-6 py-3 flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                </svg>
+                <h2 className="text-lg font-semibold">Product Video (Optional)</h2>
+              </div>
+              <div className="p-4 sm:p-6 space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    <strong>Tip:</strong> Upload a short product demo video (MP4, MOV, AVI, WEBM, MKV) up to <strong>100MB</strong>. Videos help customers make better purchase decisions.
+                  </p>
+                </div>
+                {videoPreview ? (
+                  <div className="space-y-3">
+                    <div className="relative rounded-lg overflow-hidden border border-neutral-200 bg-black">
+                      <video
+                        src={videoPreview}
+                        controls
+                        className="w-full max-h-72 object-contain"
+                        preload="metadata"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-neutral-600">
+                        {videoFile ? (
+                          <span>{videoFile.name} &ndash; {(videoFile.size / (1024 * 1024)).toFixed(1)} MB</span>
+                        ) : (
+                          <span className="text-teal-700 font-medium">Existing video</span>
+                        )}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={removeVideo}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                          <path d="M10 11v6"></path>
+                          <path d="M14 11v6"></path>
+                        </svg>
+                        Remove Video
+                      </button>
+                    </div>
+                    {videoFile && videoUploadProgress > 0 && videoUploadProgress < 100 && (
+                      <div className="w-full bg-neutral-200 rounded-full h-2">
+                        <div
+                          className="bg-teal-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${videoUploadProgress}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <label className="block border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center hover:border-teal-500 hover:bg-teal-50 transition-colors cursor-pointer group">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-16 h-16 rounded-full bg-teal-50 group-hover:bg-teal-100 flex items-center justify-center transition-colors">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-teal-500">
+                          <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-neutral-700 group-hover:text-teal-700 transition-colors">Click to upload a product video</p>
+                        <p className="text-xs text-neutral-500 mt-1">MP4, MOV, AVI, WEBM, MKV &bull; Max 100MB</p>
+                      </div>
+                    </div>
+                    <input
+                      type="file"
+                      accept="video/mp4,video/quicktime,video/x-msvideo,video/webm,video/x-matroska"
+                      onChange={handleVideoChange}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
             <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
               <h2 className="text-lg font-semibold">Shop by Store</h2>
@@ -1561,13 +1710,8 @@ export default function SellerAddProduct() {
             </button>
           </div>
         </form>
-<<<<<<< HEAD
-      </div >
-    </div >
-=======
       </div>
     </div>
->>>>>>> 013f4e4f654180b643abc088bb660e6f5342981f
   );
 }
 

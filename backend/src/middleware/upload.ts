@@ -4,6 +4,7 @@ import { Request } from "express";
 // File size limits (in bytes)
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 
 // Allowed file types
 const ALLOWED_IMAGE_TYPES = [
@@ -19,6 +20,13 @@ const ALLOWED_DOCUMENT_TYPES = [
   "image/png",
   "image/webp",
   "application/pdf",
+];
+const ALLOWED_VIDEO_TYPES = [
+  "video/mp4",
+  "video/quicktime",
+  "video/x-msvideo",
+  "video/webm",
+  "video/x-matroska",
 ];
 
 // Memory storage for multer (files will be stored in memory as buffers)
@@ -92,6 +100,32 @@ export const uploadMultipleDocuments = multer({
     fileSize: MAX_DOCUMENT_SIZE,
   },
   fileFilter: documentFileFilter,
+});
+
+// File filter for videos
+const videoFileFilter = (
+  _req: Request,
+  file: any,
+  cb: multer.FileFilterCallback
+) => {
+  if (ALLOWED_VIDEO_TYPES.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(
+      new Error(
+        `Invalid file type. Allowed video types: ${ALLOWED_VIDEO_TYPES.join(", ")}`
+      )
+    );
+  }
+};
+
+// Multer instance for single video upload
+export const uploadSingleVideo = multer({
+  storage,
+  limits: {
+    fileSize: MAX_VIDEO_SIZE,
+  },
+  fileFilter: videoFileFilter,
 });
 
 // Error handler middleware for multer errors

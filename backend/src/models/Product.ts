@@ -19,6 +19,7 @@ export interface IProduct extends Document {
   // Images
   mainImage?: string;
   galleryImages: string[];
+  productVideoUrl?: string;
 
   // Pricing & Inventory
   price: number;
@@ -187,6 +188,10 @@ const ProductSchema = new Schema<IProduct>(
     galleryImages: {
       type: [String],
       default: [],
+    },
+    productVideoUrl: {
+      type: String,
+      trim: true,
     },
 
     // Pricing & Inventory

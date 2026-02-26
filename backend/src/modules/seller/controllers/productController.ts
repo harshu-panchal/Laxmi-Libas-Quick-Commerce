@@ -29,6 +29,7 @@ export const createProduct = asyncHandler(
       brand: productData.brandId,
       mainImage: productData.mainImageUrl, // Map mainImageUrl to mainImage
       galleryImages: productData.galleryImageUrls,
+      productVideoUrl: productData.productVideoUrl, // Map productVideoUrl
     };
 
     // Strict Category Validation: Ensure product category matches seller's assigned category
@@ -321,6 +322,11 @@ export const updateProduct = asyncHandler(
     if (updateData.galleryImageUrls) {
       updateData.galleryImages = updateData.galleryImageUrls;
       delete updateData.galleryImageUrls;
+    }
+    // productVideoUrl maps directly to itself (no rename needed)
+    // but handle explicit clear
+    if (updateData.productVideoUrl === null || updateData.productVideoUrl === "") {
+      updateData.productVideoUrl = null;
     }
 
     // Strict Category Validation for updates

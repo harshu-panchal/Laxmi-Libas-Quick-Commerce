@@ -66,6 +66,8 @@ export interface Product {
   // Shop by Store fields
   isShopByStoreOnly?: boolean;
   shopId?: string | any;
+  productVideoUrl?: string;
+
   // Category Specific Fields
   brandName?: string;
   size?: string;
@@ -129,6 +131,8 @@ export interface CreateProductData {
   variationType?: string;
   isShopByStoreOnly?: boolean;
   shopId?: string;
+  productVideoUrl?: string;
+
   // Category Specific Fields
   brandName?: string;
   size?: string;

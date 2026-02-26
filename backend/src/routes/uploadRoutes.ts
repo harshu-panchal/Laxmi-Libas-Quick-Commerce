@@ -5,8 +5,10 @@ import {
   uploadMultipleImages,
   uploadDocument,
   uploadMultipleDocuments,
+  uploadSingleVideo,
   handleUploadError,
 } from "../middleware/upload";
+
 import {
   uploadImageFromBuffer,
   uploadDocumentFromBuffer,
@@ -198,6 +200,36 @@ router.delete(
     return res.status(200).json({
       success: true,
       message: "Image deleted successfully",
+    });
+  })
+);
+
+/**
+ * POST /api/v1/upload/video
+ * Upload a product video (for supported seller categories)
+ */
+router.post(
+  "/video",
+  requireUserType("Admin", "Seller"),
+  uploadSingleVideo.single("video"),
+  handleUploadError,
+  asyncHandler(async (req: Request, res: Response) => {
+    if (!(req as any).file) {
+      return res.status(400).json({
+        success: false,
+        message: "No video file provided",
+      });
+    }
+
+    const folder = (req.body.folder as string) || CLOUDINARY_FOLDERS.PRODUCT_VIDEOS;
+    const result = await uploadImageFromBuffer((req as any).file.buffer, {
+      folder,
+      resourceType: "video",
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: result,
     });
   })
 );
