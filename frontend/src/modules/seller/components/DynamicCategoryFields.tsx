@@ -10,8 +10,8 @@ interface DynamicCategoryFieldsProps {
 export default function DynamicCategoryFields({ categoryName, subcategoryName, formData, handleChange }: DynamicCategoryFieldsProps) {
     const name = categoryName.toLowerCase();
 
-    // Fast Fashion / Fashion
-    if (name.includes('fashion')) {
+    // Clothing / Fashion
+    if (name.includes('clothing') || name.includes('fashion')) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -78,7 +78,31 @@ export default function DynamicCategoryFields({ categoryName, subcategoryName, f
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">Expiry Date</label>
-                    <input type="date" name="expiryDate" value={formData.expiryDate ? new Date(formData.expiryDate).toISOString().split('T')[0] : ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
+                    <input type="date" name="expiryDate" value={formData.expiryDate && !isNaN(new Date(formData.expiryDate).getTime()) ? new Date(formData.expiryDate).toISOString().split('T')[0] : ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
+                </div>
+            </div>
+        );
+    }
+
+    // Fruits & Vegetables
+    if (name.includes('fruits') || name.includes('vegetables') || name.includes('fruit') || name.includes('vegetable')) {
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Shelf Life (e.g. 3 days, 1 week)</label>
+                    <input type="text" name="shelfLife" value={formData.shelfLife || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. 3 days" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Storage Instructions</label>
+                    <input type="text" name="specifications" value={formData.specifications || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Keep refrigerated" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Unit/Weight (e.g. 500g, 1kg, 1 pc)</label>
+                    <input type="text" name="weight" value={formData.weight || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. 1kg" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Origin (Optional)</label>
+                    <input type="text" name="madeIn" value={formData.madeIn || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Local Farm" />
                 </div>
             </div>
         );
@@ -221,8 +245,8 @@ export default function DynamicCategoryFields({ categoryName, subcategoryName, f
         );
     }
 
-    // Rent (Room, Bike, etc.)
-    if (name.includes('room') || name.includes('rent')) {
+    // Rental (Room, Bike, etc.)
+    if (name.includes('room') || name.includes('rental') || name.includes('rent')) {
         const subName = (subcategoryName || '').toLowerCase();
 
         // Bike Rent

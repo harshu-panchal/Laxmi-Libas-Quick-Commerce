@@ -212,7 +212,7 @@ export default function ProductCard({
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2 }}
-      className={`${categoryStyle ? 'bg-yellow-50' : 'bg-white'} rounded-lg shadow-sm overflow-hidden flex flex-col relative`}
+      className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col relative"
     >
       <div
         onClick={handleCardClick}

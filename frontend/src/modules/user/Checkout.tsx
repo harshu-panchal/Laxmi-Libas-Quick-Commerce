@@ -285,7 +285,7 @@ export default function Checkout() {
   const deliveryCharge =
     displayCart.estimatedDeliveryFee !== undefined
       ? displayCart.estimatedDeliveryFee
-      : subtotalBeforeFinalDiscounts >= freeDeliveryThreshold
+      : discountedTotal >= freeDeliveryThreshold
         ? 0
         : appConfig.deliveryFee;
 

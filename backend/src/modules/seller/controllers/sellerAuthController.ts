@@ -243,12 +243,19 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
       }
       : undefined;
 
+  // Determine initial status based on category (Auto-approve for specific categories)
+  const categoryName = categoryExists.name.toLowerCase();
+  const shouldAutoApprove =
+    categoryName.includes('fruit') ||
+    categoryName.includes('vegetable') ||
+    categoryName.includes('grocery') ||
+    categoryName.includes('clothing');
+
   // Create new seller with GeoJSON location (password not required during signup)
   const seller = await Seller.create({
     sellerName,
     mobile,
     email,
-    // password field removed - sellers don't need password during signup
     storeName,
     category,
     address,
@@ -257,9 +264,10 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     searchLocation: req.body.searchLocation,
     latitude: req.body.latitude,
     longitude: req.body.longitude,
-    location, // GeoJSON location for geospatial queries
-    serviceRadiusKm, // Service radius in kilometers
-    status: "Pending",
+    location,
+    serviceRadiusKm,
+    status: shouldAutoApprove ? "Approved" : "Pending",
+    approvedAt: shouldAutoApprove ? new Date() : undefined,
     requireProductApproval: false,
     viewCustomerDetails: false,
     commission: 0,

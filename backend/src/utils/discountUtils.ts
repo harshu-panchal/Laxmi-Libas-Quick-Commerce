@@ -1,7 +1,7 @@
 
-import DiscountRule from '../../models/DiscountRule';
 
-export const calculateDiscount = async (item: any) => {
+
+export const calculateDiscount = async (_item: any) => {
     // This function is for a single item context, 
     // but in reality we need to fetch rules first.
     // Efficiently, we should fetch all potentially relevant rules for the whole cart

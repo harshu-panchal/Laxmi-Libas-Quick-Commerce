@@ -1,6 +1,8 @@
 export interface Theme {
   primary: string[];
   secondary: string[];
+  backgroundColor: string;
+  surfaceColor: string;
   textColor: string;
   accentColor: string;
   bannerText: string;
@@ -10,130 +12,158 @@ export interface Theme {
 
 export const themes: Record<string, Theme> = {
   all: {
-    primary: ['rgb(255, 193, 7)', 'rgb(255, 213, 79)', 'rgb(255, 236, 179)', 'rgb(255, 249, 196)'],
-    secondary: ['rgb(255, 249, 196)', 'rgb(255, 236, 179)', 'rgb(255, 213, 79)'],
-    textColor: '#452c00',
-    accentColor: '#FF8F00',
+    primary: ['#FCDC75', '#FCE291', '#FDE9AC', '#FEEFCA'],
+    secondary: ['#FEEFCA', '#FDE9AC', '#FCE291'],
+    backgroundColor: '#ffffff',
+    surfaceColor: '#f8fafc',
+    textColor: '#000000',
+    accentColor: '#D4B84D',
     bannerText: 'HOUSEFULL',
     saleText: 'SALE',
-    headerTextColor: '#452c00',
-  },
-  wedding: {
-    primary: ['rgb(255, 236, 179)', 'rgb(255, 224, 130)', 'rgb(255, 213, 79)', 'rgb(255, 202, 40)'],
-    secondary: ['rgb(255, 248, 225)', 'rgb(255, 236, 179)', 'rgb(255, 224, 130)'],
-    textColor: '#452c00',
-    accentColor: '#FF6F00',
-    bannerText: 'WEDDING',
-    saleText: 'SALE',
-    headerTextColor: '#452c00',
-  },
-  winter: {
-    primary: ['rgb(255, 249, 196)', 'rgb(255, 245, 157)', 'rgb(255, 241, 118)', 'rgb(255, 238, 88)'],
-    secondary: ['rgb(255, 253, 231)', 'rgb(255, 249, 196)', 'rgb(255, 245, 157)'],
-    textColor: '#3e2723',
-    accentColor: '#fbc02d',
-    bannerText: 'WINTER',
-    saleText: 'SALE',
-    headerTextColor: '#3e2723',
-  },
-  electronics: {
-    primary: ['rgb(255, 213, 79)', 'rgb(255, 202, 40)', 'rgb(255, 179, 0)', 'rgb(255, 160, 0)'],
-    secondary: ['rgb(255, 236, 179)', 'rgb(255, 213, 79)', 'rgb(255, 202, 40)'],
-    textColor: '#212121',
-    accentColor: '#ff8f00',
-    bannerText: 'ELECTRONICS',
-    saleText: 'SALE',
-    headerTextColor: '#212121',
-  },
-  beauty: {
-    primary: ['rgb(255, 245, 157)', 'rgb(255, 241, 118)', 'rgb(255, 238, 88)', 'rgb(255, 235, 59)'],
-    secondary: ['rgb(255, 253, 231)', 'rgb(255, 249, 196)', 'rgb(255, 245, 157)'],
-    textColor: '#1a1a1a',
-    accentColor: '#fdd835',
-    bannerText: 'BEAUTY',
-    saleText: 'SALE',
-    headerTextColor: '#1a1a1a',
-  },
-  grocery: {
-    primary: ['rgb(255, 224, 130)', 'rgb(255, 213, 79)', 'rgb(255, 202, 40)', 'rgb(255, 193, 7)'],
-    secondary: ['rgb(255, 248, 225)', 'rgb(255, 236, 179)', 'rgb(255, 224, 130)'],
-    textColor: '#3e2723',
-    accentColor: '#ffa000',
-    bannerText: 'GROCERY',
-    saleText: 'SALE',
-    headerTextColor: '#3e2723',
-  },
-  fashion: {
-    primary: ['rgb(255, 236, 179)', 'rgb(255, 224, 130)', 'rgb(255, 213, 79)', 'rgb(255, 202, 40)'],
-    secondary: ['rgb(255, 248, 225)', 'rgb(255, 236, 179)', 'rgb(255, 224, 130)'],
-    textColor: '#1a1a1a',
-    accentColor: '#ffb300',
-    bannerText: 'FASHION',
-    saleText: 'SALE',
-    headerTextColor: '#1a1a1a',
-  },
-  sports: {
-    primary: ['rgb(255, 235, 59)', 'rgb(253, 216, 53)', 'rgb(251, 192, 45)', 'rgb(249, 168, 37)'],
-    secondary: ['rgb(255, 249, 196)', 'rgb(255, 245, 157)', 'rgb(255, 241, 118)'],
-    textColor: '#000000',
-    accentColor: '#f9a825',
-    bannerText: 'SPORTS',
-    saleText: 'SALE',
     headerTextColor: '#000000',
   },
-  orange: {
-    primary: ['rgb(255, 183, 77)', 'rgb(255, 167, 38)', 'rgb(255, 152, 0)', 'rgb(245, 124, 0)'],
-    secondary: ['rgb(255, 224, 178)', 'rgb(255, 204, 128)', 'rgb(255, 183, 77)'],
-    textColor: '#3e2723',
-    accentColor: '#ef6c00',
-    bannerText: 'AUTUMN',
-    saleText: 'SALE',
-    headerTextColor: '#3e2723',
-  },
-  violet: {
-    primary: ['rgb(167, 139, 250)', 'rgb(196, 181, 253)', 'rgb(221, 214, 254)', 'rgb(237, 233, 254)'],
-    secondary: ['rgb(237, 233, 254)', 'rgb(221, 214, 254)', 'rgb(196, 181, 253)'],
-    textColor: '#4c1d95',
-    accentColor: '#5b21b6',
-    bannerText: 'VIOLET',
-    saleText: 'SALE',
-    headerTextColor: '#2e1065',
-  },
-  teal: {
-    primary: ['rgb(45, 212, 191)', 'rgb(94, 234, 212)', 'rgb(153, 246, 228)', 'rgb(204, 251, 241)'],
-    secondary: ['rgb(204, 251, 241)', 'rgb(153, 246, 228)', 'rgb(94, 234, 212)'],
-    textColor: '#115e59',
-    accentColor: '#0f766e',
-    bannerText: 'TEAL',
-    saleText: 'SALE',
-    headerTextColor: '#134e4a',
-  },
-  dark: {
-    primary: ['rgb(75, 85, 99)', 'rgb(107, 114, 128)', 'rgb(156, 163, 175)', 'rgb(209, 213, 219)'],
-    secondary: ['rgb(209, 213, 219)', 'rgb(156, 163, 175)', 'rgb(107, 114, 128)'],
-    textColor: '#ffffff',
-    accentColor: '#1f2937',
-    bannerText: 'DARK',
-    saleText: 'SALE',
-    headerTextColor: '#000000',
-  },
-  hotpink: {
-    primary: ['rgb(244, 114, 182)', 'rgb(249, 168, 212)', 'rgb(251, 207, 232)', 'rgb(253, 224, 239)'],
-    secondary: ['rgb(253, 224, 239)', 'rgb(251, 207, 232)', 'rgb(249, 168, 212)'],
+  clothing: {
+    primary: ['rgb(254, 205, 211)', 'rgb(251, 164, 175)', 'rgb(244, 114, 182)', 'rgb(253, 242, 248)'], // Soft Pink
+    secondary: ['rgb(253, 242, 248)', 'rgb(252, 231, 243)', 'rgb(251, 207, 232)'],
+    backgroundColor: '#fff1f2',
+    surfaceColor: '#fff8f9',
     textColor: '#831843',
-    accentColor: '#9d174d',
-    bannerText: 'PINK',
-    saleText: 'SALE',
+    accentColor: '#be123c',
+    bannerText: 'CLOTHING',
+    saleText: 'FASHION SALE',
     headerTextColor: '#831843',
   },
-  gold: {
-    primary: ['rgb(250, 204, 21)', 'rgb(253, 224, 71)', 'rgb(254, 240, 138)', 'rgb(254, 249, 195)'],
-    secondary: ['rgb(254, 249, 195)', 'rgb(254, 240, 138)', 'rgb(253, 224, 71)'],
-    textColor: '#854d0e',
-    accentColor: '#a16207',
-    bannerText: 'GOLD',
+  footwear: {
+    primary: ['rgb(191, 219, 254)', 'rgb(147, 197, 253)', 'rgb(96, 165, 250)', 'rgb(239, 246, 255)'], // Soft Blue
+    secondary: ['rgb(239, 246, 255)', 'rgb(219, 234, 254)', 'rgb(191, 219, 254)'],
+    backgroundColor: '#eff6ff',
+    surfaceColor: '#f8fafc',
+    textColor: '#1e3a8a',
+    accentColor: '#2563eb',
+    bannerText: 'FOOTWEAR',
     saleText: 'SALE',
+    headerTextColor: '#1e3a8a',
+  },
+  grocery: {
+    primary: ['rgb(187, 247, 208)', 'rgb(134, 239, 172)', 'rgb(74, 222, 128)', 'rgb(240, 253, 244)'], // Soft Green
+    secondary: ['rgb(240, 253, 244)', 'rgb(220, 252, 231)', 'rgb(187, 247, 208)'],
+    backgroundColor: '#f0fdf4',
+    surfaceColor: '#f7fee7',
+    textColor: '#14532d',
+    accentColor: '#16a34a',
+    bannerText: 'GROCERY',
+    saleText: 'FRESH SALE',
+    headerTextColor: '#14532d',
+  },
+  food: {
+    primary: ['rgb(255, 237, 213)', 'rgb(254, 215, 170)', 'rgb(253, 186, 116)', 'rgb(255, 247, 237)'], // Soft Orange
+    secondary: ['rgb(255, 247, 237)', 'rgb(255, 237, 213)', 'rgb(254, 215, 170)'],
+    backgroundColor: '#fff7ed',
+    surfaceColor: '#fffaf5',
+    textColor: '#7c2d12',
+    accentColor: '#ea580c',
+    bannerText: 'FOOD',
+    saleText: 'DELICIOUS',
+    headerTextColor: '#7c2d12',
+  },
+  'fruits-vegetables': {
+    primary: ['#d9f99d', '#bef264', '#a3e635', '#f7fee7'], // Soft Lime
+    secondary: ['#f7fee7', '#ecfccb', '#d9f99d'],
+    backgroundColor: '#f7fee7',
+    surfaceColor: '#fafff0',
+    textColor: '#365314',
+    accentColor: '#65a30d',
+    bannerText: 'FRESH',
+    saleText: 'ORGANIC',
+    headerTextColor: '#365314',
+  },
+  beauty: {
+    primary: ['#ddd6fe', '#c4b5fd', '#a78bfa', '#f5f3ff'], // Soft Violet
+    secondary: ['#f5f3ff', '#ede9fe', '#ddd6fe'],
+    backgroundColor: '#f5f3ff',
+    surfaceColor: '#fafaff',
+    textColor: '#4c1d95',
+    accentColor: '#7c3aed',
+    bannerText: 'BEAUTY',
+    saleText: 'GLOW UP',
+    headerTextColor: '#2e1065',
+  },
+  electronics: {
+    primary: ['#cffafe', '#a5f3fc', '#67e2f9', '#ecfeff'], // Soft Cyan
+    secondary: ['#ecfeff', '#d1fae5', '#cffafe'],
+    backgroundColor: '#ecfeff',
+    surfaceColor: '#f5ffff',
+    textColor: '#164e63',
+    accentColor: '#0891b2',
+    bannerText: 'TECH',
+    saleText: 'SMART DEALS',
+    headerTextColor: '#164e63',
+  },
+  toys: {
+    primary: ['#fef08a', '#fde047', '#facc15', '#fefce8'], // Soft Yellow
+    secondary: ['#fefce8', '#fef9c3', '#fef08a'],
+    backgroundColor: '#fefce8',
+    surfaceColor: '#fffdec',
+    textColor: '#854d0e',
+    accentColor: '#ca8a04',
+    bannerText: 'TOYS',
+    saleText: 'PLAY TIME',
     headerTextColor: '#713f12',
+  },
+  'home-furniture': {
+    primary: ['#fde68a', '#fcd34d', '#fbbf24', '#fffbeb'], // Soft Amber
+    secondary: ['#fffbeb', '#fef3c7', '#fde68a'],
+    backgroundColor: '#fffbeb',
+    surfaceColor: '#fffdf5',
+    textColor: '#78350f',
+    accentColor: '#d97706',
+    bannerText: 'HOME',
+    saleText: 'COMFORT',
+    headerTextColor: '#78350f',
+  },
+  eyeglasses: {
+    primary: ['#c7d2fe', '#a5b4fc', '#818cf8', '#eef2ff'], // Soft Indigo
+    secondary: ['#eef2ff', '#e0e7ff', '#c7d2fe'],
+    backgroundColor: '#eef2ff',
+    surfaceColor: '#f5f7ff',
+    textColor: '#312e81',
+    accentColor: '#4f46e5',
+    bannerText: 'EYEWEAR',
+    saleText: 'VISION',
+    headerTextColor: '#312e81',
+  },
+  rental: {
+    primary: ['#99f6e4', '#5eead4', '#2dd4bf', '#f0fdfa'], // Soft Teal
+    secondary: ['#f0fdfa', '#ccfbf1', '#99f6e4'],
+    backgroundColor: '#f0fdfa',
+    surfaceColor: '#fafffe',
+    textColor: '#134e4a',
+    accentColor: '#0d9488',
+    bannerText: 'RENTAL',
+    saleText: 'RENT NOW',
+    headerTextColor: '#134e4a',
+  },
+  'automotive-parts': {
+    primary: ['#38bdf8', '#0ea5e9', '#0284c7', '#e0f2fe'], // Vibrant Sky Blue to Ocean Blue
+    secondary: ['#f0f9ff', '#e0f2fe', '#bae6fd'],
+    backgroundColor: '#f0f9ff', // Very light Azure
+    surfaceColor: '#e0f2fe', // Sky blue tint
+    textColor: '#075985',
+    accentColor: '#0ea5e9',
+    bannerText: 'AUTO',
+    saleText: 'PARTS',
+    headerTextColor: '#075985',
+  },
+  services: {
+    primary: ['#fecdd3', '#fda4af', '#fb7185', '#fff1f2'], // Soft Rose
+    secondary: ['#fff1f2', '#ffe4e6', '#fecdd3'],
+    backgroundColor: '#fff1f2',
+    surfaceColor: '#fff5f7',
+    textColor: '#881337',
+    accentColor: '#e11d48',
+    bannerText: 'SERVICES',
+    saleText: 'EXPERT',
+    headerTextColor: '#881337',
   },
 };
 
