@@ -1733,15 +1733,9 @@ export default function SellerAddProduct() {
                   : "Add Product"}
             </button>
           </div>
-<<<<<<< HEAD
         </form>
       </div>
     </div>
-=======
-        </form >
-      </div >
-    </div >
->>>>>>> 7df7ead5f3c7dc56f2aa7bea54d3552e2711ca65
   );
 }
 

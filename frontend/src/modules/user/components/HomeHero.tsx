@@ -130,21 +130,13 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
       case 'fashion':
         return [baseSuggestion, 'clothing', 'shoes', 'accessories', 'watches', 'bags', 'jewelry'];
       case 'sports':
-<<<<<<< HEAD
         return [baseSuggestion, 'cricket bat', 'football', 'badminton', 'fitness equipment', 'sports shoes', 'gym wear'];
-=======
-        return ['cricket bat', 'football', 'badminton', 'fitness equipment', 'sports shoes', 'gym wear'];
       case 'home-furniture':
         return ['bedsheet', 'sofa cover', 'cushions', 'wall decor', 'lamps', 'storage boxes'];
->>>>>>> 7df7ead5f3c7dc56f2aa7bea54d3552e2711ca65
       default: // 'all'
         return [baseSuggestion, 'atta', 'milk', 'dal', 'coke', 'bread', 'eggs', 'rice', 'oil'];
     }
-<<<<<<< HEAD
-  }, [activeTab, categories.length]);
-=======
   }, [activeTab, categories]);
->>>>>>> 7df7ead5f3c7dc56f2aa7bea54d3552e2711ca65
 
   useLayoutEffect(() => {
     const hero = heroRef.current;
@@ -297,52 +289,23 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
       }}
     >
       {/* Top section with delivery info and buttons - NOT sticky */}
-<<<<<<< HEAD
-      <div>
-        <div ref={topSectionRef} className="px-4 md:px-6 lg:px-8 pt-2 md:pt-3 pb-0">
-          <div className="flex items-start justify-between mb-2 md:mb-2 gap-2">
-            {/* Left: Text content */}
-            <div className="flex-1 pr-2">
-              {/* Service name - small, dark */}
-              <div className="text-neutral-800 font-medium text-[11px] md:text-xs mb-0 leading-tight">LaxMart Quick Commerce</div>
-              {/* Delivery time - large, bold, dark grey/black */}
-              <div className="text-neutral-900 font-extrabold text-[28px] md:text-2xl mb-0 md:mb-0.5 leading-tight">
-                {appConfig.estimatedDeliveryTime}
-              </div>
-              {/* Location with dropdown indicator - only show if location is provided */}
-              {locationDisplayText && (
-                <div className="text-neutral-700 text-[11px] md:text-xs flex items-center gap-1 leading-tight">
-                  <span className="line-clamp-1" title={locationDisplayText}>{locationDisplayText}</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-=======
       {!hideTopContent && (
         <div>
           <div ref={topSectionRef} className="px-4 md:px-6 lg:px-8 pt-2 md:pt-3 pb-0">
-            <div className="flex items-start justify-between mb-2 md:mb-2">
+            <div className="flex items-start justify-between mb-2 md:mb-2 gap-2">
               {/* Left: Text content */}
               <div className="flex-1 pr-2">
                 {/* Service name - small, dark */}
-                <div
-                  className="font-medium text-[10px] md:text-xs mb-0 leading-tight"
-                  style={{ color: theme.headerTextColor }}
-                >
-                  LaxMart Quick Commerce
->>>>>>> 7df7ead5f3c7dc56f2aa7bea54d3552e2711ca65
-                </div>
+                <div className="text-neutral-800 font-medium text-[11px] md:text-xs mb-0 leading-tight">LaxMart Quick Commerce</div>
                 {/* Delivery time - large, bold, dark grey/black */}
-                <div
-                  className="font-extrabold text-2xl md:text-xl mb-0 md:mb-0.5 leading-tight"
-                  style={{ color: theme.headerTextColor || '#000000' }}
-                >
+                <div className="text-neutral-900 font-extrabold text-[28px] md:text-2xl mb-0 md:mb-0.5 leading-tight">
                   {appConfig.estimatedDeliveryTime}
                 </div>
                 {/* Location with dropdown indicator - only show if location is provided */}
                 {locationDisplayText && (
-                  <div className="text-neutral-700 text-[10px] md:text-xs flex items-center gap-0.5 leading-tight">
+                  <div className="text-neutral-700 text-[11px] md:text-xs flex items-center gap-1 leading-tight">
                     <span className="line-clamp-1" title={locationDisplayText}>{locationDisplayText}</span>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
                       <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
@@ -397,25 +360,15 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
           {/* Search Bar */}
           <div
             onClick={() => navigate('/search')}
-<<<<<<< HEAD
             className="w-full md:w-auto md:max-w-xl md:mx-auto rounded-xl shadow-sm px-3 py-2 md:px-3 md:py-2 flex items-center gap-2 cursor-pointer hover:shadow-md transition-all duration-300 mb-2 bg-white"
-=======
-            className="w-full md:w-auto md:max-w-xl md:mx-auto rounded-none shadow-lg px-4 py-4 md:px-5 md:py-3.5 flex items-center gap-2 cursor-pointer hover:shadow-xl transition-all duration-300 mb-2 bg-white"
->>>>>>> 7df7ead5f3c7dc56f2aa7bea54d3552e2711ca65
             style={{
               backgroundColor: scrollProgress > 0.1 ? `rgba(249, 250, 251, ${scrollProgress})` : 'white',
               border: scrollProgress > 0.1 ? `1px solid rgba(229, 231, 235, ${scrollProgress})` : '1px solid rgba(255,255,255,0.6)',
             }}
           >
-<<<<<<< HEAD
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4 text-yellow-700">
               <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
               <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-=======
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4">
-              <circle cx="11" cy="11" r="8" stroke={scrollProgress > 0.5 ? "#9ca3af" : theme.primary[0]} strokeWidth="2.5" />
-              <path d="m21 21-4.35-4.35" stroke={scrollProgress > 0.5 ? "#9ca3af" : theme.primary[0]} strokeWidth="2.5" strokeLinecap="round" />
->>>>>>> 7df7ead5f3c7dc56f2aa7bea54d3552e2711ca65
             </svg>
             <div className="flex-1 relative h-4 md:h-4 overflow-hidden">
               {searchSuggestions.map((suggestion, index) => {
