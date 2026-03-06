@@ -77,7 +77,7 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
         <div className="w-full pb-1">
             <div
                 ref={scrollContainerRef}
-                className="flex overflow-x-auto scrollbar-hide px-4 py-1 gap-5 md:gap-6"
+                className="flex overflow-x-auto scrollbar-hide px-4 py-0.5 gap-3 md:gap-4"
                 style={{
                     scrollbarWidth: 'none',
                     msOverflowStyle: 'none',
@@ -88,15 +88,15 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
                 <button
                     onClick={() => handleCategoryChange('all')}
                     data-category="all"
-                    className="flex flex-col items-center justify-center min-w-[64px] group"
+                    className="flex flex-col items-center justify-center min-w-[56px] group"
                 >
-                    <div className="w-9 h-9 flex items-center justify-center">
+                    <div className="w-8 h-8 flex items-center justify-center">
                         <LayoutGrid size={22} strokeWidth={1.8} className={activeCategory === 'all' ? activeTextClass : inactiveTextClass} />
                     </div>
-                    <span className={`mt-1 text-[11px] font-medium text-center leading-tight ${activeCategory === 'all' ? activeTextClass : inactiveTextClass}`}>
+                    <span className={`mt-0.5 text-[11px] font-medium text-center leading-tight ${activeCategory === 'all' ? activeTextClass : inactiveTextClass}`}>
                         Everything
                     </span>
-                    <span className={`mt-1 h-0.5 w-7 rounded-full ${activeCategory === 'all' ? 'bg-neutral-900' : 'bg-transparent'}`} />
+                    <span className={`mt-0.5 h-0.5 w-6 rounded-full ${activeCategory === 'all' ? 'bg-neutral-900' : 'bg-transparent'}`} />
                 </button>
 
                 {CATEGORIES.map((category) => {
@@ -108,16 +108,16 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
                             key={category.id}
                             data-category={category.slug}
                             onClick={() => handleCategoryChange(category.slug)}
-                            className="flex flex-col items-center justify-center min-w-[64px] group"
+                            className="flex flex-col items-center justify-center min-w-[56px] group"
                         >
-                            <div className="w-9 h-9 flex items-center justify-center">
+                            <div className="w-8 h-8 flex items-center justify-center">
                                 <Icon size={22} strokeWidth={1.8} className={isActive ? activeTextClass : inactiveTextClass} />
                             </div>
 
-                            <span className={`mt-1 text-[11px] font-medium text-center leading-tight ${isActive ? activeTextClass : inactiveTextClass}`}>
+                            <span className={`mt-0.5 text-[11px] font-medium text-center leading-tight ${isActive ? activeTextClass : inactiveTextClass}`}>
                                 {category.name}
                             </span>
-                            <span className={`mt-1 h-0.5 w-7 rounded-full ${isActive ? 'bg-neutral-900' : 'bg-transparent'}`} />
+                            <span className={`mt-0.5 h-0.5 w-6 rounded-full ${isActive ? 'bg-neutral-900' : 'bg-transparent'}`} />
                         </button>
                     );
                 })}

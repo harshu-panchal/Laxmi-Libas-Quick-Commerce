@@ -295,11 +295,9 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
             <div className="flex items-start justify-between mb-2 md:mb-2 gap-2">
               {/* Left: Text content */}
               <div className="flex-1 pr-2">
-                {/* Service name - small, dark */}
-                <div className="text-neutral-800 font-medium text-[11px] md:text-xs mb-0 leading-tight">LaxMart Quick Commerce</div>
-                {/* Delivery time - large, bold, dark grey/black */}
-                <div className="text-neutral-900 font-extrabold text-[28px] md:text-2xl mb-0 md:mb-0.5 leading-tight">
-                  {appConfig.estimatedDeliveryTime}
+                {/* Brand Name */}
+                <div className="text-neutral-900 font-bold text-[30px] mb-1 leading-none tracking-tighter">
+                  LAXMART
                 </div>
                 {/* Location with dropdown indicator - only show if location is provided */}
                 {locationDisplayText && (
@@ -325,17 +323,6 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
               </div>
             </div>
 
-            {/* Right: Notification icon */}
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-white/70 border border-white/60 shadow-sm text-neutral-900 hover:bg-white transition-colors"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
           </div>
         </div>
       )}
