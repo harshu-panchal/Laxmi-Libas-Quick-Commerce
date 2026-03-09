@@ -21,6 +21,7 @@ export default function AdminBillingSettings() {
     const [kmRate, setKmRate] = useState<number>(0);
     const [deliveryBoyKmRate, setDeliveryBoyKmRate] = useState<number>(0);
     const [googleMapsKey, setGoogleMapsKey] = useState<string>('');
+    const [assignmentMode, setAssignmentMode] = useState<'Automatic' | 'Manual'>('Automatic');
 
     useEffect(() => {
         fetchSettings();
@@ -46,6 +47,7 @@ export default function AdminBillingSettings() {
                     setKmRate(data.deliveryConfig.kmRate || 0);
                     setDeliveryBoyKmRate(data.deliveryConfig.deliveryBoyKmRate || 0);
                     setGoogleMapsKey(data.deliveryConfig.googleMapsKey || import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '');
+                    setAssignmentMode(data.deliveryConfig.assignmentMode || 'Automatic');
                 } else {
                     // If no config exists, try to pre-fill from env
                     setGoogleMapsKey(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '');
@@ -73,7 +75,8 @@ export default function AdminBillingSettings() {
                     baseDistance,
                     kmRate,
                     deliveryBoyKmRate,
-                    googleMapsKey
+                    googleMapsKey,
+                    assignmentMode
                 }
             };
 
@@ -193,6 +196,41 @@ export default function AdminBillingSettings() {
                             >
                                 Distance Based
                             </button>
+                        </div>
+                    </div>
+
+                    <div className="mb-8 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-3 block">Assignment Mode</h3>
+                        <div className="flex flex-col gap-2">
+                            <label className="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-yellow-500 transition-colors">
+                                <input
+                                    type="radio"
+                                    name="assignmentMode"
+                                    value="Automatic"
+                                    checked={assignmentMode === 'Automatic'}
+                                    onChange={() => setAssignmentMode('Automatic')}
+                                    className="mt-1 text-yellow-600 focus:ring-yellow-500"
+                                />
+                                <div>
+                                    <span className="block text-sm font-medium text-gray-900">Automatic Broadcast</span>
+                                    <span className="block text-xs text-gray-500 mt-0.5">Orders are automatically broadcasted to all nearby online delivery boys when accepted by the seller.</span>
+                                </div>
+                            </label>
+
+                            <label className="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-yellow-500 transition-colors">
+                                <input
+                                    type="radio"
+                                    name="assignmentMode"
+                                    value="Manual"
+                                    checked={assignmentMode === 'Manual'}
+                                    onChange={() => setAssignmentMode('Manual')}
+                                    className="mt-1 text-yellow-600 focus:ring-yellow-500"
+                                />
+                                <div>
+                                    <span className="block text-sm font-medium text-gray-900">Manual Assignment</span>
+                                    <span className="block text-xs text-gray-500 mt-0.5">Orders will not be broadcasted automatically. Admin must assign a delivery boy manually from the Order Details page.</span>
+                                </div>
+                            </label>
                         </div>
                     </div>
 

@@ -83,6 +83,7 @@ export interface AppSettings {
     baseDistance: number;
     kmRate: number;
     deliveryBoyKmRate?: number;
+    assignmentMode?: "Automatic" | "Manual";
   };
   gstEnabled: boolean;
   gstRate?: number;

@@ -4,14 +4,14 @@ importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-comp
 
 // Firebase configuration (Replace with your actual credentials or use a build-time injection)
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID",
-    measurementId: "YOUR_MEASUREMENT_ID"
-};
+    apiKey: "AIzaSyBwY-YpAy3lHQb1FAHIDne2Cu_Q_hVEEVM",
+    authDomain: "laxmart-4b083.firebaseapp.com",
+    projectId: "laxmart-4b083",
+    storageBucket: "laxmart-4b083.firebasestorage.app",
+    messagingSenderId: "791243006500",
+    appId: "1:791243006500:web:2932d11f5e853693d26eb1",
+    measurementId: "G-G4ZTBHMJCP"
+};      
 
 // Initialize Firebase in service worker
 firebase.initializeApp(firebaseConfig);

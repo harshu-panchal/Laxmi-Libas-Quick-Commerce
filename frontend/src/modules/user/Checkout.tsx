@@ -1100,7 +1100,8 @@ export default function Checkout() {
       {/* Main Product Card */}
       <div className="px-4 md:px-6 lg:px-8 py-2 md:py-3 bg-white border-b border-neutral-200">
         <div className="bg-white rounded-lg border border-neutral-200 p-2.5">
-          {/* Delivery info */}
+          {/* Delivery info - removed as per request */}
+          {/* 
           <div className="flex items-center gap-1.5 mb-2">
             <div className="w-5 h-5 rounded-full bg-primary-dark flex items-center justify-center flex-shrink-0">
               <svg
@@ -1121,7 +1122,8 @@ export default function Checkout() {
             <span className="text-xs font-semibold text-neutral-900">
               Delivery in {appConfig.estimatedDeliveryTime}
             </span>
-          </div>
+          </div> 
+          */}
 
           <p className="text-[10px] text-neutral-600 mb-2.5">
             Shipment of {displayCart.itemCount || 0}{" "}

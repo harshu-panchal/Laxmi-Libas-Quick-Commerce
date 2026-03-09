@@ -294,12 +294,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {/* Sticky Header - Show on search page and other non-home pages */}
           {showStickyHeader && (
             <header className={`sticky z-50 shadow-sm md:shadow-md ${isOrderAgainPage ? 'top-0 bg-yellow-50' : 'top-0 md:top-[60px] bg-white'}`}>
-              {/* Delivery info line - hide on account/categories pages */}
-              {!shouldHideDeliveryInfo && (
+              {/* Delivery info line - removed as per request */}
+              {/* {!shouldHideDeliveryInfo && (
                 <div className="px-4 md:px-6 lg:px-8 py-1.5 bg-yellow-50 text-xs text-yellow-700 text-center relative">
                   Delivering in 10–15 mins
                 </div>
-              )}
+              )} */}
 
               {/* Location line - only show if user has provided location, hide on order-again */}
               {userLocation && (userLocation.address || userLocation.city) && !isOrderAgainPage && (

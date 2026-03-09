@@ -63,6 +63,7 @@ export interface IAppSettings extends Document {
     baseDistance: number;
     kmRate: number;
     deliveryBoyKmRate?: number;
+    assignmentMode?: "Automatic" | "Manual";
   };
 
   // Tax Settings
@@ -274,6 +275,11 @@ const AppSettingsSchema = new Schema<IAppSettings>(
       baseDistance: { type: Number, default: 0 },
       kmRate: { type: Number, default: 0 },
       deliveryBoyKmRate: { type: Number, default: 0 },
+      assignmentMode: {
+        type: String,
+        enum: ["Automatic", "Manual"],
+        default: "Automatic",
+      },
     },
     // Tax Settings
     gstEnabled: {

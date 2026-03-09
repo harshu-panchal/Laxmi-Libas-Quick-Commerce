@@ -6,6 +6,7 @@ import Seller from "../../../models/Seller";
 import WalletTransaction from "../../../models/WalletTransaction";
 import { notifyDeliveryBoysOfNewOrder } from "../../../services/orderNotificationService";
 import { Server as SocketIOServer } from "socket.io";
+import AppSettings from "../../../models/AppSettings";
 
 /**
  * Get seller's orders with filters, sorting, and pagination
@@ -297,8 +298,15 @@ export const updateOrderStatus = asyncHandler(
             .lean();
 
           if (fullOrder) {
-            await notifyDeliveryBoysOfNewOrder(io, fullOrder);
-            console.log(`Delivery notification triggered for Accepted order ${order.orderNumber}`);
+            // @ts-ignore - getSettings is a static method
+            const settings = await AppSettings.getSettings();
+
+            if (settings?.deliveryConfig?.assignmentMode === 'Manual') {
+              console.log(`Manual Assignment mode active. Real-time notification skipped for order ${order.orderNumber}`);
+            } else {
+              await notifyDeliveryBoysOfNewOrder(io, fullOrder);
+              console.log(`Delivery notification triggered for Accepted order ${order.orderNumber}`);
+            }
           }
         }
       } catch (notifyError) {
