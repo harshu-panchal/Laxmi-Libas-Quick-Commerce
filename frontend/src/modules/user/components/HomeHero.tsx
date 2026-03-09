@@ -291,7 +291,7 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
       {/* Top section with delivery info and buttons - NOT sticky */}
       {!hideTopContent && (
         <div>
-          <div ref={topSectionRef} className="px-4 md:px-6 lg:px-8 pt-2 md:pt-3 pb-0">
+          <div ref={topSectionRef} className="px-4 md:px-6 lg:px-8 pt-[30px] md:pt-3 pb-0">
             <div className="flex items-start justify-between mb-2 md:mb-2 gap-2">
               {/* Left: Text content */}
               <div className="flex-1 pr-2">
