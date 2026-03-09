@@ -343,7 +343,7 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
           }),
         }}
       >
-        <div className="px-4 md:px-6 lg:px-8 pt-2 md:pt-2 pb-2 md:pb-2">
+        <div className="px-4 md:px-6 lg:px-8 pt-2 md:pt-2 pb-[30px] md:pb-[30px]">
           {/* Search Bar */}
           <div
             onClick={() => navigate('/search')}
