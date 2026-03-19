@@ -138,10 +138,7 @@ export default function ProductCard({
     e.stopPropagation();
     e.preventDefault();
 
-    // Check if product is available in user's location
-    if (product.isAvailable === false) {
-      return;
-    }
+
 
     // Prevent any operation while another is in progress
     if (isOperationPendingRef.current) {
@@ -168,9 +165,8 @@ export default function ProductCard({
     }
 
     isOperationPendingRef.current = true;
-
     try {
-      await updateQuantity(((product as any).id || product._id) as string, inCartQty - 1);
+      await updateQuantity(((product as any).id || product._id) as string, inCartQty - 1, cartItem?.variant);
     } finally {
       // Reset the flag after the operation truly completes
       isOperationPendingRef.current = false;
@@ -181,11 +177,6 @@ export default function ProductCard({
     e.stopPropagation();
     e.preventDefault();
 
-    // Check if product is available in user's location
-    if (product.isAvailable === false) {
-      return;
-    }
-
     // Prevent any operation while another is in progress
     if (isOperationPendingRef.current) {
       return;
@@ -195,7 +186,7 @@ export default function ProductCard({
 
     try {
       if (inCartQty > 0) {
-        await updateQuantity(((product as any).id || product._id) as string, inCartQty + 1);
+        await updateQuantity(((product as any).id || product._id) as string, inCartQty + 1, cartItem?.variant);
       } else {
         await addToCart(product, addButtonRef.current);
       }
@@ -316,17 +307,17 @@ export default function ProductCard({
                     ref={addButtonRef}
                     variant="outline"
                     size="sm"
-                    disabled={product.isAvailable === false || ((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")}
+                    disabled={((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleAdd(e);
                     }}
-                    className={`w-full border rounded-full font-semibold text-xs h-7 px-3 flex items-center justify-center uppercase tracking-wide ${product.isAvailable === false || ((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")
+                    className={`w-full border rounded-full font-semibold text-xs h-7 px-3 flex items-center justify-center uppercase tracking-wide ${((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")
                       ? 'border-neutral-300 text-neutral-400 bg-neutral-50 cursor-not-allowed'
                       : 'border-primary-dark text-primary-dark bg-transparent hover:bg-yellow-50'
                       }`}
                   >
-                    {product.isAvailable === false ? 'Out of Range' : ((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out") ? 'Out of Stock' : 'ADD'}
+                    {((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out") ? 'Out of Stock' : 'ADD'}
                   </Button>
                 </div>
               </div>
@@ -350,13 +341,11 @@ export default function ProductCard({
                 <Button
                   variant="default"
                   size="icon"
-                  disabled={product.isAvailable === false}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleIncrease(e);
                   }}
-                  className={`w-5 h-5 p-0 bg-transparent text-primary-dark shadow-none ${product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : 'hover:bg-yellow-50'
-                    }`}
+                  className={`w-5 h-5 p-0 bg-transparent text-primary-dark shadow-none hover:bg-yellow-50`}
                   aria-label="Increase quantity"
                 >
                   +
@@ -393,13 +382,7 @@ export default function ProductCard({
               </div>
 
               {/* 3. Time */}
-              <p className="text-[9px] text-neutral-600 mb-0.5 flex items-center gap-0.5 leading-tight">
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                  <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                <span>14 MINS</span>
-              </p>
+              {/* Delivery time removed as per user request */}
 
               {/* 4. % OFF */}
               {discount > 0 && (
@@ -486,14 +469,14 @@ export default function ProductCard({
                   ref={addButtonRef}
                   variant="outline"
                   size="sm"
-                  disabled={product.isAvailable === false || ((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")}
+                  disabled={((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")}
                   onClick={handleAdd}
-                  className={`w-full border h-8 text-xs font-semibold uppercase tracking-wide ${product.isAvailable === false || ((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")
+                  className={`w-full border h-8 text-xs font-semibold uppercase tracking-wide ${((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")
                     ? 'border-neutral-300 text-neutral-400 bg-neutral-50 cursor-not-allowed'
                     : 'border-primary-dark text-primary-dark hover:bg-yellow-50'
                     }`}
                 >
-                  {product.isAvailable === false ? 'Out of Range' : ((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out") ? 'Out of Stock' : 'Add'}
+                  {((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out") ? 'Out of Stock' : 'Add'}
                 </Button>
                 <div className="h-4 mt-1">
                 </div>
@@ -515,10 +498,8 @@ export default function ProductCard({
                 <Button
                   variant="default"
                   size="icon"
-                  disabled={product.isAvailable === false}
                   onClick={handleIncrease}
-                  className={`w-6 h-6 p-0 bg-transparent text-primary-dark shadow-none ${product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : 'hover:bg-yellow-50'
-                    }`}
+                  className={`w-6 h-6 p-0 bg-transparent text-primary-dark hover:bg-yellow-50 shadow-none`}
                   aria-label="Increase quantity"
                 >
                   +

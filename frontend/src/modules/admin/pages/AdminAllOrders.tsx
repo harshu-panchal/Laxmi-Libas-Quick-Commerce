@@ -247,6 +247,8 @@ export default function AdminAllOrders() {
         return "bg-red-100 text-red-800";
       case "Rejected":
         return "bg-red-200 text-red-900";
+      case "Packed":
+        return "bg-green-100 text-green-800";
       default:
         return "bg-neutral-100 text-neutral-800";
     }
@@ -374,6 +376,7 @@ export default function AdminAllOrders() {
                   <option>Pending</option>
                   <option>Received</option>
                   <option>Processed</option>
+                  <option>Packed</option>
                   <option>Shipped</option>
                   <option>Out for Delivery</option>
                   <option>Delivered</option>

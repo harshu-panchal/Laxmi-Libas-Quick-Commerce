@@ -57,7 +57,7 @@ export default function OrderAgain() {
 
         if (existingCartItem) {
           // If already in cart, add the order quantity to existing quantity
-          updateQuantity(item.product.id, existingCartItem.quantity + item.quantity);
+          updateQuantity(item.product.id, existingCartItem.quantity + item.quantity, existingCartItem.variant);
         } else {
           // If not in cart, add it first (adds 1)
           addToCart(item.product);
@@ -65,7 +65,7 @@ export default function OrderAgain() {
           if (item.quantity > 1) {
             // Use setTimeout to ensure the item is added first
             setTimeout(() => {
-              updateQuantity(item.product.id, item.quantity);
+              updateQuantity(item.product.id, item.quantity, item.variation);
             }, 10);
           }
         }
@@ -286,7 +286,7 @@ export default function OrderAgain() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  updateQuantity(product.id, inCartQty - 1);
+                                  updateQuantity(product.id, inCartQty - 1, cartItem?.variant);
                                 }}
                                 className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-yellow-700 rounded transition-colors p-0 leading-none"
                                 style={{ lineHeight: 1, fontSize: '14px' }}
@@ -308,7 +308,7 @@ export default function OrderAgain() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  updateQuantity(product.id, inCartQty + 1);
+                                  updateQuantity(product.id, inCartQty + 1, cartItem?.variant);
                                 }}
                                 className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-yellow-700 rounded transition-colors p-0 leading-none"
                                 style={{ lineHeight: 1, fontSize: '14px' }}

@@ -127,6 +127,7 @@ export const updateOrderStatus = asyncHandler(
       "Received",
       "Pending",
       "Processed",
+      "Packed",
       "Shipped",
       "Out for Delivery",
       "Delivered",

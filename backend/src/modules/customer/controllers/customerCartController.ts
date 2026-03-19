@@ -50,8 +50,8 @@ const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.O
     for (const item of items) {
         const product = item.product as any;
         if (product && product.status === 'Active' && product.publish) {
-            // Check if seller is in range
-            const isAvailable = !nearbySellerIds || nearbySellerIds.some(id => id.toString() === product.seller.toString());
+            // Check if seller is in range - disabled as per user request
+            const isAvailable = true; // Force true
             if (isAvailable) {
                 const price = calculateItemPrice(product, item.variation);
                 total += price * item.quantity;
@@ -177,8 +177,8 @@ export const getCart = async (req: Request, res: Response) => {
         for (const item of (cart.items as any)) {
             const product = item.product;
             if (product && product.status === 'Active' && product.publish) {
-                // If location not provided, all active products are "available"
-                const isAvailable = !locationProvided || nearbySellerIds.some(id => id.toString() === product.seller.toString());
+                // Location filtering disabled - all active products are available
+                const isAvailable = true;
                 if (isAvailable) {
                     filteredItems.push(item);
                     const price = calculateItemPrice(product, item.variation);
@@ -252,17 +252,8 @@ export const addToCart = async (req: Request, res: Response) => {
             });
         }
 
-        // Check availability if location provided
-        if (locationProvided) {
-            const isAvailable = nearbySellerIds.some(id => id.toString() === (seller._id || seller).toString());
-
-            if (!isAvailable) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'This product is not available in your current location'
-                });
-            }
-        }
+        // Check availability - disabled as per user request
+        // if (locationProvided) ... (removed)
 
         // Get or create cart
         let cart = await Cart.findOne({ customer: userId });
@@ -292,8 +283,8 @@ export const addToCart = async (req: Request, res: Response) => {
             cart.items.push(cartItem._id as any);
         }
 
-        // Update total (filter by location if provided)
-        cart.total = await calculateCartTotal(cart._id, locationProvided ? nearbySellerIds : null);
+        // Update total without location filtering
+        cart.total = await calculateCartTotal(cart._id, null);
         await cart.save();
 
         // Return updated cart with filtering
@@ -307,7 +298,7 @@ export const addToCart = async (req: Request, res: Response) => {
 
         const filteredItems = (updatedCart?.items as any[] || []).filter(item => {
             const prod = item.product;
-            return prod && nearbySellerIds.some(id => id.toString() === prod.seller.toString());
+            return !!prod;
         });
 
         // Calculate fees
@@ -365,23 +356,14 @@ export const updateCartItem = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, message: 'Item not found in cart' });
         }
 
-        // Verify item is still available at location (if provided)
-        const product = cartItem.product as any;
-        if (locationProvided) {
-            const isAvailable = product && nearbySellerIds.some(id => id.toString() === product.seller.toString());
-
-            if (!isAvailable) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'This item is no longer available in your location'
-                });
-            }
-        }
+        // Verify item is still available at location - disabled
+        // if (locationProvided) ... (removed)
 
         cartItem.quantity = quantity;
         await cartItem.save();
 
-        cart.total = await calculateCartTotal(cart._id, locationProvided ? nearbySellerIds : null);
+        // Calculate total without location filtering
+        cart.total = await calculateCartTotal(cart._id, null);
         await cart.save();
 
         const updatedCart = await Cart.findById(cart._id).populate({
@@ -394,7 +376,7 @@ export const updateCartItem = async (req: Request, res: Response) => {
 
         const filteredItems = (updatedCart?.items as any[] || []).filter(item => {
             const prod = item.product;
-            return prod && nearbySellerIds.some(id => id.toString() === prod.seller.toString());
+            return !!prod;
         });
 
         // Calculate fees
@@ -461,8 +443,7 @@ export const removeFromCart = async (req: Request, res: Response) => {
 
         const filteredItems = (updatedCart?.items as any[] || []).filter(item => {
             const prod = item.product;
-            if (!locationProvided) return true;
-            return prod && nearbySellerIds.some(id => id.toString() === prod.seller.toString());
+            return !!prod;
         });
 
         // Calculate fees

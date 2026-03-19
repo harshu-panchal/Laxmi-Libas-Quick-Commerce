@@ -384,7 +384,7 @@ export default function Checkout() {
         userLocation.longitude,
       );
       // Remove from cart
-      await removeFromCart(productId);
+      await removeFromCart(productId, item.variant);
       // Show success message
       showGlobalToast("Item moved to wishlist");
     } catch (error: any) {
@@ -423,19 +423,8 @@ export default function Checkout() {
     }
 
     // Use user's current location as fallback if address doesn't have coordinates
-    const finalLatitude = selectedAddress.latitude ?? userLocation?.latitude;
-    const finalLongitude = selectedAddress.longitude ?? userLocation?.longitude;
-
-    // Validate that we have location data (either from address or user's current location)
-    if (finalLatitude == null || finalLongitude == null) {
-      console.error(
-        "Address is missing location data (latitude/longitude) and user location is not available",
-      );
-      alert(
-        "Location is required for delivery. Please ensure your address has location data or enable location access.",
-      );
-      return;
-    }
+    const finalLatitude = selectedAddress.latitude ?? userLocation?.latitude ?? 0;
+    const finalLongitude = selectedAddress.longitude ?? userLocation?.longitude ?? 0;
 
     // Create address object with location data (use fallback if needed)
     const addressWithLocation: OrderAddress = {
@@ -1175,7 +1164,7 @@ export default function Checkout() {
                       <div className="flex items-center gap-1.5 bg-white border-2 border-primary-dark rounded-full px-1.5 py-0.5">
                         <button
                           onClick={() =>
-                            updateQuantity(item.product?.id, item.quantity - 1)
+                            updateQuantity(item.product?.id, item.quantity - 1, item.variant)
                           }
                           className="w-5 h-5 flex items-center justify-center text-primary-dark font-bold hover:bg-yellow-50 rounded-full transition-colors text-xs">
                           −
@@ -1185,7 +1174,7 @@ export default function Checkout() {
                         </span>
                         <button
                           onClick={() =>
-                            updateQuantity(item.product?.id, item.quantity + 1)
+                            updateQuantity(item.product?.id, item.quantity + 1, item.variant)
                           }
                           className="w-5 h-5 flex items-center justify-center text-primary-dark font-bold hover:bg-yellow-50 rounded-full transition-colors text-xs">
                           +
@@ -1334,7 +1323,7 @@ export default function Checkout() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  updateQuantity(productId, inCartQty - 1);
+                                  updateQuantity(productId, inCartQty - 1, inCartItem?.variant);
                                 }}
                                 className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-yellow-700 rounded transition-colors p-0 leading-none"
                                 style={{ lineHeight: 1, fontSize: "14px" }}>
@@ -1358,7 +1347,7 @@ export default function Checkout() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  updateQuantity(productId, inCartQty + 1);
+                                  updateQuantity(productId, inCartQty + 1, inCartItem?.variant);
                                 }}
                                 className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-yellow-700 rounded transition-colors p-0 leading-none"
                                 style={{ lineHeight: 1, fontSize: "14px" }}>

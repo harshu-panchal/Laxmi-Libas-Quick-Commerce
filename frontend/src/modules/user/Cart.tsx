@@ -46,7 +46,7 @@ export default function Cart() {
             </button>
           )}
         </div>
-        <p className="text-xs md:text-sm text-neutral-600">Delivered in {appConfig.estimatedDeliveryTime}</p>
+        <p className="text-xs md:text-sm text-neutral-600">Secure Checkout & Fast Dispatch</p>
       </div>
 
       {/* Cart Items */}
@@ -129,7 +129,7 @@ export default function Cart() {
 
                 {/* Remove Button */}
                 <button
-                  onClick={() => removeFromCart(item.product.id)}
+                  onClick={() => removeFromCart(item.product.id, item.variant)}
                   className="text-neutral-400 hover:text-red-600 transition-colors self-start"
                   aria-label="Remove item"
                 >

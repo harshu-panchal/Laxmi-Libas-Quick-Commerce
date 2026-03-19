@@ -189,10 +189,12 @@ const SellerSchema = new Schema<ISeller>(
     latitude: {
       type: String,
       trim: true,
+      required: false,
     },
     longitude: {
       type: String,
       trim: true,
+      required: false,
     },
     // GeoJSON location for geospatial queries
     location: {
@@ -203,14 +205,15 @@ const SellerSchema = new Schema<ISeller>(
       },
       coordinates: {
         type: [Number], // [longitude, latitude]
+        required: false,
       },
     },
     // Service radius in kilometers (default: 10km if not specified)
     serviceRadiusKm: {
       type: Number,
-      default: 10,
+      default: 100, // Increased default to cover entire city manually
       min: [0.1, 'Service radius must be at least 0.1 km'],
-      max: [100, 'Service radius cannot exceed 100 km'],
+      max: [1000, 'Service radius cannot exceed 1000 km'],
     },
 
     // Payment Details

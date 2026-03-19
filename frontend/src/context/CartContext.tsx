@@ -25,7 +25,7 @@ interface AddToCartEvent {
 interface CartContextType {
   cart: Cart;
   addToCart: (product: Product, sourceElement?: HTMLElement | null) => Promise<void>;
-  removeFromCart: (productId: string) => Promise<void>;
+  removeFromCart: (productId: string, variantId?: string, variantTitle?: string) => Promise<void>;
   updateQuantity: (productId: string, quantity: number, variantId?: string, variantTitle?: string) => Promise<void>;
   clearCart: () => Promise<void>;
   refreshCart: (latitude?: number, longitude?: number) => Promise<void>;
@@ -318,9 +318,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const response = await apiAddToCart(
           productId,
           1,
-          variation,
-          location?.latitude,
-          location?.longitude
+          variation
         );
         if (response && response.data && response.data.items) {
           // Atomic update from server response
@@ -346,26 +344,47 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const removeFromCart = async (productId: string) => {
+  const removeFromCart = async (productId: string, variantId?: string, variantTitle?: string) => {
+    // Create a unique operation key for this product/variant combination
+    const operationKey = variantId ? `${productId}-${variantId}` : (variantTitle ? `${productId}-${variantTitle}` : productId);
+
     // Prevent concurrent operations on the same product
-    if (pendingOperationsRef.current.has(productId)) {
+    if (pendingOperationsRef.current.has(operationKey)) {
       return;
     }
-    pendingOperationsRef.current.add(productId);
+    pendingOperationsRef.current.add(operationKey);
 
-    // Find item matching either id or _id
-    const itemToRemove = items.find(item => item?.product && (item.product.id === productId || item.product._id === productId));
+    // Find specific item to remove
+    const itemToRemove = items.find(item => {
+      if (!item?.product) return false;
+      const itemProductId = item.product.id || item.product._id;
+      if (itemProductId !== productId) return false;
+
+      // If variant info provided, match by variant
+      if (variantId || variantTitle) {
+        const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
+        const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
+        return itemVariantId === variantId || itemVariantTitle === variantTitle;
+      }
+
+      // If no variant info, match any (first one)
+      return true;
+    });
 
     const previousItems = [...items];
-    setItems((prevItems) => prevItems.filter((item) => item?.product && item.product.id !== productId && item.product._id !== productId));
+    setItems((prevItems) => prevItems.filter((item) => {
+      if (!itemToRemove?.id) {
+         // Fallback to old behavior if ID is somehow missing
+         return item.product.id !== productId && item.product._id !== productId;
+      }
+      return item.id !== itemToRemove.id;
+    }));
 
     // Only sync to API if user is authenticated and item has CartItemID
     if (isAuthenticated && user?.userType === 'Customer' && itemToRemove?.id) {
       try {
         const response = await apiRemoveFromCart(
-          itemToRemove.id,
-          location?.latitude,
-          location?.longitude
+          itemToRemove.id
         );
         if (response && response.data && response.data.items) {
           setItems(mapApiItemsToState(response.data.items));
@@ -378,11 +397,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setItems(previousItems);
       } finally {
         // Remove from pending operations
-        pendingOperationsRef.current.delete(productId);
+        pendingOperationsRef.current.delete(operationKey);
       }
     } else {
       // For unregistered users, remove from pending operations immediately
-      pendingOperationsRef.current.delete(productId);
+      pendingOperationsRef.current.delete(operationKey);
     }
   };
 
@@ -414,33 +433,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return itemVariantId === variantId || itemVariantTitle === variantTitle;
       }
 
-      // If no variant info, match items without variants
-      const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-      const itemVariantTitle = (item.product as any).variantTitle;
-      return !itemVariantId && !itemVariantTitle;
+      // If no variant info is provided, we just match the first item with this productId
+      // This is common for operations from Home page where specific variant isn't selected
+      return true;
     });
 
     const previousItems = [...items];
     setItems((prevItems) =>
       prevItems.filter(item => item?.product).map((item) => {
-        const itemProductId = item.product.id || item.product._id;
-        if (itemProductId !== productId) return item;
+        // If we found a specific item to update, only update THAT one
+        if (itemToUpdate?.id && item.id === itemToUpdate.id) {
+          return { ...item, quantity };
+        }
 
-        // If variant info provided, match by variant
-        if (variantId || variantTitle) {
+        // Fallback for cases where id might be missing from some items but product matches
+        // (Should be rare with mapApiItemsToState)
+        const itemProductId = item.product.id || item.product._id;
+        if (!itemToUpdate?.id && itemProductId === productId) {
+          // If no variant info provided, update the first one we find
+          if (!variantId && !variantTitle) {
+            return { ...item, quantity };
+          }
+
+          // If variant info provided, match by variant
           const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
           const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
           if (itemVariantId === variantId || itemVariantTitle === variantTitle) {
             return { ...item, quantity };
           }
-        } else {
-          // If no variant info, match items without variants
-          const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-          const itemVariantTitle = (item.product as any).variantTitle;
-          if (!itemVariantId && !itemVariantTitle) {
-            return { ...item, quantity };
-          }
         }
+
         return item;
       })
     );
@@ -450,9 +472,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       try {
         const response = await apiUpdateCartItem(
           itemToUpdate.id,
-          quantity,
-          location?.latitude,
-          location?.longitude
+          quantity
         );
         if (response && response.data && response.data.items) {
           setItems(mapApiItemsToState(response.data.items));

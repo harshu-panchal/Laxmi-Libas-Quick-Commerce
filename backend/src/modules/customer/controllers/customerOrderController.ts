@@ -143,37 +143,13 @@ export const createOrder = async (req: Request, res: Response) => {
             });
         }
 
-        // Validate delivery address location
-        // Handle both string and number types, and check for null/undefined (not truthy, since 0 is valid)
+        // Validate delivery address location (removed required latitude/longitude)
         const deliveryLat = address.latitude != null
             ? (typeof address.latitude === 'number' ? address.latitude : parseFloat(address.latitude))
-            : null;
+            : 0;
         const deliveryLng = address.longitude != null
             ? (typeof address.longitude === 'number' ? address.longitude : parseFloat(address.longitude))
-            : null;
-
-        if (deliveryLat == null || deliveryLng == null || isNaN(deliveryLat) || isNaN(deliveryLng)) {
-            if (session) await session.abortTransaction();
-            return res.status(400).json({
-                success: false,
-                message: "Delivery address location (latitude/longitude) is required",
-                details: {
-                    receivedLatitude: address.latitude,
-                    receivedLongitude: address.longitude,
-                    parsedLatitude: deliveryLat,
-                    parsedLongitude: deliveryLng,
-                }
-            });
-        }
-
-        // Validate coordinates
-        if (deliveryLat < -90 || deliveryLat > 90 || deliveryLng < -180 || deliveryLng > 180) {
-            if (session) await session.abortTransaction();
-            return res.status(400).json({
-                success: false,
-                message: "Invalid delivery address coordinates",
-            });
-        }
+            : 0;
 
         // Initialize Order first to get an ID
         const newOrder = new Order({
@@ -390,39 +366,20 @@ export const createOrder = async (req: Request, res: Response) => {
             orderItemIds.push(newOrderItem._id as mongoose.Types.ObjectId);
         }
 
-        // Validate all sellers can deliver to user's location
+        // Removed seller distance validation to allow orders from any city - seller/admin will verify manually if needed
         if (sellerIds.size > 0) {
             const uniqueSellerIds = Array.from(sellerIds).map(id => new mongoose.Types.ObjectId(id));
-
-            // Find sellers and check if user is within their service radius
             const sellers = await Seller.find({
                 _id: { $in: uniqueSellerIds },
-                status: "Approved",
-                location: { $exists: true, $ne: null },
+                status: "Approved"
             });
-
-            // Check each seller can deliver to user's location
-            for (const seller of sellers) {
-                if (!seller.location || !seller.location.coordinates) {
-                    if (session) await session.abortTransaction();
-                    return res.status(403).json({
-                        success: false,
-                        message: `Seller ${seller.storeName} does not have a valid location. Order cannot be placed.`,
-                    });
-                }
-
-                const sellerLng = seller.location.coordinates[0];
-                const sellerLat = seller.location.coordinates[1];
-                const distance = calculateDistance(deliveryLat, deliveryLng, sellerLat, sellerLng);
-                const serviceRadius = seller.serviceRadiusKm || 10;
-
-                if (distance > serviceRadius) {
-                    if (session) await session.abortTransaction();
-                    return res.status(403).json({
-                        success: false,
-                        message: `Your delivery address is ${distance.toFixed(2)} km away from ${seller.storeName}. They only deliver within ${serviceRadius} km. Please select products from sellers in your area.`,
-                    });
-                }
+            
+            if (sellers.length < uniqueSellerIds.length) {
+                if (session) await session.abortTransaction();
+                return res.status(403).json({
+                    success: false,
+                    message: `One or more sellers in your order are currently inactive or not approved.`,
+                });
             }
         }
 
@@ -431,64 +388,16 @@ export const createOrder = async (req: Request, res: Response) => {
         let deliveryFee = Number(fees?.deliveryFee) || 0;
         let deliveryDistanceKm = 0;
 
-        // --- Distance-Based Delivery Charge Calculation ---
+        // --- Distance-Based Delivery Charge removed ---
         try {
             const settings = await AppSettings.getSettings();
             const freeDeliveryThreshold = settings?.freeDeliveryThreshold || 0;
 
-            // Check for Free Delivery eligibility first
             if (freeDeliveryThreshold > 0 && calculatedSubtotal >= freeDeliveryThreshold) {
                 deliveryFee = 0;
             }
-            // Only recalculate if enabled in settings (and not free delivery)
-            else if (settings && settings.deliveryConfig?.isDistanceBased === true) {
-                const config = settings.deliveryConfig;
-
-                // Collect seller locations
-                const sellerLocations: { lat: number; lng: number }[] = [];
-                const uniqueSellerIds = Array.from(sellerIds).map(id => new mongoose.Types.ObjectId(id));
-                const sellers = await Seller.find({ _id: { $in: uniqueSellerIds } }).select('location latitude longitude storeName');
-
-                sellers.forEach(seller => {
-                    let lat, lng;
-                    if (seller.location?.coordinates?.length === 2) {
-                        lng = seller.location.coordinates[0];
-                        lat = seller.location.coordinates[1];
-                    } else if (seller.latitude && seller.longitude) {
-                        lat = parseFloat(seller.latitude);
-                        lng = parseFloat(seller.longitude);
-                    }
-
-                    if (lat && lng) {
-                        sellerLocations.push({ lat, lng });
-                    }
-                });
-
-                if (sellerLocations.length > 0 && deliveryLat && deliveryLng) {
-                    // Get distances (Road or Air based on API Key presence)
-                    const distances = await getRoadDistances(
-                        sellerLocations,
-                        { lat: deliveryLat, lng: deliveryLng },
-                        config.googleMapsKey
-                    );
-
-                    // Take the maximum distance (furthest seller)
-                    deliveryDistanceKm = Math.max(...distances);
-
-                    // Calculate Fee
-                    // Formula: BaseCharge + (Max(0, Distance - BaseDistance) * KmRate)
-                    const extraKm = Math.max(0, deliveryDistanceKm - config.baseDistance);
-                    const calculatedDeliveryFee = config.baseCharge + (extraKm * config.kmRate);
-
-                    // Override the delivery fee
-                    deliveryFee = Math.ceil(calculatedDeliveryFee);
-
-                    console.log(`DEBUG: Distance Calculation: MaxDistance=${deliveryDistanceKm}km, Fee=${deliveryFee} (Base: ${config.baseCharge}, Rate: ${config.kmRate}/km)`);
-                }
-            }
         } catch (calcError) {
-            console.error("Error calculating distance-based delivery fee:", calcError);
-            // Fallback to provided fee or 0
+            console.error("Error checking free delivery threshold:", calcError);
         }
 
         const finalTotal = calculatedSubtotal + platformFee + deliveryFee - totalQuantityDiscount;

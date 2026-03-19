@@ -163,21 +163,33 @@ export default function SellerAddProduct() {
           setCategories(allCats);
 
           // Auto-fill category from seller profile if creating new product
-          if (!id && user?.categories?.[0]) {
-            const sellerCatId = user.categoryId || user.categories[0];
-            const sellerCat = allCats.find((c: any) => (c._id || c.id) === sellerCatId);
+          if (!id && user) {
+            // Try different possible fields for category ID
+            const sellerCatId = user.category || user.categoryId || user.categories?.[0];
+            
+            if (sellerCatId) {
+              const sellerCat = allCats.find((c: any) => 
+                (c._id || c.id) === sellerCatId || 
+                c.name === sellerCatId ||
+                c.slug === sellerCatId
+              );
 
-            if (sellerCat) {
-              setCategoryName(sellerCat.name);
-              const headerId = typeof sellerCat.headerCategoryId === 'string'
-                ? sellerCat.headerCategoryId
-                : sellerCat.headerCategoryId?._id;
+              if (sellerCat) {
+                setCategoryName(sellerCat.name);
+                const headerId = typeof sellerCat.headerCategoryId === 'string'
+                  ? sellerCat.headerCategoryId
+                  : sellerCat.headerCategoryId?._id;
 
-              setFormData(prev => ({
-                ...prev,
-                category: sellerCatId,
-                headerCategory: headerId || ''
-              }));
+                setFormData(prev => ({
+                  ...prev,
+                  category: sellerCat._id || sellerCat.id,
+                  headerCategory: headerId || ''
+                }));
+              } else {
+                console.warn("Seller category ID or Name found in profile but not in category list:", sellerCatId);
+              }
+            } else {
+              console.warn("No category found in seller profile. user object:", user);
             }
           }
         }
@@ -851,8 +863,8 @@ export default function SellerAddProduct() {
                     name="headerCategory"
                     value={formData.headerCategory}
                     onChange={handleChange}
-                    disabled={true} // Locked
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-neutral-100 cursor-not-allowed text-neutral-500">
+                    disabled={!!formData.headerCategory && (user?.mobile || user?.phone) !== '9111966732'} // Locked only if already filled and not super seller
+                    className={`w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${!!formData.headerCategory && (user?.mobile || user?.phone) !== '9111966732' ? "bg-neutral-100 cursor-not-allowed text-neutral-500" : "bg-white"}`}>
                     <option value="">Select Header Category</option>
                     {headerCategories
                       .map((headerCat) => (
@@ -883,8 +895,8 @@ export default function SellerAddProduct() {
                         setCategoryName(selectedCat.name);
                       }
                     }}
-                    disabled={user?.phone !== "9111966732"} // Only super seller can change
-                    className={`w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${user?.phone !== "9111966732" ? "bg-neutral-100 cursor-not-allowed text-neutral-500" : "bg-white"}`}>
+                    disabled={!!formData.category && (user?.mobile || user?.phone) !== "9111966732"} // Locked only if already filled and not super seller
+                    className={`w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${!!formData.category && (user?.mobile || user?.phone) !== "9111966732" ? "bg-neutral-100 cursor-not-allowed text-neutral-500" : "bg-white"}`}>
                     <option value="">Select Category</option>
                     {categories
                       .map((cat: any) => (
@@ -927,32 +939,7 @@ export default function SellerAddProduct() {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Select Sub-SubCategory
-                    {!formData.subcategory && (
-                      <span className="text-xs text-neutral-500 ml-1">
-                        (Select subcategory first)
-                      </span>
-                    )}
-                  </label>
-                  <select
-                    name="subSubCategory"
-                    value={formData.subSubCategory}
-                    onChange={handleChange}
-                    disabled={!formData.subcategory}
-                    className={`w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${!formData.subcategory
-                      ? "bg-neutral-100 cursor-not-allowed text-neutral-500"
-                      : "bg-white"
-                      }`}>
-                    <option value="">Select Sub-SubCategory</option>
-                    {subSubCategories.map((subSub) => (
-                      <option key={subSub._id} value={subSub._id}>
-                        {subSub.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* Removed Sub-SubCategory as requested */}
               </div>
 
               {categoryType === "product" && (
@@ -970,32 +957,7 @@ export default function SellerAddProduct() {
                       <option value="Yes">Yes</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Make Product Popular?
-                    </label>
-                    <select
-                      name="popular"
-                      value={formData.popular}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
-                      <option value="No">No</option>
-                      <option value="Yes">Yes</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Insert to Deal of the day?
-                    </label>
-                    <select
-                      name="dealOfDay"
-                      value={formData.dealOfDay}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
-                      <option value="No">No</option>
-                      <option value="Yes">Yes</option>
-                    </select>
-                  </div>
+                  {/* Hidden Popular/Deal of the day for Sellers as they are admin features */}
                   {!isProduce && (
                     <div>
                       <label className="block text-sm font-medium text-neutral-700 mb-2">

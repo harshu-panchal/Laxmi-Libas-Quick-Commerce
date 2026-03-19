@@ -171,10 +171,8 @@ async function fetchSectionData(
         .lean();
 
       return products.map((p: any) => {
-        // Check if the product's seller is within range
-        const isAvailable = nearbySellerIds && nearbySellerIds.length > 0 && p.seller
-          ? nearbySellerIds.some(id => id.toString() === p.seller.toString())
-          : false;
+        // Check if the product's seller is within range - Forced to true as per user request
+        const isAvailable = true;
 
         return {
           id: p._id.toString(),
@@ -352,10 +350,8 @@ export const getHomeContent = async (req: Request, res: Response) => {
       .filter((item: any) => item.product !== null)
       .map((item: any) => {
         const product = item.product;
-        // Check if the product's seller is within range
-        const isAvailable = nearbySellerIds && nearbySellerIds.length > 0 && product.seller
-          ? nearbySellerIds.some(id => id.toString() === product.seller.toString())
-          : false;
+        // Check if the product's seller is within range - Forced to true as per user request
+        const isAvailable = true;
 
         return {
           id: product._id.toString(),
@@ -594,9 +590,8 @@ export const getHomeContent = async (req: Request, res: Response) => {
             .lean();
 
           fallbackCategoryProducts = rawProducts.map((p: any) => {
-            const isAvailable = nearbySellerIds && nearbySellerIds.length > 0 && p.seller
-              ? nearbySellerIds.some(id => id.toString() === p.seller.toString())
-              : false;
+            // Forced to true as per user request
+            const isAvailable = true;
 
             return {
               id: p._id.toString(),
@@ -690,9 +685,8 @@ export const getHomeContent = async (req: Request, res: Response) => {
       // If we have promoStrip, add availability flag to featured products
       if (promoStrip && (promoStrip as any).featuredProducts) {
         (promoStrip as any).featuredProducts = (promoStrip as any).featuredProducts.map((p: any) => {
-          const isAvailable = nearbySellerIds && nearbySellerIds.length > 0 && p.seller
-            ? nearbySellerIds.some(id => id.toString() === p.seller.toString())
-            : false;
+          // Forced to true as per user request
+          const isAvailable = true;
           return { ...p, isAvailable };
         });
       }

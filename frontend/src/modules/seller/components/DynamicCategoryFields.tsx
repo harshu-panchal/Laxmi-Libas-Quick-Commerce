@@ -15,12 +15,21 @@ export default function DynamicCategoryFields({ categoryName, subcategoryName, f
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Brand</label>
-                    <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Zara" />
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Brand (Custom)</label>
+                    <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Zara, Local Brand" />
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">Size</label>
-                    <input type="text" name="size" value={formData.size || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. S, M, L, XL" />
+                    <select name="size" value={formData.size || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                        <option value="">Select Size</option>
+                        <option value="S">S</option>
+                        <option value="M">M</option>
+                        <option value="L">L</option>
+                        <option value="XL">XL</option>
+                        <option value="XXL">XXL</option>
+                        <option value="XXXL">XXXL</option>
+                        <option value="Free Size">Free Size</option>
+                    </select>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">Color</label>
@@ -29,6 +38,17 @@ export default function DynamicCategoryFields({ categoryName, subcategoryName, f
                 <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">Fabric</label>
                     <input type="text" name="fabric" value={formData.fabric || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Cotton" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Gender</label>
+                    <select name="gender" value={formData.gender || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                        <option value="">Select Gender</option>
+                        <option value="Men">Men</option>
+                        <option value="Women">Women</option>
+                        <option value="Unisex">Unisex</option>
+                        <option value="Kids/Boys">Kids/Boys</option>
+                        <option value="Kids/Girls">Kids/Girls</option>
+                    </select>
                 </div>
             </div>
         );

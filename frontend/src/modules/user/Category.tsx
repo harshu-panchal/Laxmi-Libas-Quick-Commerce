@@ -93,11 +93,6 @@ export default function CategoryPage() {
         if (selectedSubcategory !== "all") {
           params.subcategory = selectedSubcategory;
         }
-        // Include user location for seller service radius filtering
-        if (userLocation?.latitude && userLocation?.longitude) {
-          params.latitude = userLocation.latitude;
-          params.longitude = userLocation.longitude;
-        }
 
         const response = await getProducts(params);
         if (response.success) {
@@ -105,7 +100,7 @@ export default function CategoryPage() {
           const safeProducts = response.data.map((p: any) => ({
             ...p,
             tags: Array.isArray(p.tags) ? p.tags : [],
-            nameParts: p.name ? p.name.toLowerCase().split(" ") : [],
+            nameParts: (p.productName || p.name || "").toLowerCase().split(" "),
           }));
           setProducts(safeProducts);
         } else {
@@ -122,10 +117,21 @@ export default function CategoryPage() {
     if (id) {
       fetchProducts();
     }
-  }, [id, selectedSubcategory, category?._id, userLocation]);
+  }, [id, selectedSubcategory, category?._id]);
 
   // Client-side filtering removed in favor of backend subcategory filtering
-  const categoryProducts = products;
+  // Client-side filtering as a safety net
+  const categoryProducts = useMemo(() => {
+    const activeId = category?._id || category?.id || id;
+    if (!activeId) return products;
+    
+    return products.filter((p) => {
+      const prodCatId = p.category?._id || p.category || p.categoryId;
+      // If we are showing 'all' subcategories, any product from the main category is fine
+      // If a specific subcategory is selected, we should further filter (but backend does this already)
+      return prodCatId?.toString() === activeId?.toString();
+    });
+  }, [products, category, id]);
 
   if ((categoryLoading || loading) && !products.length && !category) {
     return null; // Let global IconLoader handle it
@@ -176,7 +182,7 @@ export default function CategoryPage() {
 
     categoryProducts.forEach((product) => {
       // Extract main ingredient/type from product name
-      const name = product.name.toLowerCase();
+      const name = (product.productName || product.name || "").toLowerCase();
       // Remove common prefixes like "fresh", "organic", etc.
       const cleanName = name
         .replace(/^(fresh|organic|premium|best|new)\s+/i, "")

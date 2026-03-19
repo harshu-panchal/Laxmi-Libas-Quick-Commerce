@@ -34,24 +34,17 @@ export const getProducts = async (req: Request, res: Response) => {
       ],
     };
 
-    // Location-based filtering: Only show products from sellers within user's range
-    const userLat = latitude ? parseFloat(latitude as string) : null;
-    const userLng = longitude ? parseFloat(longitude as string) : null;
-
-    if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
-      // Find sellers within user's location range (now returns all approved sellers)
-      const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
-
-      if (nearbySellerIds.length > 0) {
-        // Filter products by sellers within range
-        query.seller = { $in: nearbySellerIds };
-      }
+    // Fetch all products from approved sellers (removed location filtering)
+    const approvedSellers = await Seller.find({ status: "Approved" }).select("_id");
+    if (approvedSellers.length > 0) {
+      query.seller = { $in: approvedSellers.map(s => s._id) };
     } else {
-      // If no location provided, fallback to all approved sellers to show content
-      const sellers = await Seller.find({ status: "Approved" }).select("_id");
-      if (sellers.length > 0) {
-        query.seller = { $in: sellers.map(s => s._id) };
-      }
+      // If no approved sellers, return empty
+      return res.status(200).json({
+        success: true,
+        data: [],
+        pagination: { page: Number(page), limit: Number(limit), total: 0, pages: 0 }
+      });
     }
 
     // Helper to resolve category/subcategory ID from slug or ID
@@ -118,7 +111,21 @@ export const getProducts = async (req: Request, res: Response) => {
         category as string,
         "Category"
       );
-      if (categoryId) query.category = categoryId;
+      if (categoryId) {
+        query.category = categoryId;
+      } else {
+        // If category is specified but not found, return empty results
+        return res.status(200).json({
+          success: true,
+          data: [],
+          pagination: {
+            page: Number(page),
+            limit: Number(limit),
+            total: 0,
+            pages: 0,
+          },
+        });
+      }
     }
 
     if (subcategory) {
@@ -136,7 +143,21 @@ export const getProducts = async (req: Request, res: Response) => {
           "SubCategory"
         );
       }
-      if (subcategoryId) query.subcategory = subcategoryId;
+      if (subcategoryId) {
+        query.subcategory = subcategoryId;
+      } else {
+        // If subcategory is specified but not found, return empty results
+        return res.status(200).json({
+          success: true,
+          data: [],
+          pagination: {
+            page: Number(page),
+            limit: Number(limit),
+            total: 0,
+            pages: 0,
+          },
+        });
+      }
     }
 
     if (brand) {
@@ -236,8 +257,8 @@ export const getProductById = async (req: Request, res: Response) => {
     const userLng = longitude ? parseFloat(longitude as string) : null;
     const seller = product.seller as any;
 
-    // Initialize availability flag
-    let isAvailableAtLocation = false;
+    // Initialize availability flag - Always true as per user request
+    let isAvailableAtLocation = true;
 
     // Safely get seller ID - handle both populated and unpopulated cases
     let sellerId: mongoose.Types.ObjectId | null = null;
@@ -254,7 +275,8 @@ export const getProductById = async (req: Request, res: Response) => {
       }
     }
 
-    // Check location availability if coordinates are provided
+    // Location check removed as per user request to allow delivery anywhere
+    /*
     if (
       userLat &&
       userLng &&
@@ -268,6 +290,7 @@ export const getProductById = async (req: Request, res: Response) => {
         (id) => id.toString() === sellerId!.toString()
       );
     }
+    */
 
     // Find similar products (by category)
     // Filter by location
@@ -305,7 +328,8 @@ export const getProductById = async (req: Request, res: Response) => {
       similarProductsQuery.category = categoryId;
     }
 
-    // Filter similar products by location
+    // Location filtering for similar products removed as per user request
+    /*
     if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
       const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
       if (nearbySellerIds.length > 0) {
@@ -315,6 +339,7 @@ export const getProductById = async (req: Request, res: Response) => {
         similarProductsQuery.seller = { $in: [] };
       }
     }
+    */
 
     const similarProducts = await Product.find(similarProductsQuery)
       .limit(6)

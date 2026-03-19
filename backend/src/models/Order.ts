@@ -48,6 +48,7 @@ export interface IOrder extends Document {
   | "Accepted"
   | "Pending"
   | "Processed"
+  | "Packed"
   | "Shipped"
   | "Picked up"
   | "On the way"

@@ -386,6 +386,7 @@ export default function SellerOrderDetail() {
                   disabled={orderStatus === 'Rejected' || orderStatus === 'Cancelled' || orderStatus === 'Delivered'}
                 >
                   <option value="Accepted">Accepted</option>
+                  <option value="Packed">Packed</option>
                   <option value="On the way">On the way</option>
                   <option value="Delivered">Delivered</option>
                   <option value="Cancelled">Cancelled</option>

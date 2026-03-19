@@ -51,6 +51,7 @@ export interface Order {
   | "Received"
   | "Pending"
   | "Processed"
+  | "Packed"
   | "Shipped"
   | "Out for Delivery"
   | "Delivered"

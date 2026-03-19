@@ -63,8 +63,8 @@ export default function ProductDetail() {
         if (response.success && response.data) {
           const productData = response.data as any;
 
-          // Set location availability flag
-          setIsAvailableAtLocation(productData.isAvailableAtLocation !== false);
+          // Set location availability flag - Always true as per user request
+          setIsAvailableAtLocation(true);
 
           // Get all images (main + gallery)
           const allImages = [
@@ -247,11 +247,9 @@ export default function ProductDetail() {
       : null;
 
   const handleAddToCart = () => {
-    if (!isAvailableAtLocation) {
-      // Show alert if trying to add item outside delivery area
-      alert("This product is not available for delivery at your location.");
-      return;
-    }
+    // Location check removed as per user request
+
+
     if (!isVariantAvailable && variantStock !== 0) {
       alert("This variant is currently out of stock.");
       return;
@@ -330,37 +328,7 @@ export default function ProductDetail() {
 
       {/* Scrollable content */}
       <div className="pt-16">
-        {/* Location Availability Banner */}
-        {!isAvailableAtLocation && (
-          <div className="bg-amber-50 border-l-4 border-amber-500 px-4 py-3 mx-4 mt-4 rounded-r-lg">
-            <div className="flex items-start gap-2">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                className="flex-shrink-0 mt-0.5">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#f59e0b" />
-                <path
-                  d="M2 17l10 5 10-5M2 12l10 5 10-5"
-                  stroke="#f59e0b"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-900">
-                  Not available at your location
-                </p>
-                <p className="text-xs text-amber-800 mt-1">
-                  This product cannot be delivered to your current location. You
-                  can browse but cannot add to cart.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Product Image Gallery */}
         <div className="relative w-full bg-gradient-to-br from-neutral-100 to-neutral-200 overflow-hidden">
@@ -543,31 +511,7 @@ export default function ProductDetail() {
         {/* Product Details Card - White section */}
         <div className="bg-white rounded-t-3xl -mt-6 relative z-10 px-4 md:px-6 lg:px-8 pt-2.5 md:pt-4 pb-2 md:pb-4">
           {/* Delivery time */}
-          <div className="flex items-center gap-0.5 mb-1">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg">
-              <circle
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="2"
-              />
-              <path
-                d="M12 6v6l4 2"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="text-sm text-neutral-700 font-medium">
-              17 MINS
-            </span>
-          </div>
+          {/* Delivery time removed as per user request */}
 
           {/* Product name */}
           <h2 className="text-lg md:text-2xl font-bold text-neutral-900 mb-0 leading-tight">
@@ -1041,11 +985,7 @@ export default function ProductDetail() {
                             showCount={true}
                           />
                           <p className="text-[10px] text-neutral-600 flex items-center gap-1">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                              <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            </svg>
-                            <span>{similarProduct.deliveryTime || 15} MINS</span>
+                            <span className="text-primary-dark">Bestseller</span>
                           </p>
                         </div>
 
@@ -1224,23 +1164,19 @@ export default function ProductDetail() {
                       variant="default"
                       size="default"
                       onClick={handleAddToCart}
-                      disabled={!isAvailableAtLocation || !isVariantAvailable}
-                      className={`px-6 py-2 text-sm font-semibold h-[36px] ${!isAvailableAtLocation || !isVariantAvailable
+                      disabled={!isVariantAvailable}
+                      className={`px-6 py-2 text-sm font-semibold h-[36px] ${!isVariantAvailable
                         ? "opacity-50 cursor-not-allowed"
                         : ""
                         }`}
                       title={
-                        !isAvailableAtLocation
-                          ? "Not available at your location"
-                          : !isVariantAvailable
-                            ? "This variant is out of stock"
-                            : ""
+                        !isVariantAvailable
+                          ? "This variant is out of stock"
+                          : ""
                       }>
-                      {!isAvailableAtLocation
-                        ? "Unavailable"
-                        : !isVariantAvailable
-                          ? "Out of Stock"
-                          : "Add to cart"}
+                      {!isVariantAvailable
+                        ? "Out of Stock"
+                        : "Add to cart"}
                     </Button>
                   </motion.div>
                 ) : (

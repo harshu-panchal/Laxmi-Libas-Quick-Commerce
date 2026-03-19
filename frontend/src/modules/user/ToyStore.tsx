@@ -225,7 +225,7 @@ export default function ToyStore() {
                               size="icon"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                updateQuantity(product.id, inCartQty - 1);
+                                updateQuantity(product.id, inCartQty - 1, cartItem?.variant);
                               }}
                               className="w-6 h-6 p-0 text-xs"
                               aria-label="Decrease quantity"
@@ -248,7 +248,7 @@ export default function ToyStore() {
                               size="icon"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                updateQuantity(product.id, inCartQty + 1);
+                                updateQuantity(product.id, inCartQty + 1, cartItem?.variant);
                               }}
                               className="w-6 h-6 p-0 text-xs"
                               aria-label="Increase quantity"
