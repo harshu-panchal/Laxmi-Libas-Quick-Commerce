@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import PaymentMethod from "../../../models/PaymentMethod";
 
@@ -17,11 +18,40 @@ export const getPaymentMethods = asyncHandler(
                 { name: { $regex: /razorpay/i } }
             ]
         };
+
         if (status) {
             query.isActive = status === "Active";
         }
 
-        const paymentMethods = await PaymentMethod.find(query).sort({ order: 1 });
+        let paymentMethods = await PaymentMethod.find(query).sort({ order: 1 });
+
+        // If no payment methods are found, seed the defaults
+        if (paymentMethods.length === 0 && !status) {
+            console.log("[getPaymentMethods] No payment methods found. Seeding defaults...");
+            const defaults = [
+                {
+                    name: "Cash On Delivery (COD)",
+                    type: "COD",
+                    description: "Pay when you receive your order",
+                    isActive: true,
+                    order: 1,
+                },
+                {
+                    name: "Razorpay",
+                    type: "Online",
+                    provider: "razorpay",
+                    description: "Pay securely with Razorpay",
+                    isActive: true,
+                    order: 2,
+                    apiKey: "",
+                    secretKey: "",
+                }
+            ];
+            
+            // Insert and re-fetch to get IDs
+            await PaymentMethod.insertMany(defaults);
+            paymentMethods = await PaymentMethod.find(query).sort({ order: 1 });
+        }
 
         // Transform to match frontend expectation
         const transformedMethods = paymentMethods.map((pm: any) => ({
@@ -29,13 +59,12 @@ export const getPaymentMethods = asyncHandler(
             name: pm.name,
             description: pm.description,
             status: pm.isActive ? "Active" : "InActive",
-            // For now, assume if type is Online/Card etc, it might have keys. 
-            // But we added fields to model, so we can check if they exist in DB (even if hidden here)
-            // Since select: false, we won't see them. 
-            // But we can check type.
-            hasApiKeys: ["Online", "Card", "Net Banking", "UPI", "Wallet"].includes(pm.type),
+            hasApiKeys: pm.type === "Online" || pm.provider === "razorpay",
             provider: pm.provider,
             type: pm.type === "COD" ? "cod" : "gateway",
+            // We return empty keys if select: false kept them hidden
+            apiKey: pm.apiKey || "",
+            secretKey: pm.secretKey || "",
         }));
 
         return res.status(200).json({
@@ -53,9 +82,20 @@ export const getPaymentMethodById = asyncHandler(
     async (req: Request, res: Response) => {
         const { id } = req.params;
 
+        // Support for special IDs (like what the frontend might use if it didn't fetch yet)
+        let query: any;
+        if (id === "cod") {
+            query = { type: "COD" };
+        } else if (id === "razorpay") {
+            query = { $or: [{ provider: "razorpay" }, { name: "Razorpay" }] };
+        } else if (mongoose.Types.ObjectId.isValid(id)) {
+            query = { _id: id };
+        } else {
+            return res.status(404).json({ success: false, message: "Invalid Payment Method ID" });
+        }
+
         // We explicitly select keys to return them if needed for editing (though usually we mask them)
-        // The frontend seems to want to edit them, so we should return them if admin requests specific ID
-        const paymentMethod = await PaymentMethod.findById(id).select("+apiKey +secretKey");
+        const paymentMethod = await PaymentMethod.findOne(query).select("+apiKey +secretKey");
 
         if (!paymentMethod) {
             return res.status(404).json({
@@ -92,7 +132,18 @@ export const updatePaymentMethod = asyncHandler(
         const { id } = req.params;
         const { description, status, apiKey, secretKey, provider } = req.body;
 
-        const paymentMethod = await PaymentMethod.findById(id);
+        let query: any;
+        if (id === "cod") {
+            query = { type: "COD" };
+        } else if (id === "razorpay") {
+            query = { $or: [{ provider: "razorpay" }, { name: "Razorpay" }] };
+        } else if (mongoose.Types.ObjectId.isValid(id)) {
+            query = { _id: id };
+        } else {
+            return res.status(404).json({ success: false, message: "Invalid Payment Method ID" });
+        }
+
+        const paymentMethod = await PaymentMethod.findOne(query);
 
         if (!paymentMethod) {
             return res.status(404).json({
@@ -129,8 +180,19 @@ export const updatePaymentMethodStatus = asyncHandler(
         const { id } = req.params;
         const { status } = req.body;
 
-        const paymentMethod = await PaymentMethod.findByIdAndUpdate(
-            id,
+        let query: any;
+        if (id === "cod") {
+            query = { type: "COD" };
+        } else if (id === "razorpay") {
+            query = { $or: [{ provider: "razorpay" }, { name: "Razorpay" }] };
+        } else if (mongoose.Types.ObjectId.isValid(id)) {
+            query = { _id: id };
+        } else {
+            return res.status(404).json({ success: false, message: "Invalid Payment Method ID" });
+        }
+
+        const paymentMethod = await PaymentMethod.findOneAndUpdate(
+            query,
             { isActive: status === "Active" },
             { new: true }
         );

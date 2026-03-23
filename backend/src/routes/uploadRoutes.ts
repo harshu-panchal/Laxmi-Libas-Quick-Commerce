@@ -19,7 +19,41 @@ import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
 
-// All upload routes require authentication
+/**
+ * POST /api/v1/upload/single
+ * Public route for uploading single files during registration (e.g., Seller Sign Up)
+ */
+router.post(
+  "/single",
+  uploadDocument.single("file"),
+  handleUploadError,
+  asyncHandler(async (req: Request, res: Response) => {
+    if (!(req as any).file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file provided",
+      });
+    }
+
+    const folder = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
+    
+    // Check if it's an image or PDF
+    const isImage = (req as any).file.mimetype.startsWith("image/");
+    const resourceType = isImage ? "image" : "raw";
+
+    const result = await uploadDocumentFromBuffer((req as any).file.buffer, {
+      folder,
+      resourceType,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  })
+);
+
+// Protected upload routes
 router.use(authenticate);
 
 /**

@@ -57,6 +57,7 @@ export interface ISeller extends Document {
   balance: number;
   categories: string[];
   logo?: string;
+  city?: string;
   isShopOpen: boolean;
 
   createdAt: Date;
@@ -247,6 +248,10 @@ const SellerSchema = new Schema<ISeller>(
       default: [],
     },
     logo: {
+      type: String,
+      trim: true,
+    },
+    city: {
       type: String,
       trim: true,
     },
