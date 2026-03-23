@@ -152,48 +152,12 @@ export const getOrderById = asyncHandler(
     const orderItems = sellerItems;
 
     // Format order items for frontend
-    // Format order items for frontend
     const formattedItems = orderItems.map(item => {
-      let unit = item.variation || 'N/A';
-      let variationMatched = false;
-
-      // Try to resolve variation value from product if it exists
-      // item.product is populated now
-      const product = item.product as any;
-      if (product && product.variations && Array.isArray(product.variations)) {
-        // 1. Try to match by ID or Value if validation is present
-        if (item.variation) {
-          const variationById = product.variations.find((v: any) => v._id.toString() === item.variation);
-          if (variationById) {
-            unit = variationById.value;
-            variationMatched = true;
-          } else {
-            const variationByValue = product.variations.find((v: any) => v.value === item.variation);
-            if (variationByValue) {
-              unit = variationByValue.value;
-              variationMatched = true;
-            }
-          }
-        }
-
-        // 2. Fallback: If not matched yet (even if we have a value like '250'), try to recover
-        if (!variationMatched) {
-          const variationByPrice = product.variations.find((v: any) => v.price === item.unitPrice || v.discPrice === item.unitPrice);
-          if (variationByPrice) {
-            unit = variationByPrice.value;
-            variationMatched = true;
-          } else if (product.variations.length === 1) {
-            // 3. Last Resort: If there is only one variation, assume it's that one
-            unit = product.variations[0].value;
-          }
-        }
-      }
-
       return {
         srNo: item._id.toString().slice(-4), // Use last 4 chars of ID as srNo
         product: item.productName || 'Unknown Product',
         soldBy: (item.seller as any)?.storeName || 'N/A',
-        unit: unit,
+        unit: item.variation || 'N/A',
         price: item.unitPrice || 0,
         tax: 0,
         taxPercent: 0,

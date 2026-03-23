@@ -20,185 +20,118 @@ export const getProducts = async (req: Request, res: Response) => {
       maxPrice,
       brand,
       minDiscount,
-      latitude, // User location latitude
-      longitude, // User location longitude
     } = req.query;
+
+    console.log(`[getProducts] Incoming Request - Category: ${category}, Search: ${search}`);
+
+    // REQUIRE category or search - strict rule
+    if (!category && !search) {
+      console.warn("[getProducts] Missing category or search parameter");
+      return res.status(400).json({
+        success: false,
+        message: "Category is required for listing products",
+      });
+    }
 
     const query: any = {
       status: "Active",
       publish: true,
-      // Exclude shop-by-store-only products from category pages
       $or: [
         { isShopByStoreOnly: { $ne: true } },
         { isShopByStoreOnly: { $exists: false } },
       ],
     };
 
-    // Fetch all products from approved sellers (removed location filtering)
+    // Filter by approved sellers
     const approvedSellers = await Seller.find({ status: "Approved" }).select("_id");
     if (approvedSellers.length > 0) {
-      query.seller = { $in: approvedSellers.map(s => s._id) };
+      query.seller = { $in: approvedSellers.map((s) => s._id) };
     } else {
-      // If no approved sellers, return empty
       return res.status(200).json({
         success: true,
         data: [],
-        pagination: { page: Number(page), limit: Number(limit), total: 0, pages: 0 }
+        pagination: { page: Number(page), limit: Number(limit), total: 0, pages: 0 },
       });
     }
 
-    // Helper to resolve category/subcategory ID from slug or ID
-    const resolveId = async (
-      model: any,
-      value: string,
-      modelName: string = ""
-    ) => {
+    // Helper to resolve category ID from slug/name strictly
+    const resolveId = async (model: any, value: string, modelName: string) => {
       if (mongoose.Types.ObjectId.isValid(value)) return value;
 
-      // Build query - only check status if model has status field (Category has it, SubCategory might not)
-      const baseQuery: any = {};
-      if (modelName === "Category") {
-        baseQuery.status = "Active";
-      }
+      const normalizedValue = value.toLowerCase().trim();
+      const baseQuery: any = modelName === "Category" ? { status: "Active" } : {};
 
-      // Try exact slug match first
-      let item = await model
-        .findOne({ ...baseQuery, slug: value })
-        .select("_id")
-        .lean();
+      // Try exact slug
+      let item = await model.findOne({ ...baseQuery, slug: normalizedValue }).select("_id").lean();
       if (item) return item._id;
 
-      // Try case-insensitive slug match
-      item = await model
-        .findOne({
-          ...baseQuery,
-          slug: { $regex: new RegExp(`^${value}$`, "i") },
-        })
-        .select("_id")
-        .lean();
-      if (item) return item._id;
-
-      // Try name match as fallback (case-insensitive) - replace hyphens/underscores with spaces
-      let namePattern = value.replace(/[-_]/g, " ");
-      item = await model
-        .findOne({
-          ...baseQuery,
-          name: { $regex: new RegExp(`^${namePattern}$`, "i") },
-        })
-        .select("_id")
-        .lean();
-      if (item) return item._id;
-
-      // Special handling for Category and "and" -> "&"
-      if (modelName === "Category" && value.includes("and")) {
-        const withAmpersand = value.replace(/-and-/g, " & ").replace(/-/g, " ");
-        item = await model
-          .findOne({
-            ...baseQuery,
-            name: { $regex: new RegExp(`^${withAmpersand}$`, "i") },
-          })
-          .select("_id")
-          .lean();
-        if (item) return item._id;
-      }
-
-      return null;
+      // Try name match (case-insensitive)
+      const namePattern = normalizedValue.replace(/[-_]/g, " ");
+      item = await model.findOne({
+        ...baseQuery,
+        name: { $regex: new RegExp(`^${namePattern}$`, "i") }
+      }).select("_id").lean();
+      
+      return item ? item._id : null;
     };
 
     if (category) {
-      const categoryId = await resolveId(
-        Category,
-        category as string,
-        "Category"
-      );
-      if (categoryId) {
-        query.category = categoryId;
+      // 1. Try to resolve as a regular Category
+      let catId = await resolveId(Category, category as string, "Category");
+      
+      if (catId) {
+        query.category = catId;
+        console.log(`[getProducts] Filter Applied - CategoryId: ${catId}`);
       } else {
-        // If category is specified but not found, return empty results
-        return res.status(200).json({
-          success: true,
-          data: [],
-          pagination: {
-            page: Number(page),
-            limit: Number(limit),
-            total: 0,
-            pages: 0,
-          },
-        });
+        // 2. Fallback: Try to resolve as a HeaderCategory if no Category matched
+        const HeaderCategoryModel = require("../../../models/HeaderCategory").default;
+        const headerId = await resolveId(HeaderCategoryModel, category as string, "HeaderCategory");
+        
+        if (headerId) {
+          query.headerCategoryId = headerId;
+          console.log(`[getProducts] Filter Applied - HeaderCategoryId: ${headerId}`);
+        } else {
+          console.warn(`[getProducts] Category/HeaderCategory NOT FOUND for: ${category}`);
+          return res.status(200).json({
+            success: true,
+            data: [],
+            pagination: { page: Number(page), limit: Number(limit), total: 0, pages: 0 },
+          });
+        }
       }
     }
 
     if (subcategory) {
-      // Try to resolve from Category model first (new structure where subcategories are categories with parentId)
-      let subcategoryId = await resolveId(
-        Category,
-        subcategory as string,
-        "Category"
-      );
-      // If not found in Category, try old SubCategory model (backward compatibility)
-      if (!subcategoryId) {
-        subcategoryId = await resolveId(
-          SubCategory,
-          subcategory as string,
-          "SubCategory"
-        );
-      }
-      if (subcategoryId) {
-        query.subcategory = subcategoryId;
-      } else {
-        // If subcategory is specified but not found, return empty results
-        return res.status(200).json({
-          success: true,
-          data: [],
-          pagination: {
-            page: Number(page),
-            limit: Number(limit),
-            total: 0,
-            pages: 0,
-          },
-        });
-      }
+      const subId = await resolveId(Category, subcategory as string, "Category") || 
+                   await resolveId(SubCategory, subcategory as string, "SubCategory");
+      if (subId) query.subcategory = subId;
     }
 
-    if (brand) {
-      query.brand = brand;
-    }
-
+    if (brand) query.brand = brand;
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = Number(minPrice);
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
+    if (minDiscount) query.discount = { $gte: Number(minDiscount) };
+    if (search) query.$text = { $search: search as string };
 
-    if (minDiscount) {
-      query.discount = { $gte: Number(minDiscount) };
-    }
-
-    if (search) {
-      // Use text search for broad matching
-      query.$text = { $search: search as string };
-    }
-
-    // Calculate skip for pagination
     const skip = (Number(page) - 1) * Number(limit);
-
-    // Build sort object
-    let sortOptions: any = { createdAt: -1 }; // Default new to old
+    let sortOptions: any = { createdAt: -1 };
     if (sort === "price_asc") sortOptions = { price: 1 };
     if (sort === "price_desc") sortOptions = { price: -1 };
     if (sort === "discount") sortOptions = { discount: -1 };
-    if (sort === "popular") sortOptions = { popular: -1, dealOfDay: -1 };
 
     const products = await Product.find(query)
-      .populate("category", "name icon image")
+      .populate("category", "name slug")
       .populate("subcategory", "name")
-      .populate("brand", "name")
       .populate("seller", "storeName")
       .sort(sortOptions)
       .skip(skip)
       .limit(Number(limit));
 
     const total = await Product.countDocuments(query);
+    console.log(`[getProducts] Returned ${products.length} products for query:`, JSON.stringify(query));
 
     return res.status(200).json({
       success: true,
@@ -211,6 +144,7 @@ export const getProducts = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
+    console.error("[getProducts] ERROR:", error.message);
     return res.status(500).json({
       success: false,
       message: "Error fetching products",
@@ -344,7 +278,7 @@ export const getProductById = async (req: Request, res: Response) => {
     const similarProducts = await Product.find(similarProductsQuery)
       .limit(6)
       .select(
-        "productName price mrp variations mainImage pack discount _id rating reviewsCount"
+        "productName price mrp mainImage pack discount _id rating reviewsCount"
       );
 
     return res.status(200).json({

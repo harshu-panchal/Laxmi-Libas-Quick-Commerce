@@ -61,20 +61,37 @@ export default function Home() {
         startRouteLoading();
         setLoading(true);
         setError(null);
-        // Pass the activeTab as slug (if it's not "all")
-        // This ensures backend filters sections based on the category
+        setProducts([]); // CRITICAL: Reset products to prevent old category data showing
+        
         const slug = activeTab === "all" ? undefined : activeTab;
+        console.log(`[Home] Fetching content for tab: ${activeTab}, slug: ${slug}`);
 
         const response = await getHomeContent(
           slug,
           location?.latitude,
           location?.longitude
         );
+        
         if (response.success && response.data) {
           setHomeData(response.data);
-
-          if (response.data.bestsellers) {
-            setProducts(response.data.bestsellers);
+          
+          // Products for the "Filtered Products Section" at the bottom
+          // If we are on "all" tab, we might show bestsellers or other global items
+          // If on a specific tab, we show products returned for that category
+          if (activeTab === "all") {
+             // For "all" tab, products state can hold bestsellers for legacy sections 
+             // but we should distinguish between bestseller tiles and actual products.
+             setProducts([]); 
+          } else {
+             // Look for a products section in the dynamic sections
+             const productSection = response.data.homeSections?.find(
+               (s: any) => s.displayType === "products" || s.id === "category-products"
+             );
+             if (productSection && productSection.data) {
+               setProducts(productSection.data);
+             } else {
+               setProducts([]);
+             }
           }
         } else {
           setError("Failed to load content. Please try again.");
@@ -89,23 +106,6 @@ export default function Home() {
     };
 
     fetchData();
-
-    // Preload Logic (kept same)
-    const preloadHeaderCategories = async () => {
-      try {
-        // ... (rest of preload logic same as before, no changes needed here but including for context if needed, 
-        // but easier to just keep the original preload logic if it's separate. 
-        // Wait, the ReplacementContent must replace the targeting block entirely.)
-        // To avoid large duplicate block, I will just include the fetchData call and dependencies update.
-      } catch (error) {
-        console.debug("Failed to preload header categories:", error);
-      }
-    };
-
-    // We only want to preload once on mount, so we can keep the preload logic in a separate effect or just here
-    // But since this effect now runs on activeTab change, we shouldn't preload every time.
-    // Let's separate preload to a mount-only effect or use a ref.
-
   }, [location?.latitude, location?.longitude, activeTab]);
 
   // Separate effect for preloading only on mount/location change, NOT activeTab
@@ -222,8 +222,11 @@ export default function Home() {
     }
     return products.filter(
       (p) =>
+        p.id === tabId ||
         p.categoryId === tabId ||
-        (p.category && (p.category._id === tabId || p.category.slug === tabId))
+        p.headerCategoryId === tabId ||
+        (p.category && (p.category._id === tabId || p.category.slug === tabId)) ||
+        (p.headerCategory && (p.headerCategory._id === tabId || p.headerCategory.slug === tabId))
     );
   };
 

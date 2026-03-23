@@ -81,14 +81,11 @@ export default function CategoryPage() {
   // Fetch Products when category or subcategory changes
   useEffect(() => {
     const fetchProducts = async () => {
+      console.log(`[CategoryPage] Fetching products for category filter: ${category?._id || id}`);
+      setProducts([]); // RESET product list on change
       setLoading(true);
       setError(null);
       try {
-        // If the ID in the URL is actually for a subcategory, we should use the parent category ID
-        // which we fetch in the other useEffect and store in 'category'.
-        // However, for fetching products, the backend getProducts handles 'category' (parent)
-        // and 'subcategory' separately.
-
         const params: any = { category: category?._id || id };
         if (selectedSubcategory !== "all") {
           params.subcategory = selectedSubcategory;
@@ -96,7 +93,6 @@ export default function CategoryPage() {
 
         const response = await getProducts(params);
         if (response.success) {
-          // Ensure products have default tags/name array for filtering logic if missing
           const safeProducts = response.data.map((p: any) => ({
             ...p,
             tags: Array.isArray(p.tags) ? p.tags : [],

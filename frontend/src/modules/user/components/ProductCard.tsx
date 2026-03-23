@@ -391,18 +391,32 @@ export default function ProductCard({
                 </p>
               )}
 
-              {/* 5. Price with discount */}
+              {/* 5. Price with discount / Rent */}
               <div className="mt-auto">
-                <div className="flex items-baseline gap-1 flex-wrap">
-                  <span className="text-[11px] font-bold text-neutral-900 leading-tight">
-                    ₹{displayPrice.toLocaleString('en-IN')}
-                  </span>
-                  {mrp && mrp > displayPrice && (
-                    <span className="text-[8px] text-neutral-500 line-through leading-tight">
-                      ₹{mrp.toLocaleString('en-IN')}
+                {product.rentAmount ? (
+                  <div className="flex flex-col">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-[11px] font-bold text-neutral-900 leading-tight">
+                        ₹{product.rentAmount.toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-[8px] text-neutral-500 font-medium lowercase">/ month</span>
+                    </div>
+                    {product.securityDeposit && (
+                       <p className="text-[8px] text-neutral-500 mt-0.5">Dep. ₹{product.securityDeposit.toLocaleString('en-IN')}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-baseline gap-1 flex-wrap">
+                    <span className="text-[11px] font-bold text-neutral-900 leading-tight">
+                      ₹{displayPrice.toLocaleString('en-IN')}
                     </span>
-                  )}
-                </div>
+                    {mrp && mrp > displayPrice && (
+                      <span className="text-[8px] text-neutral-500 line-through leading-tight">
+                        ₹{mrp.toLocaleString('en-IN')}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </>
           ) : (

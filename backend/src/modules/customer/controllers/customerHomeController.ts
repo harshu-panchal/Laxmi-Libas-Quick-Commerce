@@ -164,10 +164,16 @@ async function fetchSectionData(
         }
       }
 
+      // If no categories or subcategories are specified, but section has a target header category, filter by it
+      if (!query.category && !query.subcategory && section.targetHeaderCategory) {
+        query.headerCategoryId = section.targetHeaderCategory;
+        console.log(`[fetchSectionData] Filtering by targetHeaderCategory: ${section.targetHeaderCategory} for section: ${section.title}`);
+      }
+
       const products = await Product.find(query)
         .sort({ createdAt: -1 }) // Show newest items first
         .limit(limit || 8)
-        .select("productName mainImage price mrp discount rating reviewsCount pack seller variations")
+        .select("productName mainImage price mrp discount rating reviewsCount pack seller")
         .lean();
 
       return products.map((p: any) => {
@@ -258,10 +264,27 @@ export const getHomeContent = async (req: Request, res: Response) => {
       nearbySellerIds = sellers.map(s => s._id as mongoose.Types.ObjectId);
     }
 
-    // 1. Featured / Bestsellers - Get bestseller cards from admin configuration
-    const bestsellerCards = await BestsellerCard.find({
-      isActive: true,
-    })
+    // 1. Featured / Bestsellers - Filter by header category if provided
+    const bestsellerQuery: any = { isActive: true };
+    if (headerCategorySlug && headerCategorySlug !== "all") {
+      const headerCategory = await HeaderCategory.findOne({
+        slug: (headerCategorySlug as string).toLowerCase().trim(),
+        status: "Published",
+      }).select("_id");
+      
+      if (headerCategory) {
+        bestsellerQuery.headerCategoryId = headerCategory._id;
+      } else {
+        // Fallback: check if it's a regular category slug
+        const cat = await Category.findOne({ 
+          slug: (headerCategorySlug as string).toLowerCase().trim(),
+          status: "Active" 
+        }).select("_id");
+        if (cat) bestsellerQuery.category = cat._id;
+      }
+    }
+
+    const bestsellerCards = await BestsellerCard.find(bestsellerQuery)
       .populate("category", "name slug image")
       .sort({ order: 1 })
       .limit(6)
@@ -271,23 +294,20 @@ export const getHomeContent = async (req: Request, res: Response) => {
     const bestsellers = await Promise.all(
       bestsellerCards.map(async (card: any) => {
         const categoryId = card.category?._id || card.category;
+        if (!categoryId) return null;
 
-        // Build product query for images (ignore location to show category preview)
         const productQuery: any = {
           category: categoryId,
           status: "Active",
           publish: true,
         };
 
-        // Fetch 4 active products from the category for preview images
-        // We fetch these irrespective of location radius to show category preview
         const categoryProducts = await Product.find(productQuery)
           .select("productName mainImage galleryImages")
           .sort({ createdAt: -1 })
           .limit(4)
           .lean();
 
-        // Extract exactly 4 product images (prefer mainImage, fallback to galleryImages[0])
         const productImages: string[] = [];
         categoryProducts.forEach((product: any) => {
           if (productImages.length < 4 && product.mainImage) {
@@ -295,7 +315,6 @@ export const getHomeContent = async (req: Request, res: Response) => {
           }
         });
 
-        // If we have less than 4 products, try to use gallery images
         if (productImages.length < 4) {
           categoryProducts.forEach((product: any) => {
             if (
@@ -308,7 +327,6 @@ export const getHomeContent = async (req: Request, res: Response) => {
           });
         }
 
-        // Ensure we have exactly 4 images (pad with first image if needed)
         while (productImages.length < 4 && productImages[0]) {
           productImages.push(productImages[0]);
         }
@@ -321,10 +339,9 @@ export const getHomeContent = async (req: Request, res: Response) => {
           productCount: categoryProducts.length,
         };
       })
-    );
+    ).then(results => results.filter(Boolean));
 
-    // 2. Lowest Prices Products - Get admin-selected products
-    // We fetch these irrespective of location radius to show preview on home page
+    // 2. Lowest Prices Products - Admin-selected products
     const lowestPricesProductsQuery: any = {
       isActive: true,
     };
@@ -335,22 +352,19 @@ export const getHomeContent = async (req: Request, res: Response) => {
       .populate({
         path: "product",
         select:
-          "productName mainImage price mrp discount status publish category subcategory seller variations",
+          "productName mainImage price mrp discount status publish category subcategory seller",
         match: {
           status: "Active",
           publish: true,
-          // Removed location filter to show preview images irrespective of radius
         },
       })
       .sort({ order: 1 })
       .lean();
 
-    // Filter out any products that were null (due to match condition)
     const validLowestPricesProducts = lowestPricesProducts
       .filter((item: any) => item.product !== null)
       .map((item: any) => {
         const product = item.product;
-        // Check if the product's seller is within range - Forced to true as per user request
         const isAvailable = true;
 
         return {
@@ -372,24 +386,25 @@ export const getHomeContent = async (req: Request, res: Response) => {
         };
       });
 
-    // 3. Categories for Tiles (Grocery, Snacks, etc)
-    const categories = await Category.find({
+    // 3. Categories for Tiles
+    const categoriesRootQuery: any = {
       status: "Active",
-    })
+      parentId: null,
+    };
+    const categories = await Category.find(categoriesRootQuery)
       .select("name image icon color slug")
       .sort({ order: 1 });
 
-    // 4. Shop By Store - Fetch from database
+    // 4. Shop By Store
     const shopDocuments = await Shop.find({ isActive: true })
       .populate("category", "name slug")
       .sort({ order: 1, createdAt: -1 })
+      .limit(8)
       .lean();
 
-    // Transform shop data to match frontend expected format and include preview images
     const shops = await Promise.all(
       shopDocuments.map(async (shop: any) => {
         let productImages: string[] = [];
-
         if (shop.products && shop.products.length > 0) {
           const shopProducts = await Product.find({
             _id: { $in: shop.products.slice(0, 4) },
@@ -398,15 +413,13 @@ export const getHomeContent = async (req: Request, res: Response) => {
           })
             .select("mainImage")
             .lean();
-
           productImages = shopProducts.map((p: any) => p.mainImage).filter(Boolean);
         }
-
         return {
           id: shop.storeId || shop._id.toString(),
           name: shop.name,
           image: shop.image,
-          productImages, // Include preview images irrespective of location
+          productImages,
           slug: shop.storeId || shop._id.toString(),
           category: shop.category,
           productIds: shop.products?.map((p: any) => p.toString()) || [],
@@ -415,30 +428,16 @@ export const getHomeContent = async (req: Request, res: Response) => {
       })
     );
 
-    // 5. Trending Items (Fetch some popular categories or products)
-    const trendingCategories = await Category.find({
-      status: "Active",
-    })
-      .limit(5)
-      .select("name image slug");
-
-    const trending = trendingCategories.map((c) => ({
+    // 5. Trending
+    const trending = (await Category.find({ status: "Active" }).limit(5)).map((c) => ({
       id: c._id,
       name: c.name,
-      image: c.image || `/assets/categories/${c.slug}.jpg`,
+      image: c.image || "",
       type: "category",
     }));
 
-    // 6. Personal Care Subcategories - Now handled by dynamic sections
-
-    // 7. Cooking Ideas (Fetch some products from 'Food' or 'Grocery' categories)
-    // We fetch these irrespective of location radius to show preview images
-    const foodProductsQuery: any = {
-      status: "Active",
-      publish: true,
-    };
-
-    const foodProducts = await Product.find(foodProductsQuery)
+    // 6. Cooking Ideas
+    const foodProducts = await Product.find({ status: "Active", publish: true })
       .limit(3)
       .select("productName mainImage");
 
@@ -449,118 +448,65 @@ export const getHomeContent = async (req: Request, res: Response) => {
       productId: p._id,
     }));
 
-    // 8. Promo Cards (Dynamic - Categories with headerCategoryId)
-    // Fetch root categories (parentId: null) that have a headerCategoryId assigned and are Active
-    // If headerCategorySlug is provided, filter by that specific header category
-    // Include their child categories (subcategories) with images
-
-    // Build query for categories
-    const categoryQuery: any = {
-      headerCategoryId: { $exists: true, $ne: null },
+    // 8. Promo Cards - Strict Filtering by Header Category
+    const promoCardQuery: any = {
       status: "Active",
-      parentId: null, // Only root categories (not subcategories themselves)
+      parentId: null,
     };
 
-    // If headerCategorySlug is provided, find the header category and filter by it
     if (headerCategorySlug && headerCategorySlug !== "all") {
       const headerCategory = await HeaderCategory.findOne({
-        slug: headerCategorySlug,
+        slug: (headerCategorySlug as string).toLowerCase().trim(),
         status: "Published",
       }).lean();
 
       if (headerCategory) {
-        categoryQuery.headerCategoryId = headerCategory._id;
+        promoCardQuery.headerCategoryId = headerCategory._id;
       } else {
-        // If header category not found, return empty promo cards for this header category
-        // The query will still work but won't match any categories
-        console.log(
-          `Header category with slug "${headerCategorySlug}" not found`
-        );
+        // Try fallback to slug
+        promoCardQuery.slug = (headerCategorySlug as string).toLowerCase().trim();
       }
+    } else {
+      promoCardQuery.headerCategoryId = { $exists: true, $ne: null };
     }
 
-    const categoriesWithHeaderCategory = await Category.find(categoryQuery)
+    const categoriesWithHeaderCategory = await Category.find(promoCardQuery)
       .populate("headerCategoryId", "name status")
       .sort({ order: 1 })
-      .limit(4) // Limit to 4 promo cards
+      .limit(4)
       .lean();
 
     const promoCards = await Promise.all(
       categoriesWithHeaderCategory.map(async (category: any) => {
-        // Get child categories (subcategories) for this category
         const childCategories = await Category.find({
           parentId: category._id,
           status: "Active",
         })
           .select("name image _id")
           .sort({ order: 1 })
-          .limit(4) // Limit to 4 subcategory images
+          .limit(4)
           .lean();
-
-        // Extract subcategory images
-        const subcategoryImages = childCategories
-          .map((child: any) => child.image)
-          .filter((img: string) => img && img.trim() !== "");
 
         return {
           id: category._id.toString(),
-          badge: "Up to 55% OFF", // Default badge, can be customized later
+          badge: "Up to 55% OFF",
           title: category.name,
           categoryId: category._id.toString(),
           slug: category.slug || category._id.toString(),
           bgColor: "bg-yellow-50",
-          subcategoryImages: subcategoryImages.slice(0, 4), // Max 4 images
+          subcategoryImages: childCategories.map((child: any) => child.image).filter(Boolean).slice(0, 4),
         };
       })
     );
 
-    // Fallback to hardcoded cards if no categories with headerCategoryId exist
-    const finalPromoCards =
-      promoCards.length > 0
-        ? promoCards
-        : [
-          {
-            id: "self-care",
-            badge: "Up to 55% OFF",
-            title: "Self Care & Wellness",
-            categoryId: "personal-care",
-            bgColor: "bg-yellow-50",
-            subcategoryImages: [],
-          },
-          {
-            id: "hot-meals",
-            badge: "Up to 55% OFF",
-            title: "Hot Meals & Drinks",
-            categoryId: "breakfast-instant",
-            bgColor: "bg-yellow-50",
-            subcategoryImages: [],
-          },
-          {
-            id: "kitchen-essentials",
-            badge: "Up to 55% OFF",
-            title: "Kitchen Essentials",
-            categoryId: "atta-rice",
-            bgColor: "bg-yellow-50",
-            subcategoryImages: [],
-          },
-          {
-            id: "cleaning-home",
-            badge: "Up to 75% OFF",
-            title: "Cleaning & Home Needs",
-            categoryId: "household",
-            bgColor: "bg-yellow-50",
-            subcategoryImages: [],
-          },
-        ];
-
-    // 9. Dynamic Home Sections - Fetch from database
+    // 9. Dynamic Home Sections
     let homeSectionQuery: any = { isActive: true };
     let fallbackCategoryProducts: any[] = [];
     let isRegularCategory = false;
 
     if (headerCategorySlug && headerCategorySlug !== "all") {
       const headerCategoryForSection = await HeaderCategory.findOne({
-        slug: headerCategorySlug,
+        slug: (headerCategorySlug as string).toLowerCase().trim(),
         status: "Published",
       }).select("_id");
 
@@ -568,61 +514,36 @@ export const getHomeContent = async (req: Request, res: Response) => {
         homeSectionQuery.pageLocation = "Header Category Page";
         homeSectionQuery.targetHeaderCategory = headerCategoryForSection._id;
       } else {
-        // Check if it's a regular category
         const regularCategory = await Category.findOne({
-          slug: headerCategorySlug,
+          slug: (headerCategorySlug as string).toLowerCase().trim(),
           status: "Active"
         }).select("_id name");
 
         if (regularCategory) {
           isRegularCategory = true;
-          // Fetch products for this category to show as a dynamic section
-          const prodQuery: any = {
-            category: regularCategory._id,
-            status: "Active",
-            publish: true
-          };
+          const prodQuery: any = { category: regularCategory._id, status: "Active", publish: true };
+          const rawProducts = await Product.find(prodQuery).sort({ createdAt: -1 }).limit(20).lean();
 
-          const rawProducts = await Product.find(prodQuery)
-            .sort({ createdAt: -1 })
-            .limit(20)
-            .select("productName mainImage price mrp discount rating reviewsCount pack seller variations")
-            .lean();
-
-          fallbackCategoryProducts = rawProducts.map((p: any) => {
-            // Forced to true as per user request
-            const isAvailable = true;
-
-            return {
-              id: p._id.toString(),
-              productId: p._id.toString(),
-              name: p.productName,
-              productName: p.productName,
-              image: p.mainImage,
-              mainImage: p.mainImage,
-              price: p.price,
-              discount: p.discount || (p.mrp && p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0),
-              rating: p.rating || 0,
-              reviewsCount: p.reviewsCount || 0,
-              pack: p.pack || "",
-              type: "product",
-              isAvailable,
-              seller: p.seller,
-            };
-          });
-
-          // Don't show regular home sections if we are viewing a specific category
+          fallbackCategoryProducts = rawProducts.map((p: any) => ({
+            id: p._id.toString(),
+            productId: p._id.toString(),
+            name: p.productName,
+            productName: p.productName,
+            image: p.mainImage,
+            mainImage: p.mainImage,
+            price: p.price,
+            discount: p.discount || (p.mrp && p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0),
+            rating: p.rating || 0,
+            isAvailable: true,
+            seller: p.seller,
+          }));
           homeSectionQuery = { _id: { $exists: false } };
         } else {
-          // If neither header nor regular category found, return empty portions
           homeSectionQuery = { _id: { $exists: false } };
         }
       }
     } else {
-      homeSectionQuery.$or = [
-        { pageLocation: "Home Page" },
-        { pageLocation: { $exists: false } },
-      ];
+      homeSectionQuery.pageLocation = "Home Page";
     }
 
     const homeSections = await HomeSection.find(homeSectionQuery)
@@ -631,7 +552,6 @@ export const getHomeContent = async (req: Request, res: Response) => {
       .sort({ order: 1 })
       .lean();
 
-    // Fetch data for each section
     const dynamicSections = await Promise.all(
       homeSections.map(async (section: any) => {
         const sectionData = await fetchSectionData(section, nearbySellerIds);
@@ -647,86 +567,39 @@ export const getHomeContent = async (req: Request, res: Response) => {
       })
     );
 
-    // If we have fallback category products, add them as a section
     if (isRegularCategory && fallbackCategoryProducts.length > 0) {
       dynamicSections.push({
         id: "category-products",
-        title: `Products in ${headerCategorySlug}`,
+        title: `Explore ${headerCategorySlug}`,
         slug: "category-products",
         displayType: "products",
-        bannerData: undefined,
         columns: 4,
         data: fallbackCategoryProducts,
       });
     }
 
-    // 10. Fetch PromoStrip for the current header category (with caching)
-    const currentHeaderCategorySlug = (headerCategorySlug as string) || "all";
-    const promoStripCacheKey = `promoStrip-${currentHeaderCategorySlug.toLowerCase()}`;
-
-    // Try to get from cache first
-    let promoStrip = cache.get(promoStripCacheKey) as any;
-
-    if (!promoStrip) {
-      const now = new Date();
-      const promoStripDoc = await PromoStrip.findOne({
-        headerCategorySlug: currentHeaderCategorySlug.toLowerCase(),
-        isActive: true,
-        startDate: { $lte: now },
-        endDate: { $gte: now },
-      })
-        .populate("categoryCards.categoryId", "name slug image")
-        .populate("featuredProducts", "productName mainImage mainImageUrl galleryImageUrls galleryImages price mrp compareAtPrice discount rating reviewsCount seller variations")
-        .sort({ order: 1 })
-        .lean();
-
-      promoStrip = promoStripDoc;
-
-      // If we have promoStrip, add availability flag to featured products
-      if (promoStrip && (promoStrip as any).featuredProducts) {
-        (promoStrip as any).featuredProducts = (promoStrip as any).featuredProducts.map((p: any) => {
-          // Forced to true as per user request
-          const isAvailable = true;
-          return { ...p, isAvailable };
-        });
-      }
-
-      // Cache for 3 minutes (PromoStrip data doesn't change frequently)
-      if (promoStrip) {
-        cache.set(promoStripCacheKey, promoStrip, 3 * 60 * 1000);
-      } else {
-        // Cache null result for 1 minute to prevent repeated DB queries
-        cache.set(promoStripCacheKey, null, 60 * 1000);
-      }
-    }
+    // 10. PromoStrip
+    const promoStripDoc = await PromoStrip.findOne({
+      headerCategorySlug: (headerCategorySlug as string || "all").toLowerCase().trim(),
+      isActive: true,
+    })
+      .populate("categoryCards.categoryId", "name slug image")
+      .populate("featuredProducts")
+      .sort({ order: 1 })
+      .lean();
 
     res.status(200).json({
       success: true,
       data: {
         bestsellers,
-        lowestPrices: validLowestPricesProducts, // Admin-selected products for LowestPricesEver section
+        lowestPrices: validLowestPricesProducts,
         categories,
-        // Dynamic sections created by admin
         homeSections: dynamicSections,
         shops,
-        promoBanners: [
-          {
-            id: 1,
-            image:
-              "https://img.freepik.com/free-vector/horizontal-banner-template-grocery-sales_23-2149432421.jpg",
-            link: "/category/grocery",
-          },
-          {
-            id: 2,
-            image:
-              "https://img.freepik.com/free-vector/flat-supermarket-social-media-cover-template_23-2149363385.jpg",
-            link: "/category/snacks",
-          },
-        ],
+        promoCards: promoCards.length > 0 ? promoCards : [],
+        promoStrip: promoStripDoc || null,
         trending,
         cookingIdeas,
-        promoCards: finalPromoCards, // Return dynamic or fallback cards
-        promoStrip: promoStrip || null, // PromoStrip data for the current header category
       },
     });
   } catch (error: any) {

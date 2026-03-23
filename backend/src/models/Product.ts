@@ -29,18 +29,6 @@ export interface IProduct extends Document {
   sku?: string;
   barcode?: string;
 
-  // Variations
-  variationType?: string; // e.g., 'Size', 'Color', 'Weight'
-  variations?: Array<{
-    name: string;
-    value: string;
-    price?: number;
-    discPrice?: number;
-    stock?: number;
-    sku?: string;
-    status?: string;
-  }>;
-
   // Status Flags
   publish: boolean;
   popular: boolean;
@@ -91,7 +79,7 @@ export interface IProduct extends Document {
   isShopByStoreOnly?: boolean;
   shopId?: mongoose.Types.ObjectId;
 
-  // Category Specific Fields (Merged from RoomRent, Service, etc.)
+  // Category Specific Fields
   brandName?: string;
   size?: string;
   color?: string;
@@ -123,6 +111,9 @@ export interface IProduct extends Document {
   serviceName?: string;
   experience?: string;
   availability?: string;
+
+  // Flexible attributes for other dynamic data
+  attributes?: Record<string, any>;
 
   createdAt: Date;
   updatedAt: Date;
@@ -226,30 +217,6 @@ const ProductSchema = new Schema<IProduct>(
       trim: true,
     },
 
-    // Variations
-    variationType: {
-      type: String,
-      trim: true,
-    },
-    variations: {
-      type: [
-        {
-          name: String,
-          value: String,
-          price: Number,
-          discPrice: { type: Number, default: 0 },
-          stock: Number,
-          status: {
-            type: String,
-            enum: ["Available", "Sold out", "In stock"],
-            default: "Available",
-          },
-          sku: String,
-        },
-      ],
-      default: [],
-    },
-
     // Status Flags
     publish: {
       type: Boolean,
@@ -337,7 +304,7 @@ const ProductSchema = new Schema<IProduct>(
       default: [],
     },
 
-    // Approval (removed - all products are auto-published)
+    // Approval
     requiresApproval: {
       type: Boolean,
       default: false,
@@ -397,6 +364,8 @@ const ProductSchema = new Schema<IProduct>(
     serviceName: { type: String, trim: true },
     experience: { type: String, trim: true },
     availability: { type: String, trim: true },
+    // Flexible attributes for other dynamic data
+    attributes: { type: Map, of: Schema.Types.Mixed, default: {} },
   },
   {
     timestamps: true,
@@ -410,29 +379,16 @@ ProductSchema.virtual("mrp").get(function () {
   return this.compareAtPrice;
 });
 
-// Calculate discount and sync stock/price from variations before saving
+// Calculate discount before saving
 ProductSchema.pre("save", function (next) {
-  // Sync price and stock from variations if they exist
-  if (this.variations && this.variations.length > 0) {
-    // Set price to the price of the first variation if top-level price is not set or if we want to keep it in sync
-    if (this.variations[0].price !== undefined) {
-      this.price = this.variations[0].price;
-    }
-
-    // Calculate total stock as sum of all variation stocks
-    this.stock = this.variations.reduce(
-      (acc: number, curr: any) => acc + (Number(curr.stock) || 0),
-      0
-    );
-  }
-
+  const doc = this as any;
   // Calculate discount
-  if (this.compareAtPrice && this.compareAtPrice > this.price) {
-    this.discount = Math.round(
-      ((this.compareAtPrice - this.price) / this.compareAtPrice) * 100
+  if (doc.compareAtPrice && doc.compareAtPrice > doc.price) {
+    doc.discount = Math.round(
+      ((doc.compareAtPrice - doc.price) / doc.compareAtPrice) * 100
     );
   } else {
-    this.discount = 0;
+    doc.discount = 0;
   }
   next();
 });
@@ -454,6 +410,7 @@ ProductSchema.index({
   description: "text",
   tags: "text",
   pack: "text",
+  attributes: "text",
 });
 
 const Product = (mongoose.models.Product as mongoose.Model<IProduct>) || mongoose.model<IProduct>("Product", ProductSchema);

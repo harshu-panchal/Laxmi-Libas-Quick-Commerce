@@ -46,5 +46,15 @@ export interface Product {
   maxReturnDays?: number;
   sellerId?: string;
   isAvailable?: boolean;
+  rentAmount?: number;
+  securityDeposit?: number;
+  bhk?: string;
+  headerCategoryId?: string;
+  headerCategory?: {
+    id: string;
+    _id?: string;
+    name: string;
+    slug?: string;
+  };
 }
 

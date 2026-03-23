@@ -29,20 +29,6 @@ export interface ISeller extends Document {
     twitter?: string;
   };
 
-  // Store Location Info
-  city: string;
-  serviceableArea?: string;
-  searchLocation?: string;
-  latitude?: string;
-  longitude?: string;
-  // GeoJSON location for geospatial queries
-  location?: {
-    type: 'Point';
-    coordinates: [number, number]; // [longitude, latitude]
-  };
-  // Service radius in kilometers
-  serviceRadiusKm?: number;
-
   // Payment Details
   accountName?: string;
   bankName?: string;
@@ -170,50 +156,6 @@ const SellerSchema = new Schema<ISeller>(
       facebook: { type: String },
       instagram: { type: String },
       twitter: { type: String },
-    },
-
-    // Store Location Info
-    city: {
-      type: String,
-      required: false,
-      trim: true,
-    },
-    serviceableArea: {
-      type: String,
-      trim: true,
-    },
-    searchLocation: {
-      type: String,
-      trim: true,
-    },
-    latitude: {
-      type: String,
-      trim: true,
-      required: false,
-    },
-    longitude: {
-      type: String,
-      trim: true,
-      required: false,
-    },
-    // GeoJSON location for geospatial queries
-    location: {
-      type: {
-        type: String,
-        enum: ['Point'],
-        default: 'Point',
-      },
-      coordinates: {
-        type: [Number], // [longitude, latitude]
-        required: false,
-      },
-    },
-    // Service radius in kilometers (default: 10km if not specified)
-    serviceRadiusKm: {
-      type: Number,
-      default: 100, // Increased default to cover entire city manually
-      min: [0.1, 'Service radius must be at least 0.1 km'],
-      max: [1000, 'Service radius cannot exceed 1000 km'],
     },
 
     // Payment Details
@@ -350,9 +292,8 @@ SellerSchema.methods.comparePassword = async function (
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Create geospatial index on location field for efficient queries
-SellerSchema.index({ location: '2dsphere' });
-SellerSchema.index({ status: 1 }); // Compound index for status + location queries
+// Index for status queries
+SellerSchema.index({ status: 1 });
 
 const Seller = (mongoose.models.Seller as mongoose.Model<ISeller>) || mongoose.model<ISeller>('Seller', SellerSchema);
 

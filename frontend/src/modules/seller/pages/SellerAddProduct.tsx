@@ -64,6 +64,9 @@ export default function SellerAddProduct() {
     seoKeywords: "",
     seoImageAlt: "",
     seoDescription: "",
+    price: "0",
+    discPrice: "0",
+    stock: "0",
     variationType: "",
     manufacturer: "",
     madeIn: "",
@@ -110,15 +113,6 @@ export default function SellerAddProduct() {
     serviceName: "",
     experience: "",
     availability: "",
-  });
-
-  const [variations, setVariations] = useState<ProductVariation[]>([]);
-  const [variationForm, setVariationForm] = useState({
-    title: "",
-    price: "",
-    discPrice: "0",
-    stock: "0",
-    status: "Available" as "Available" | "Sold out",
   });
 
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
@@ -309,11 +303,13 @@ export default function SellerAddProduct() {
               experience: product.experience || "",
               availability: product.availability || "",
               productVideoUrl: (product as any).productVideoUrl || "",
+              price: product.price?.toString() || "0",
+              discPrice: product.discPrice?.toString() || "0",
+              stock: product.stock?.toString() || "0",
             });
             if (product.category) {
               setCategoryName((product.category as any).name || "");
             }
-            setVariations(product.variations);
             if (product.mainImageUrl || product.mainImage) {
               setMainImagePreview(
                 product.mainImageUrl || product.mainImage || ""
@@ -530,43 +526,7 @@ export default function SellerAddProduct() {
   };
 
 
-  const addVariation = () => {
-    if (!variationForm.title || !variationForm.price) {
-      setUploadError("Please fill in variation title and price");
-      return;
-    }
 
-    const price = parseFloat(variationForm.price);
-    const discPrice = parseFloat(variationForm.discPrice || "0");
-    const stock = parseInt(variationForm.stock || "0");
-
-    if (discPrice > price) {
-      setUploadError("Discounted price cannot be greater than price");
-      return;
-    }
-
-    const newVariation: ProductVariation = {
-      title: variationForm.title,
-      price,
-      discPrice,
-      stock,
-      status: variationForm.status,
-    };
-
-    setVariations([...variations, newVariation]);
-    setVariationForm({
-      title: "",
-      price: "",
-      discPrice: "0",
-      stock: "0",
-      status: "Available",
-    });
-    setUploadError("");
-  };
-
-  const removeVariation = (index: number) => {
-    setVariations((prev) => prev.filter((_, i) => i !== index));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -630,25 +590,7 @@ export default function SellerAddProduct() {
         setFormData((prev) => ({ ...prev, productVideoUrl }));
       }
 
-      // Validate variations
-      let finalVariations = [...variations];
-      if (categoryType !== "product") {
-        // Auto-create a default variation for service/rental if none exists
-        if (finalVariations.length === 0) {
-          const price = categoryType === "rental" ? parseFloat(formData.rentAmount) || 0 : 0;
-          finalVariations = [{
-            title: categoryType === "rental" ? "Monthly Rent" : "Service Fee",
-            price: price,
-            discPrice: 0,
-            stock: 0, // Unlimited
-            status: "Available"
-          }];
-        }
-      } else if (finalVariations.length === 0) {
-        setUploadError("Please add at least one product variation");
-        setUploading(false);
-        return;
-      }
+
 
       // Prepare product data for API
       const tagsArray = formData.tags
@@ -685,8 +627,9 @@ export default function SellerAddProduct() {
         fssaiLicNo: formData.fssaiLicNo || undefined,
         mainImageUrl: mainImageUrl || undefined,
         galleryImageUrls,
-        variations: finalVariations,
-        variationType: formData.variationType || undefined,
+        price: parseFloat(formData.price || "0"),
+        discPrice: parseFloat(formData.discPrice || "0"),
+        stock: parseInt(formData.stock || "0"),
         isShopByStoreOnly: formData.isShopByStoreOnly === "Yes",
         shopId: formData.isShopByStoreOnly === "Yes" && formData.shopId ? formData.shopId : undefined,
         productVideoUrl: productVideoUrl || undefined,
@@ -756,6 +699,9 @@ export default function SellerAddProduct() {
               seoKeywords: "",
               seoImageAlt: "",
               seoDescription: "",
+              price: "0",
+              discPrice: "0",
+              stock: "0",
               variationType: "",
               manufacturer: "",
               madeIn: "",
@@ -833,6 +779,28 @@ export default function SellerAddProduct() {
     <div className="flex flex-col h-full">
       {/* Main Content */}
       <div className="flex-1">
+        {/* Success/Error Messages */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span className="font-medium">{successMessage}</span>
+          </div>
+        )}
+
+        {uploadError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span className="font-medium">{uploadError}</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Product Section */}
           <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
@@ -1098,142 +1066,51 @@ export default function SellerAddProduct() {
             categoryType === "product" && (
               <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
                 <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
-                  <h2 className="text-lg font-semibold">Add Variation</h2>
+                  <h2 className="text-lg font-semibold">Price & Stock</h2>
                 </div>
                 <div className="p-4 sm:p-6 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Select Product Variation Type
-                    </label>
-                    <select
-                      name="variationType"
-                      value={formData.variationType}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
-                      <option value="">Select Product Type</option>
-                      {!isProduce && <option value="Size">Size</option>}
-                      <option value="Weight">Weight</option>
-                      {!isProduce && <option value="Color">Color</option>}
-                      <option value="Pack">Pack</option>
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-neutral-50 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-neutral-50 rounded-lg">
                     <div>
                       <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Title (e.g., 100g)
-                      </label>
-                      <input
-                        type="text"
-                        value={variationForm.title}
-                        onChange={(e) =>
-                          setVariationForm({
-                            ...variationForm,
-                            title: e.target.value,
-                          })
-                        }
-                        placeholder="100g"
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Price *
+                        Selling Price (₹) *
                       </label>
                       <input
                         type="number"
-                        value={variationForm.price}
-                        onChange={(e) =>
-                          setVariationForm({
-                            ...variationForm,
-                            price: e.target.value,
-                          })
-                        }
+                        name="price"
+                        value={formData.price}
+                        onChange={handleChange}
                         placeholder="100"
                         className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        required
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Discounted Price
+                        Discounted Price (₹)
                       </label>
                       <input
                         type="number"
-                        value={variationForm.discPrice}
-                        onChange={(e) =>
-                          setVariationForm({
-                            ...variationForm,
-                            discPrice: e.target.value,
-                          })
-                        }
+                        name="discPrice"
+                        value={formData.discPrice}
+                        onChange={handleChange}
                         placeholder="80"
                         className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Stock (0 = Unlimited)
+                        Available Stock
                       </label>
                       <input
                         type="number"
-                        value={variationForm.stock}
-                        onChange={(e) =>
-                          setVariationForm({
-                            ...variationForm,
-                            stock: e.target.value,
-                          })
-                        }
-                        placeholder="0"
+                        name="stock"
+                        value={formData.stock}
+                        onChange={handleChange}
+                        placeholder="50"
                         className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                       />
                     </div>
-                    <div className="flex items-end">
-                      <button
-                        type="button"
-                        onClick={addVariation}
-                        className="w-full px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium">
-                        Add Variation
-                      </button>
-                    </div>
                   </div>
-
-                  {variations.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="text-sm font-medium text-neutral-700 mb-2">
-                        Added Variations:
-                      </h3>
-                      <div className="space-y-2">
-                        {variations.map((variation, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-3 bg-white border border-neutral-200 rounded-lg">
-                            <div className="flex-1">
-                              <span className="font-medium">{variation.title}</span>{" "}
-                              - ₹{variation.price}
-                              {variation.discPrice > 0 && (
-                                <span className="text-primary-dark ml-2">
-                                  (₹{variation.discPrice})
-                                </span>
-                              )}
-                              <span className="ml-4 text-sm text-neutral-600">
-                                Stock:{" "}
-                                {variation.stock === 0
-                                  ? "Unlimited"
-                                  : variation.stock}{" "}
-                                | Status: {variation.status}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeVariation(index)}
-                              className="text-red-600 hover:text-red-700 ml-4">
-                              Remove
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )

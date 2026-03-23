@@ -19,7 +19,6 @@ export const createOrder = async (req: Request, res: Response) => {
     let session: mongoose.ClientSession | null = null;
     try {
         // Only start session if we are on a replica set (required for transactions)
-        // For simplicity in local dev, we check and fallback if it fails
         try {
             session = await mongoose.startSession();
             session.startTransaction();
@@ -36,8 +35,6 @@ export const createOrder = async (req: Request, res: Response) => {
             userId,
             itemsCount: items?.length,
             hasAddress: !!address,
-            addressLat: address?.latitude,
-            addressLng: address?.longitude,
             paymentMethod,
         });
 
@@ -51,27 +48,13 @@ export const createOrder = async (req: Request, res: Response) => {
 
         // Validate Quantity-Based Discounts before proceeding
         try {
-            // Map items for DiscountService.validateOrderDiscount
             const itemsForValidation = await Promise.all(items.map(async (item: any) => {
-                const product = await Product.findById(item.product.id || item.product._id).select('category seller price variations discPrice');
+                const product = await Product.findById(item.product.id || item.product._id).select('category seller price discPrice');
                 if (!product) throw new Error(`Product ${item.product.id} not found`);
 
-                // Determine base price (consistent with calculation logic later)
-                const variationValue = item.variant || item.variation;
-                let selectedVariation;
-                if (variationValue && product.variations) {
-                    selectedVariation = product.variations.find((v: any) =>
-                        (v._id && v._id.toString() === variationValue) ||
-                        v.value === variationValue ||
-                        v.title === variationValue ||
-                        v.pack === variationValue
-                    );
-                }
-                const itemPrice = (selectedVariation?.discPrice && selectedVariation.discPrice > 0)
-                    ? selectedVariation.discPrice
-                    : (product.discPrice && product.discPrice > 0)
-                        ? product.discPrice
-                        : (selectedVariation?.price || product.price || 0);
+                const itemPrice = (product.discPrice && product.discPrice > 0)
+                    ? product.discPrice
+                    : (product.price || 0);
 
                 return {
                     productId: product._id.toString(),
@@ -114,22 +97,6 @@ export const createOrder = async (req: Request, res: Response) => {
             return res.status(400).json({
                 success: false,
                 message: "City is required in delivery address",
-                details: {
-                    receivedCity: address.city,
-                    addressObject: address
-                }
-            });
-        }
-
-        if (!address.pincode || (typeof address.pincode === 'string' && address.pincode.trim() === '')) {
-            if (session) await session.abortTransaction();
-            return res.status(400).json({
-                success: false,
-                message: "Pincode is required in delivery address",
-                details: {
-                    receivedPincode: address.pincode,
-                    addressObject: address
-                }
             });
         }
 
@@ -143,15 +110,10 @@ export const createOrder = async (req: Request, res: Response) => {
             });
         }
 
-        // Validate delivery address location (removed required latitude/longitude)
-        const deliveryLat = address.latitude != null
-            ? (typeof address.latitude === 'number' ? address.latitude : parseFloat(address.latitude))
-            : 0;
-        const deliveryLng = address.longitude != null
-            ? (typeof address.longitude === 'number' ? address.longitude : parseFloat(address.longitude))
-            : 0;
+        const deliveryLat = address.latitude != null ? Number(address.latitude) : 0;
+        const deliveryLng = address.longitude != null ? Number(address.longitude) : 0;
 
-        // Initialize Order first to get an ID
+        // Initialize Order
         const newOrder = new Order({
             customer: new mongoose.Types.ObjectId(userId),
             customerName: customer.name,
@@ -181,136 +143,31 @@ export const createOrder = async (req: Request, res: Response) => {
         let calculatedSubtotal = 0;
         let totalQuantityDiscount = 0;
         const orderItemIds: mongoose.Types.ObjectId[] = [];
-        const sellerIds = new Set<string>(); // Track unique sellers
+        const sellerIds = new Set<string>();
 
         for (const item of items) {
-            if (!item.product || !item.product.id) {
-                throw new Error("Invalid item structure: product.id is missing");
-            }
-
             const qty = Number(item.quantity) || 0;
-            if (qty <= 0) {
-                throw new Error("Invalid item quantity");
-            }
+            if (qty <= 0) throw new Error("Invalid item quantity");
 
-            // Atomically check stock and decrement to prevent race conditions
-            let product;
-            // The frontend sends variation info as 'variant' or 'variation'
-            // In the product model, it's stored in 'variations' array
-            const variationValue = item.variant || item.variation;
-
-            if (variationValue) {
-                // Try to decrement stock for the specific variation first
-                // We check variations._id, variations.value, variations.title, or variations.pack
-                product = session
-                    ? await Product.findOneAndUpdate(
-                        {
-                            _id: item.product.id,
-                            $or: [
-                                { "variations._id": mongoose.isValidObjectId(variationValue) ? variationValue : new mongoose.Types.ObjectId() },
-                                { "variations.value": variationValue },
-                                { "variations.title": variationValue },
-                                { "variations.pack": variationValue }
-                            ],
-                            "variations.stock": { $gte: qty }
-                        },
-                        { $inc: { "variations.$.stock": -qty, stock: -qty } },
-                        { session, new: true }
-                    )
-                    : await Product.findOneAndUpdate(
-                        {
-                            _id: item.product.id,
-                            $or: [
-                                { "variations._id": mongoose.isValidObjectId(variationValue) ? variationValue : new mongoose.Types.ObjectId() },
-                                { "variations.value": variationValue },
-                                { "variations.title": variationValue },
-                                { "variations.pack": variationValue }
-                            ],
-                            "variations.stock": { $gte: qty }
-                        },
-                        { $inc: { "variations.$.stock": -qty, stock: -qty } },
-                        { new: true }
-                    );
-            }
+            const product = await Product.findOneAndUpdate(
+                { _id: item.product.id || item.product._id, stock: { $gte: qty } },
+                { $inc: { stock: -qty } },
+                { session, new: true }
+            );
 
             if (!product) {
-                // If we are here, either variationValue wasn't provided, or it didn't match any variation with enough stock.
-                // We'll try to find the product first to see if it has variations.
-                const checkProduct = await Product.findById(item.product.id);
-
-                if (checkProduct && checkProduct.variations && checkProduct.variations.length > 0) {
-                    // Product has variations, but we didn't match one.
-                    // If a variation was provided, it means that specific variation is out of stock.
-                    if (variationValue) {
-                        throw new Error(`Insufficient stock for variation: ${variationValue}`);
-                    }
-
-                    // No variation was provided, but the product has them.
-                    // To maintain data consistency, we'll try to decrement from the first variation.
-                    product = session
-                        ? await Product.findOneAndUpdate(
-                            {
-                                _id: item.product.id,
-                                "variations.0.stock": { $gte: qty }
-                            },
-                            { $inc: { "variations.0.stock": -qty, stock: -qty } },
-                            { session, new: true }
-                        )
-                        : await Product.findOneAndUpdate(
-                            {
-                                _id: item.product.id,
-                                "variations.0.stock": { $gte: qty }
-                            },
-                            { $inc: { "variations.0.stock": -qty, stock: -qty } },
-                            { new: true }
-                        );
-                } else {
-                    // No variations, just decrement top-level stock
-                    product = session
-                        ? await Product.findOneAndUpdate(
-                            { _id: item.product.id, stock: { $gte: qty } },
-                            { $inc: { stock: -qty } },
-                            { session, new: true }
-                        )
-                        : await Product.findOneAndUpdate(
-                            { _id: item.product.id, stock: { $gte: qty } },
-                            { $inc: { stock: -qty } },
-                            { new: true }
-                        );
-                }
+                throw new Error(`Insufficient stock or product not found: ${item.product.name || 'ID: ' + item.product.id}`);
             }
 
-            if (!product) {
-                throw new Error(`Insufficient stock or product not found: ${item.product.name || 'ID: ' + item.product.id}${variationValue ? ' (' + variationValue + ')' : ''}`);
-            }
-
-            // Track seller IDs to validate location
             if (product.seller) {
                 sellerIds.add(product.seller.toString());
             }
 
-            // Determine the price based on variation and discounts
-            let selectedVariation;
-            if (variationValue && product.variations) {
-                selectedVariation = product.variations.find((v: any) =>
-                    (v._id && v._id.toString() === variationValue) ||
-                    v.value === variationValue ||
-                    v.title === variationValue ||
-                    v.pack === variationValue
-                );
-            }
-            if (!selectedVariation && product.variations && product.variations.length > 0) {
-                // Fallback to first if no variation spec or not found (consistent with stock fallback)
-                selectedVariation = product.variations[0];
-            }
+            const itemPrice = (product.discPrice && product.discPrice > 0)
+                ? product.discPrice
+                : (product.price || 0);
 
-            const itemPrice = (selectedVariation?.discPrice && selectedVariation.discPrice > 0)
-                ? selectedVariation.discPrice
-                : (product.discPrice && product.discPrice > 0)
-                    ? product.discPrice
-                    : (selectedVariation?.price || product.price || 0);
-
-            // Calculate Quantity-Based Discount for this item
+            // Calculate Quantity-Based Discount
             let itemDiscountPercent = 0;
             let itemDiscountAmount = 0;
             let appliedRuleId = null;
@@ -327,18 +184,17 @@ export const createOrder = async (req: Request, res: Response) => {
                 itemDiscountAmount = calculation.discountAmount;
                 appliedRuleId = calculation.appliedRuleId;
             } catch (err) {
-                console.error("Discount calculation error for item", err);
+                console.error("Discount calculation error", err);
             }
 
             const itemTotal = itemPrice * qty;
             calculatedSubtotal += itemTotal;
+            totalQuantityDiscount += itemDiscountAmount;
 
-            // Calculate commission rate snapshot
             const commRate = await getOrderItemCommissionRate(product._id.toString(), product.seller.toString());
             const commAmount = (itemTotal * commRate) / 100;
 
-            // Create OrderItem
-            const newOrderItemData: any = {
+            const newOrderItem = new OrderItem({
                 order: newOrder._id,
                 product: product._id,
                 seller: product.seller,
@@ -347,98 +203,60 @@ export const createOrder = async (req: Request, res: Response) => {
                 sku: product.sku,
                 unitPrice: itemPrice,
                 quantity: qty,
-                total: itemTotal - itemDiscountAmount, // Deduct discount from item total
+                total: itemTotal - itemDiscountAmount,
                 discountPercent: itemDiscountPercent,
                 discountAmount: itemDiscountAmount,
                 appliedDiscountRuleId: appliedRuleId,
                 commissionRate: commRate,
                 commissionAmount: commAmount,
-                variation: variationValue,
+                variation: item.variant || item.variation || null,
                 status: 'Pending'
-            };
+            });
 
-            const newOrderItem = new OrderItem(newOrderItemData);
-            if (session) {
-                await newOrderItem.save({ session });
-            } else {
-                await newOrderItem.save();
-            }
+            if (session) await newOrderItem.save({ session });
+            else await newOrderItem.save();
+            
             orderItemIds.push(newOrderItem._id as mongoose.Types.ObjectId);
         }
 
-        // Removed seller distance validation to allow orders from any city - seller/admin will verify manually if needed
+        // Validate Sellers
         if (sellerIds.size > 0) {
             const uniqueSellerIds = Array.from(sellerIds).map(id => new mongoose.Types.ObjectId(id));
-            const sellers = await Seller.find({
+            const sellersCount = await Seller.countDocuments({
                 _id: { $in: uniqueSellerIds },
                 status: "Approved"
             });
             
-            if (sellers.length < uniqueSellerIds.length) {
-                if (session) await session.abortTransaction();
-                return res.status(403).json({
-                    success: false,
-                    message: `One or more sellers in your order are currently inactive or not approved.`,
-                });
+            if (sellersCount < uniqueSellerIds.length) {
+                throw new Error("One or more sellers in your order are currently inactive or not approved.");
             }
         }
 
-        // Apply fees
-        let platformFee = Number(fees?.platformFee) || 0;
-        let deliveryFee = Number(fees?.deliveryFee) || 0;
-        let deliveryDistanceKm = 0;
-
-        // --- Distance-Based Delivery Charge removed ---
-        try {
-            const settings = await AppSettings.getSettings();
-            const freeDeliveryThreshold = settings?.freeDeliveryThreshold || 0;
-
-            if (freeDeliveryThreshold > 0 && calculatedSubtotal >= freeDeliveryThreshold) {
-                deliveryFee = 0;
-            }
-        } catch (calcError) {
-            console.error("Error checking free delivery threshold:", calcError);
-        }
-
-        const finalTotal = calculatedSubtotal + platformFee + deliveryFee - totalQuantityDiscount;
-
-        // Update Order with calculated values and items
+        // Finalize order totals
+        const finalTotal = calculatedSubtotal + newOrder.shipping + newOrder.platformFee - totalQuantityDiscount;
         newOrder.subtotal = Number(calculatedSubtotal.toFixed(2));
         newOrder.discount = Number(totalQuantityDiscount.toFixed(2));
         newOrder.total = Number(finalTotal.toFixed(2));
         newOrder.items = orderItemIds;
-        newOrder.shipping = deliveryFee; // Update with calculated fee
-        newOrder.deliveryDistanceKm = deliveryDistanceKm; // Store distance for commission calc
-
 
         if (session) {
             await newOrder.save({ session });
             await session.commitTransaction();
         } else {
-            // Validate before saving to catch errors with details
-            const validationError = newOrder.validateSync();
-            if (validationError) {
-                console.error("DEBUG: Order Validation Error:", validationError.errors);
-                throw validationError;
-            }
             await newOrder.save();
         }
 
-
-        // Emit notification to all available delivery boys
+        // Socket notifications
         try {
             const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
             if (io) {
-                // Reload order to ensure orderNumber is set (generated by pre-validate hook)
                 const savedOrder = await Order.findById(newOrder._id).lean();
                 if (savedOrder) {
-                    // notifyDeliveryBoysOfNewOrder removed: will be triggered when seller accepts the order
                     await notifySellersOfOrderUpdate(io, savedOrder, 'NEW_ORDER');
                 }
             }
         } catch (notificationError) {
-            // Log error but don't fail the order creation
-            console.error("Error notifying delivery boys:", notificationError);
+            console.error("Error notifying sellers:", notificationError);
         }
 
         return res.status(201).json({
@@ -448,39 +266,11 @@ export const createOrder = async (req: Request, res: Response) => {
         });
 
     } catch (error: any) {
-        if (session) {
-            try {
-                await session.abortTransaction();
-            } catch (abortError) {
-                console.error("Error aborting transaction:", abortError);
-            }
-        }
-
-        console.error("DEBUG: Order Creation Error Detail:", {
-            message: error.message,
-            name: error.name,
-            errors: error.errors ? Object.keys(error.errors).map(key => ({
-                field: key,
-                message: error.errors[key].message,
-                value: error.errors[key].value
-            })) : undefined,
-            stack: error.stack,
-            body: req.body
-        });
-
-        // Return a more informative error message if it's a validation error
-        let errorMessage = "Error creating order. " + error.message;
-        if (error.name === 'ValidationError') {
-            const fields = Object.keys(error.errors).join(', ');
-            errorMessage = `Validation failed for fields: ${fields}. ${error.message}`;
-        }
-
+        if (session) await session.abortTransaction().catch(err => console.error("Abort failed", err));
+        console.error("Order Creation Error:", error);
         return res.status(500).json({
             success: false,
-            message: errorMessage,
-            error: error.message,
-            details: error.errors,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            message: error.message || "Error creating order",
         });
     } finally {
         if (session) session.endSession();
@@ -492,15 +282,10 @@ export const getMyOrders = async (req: Request, res: Response) => {
     try {
         const userId = req.user!.userId;
         const { status, page = 1, limit = 10 } = req.query;
-
         const query: any = { customer: userId };
-
-        if (status) {
-            query.status = status; // Note: Model field is 'status', not 'orderStatus'
-        }
+        if (status) query.status = status;
 
         const skip = (Number(page) - 1) * Number(limit);
-
         const orders = await Order.find(query)
             .populate({
                 path: 'items',
@@ -511,22 +296,16 @@ export const getMyOrders = async (req: Request, res: Response) => {
             .limit(Number(limit));
 
         const total = await Order.countDocuments(query);
-
-        // Transform orders to match frontend Order type
         const transformedOrders = orders.map(order => {
             const orderObj = order.toObject();
             return {
                 ...orderObj,
                 id: orderObj._id.toString(),
-                totalItems: Array.isArray(orderObj.items) ? orderObj.items.length : 0,
-                totalAmount: orderObj.total,
+                totalItems: orderObj.items?.length || 0,
                 fees: {
                     platformFee: orderObj.platformFee || 0,
                     deliveryFee: orderObj.shipping || 0
-                },
-                // Keep original fields for backward compatibility
-                subtotal: orderObj.subtotal,
-                address: orderObj.deliveryAddress
+                }
             };
         });
 
@@ -541,11 +320,7 @@ export const getMyOrders = async (req: Request, res: Response) => {
             },
         });
     } catch (error: any) {
-        return res.status(500).json({
-            success: false,
-            message: "Error fetching orders",
-            error: error.message,
-        });
+        return res.status(500).json({ success: false, message: "Error fetching orders", error: error.message });
     }
 };
 
@@ -555,7 +330,6 @@ export const getOrderById = async (req: Request, res: Response) => {
         const { id } = req.params;
         const userId = req.user!.userId;
 
-        // Find order and ensure it belongs to the user
         const order = await Order.findOne({ _id: id, customer: userId })
             .populate({
                 path: 'items',
@@ -566,49 +340,26 @@ export const getOrderById = async (req: Request, res: Response) => {
             })
             .populate('deliveryBoy', 'name phone profileImage vehicleNumber');
 
-        if (!order) {
-            return res.status(404).json({
-                success: false,
-                message: "Order not found",
-            });
-        }
+        if (!order) return res.status(404).json({ success: false, message: "Order not found" });
 
-        // Get customer's permanent delivery OTP
         const customer = await Customer.findById(userId).select('deliveryOtp');
-        const deliveryOtp = customer?.deliveryOtp;
-
-        // Transform order to match frontend Order type
         const orderObj = order.toObject();
         const transformedOrder = {
             ...orderObj,
             id: orderObj._id.toString(),
-            totalItems: Array.isArray(orderObj.items) ? orderObj.items.length : 0,
-            totalAmount: orderObj.total,
+            totalItems: orderObj.items?.length || 0,
             fees: {
                 platformFee: orderObj.platformFee || 0,
                 deliveryFee: orderObj.shipping || 0
             },
-            // Keep original fields for backward compatibility
-            subtotal: orderObj.subtotal,
             address: orderObj.deliveryAddress,
-            // Include invoice enabled flag
-            invoiceEnabled: orderObj.invoiceEnabled || false,
-            // Include customer's permanent delivery OTP
-            deliveryOtp,
-            // Map deliveryBoy to deliveryPartner for frontend
+            deliveryOtp: customer?.deliveryOtp,
             deliveryPartner: orderObj.deliveryBoy
         };
 
-        return res.status(200).json({
-            success: true,
-            data: transformedOrder,
-        });
+        return res.status(200).json({ success: true, data: transformedOrder });
     } catch (error: any) {
-        return res.status(500).json({
-            success: false,
-            message: "Error fetching order detail",
-            error: error.message,
-        });
+        return res.status(500).json({ success: false, message: "Error fetching order detail", error: error.message });
     }
 };
 
@@ -619,37 +370,17 @@ export const refreshDeliveryOtp = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const userId = req.user!.userId;
-
         const order = await Order.findOne({ _id: id, customer: userId });
-        if (!order) {
-            return res.status(404).json({ success: false, message: "Order not found" });
-        }
+        if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+        if (order.status === 'Delivered') return res.status(400).json({ success: false, message: "Already delivered" });
 
-        if (order.status === 'Delivered') {
-            return res.status(400).json({ success: false, message: "Order is already delivered" });
-        }
-
-        // Generate and send new OTP
         const result = await generateDeliveryOtp(id);
-
-        // Emit socket event if needed (customer room)
         const io = (req.app as any).get("io");
-        if (io) {
-            io.to(`order-${id}`).emit('delivery-otp-refreshed', {
-                orderId: id,
-                deliveryOtp: order.deliveryOtp, // The service saves it to the order
-                expiresAt: order.deliveryOtpExpiresAt
-            });
-        }
+        if (io) io.to(`order-${id}`).emit('delivery-otp-refreshed', { orderId: id, deliveryOtp: order.deliveryOtp });
 
         return res.status(200).json(result);
     } catch (error: any) {
-        console.error('Error refreshing delivery OTP:', error);
-        return res.status(500).json({
-            success: false,
-            message: "Failed to refresh delivery OTP",
-            error: error.message
-        });
+        return res.status(500).json({ success: false, message: "Failed to refresh OTP", error: error.message });
     }
 };
 
@@ -660,24 +391,14 @@ export const cancelOrder = async (req: Request, res: Response) => {
         const { id } = req.params;
         const { reason } = req.body;
         const userId = req.user!.userId;
+        if (!reason) return res.status(400).json({ success: false, message: "Reason required" });
 
-        if (!reason) {
-            return res.status(400).json({ success: false, message: "Cancellation reason is required" });
-        }
-
-        // Only start session if we are on a replica set (required for transactions)
         try {
             session = await mongoose.startSession();
             session.startTransaction();
-        } catch (sessionError) {
-            console.warn("MongoDB Transactions not supported or failed to start. Proceeding without transaction.");
-            session = null;
-        }
+        } catch (e) { session = null; }
 
-        const order = session
-            ? await Order.findOne({ _id: id, customer: userId }).session(session)
-            : await Order.findOne({ _id: id, customer: userId });
-
+        const order = await Order.findOne({ _id: id, customer: userId }).session(session as any);
         if (!order) {
             if (session) await session.abortTransaction();
             return res.status(404).json({ success: false, message: "Order not found" });
@@ -685,61 +406,23 @@ export const cancelOrder = async (req: Request, res: Response) => {
 
         if (['Delivered', 'Cancelled', 'Returned', 'Rejected', 'Out for Delivery', 'Shipped'].includes(order.status)) {
             if (session) await session.abortTransaction();
-            return res.status(400).json({
-                success: false,
-                message: `Order cannot be cancelled as it is already ${order.status}`
-            });
+            return res.status(400).json({ success: false, message: `Cannot cancel order in ${order.status} status` });
         }
 
         // Restore stock
-        for (const item of order.items) {
-            const orderItem = session
-                ? await OrderItem.findById(item).session(session)
-                : await OrderItem.findById(item);
-
+        for (const itemId of order.items) {
+            const orderItem = await OrderItem.findById(itemId).session(session as any);
             if (orderItem) {
-                const product = session
-                    ? await Product.findById(orderItem.product).session(session)
-                    : await Product.findById(orderItem.product);
-
-                if (product) {
-                    // Check if it was a variation
-                    if (orderItem.variation) {
-                        // Try to find matching variation
-                        const variationIndex = product.variations?.findIndex((v: any) => v.value === orderItem.variation || v.title === orderItem.variation || v.pack === orderItem.variation);
-
-                        if (variationIndex !== undefined && variationIndex !== -1 && product.variations && product.variations[variationIndex]) {
-                            const currentStock = product.variations[variationIndex].stock || 0;
-                            product.variations[variationIndex].stock = currentStock + orderItem.quantity;
-                        } else if (product.variations && product.variations.length > 0) {
-                            // Fallback to first variation if specific one not found (should be rare)
-                            const currentStock = product.variations[0].stock || 0;
-                            product.variations[0].stock = currentStock + orderItem.quantity;
-                        }
-                    }
-
-                    // Helper: also increment main stock if variations are just attributes or if simple product
-                    product.stock += orderItem.quantity;
-                    if (session) {
-                        await product.save({ session });
-                    } else {
-                        await product.save();
-                    }
-                }
-
+                await Product.findByIdAndUpdate(orderItem.product, { $inc: { stock: orderItem.quantity } }, { session });
                 orderItem.status = 'Cancelled';
-                if (session) {
-                    await orderItem.save({ session });
-                } else {
-                    await orderItem.save();
-                }
+                await orderItem.save({ session });
             }
         }
 
         order.status = 'Cancelled';
         order.cancellationReason = reason;
         order.cancelledAt = new Date();
-        order.cancelledBy = new mongoose.Types.ObjectId(userId); // Use Customer ID as canceller
+        order.cancelledBy = new mongoose.Types.ObjectId(userId);
 
         if (session) {
             await order.save({ session });
@@ -749,105 +432,21 @@ export const cancelOrder = async (req: Request, res: Response) => {
         }
 
         // Notify
-        try {
-            const io = (req.app as any).get("io");
-            if (io) {
-                await notifySellersOfOrderUpdate(io, order, 'ORDER_CANCELLED');
-
-                // Notify delivery boy if assigned
-                if (order.deliveryBoy) {
-                    // Update delivery status to Failed since order is cancelled
-                    // We do this in background to not block response
-                    Order.findByIdAndUpdate(order._id, { deliveryBoyStatus: 'Failed' }).exec();
-
-                    // Notify the specific delivery boy
-                    const deliveryBoyId = order.deliveryBoy.toString();
-                    io.to(`delivery-${deliveryBoyId}`).emit('order-cancelled', {
-                        orderId: order._id,
-                        orderNumber: order.orderNumber,
-                        message: "Order has been cancelled by the customer"
-                    });
-
-                    console.log(`Notification sent to delivery boy ${deliveryBoyId} for cancelled order ${order.orderNumber}`);
-                }
-
-                // Emit to order room for real-time updates on tracking screen
-                io.to(`order-${order._id}`).emit('order-cancelled', {
-                    orderId: order._id,
-                    status: 'Cancelled',
-                    message: "Order has been cancelled"
-                });
+        const io = (req.app as any).get("io");
+        if (io) {
+            await notifySellersOfOrderUpdate(io, order, 'ORDER_CANCELLED');
+            if (order.deliveryBoy) {
+                io.to(`delivery-${order.deliveryBoy}`).emit('order-cancelled', { orderId: order._id, message: "Order cancelled by customer" });
             }
-        } catch (err) {
-            console.error("Notification error:", err);
+            io.to(`order-${order._id}`).emit('order-cancelled', { orderId: order._id, status: 'Cancelled' });
         }
 
-        return res.status(200).json({
-            success: true,
-            message: "Order cancelled successfully",
-            data: {
-                id: order._id,
-                status: order.status,
-                cancelledAt: order.cancelledAt
-            }
-        });
+        return res.status(200).json({ success: true, message: "Order cancelled" });
 
     } catch (error: any) {
-        if (session) {
-            try {
-                await session.abortTransaction();
-            } catch (e) { }
-        }
-        console.error('Error cancelling order:', error);
-        return res.status(500).json({
-            success: false,
-            message: "Failed to cancel order",
-            error: error.message
-        });
+        if (session) await session.abortTransaction().catch(e => { });
+        return res.status(500).json({ success: false, message: "Error cancelling order", error: error.message });
     } finally {
         if (session) session.endSession();
-    }
-};
-
-// Update Order Notes (Instructions/Special Requests)
-export const updateOrderNotes = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
-        const { deliveryInstructions, specialRequests } = req.body;
-        const userId = req.user!.userId;
-
-        const order = await Order.findOne({ _id: id, customer: userId });
-
-        if (!order) {
-            return res.status(404).json({ success: false, message: "Order not found" });
-        }
-
-        if (['Delivered', 'Cancelled', 'Returned'].includes(order.status)) {
-            return res.status(400).json({
-                success: false,
-                message: `Cannot update notes for ${order.status} order`
-            });
-        }
-
-        if (deliveryInstructions !== undefined) order.deliveryInstructions = deliveryInstructions;
-        if (specialRequests !== undefined) order.specialRequests = specialRequests;
-
-        await order.save();
-
-        return res.status(200).json({
-            success: true,
-            message: "Order notes updated",
-            data: {
-                deliveryInstructions: order.deliveryInstructions,
-                specialRequests: order.specialRequests
-            }
-        });
-    } catch (error: any) {
-        console.error('Error updating order notes:', error);
-        return res.status(500).json({
-            success: false,
-            message: "Failed to update order notes",
-            error: error.message
-        });
     }
 };

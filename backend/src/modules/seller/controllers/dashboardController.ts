@@ -47,20 +47,13 @@ export const getDashboardStats = asyncHandler(
         let lowStockProducts = 0;
 
         products.forEach(product => {
-            let isSoldOut = true;
+            let isSoldOut = false;
             let isLowStock = false;
 
-            if (product.variations && product.variations.length > 0) {
-                product.variations.forEach((v: any) => {
-                    if ((v.stock || 0) > 0) isSoldOut = false;
-                    if ((v.stock || 0) > 0 && (v.stock || 0) < 5) isLowStock = true;
-                    if (v.stock && v.stock > 0) isSoldOut = false;
-                    if (v.stock && v.stock > 0 && v.stock < 5) isLowStock = true;
-                });
-            } else {
-                // Handle products without variations (fallback)
-                if (product.stock > 0) isSoldOut = false;
-                if (product.stock > 0 && product.stock < 5) isLowStock = true;
+            if (product.stock <= 0) {
+                isSoldOut = true;
+            } else if (product.stock < 5) {
+                isLowStock = true;
             }
 
             if (isSoldOut) soldOutProducts++;

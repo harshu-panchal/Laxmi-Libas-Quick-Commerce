@@ -58,38 +58,48 @@ export const createProduct = asyncHandler(
       newProductData.category = sellerCategoryId;
     }
 
-    // Map variations: Ensure 'title' from frontend is mapped to 'value' (or name) expected by Schema
-    if (newProductData.variations) {
-      newProductData.variations = newProductData.variations.map((v: any) => ({
-        ...v,
-        value: v.value || v.title, // Map title to value
-        name: v.name || "Variation", // Default name
-        discPrice: v.discPrice || 0,
-        status: v.status || "Available",
-      }));
+    // Auto-populate headerCategoryId from Category if missing
+    if (!newProductData.headerCategoryId && newProductData.category) {
+      try {
+        const CategoryModel = require("../../../models/Category").default;
+        const categoryDoc = await CategoryModel.findById(newProductData.category).select("headerCategoryId");
+        if (categoryDoc && categoryDoc.headerCategoryId) {
+          newProductData.headerCategoryId = categoryDoc.headerCategoryId;
+          console.log(`[createProduct] Auto-assigned headerCategoryId: ${categoryDoc.headerCategoryId} from category: ${newProductData.category}`);
+        }
+      } catch (err) {
+        console.error("[createProduct] Error fetching category for headerCategoryId:", err);
+      }
     }
 
-    // 3. Set Price and Stock from Variations
-    // The Product model requires a top-level price and stock
-    if (newProductData.variations && newProductData.variations.length > 0) {
-      // Use the price of the first variation as the base price
-      newProductData.price = newProductData.variations[0].price;
-      newProductData.discPrice = newProductData.variations[0].discPrice || 0;
+    // 3. Set Price and Stock
+    newProductData.price = productData.price;
+    newProductData.discPrice = productData.discPrice || 0;
+    newProductData.stock = parseInt(productData.stock) || 0;
 
-      // Calculate total stock (sum of all variations)
-      // Note: If any variation has stock 0 (unlimited), how should we handle top level?
-      // For now, let's sum them up. If purely unlimited, logic might differ.
-      newProductData.stock = newProductData.variations.reduce(
-        (acc: number, curr: any) => acc + (parseInt(curr.stock) || 0),
-        0
-      );
-    }
+    // Handle any extra fields as dynamic attributes
+    const knownFields = [
+      "productName", "smallDescription", "description", "categoryId", "subcategoryId",
+      "brandId", "price", "discPrice", "stock", "mainImageUrl", "galleryImageUrls",
+      "productVideoUrl", "taxId", "isShopByStoreOnly", "shopId", "publish", "popular",
+      "dealOfDay", "status", "manufacturer", "madeIn", "requiresApproval", "tags",
+      "sellerId", "seller", "headerCategoryId", "category", "subcategory", "brand",
+      "mainImage", "galleryImages"
+    ];
 
-    // 4. Validate Price (Model requirement)
+    const attributes: any = {};
+    Object.keys(productData).forEach(key => {
+      if (!knownFields.includes(key)) {
+        attributes[key] = productData[key];
+      }
+    });
+    newProductData.attributes = attributes;
+
+    // 4. Validate Price
     if (newProductData.price === undefined || newProductData.price === null) {
       return res.status(400).json({
         success: false,
-        message: "Product price is required (add at least one variation)",
+        message: "Product price is required",
       });
     }
 
@@ -107,15 +117,8 @@ export const createProduct = asyncHandler(
       newProductData.tax = productData.taxId;
     }
 
-    // Validate variation prices
-    for (const variation of productData.variations) {
-      if (Number(variation.discPrice) > Number(variation.price)) {
-        return res.status(400).json({
-          success: false,
-          message: `Discounted price (${variation.discPrice}) cannot be greater than price (${variation.price}) for variation ${variation.title}`,
-        });
-      }
-    }
+    // 6. Set product status - All products are published automatically without approval
+    newProductData.publish = true;
 
     // 6. Set product status - All products are published automatically without approval
     newProductData.publish = true;
@@ -349,41 +352,39 @@ export const updateProduct = asyncHandler(
       updateData.category = sellerCategoryId;
     }
 
-    // Validate variations if provided
-    if (updateData.variations) {
-      if (updateData.variations.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Product must have at least one variation",
-        });
-      }
-
-      // Map variations and validate prices
-      updateData.variations = updateData.variations.map((v: any) => ({
-        ...v,
-        value: v.value || v.title,
-        name: v.name || "Variation",
-        discPrice: v.discPrice || 0,
-        status: v.status || "Available",
-      }));
-
-      for (const variation of updateData.variations) {
-        if (Number(variation.discPrice) > Number(variation.price)) {
-          return res.status(400).json({
-            success: false,
-            message: `Discounted price cannot be greater than price for variation ${variation.title || variation.value
-              }`,
-          });
+    // Auto-populate headerCategoryId from Category if missing or empty
+    if (!updateData.headerCategoryId && (updateData.category || sellerCategoryId)) {
+      try {
+        const CategoryModel = require("../../../models/Category").default;
+        const targetCatId = updateData.category || sellerCategoryId;
+        const categoryDoc = await CategoryModel.findById(targetCatId).select("headerCategoryId");
+        if (categoryDoc && categoryDoc.headerCategoryId) {
+          updateData.headerCategoryId = categoryDoc.headerCategoryId;
+          console.log(`[updateProduct] Auto-assigned headerCategoryId: ${categoryDoc.headerCategoryId} from category: ${targetCatId}`);
         }
+      } catch (err) {
+        console.error("[updateProduct] Error fetching category for headerCategoryId:", err);
       }
+    }
 
-      // Sync top-level price and stock from variations (same as createProduct)
-      updateData.price = updateData.variations[0].price;
-      updateData.discPrice = updateData.variations[0].discPrice || 0;
-      updateData.stock = updateData.variations.reduce(
-        (acc: number, curr: any) => acc + (parseInt(curr.stock) || 0),
-        0
-      );
+    // Handle any extra fields as dynamic attributes
+    const knownFields = [
+      "productName", "smallDescription", "description", "categoryId", "subcategoryId",
+      "brandId", "price", "discPrice", "stock", "mainImageUrl", "galleryImageUrls",
+      "productVideoUrl", "taxId", "isShopByStoreOnly", "shopId", "publish", "popular",
+      "dealOfDay", "status", "manufacturer", "madeIn", "requiresApproval", "tags",
+      "sellerId", "seller", "headerCategoryId", "category", "subcategory", "brand",
+      "mainImage", "galleryImages"
+    ];
+
+    const attributes: any = {};
+    Object.keys(updateData).forEach(key => {
+      if (!knownFields.includes(key)) {
+        attributes[key] = updateData[key];
+      }
+    });
+    if (Object.keys(attributes).length > 0) {
+      updateData.attributes = attributes;
     }
 
     // Handle Shop by Store fields
@@ -418,11 +419,6 @@ export const updateProduct = asyncHandler(
 
     // Apply updates
     Object.assign(product, updateData);
-
-    // If variations were updated, mark as modified
-    if (updateData.variations) {
-      product.markModified("variations");
-    }
 
     await product.save();
 
@@ -475,11 +471,11 @@ export const deleteProduct = asyncHandler(
 );
 
 /**
- * Update stock for a product variation
+ * Update stock for a product
  */
 export const updateStock = asyncHandler(async (req: Request, res: Response) => {
   const sellerId = (req as any).user.userId;
-  const { id, variationId } = req.params;
+  const { id } = req.params;
   const { stock, status } = req.body;
 
   const product = await Product.findOne({ _id: id, seller: sellerId });
@@ -491,31 +487,19 @@ export const updateStock = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  const variation: any = product.variations?.find(
-    (v: any) => v._id?.toString() === variationId
-  );
-  if (!variation) {
-    return res.status(404).json({
-      success: false,
-      message: "Variation not found",
-    });
-  }
-
   if (stock !== undefined) {
-    variation.stock = stock;
+    product.stock = stock;
     // Automatically update status based on stock
     if (stock === 0) {
-      variation.status = "Sold out";
-    } else if (stock > 0 && variation.status === "Sold out") {
-      variation.status = "Available";
+      product.status = "Inactive";
+    } else if (stock > 0 && product.status === "Inactive") {
+      product.status = "Active";
     }
   }
   if (status) {
-    variation.status = status;
+    product.status = status;
   }
-
-  // Mark variations as modified since we updated a sub-document field
-  product.markModified("variations");
+ 
   await product.save();
 
   return res.status(200).json({
@@ -561,12 +545,12 @@ export const updateProductStatus = asyncHandler(
 );
 
 /**
- * Bulk update stock for multiple products/variations
+ * Bulk update stock for multiple products
  */
 export const bulkUpdateStock = asyncHandler(
   async (req: Request, res: Response) => {
     const sellerId = (req as any).user.userId;
-    const { updates } = req.body; // Array of { productId, variationId, stock }
+    const { updates } = req.body; // Array of { productId, stock }
 
     if (!Array.isArray(updates)) {
       return res.status(400).json({
@@ -577,36 +561,25 @@ export const bulkUpdateStock = asyncHandler(
 
     const results = [];
     for (const update of updates) {
-      const { productId, variationId, stock } = update;
+      const { productId, stock } = update;
 
       const product = await Product.findOne({
         _id: productId,
         seller: sellerId,
       });
       if (product) {
-        const variation: any = product.variations?.find(
-          (v: any) => v._id?.toString() === variationId
-        );
-        if (variation) {
-          variation.stock = stock;
-          if (stock === 0) variation.status = "Sold out";
-          else if (stock > 0 && variation.status === "Sold out")
-            variation.status = "In stock";
-
-          await product.save();
-          results.push({ productId, variationId, success: true });
-        } else {
-          results.push({
-            productId,
-            variationId,
-            success: false,
-            message: "Variation not found",
-          });
+        product.stock = stock;
+        if (stock === 0) {
+          product.status = "Inactive";
+        } else if (stock > 0 && product.status === "Inactive") {
+          product.status = "Active";
         }
+
+        await product.save();
+        results.push({ productId, success: true });
       } else {
         results.push({
           productId,
-          variationId,
           success: false,
           message: "Product not found",
         });

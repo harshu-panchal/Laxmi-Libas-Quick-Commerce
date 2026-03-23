@@ -382,8 +382,8 @@ const SellerAccountSettings = () => {
                                                                 name="category"
                                                                 value={sellerData.category}
                                                                 onChange={handleInputChange}
-                                                                disabled={!isEditing}
-                                                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all appearance-none bg-white"
+                                                                disabled={true} // Locked as per category-locked registration rule
+                                                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none bg-gray-50/50 text-gray-500 cursor-not-allowed transition-all appearance-none"
                                                             >
                                                                 <option value="">Select Category</option>
                                                                 {categories.map(cat => (

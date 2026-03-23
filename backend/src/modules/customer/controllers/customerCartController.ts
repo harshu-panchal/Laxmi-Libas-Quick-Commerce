@@ -10,50 +10,31 @@ import { getRoadDistances } from '../../../services/mapService';
 import Seller from '../../../models/Seller';
 
 // Helper to calculate item price matching frontend logic
-const calculateItemPrice = (product: any, variationSelector: any) => {
-    let variation = null;
-    let variationId = variationSelector;
+const calculateItemPrice = (product: any) => {
+    // Priority: Product Discount Price -> Product Base Price
+    let finalPrice = product.discPrice && product.discPrice > 0
+        ? product.discPrice
+        : product.price || 0;
 
-    // Handle if variationSelector is an object (some implementations store it differently)
-    if (variationSelector && typeof variationSelector === 'object' && variationSelector._id) {
-        variationId = variationSelector._id;
-    }
-
-    if (variationId && product.variations?.length) {
-        variation = product.variations.find((v: any) =>
-            (v._id && v._id.toString() === variationId.toString()) ||
-            (v.id && v.id === variationId)
-        );
-    }
-
-    let finalPrice = variation?.price || product.price || 0;
-
-    // Priority: Variation Discount -> Product Discount -> Variation Price -> Product Price
-    if (variation?.discPrice && variation.discPrice > 0) {
-        finalPrice = variation.discPrice;
-    } else if (product.discPrice && product.discPrice > 0) {
-        finalPrice = product.discPrice;
-    }
-
-    console.log(`[DEBUG Price] VarId: ${variationId}, Found: ${!!variation}, ProdDisc: ${product.discPrice}, Final: ${finalPrice}`);
+    console.log(`[DEBUG Price] Item: ${product.productName}, DiscPrice: ${product.discPrice}, Price: ${product.price}, Final: ${finalPrice}`);
     return finalPrice;
 };
 
-// Helper to calculate cart total with location filtering
-const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.ObjectId[] | null = null) => {
+// Helper to calculate cart total
+const calculateCartTotal = async (cartId: any) => {
     const items = await CartItem.find({ cart: cartId }).populate({
         path: 'product',
-        select: 'price discPrice variations seller status publish productName'
+        select: 'price discPrice seller status publish productName'
     });
 
     let total = 0;
     for (const item of items) {
         const product = item.product as any;
         if (product && product.status === 'Active' && product.publish) {
-            // Check if seller is in range - disabled as per user request
-            const isAvailable = true; // Force true
+            // Always available as location filtering is removed
+            const isAvailable = true;
             if (isAvailable) {
-                const price = calculateItemPrice(product, item.variation);
+                const price = calculateItemPrice(product);
                 total += price * item.quantity;
             }
         }
@@ -148,20 +129,11 @@ export const getCart = async (req: Request, res: Response) => {
         const userLat = latitude ? parseFloat(latitude as string) : null;
         const userLng = longitude ? parseFloat(longitude as string) : null;
 
-        // Fetch nearby sellers if location is provided
-        let nearbySellerIds: mongoose.Types.ObjectId[] = [];
-        let locationProvided = false;
-
-        if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
-            nearbySellerIds = await findSellersWithinRange(userLat, userLng);
-            locationProvided = true;
-        }
-
         let cart = await Cart.findOne({ customer: userId }).populate({
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations'
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice'
             }
         });
 
@@ -181,7 +153,7 @@ export const getCart = async (req: Request, res: Response) => {
                 const isAvailable = true;
                 if (isAvailable) {
                     filteredItems.push(item);
-                    const price = calculateItemPrice(product, item.variation);
+                    const price = calculateItemPrice(product);
                     total += price * item.quantity;
                     console.log(`[DEBUG CartLoop] Item: ${product.productName}, Price: ${price}, Qty: ${item.quantity}, RunningTotal: ${total}`);
                 }
@@ -229,15 +201,8 @@ export const addToCart = async (req: Request, res: Response) => {
         // Parse location
         const userLat = latitude ? parseFloat(latitude as string) : null;
         const userLng = longitude ? parseFloat(longitude as string) : null;
-        let locationProvided = false;
-        let nearbySellerIds: mongoose.Types.ObjectId[] = [];
 
-        if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
-            nearbySellerIds = await findSellersWithinRange(userLat, userLng);
-            locationProvided = true;
-        }
-
-        // Verify product exists and is available at location
+        // Verify product exists
         const product = await Product.findOne({ _id: productId, status: 'Active', publish: true }).populate('seller');
         if (!product) {
             return res.status(404).json({ success: false, message: 'Product not found or unavailable' });
@@ -251,9 +216,6 @@ export const addToCart = async (req: Request, res: Response) => {
                 message: 'Seller is not available at this moment'
             });
         }
-
-        // Check availability - disabled as per user request
-        // if (locationProvided) ... (removed)
 
         // Get or create cart
         let cart = await Cart.findOne({ customer: userId });
@@ -283,16 +245,16 @@ export const addToCart = async (req: Request, res: Response) => {
             cart.items.push(cartItem._id as any);
         }
 
-        // Update total without location filtering
-        cart.total = await calculateCartTotal(cart._id, null);
+        // Update total
+        cart.total = await calculateCartTotal(cart._id);
         await cart.save();
 
-        // Return updated cart with filtering
+        // Return updated cart
         const updatedCart = await Cart.findById(cart._id).populate({
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations'
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice'
             }
         });
 
@@ -338,13 +300,6 @@ export const updateCartItem = async (req: Request, res: Response) => {
         // Parse location
         const userLat = latitude ? parseFloat(latitude as string) : null;
         const userLng = longitude ? parseFloat(longitude as string) : null;
-        let locationProvided = false;
-        let nearbySellerIds: mongoose.Types.ObjectId[] = [];
-
-        if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
-            nearbySellerIds = await findSellersWithinRange(userLat, userLng);
-            locationProvided = true;
-        }
 
         const cart = await Cart.findOne({ customer: userId });
         if (!cart) {
@@ -356,21 +311,18 @@ export const updateCartItem = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, message: 'Item not found in cart' });
         }
 
-        // Verify item is still available at location - disabled
-        // if (locationProvided) ... (removed)
-
         cartItem.quantity = quantity;
         await cartItem.save();
 
-        // Calculate total without location filtering
-        cart.total = await calculateCartTotal(cart._id, null);
+        // Calculate total
+        cart.total = await calculateCartTotal(cart._id);
         await cart.save();
 
         const updatedCart = await Cart.findById(cart._id).populate({
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations'
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice'
             }
         });
 
@@ -422,22 +374,15 @@ export const removeFromCart = async (req: Request, res: Response) => {
         // Remove from cart array
         cart.items = cart.items.filter(id => id.toString() !== itemId);
 
-        // Calculate total with location if provided
-        let nearbySellerIds: mongoose.Types.ObjectId[] = [];
-        let locationProvided = false;
-        if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
-            nearbySellerIds = await findSellersWithinRange(userLat, userLng);
-            locationProvided = true;
-        }
-
-        cart.total = await calculateCartTotal(cart._id, locationProvided ? nearbySellerIds : null);
+        // Calculate total
+        cart.total = await calculateCartTotal(cart._id);
         await cart.save();
 
         const updatedCart = await Cart.findById(cart._id).populate({
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations'
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice'
             }
         });
 
