@@ -661,9 +661,9 @@ export const checkSellerProximity = asyncHandler(
     return res.status(200).json({
       success: true,
       data: {
-        withinRange,
-        distance: distance.toFixed(3), // in km
-        distanceMeters: Math.round(distance * 1000), // in meters
+        withinRange: true,
+        distance: "0.000", // in km
+        distanceMeters: 0, // in meters
         sellerName: seller.storeName,
       },
     });
@@ -712,21 +712,8 @@ export const confirmSellerPickup = asyncHandler(
         .json({ success: false, message: "Seller location not found" });
     }
 
-    const { calculateDistance } = await import("../../../utils/locationHelper");
-    const distance = calculateDistance(
-      latitude,
-      longitude,
-      parseFloat(seller.latitude),
-      parseFloat(seller.longitude),
-    );
-
-    if (distance > 0.5) {
-      // 500m = 0.5km
-      return res.status(400).json({
-        success: false,
-        message: `You must be within 500 meters of the seller to confirm pickup. Current distance: ${Math.round(distance * 1000)}m`,
-      });
-    }
+    // Geolocation proximity check removed per user request
+    const distance = 0;
 
     // Check if this seller is already picked up
     const existingPickup = order.sellerPickups?.find(
@@ -884,9 +871,9 @@ export const checkCustomerProximity = asyncHandler(
     return res.status(200).json({
       success: true,
       data: {
-        withinRange,
-        distance: distance.toFixed(3), // in km
-        distanceMeters: Math.round(distance * 1000), // in meters
+        withinRange: true,
+        distance: "0.000", // in km
+        distanceMeters: 0, // in meters
         customerName: order.customerName,
       },
     });

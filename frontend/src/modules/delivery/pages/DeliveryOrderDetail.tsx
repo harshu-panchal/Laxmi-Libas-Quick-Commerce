@@ -191,14 +191,15 @@ export default function DeliveryOrderDetail() {
 
     // Handle seller pickup confirmation
     const handleSellerPickup = async (sellerId: string) => {
-        if (!id || !deliveryBoyLocation) {
-            alert('Location not available');
+        if (!id) {
+            alert('Order ID not available');
             return;
         }
 
         try {
             setPickupLoading(prev => ({ ...prev, [sellerId]: true }));
-            const result = await confirmSellerPickup(id, sellerId, deliveryBoyLocation.lat, deliveryBoyLocation.lng);
+            // Using 0,0 as placeholder coordinates as backend no longer enforces proximity
+            const result = await confirmSellerPickup(id, sellerId, 0, 0);
             alert(result.message || 'Pickup confirmed successfully');
             await fetchOrder(); // Refresh order data
         } catch (err: any) {
@@ -258,7 +259,7 @@ export default function DeliveryOrderDetail() {
                         withinRange: response.data.withinRange,
                         distance: response.data.distanceMeters
                     });
-                    setGetOtpEnabled(response.data.withinRange);
+                    setGetOtpEnabled(true);
                 }
             } catch (error) {
                 console.error('Failed to check customer proximity:', error);
@@ -660,27 +661,21 @@ export default function DeliveryOrderDetail() {
                                                     )}
                                                 </div>
                                                 <p className="text-sm text-neutral-600">{seller.address}, {seller.city}</p>
-                                                {distance !== undefined && (
-                                                    <p className={`text-xs mt-1 font-medium ${withinRange ? 'text-primary-dark' :
-                                                            distance < 1000 ? 'text-yellow-600' : 'text-red-600'
-                                                        }`}>
-                                                        {distance < 1000 ? `${distance}m away` : `${(distance / 1000).toFixed(1)}km away`}
-                                                    </p>
-                                                )}
+                                                {/* Distance hidden per user request */}
                                             </div>
                                         </div>
 
                                         {!isPickedUp && (
-                                            <button
-                                                onClick={() => handleSellerPickup(seller.sellerId)}
-                                                disabled={!withinRange || isLoading}
-                                                className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all ${withinRange && !isLoading
-                                                        ? 'bg-primary-dark text-white hover:bg-yellow-700 active:scale-[0.98]'
-                                                        : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                                                    }`}
-                                            >
-                                                {isLoading ? 'Confirming...' : withinRange ? 'Confirm Pickup' : 'Move within 500m to pickup'}
-                                            </button>
+                                                <button
+                                                    onClick={() => handleSellerPickup(seller.sellerId)}
+                                                    disabled={isLoading}
+                                                    className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all ${!isLoading
+                                                            ? 'bg-primary-dark text-white hover:bg-yellow-700 active:scale-[0.98]'
+                                                            : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                                                        }`}
+                                                >
+                                                    {isLoading ? 'Confirming...' : 'Confirm Pickup'}
+                                                </button>
                                         )}
                                     </div>
                                 );
@@ -763,11 +758,7 @@ export default function DeliveryOrderDetail() {
                             </div>
                             <div>
                                 <p className="text-sm text-neutral-600 leading-relaxed font-medium">{order.address}</p>
-                                {order.distance && (
-                                    <span className="inline-block mt-1 text-xs px-2 py-0.5 bg-neutral-100 text-neutral-600 rounded-md">
-                                        {order.distance} away
-                                    </span>
-                                )}
+                                {/* Distance hidden per user request */}
                             </div>
                         </div>
                     </div>
