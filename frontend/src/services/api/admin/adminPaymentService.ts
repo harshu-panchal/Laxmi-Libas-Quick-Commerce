@@ -9,8 +9,6 @@ export interface PaymentMethodConfig {
   description: string;
   status: "Active" | "InActive";
   hasApiKeys: boolean;
-  apiKey?: string;
-  secretKey?: string;
   type?: string;
   provider?: string;
 }
@@ -18,8 +16,6 @@ export interface PaymentMethodConfig {
 export interface UpdatePaymentMethodData {
   description?: string;
   status?: "Active" | "InActive";
-  apiKey?: string;
-  secretKey?: string;
 }
 
 export interface GetPaymentMethodsParams {

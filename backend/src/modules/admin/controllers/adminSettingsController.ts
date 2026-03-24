@@ -35,6 +35,12 @@ export const updateAppSettings = asyncHandler(
     const updateData = req.body;
     updateData.updatedBy = req.user?.userId;
 
+    // Prevent storing Razorpay secrets in MongoDB. Payment service reads only from .env.
+    if (updateData.paymentGateways?.razorpay) {
+      delete updateData.paymentGateways.razorpay.keyId;
+      delete updateData.paymentGateways.razorpay.keySecret;
+    }
+
     console.log(`[DEBUG Settings] Incoming update payload:`, JSON.stringify(updateData.deliveryConfig, null, 2));
 
     let settings = await AppSettings.findOne();

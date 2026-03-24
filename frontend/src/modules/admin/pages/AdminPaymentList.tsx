@@ -29,9 +29,7 @@ export default function AdminPaymentList() {
       name: 'Razorpay',
       description: 'Pay securely with Razorpay',
       status: 'Active',
-      hasApiKeys: true,
-      apiKey: '',
-      secretKey: '',
+      hasApiKeys: false,
       provider: 'razorpay',
       type: 'gateway',
     },
@@ -118,11 +116,6 @@ export default function AdminPaymentList() {
         status: method.status,
       };
 
-      if (method.hasApiKeys) {
-        updateData.apiKey = method.apiKey || "";
-        updateData.secretKey = method.secretKey || "";
-      }
-
       const response = await updatePaymentMethod(id, updateData);
 
       if (response.success) {
@@ -207,39 +200,9 @@ export default function AdminPaymentList() {
                   />
                 </div>
 
-                {/* API Key (if applicable) */}
-                {method.hasApiKeys && (
-                  <div>
-                    <label className="block text-sm font-bold text-neutral-800 mb-2">
-                      API Key/ Client Id/ Public Key
-                    </label>
-                    <input
-                      type="text"
-                      value={method.apiKey || ""}
-                      onChange={(e) =>
-                        handleUpdate(method._id, "apiKey", e.target.value)
-                      }
-                      disabled={updating === method._id}
-                      className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-neutral-50 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-neutral-100 disabled:cursor-not-allowed"
-                    />
-                  </div>
-                )}
-
-                {/* Secret Key (if applicable) */}
-                {method.hasApiKeys && (
-                  <div>
-                    <label className="block text-sm font-bold text-neutral-800 mb-2">
-                      Secret Key/ Client Secret
-                    </label>
-                    <input
-                      type="password"
-                      value={method.secretKey || ""}
-                      onChange={(e) =>
-                        handleUpdate(method._id, "secretKey", e.target.value)
-                      }
-                      disabled={updating === method._id}
-                      className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-neutral-50 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-neutral-100 disabled:cursor-not-allowed"
-                    />
+                {method.provider === "razorpay" && (
+                  <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Razorpay credentials are read only from backend <code>.env</code> and are no longer stored in admin settings.
                   </div>
                 )}
 

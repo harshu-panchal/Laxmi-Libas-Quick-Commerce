@@ -43,8 +43,6 @@ export const getPaymentMethods = asyncHandler(
                     description: "Pay securely with Razorpay",
                     isActive: true,
                     order: 2,
-                    apiKey: "",
-                    secretKey: "",
                 }
             ];
             
@@ -59,12 +57,10 @@ export const getPaymentMethods = asyncHandler(
             name: pm.name,
             description: pm.description,
             status: pm.isActive ? "Active" : "InActive",
-            hasApiKeys: pm.type === "Online" || pm.provider === "razorpay",
+            // Razorpay credentials are sourced only from environment variables.
+            hasApiKeys: false,
             provider: pm.provider,
             type: pm.type === "COD" ? "cod" : "gateway",
-            // We return empty keys if select: false kept them hidden
-            apiKey: pm.apiKey || "",
-            secretKey: pm.secretKey || "",
         }));
 
         return res.status(200).json({
@@ -94,8 +90,7 @@ export const getPaymentMethodById = asyncHandler(
             return res.status(404).json({ success: false, message: "Invalid Payment Method ID" });
         }
 
-        // We explicitly select keys to return them if needed for editing (though usually we mask them)
-        const paymentMethod = await PaymentMethod.findOne(query).select("+apiKey +secretKey");
+        const paymentMethod = await PaymentMethod.findOne(query);
 
         if (!paymentMethod) {
             return res.status(404).json({
@@ -109,9 +104,7 @@ export const getPaymentMethodById = asyncHandler(
             name: paymentMethod.name,
             description: paymentMethod.description,
             status: paymentMethod.isActive ? "Active" : "InActive",
-            hasApiKeys: !!paymentMethod.apiKey,
-            apiKey: paymentMethod.apiKey,
-            secretKey: paymentMethod.secretKey,
+            hasApiKeys: false,
             provider: paymentMethod.provider,
             type: paymentMethod.type === "COD" ? "cod" : "gateway",
         };
@@ -130,7 +123,7 @@ export const getPaymentMethodById = asyncHandler(
 export const updatePaymentMethod = asyncHandler(
     async (req: Request, res: Response) => {
         const { id } = req.params;
-        const { description, status, apiKey, secretKey, provider } = req.body;
+        const { description, status, provider } = req.body;
 
         let query: any;
         if (id === "cod") {
@@ -154,9 +147,13 @@ export const updatePaymentMethod = asyncHandler(
 
         if (description) paymentMethod.description = description;
         if (status) paymentMethod.isActive = status === "Active";
-        if (apiKey) paymentMethod.apiKey = apiKey;
-        if (secretKey) paymentMethod.secretKey = secretKey;
         if (provider) paymentMethod.provider = provider;
+
+        // Force Razorpay keys to remain empty in MongoDB.
+        if (paymentMethod.provider?.toLowerCase() === "razorpay" || paymentMethod.name?.toLowerCase().includes("razorpay")) {
+            paymentMethod.apiKey = undefined;
+            paymentMethod.secretKey = undefined;
+        }
 
         await paymentMethod.save();
 
