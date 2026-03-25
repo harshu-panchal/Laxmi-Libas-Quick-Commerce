@@ -219,7 +219,7 @@ export const useDeliveryOrderNotifications = () => {
         });
 
         return socket;
-    }, [isAuthenticated, user]);
+    }, [isAuthenticated, user, handleNewNotification]);
 
     const attemptReconnect = useCallback(() => {
         reconnectAttemptsRef.current += 1;
@@ -359,4 +359,3 @@ export const useDeliveryOrderNotifications = () => {
         socket: socketRef.current,
     };
 };
-

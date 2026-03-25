@@ -597,56 +597,139 @@ export default function DeliveryOrderDetail() {
 
             {/* Google Maps View - Shared Component for Parity */}
             {isMapVisible && (
-                <GoogleMapsTracking
-                    apiKey={publicConfig?.googleMapsKey}
-                    sellerLocations={
-                        (order.status === 'Out for Delivery' || order.status === 'Picked up')
-                            ? []  // Hide seller markers when delivering to customer
-                            : sellerLocations.map(s => ({
-                                lat: s.latitude,
-                                lng: s.longitude,
-                                name: s.storeName
-                            }))
-                    }
-                    customerLocation={{
-                        lat: order.deliveryAddress?.latitude || order.address?.latitude || 0,
-                        lng: order.deliveryAddress?.longitude || order.address?.longitude || 0
-                    }}
-                    deliveryLocation={deliveryBoyLocation || undefined}
-                    isTracking={!!deliveryBoyLocation}
-                    showRoute={!!deliveryBoyLocation && (
-                        ((order.status === 'Picked up' || order.status === 'Out for Delivery') && hasValidCustomerLocation) ||
-                        (sellerLocations.length > 0 && order.status !== 'Delivered' && order.status !== 'Picked up' && order.status !== 'Out for Delivery')
-                    )}
-                    routeOrigin={deliveryBoyLocation || undefined}
-                    routeDestination={
-                        order.status === 'Picked up' || order.status === 'Out for Delivery'
-                            ? (hasValidCustomerLocation ? {
-                                lat: customerLat!,
-                                lng: customerLng!
-                            } : undefined)
-                            : sellerLocations.length > 0
-                                ? { lat: sellerLocations[sellerLocations.length - 1].latitude, lng: sellerLocations[sellerLocations.length - 1].longitude }
-                                : undefined
-                    }
-                    routeWaypoints={
-                        order.status === 'Picked up' || order.status === 'Out for Delivery'
-                            ? []
-                            : sellerLocations.length > 1
-                                ? sellerLocations.slice(0, -1).map(s => ({ lat: s.latitude, lng: s.longitude }))
-                                : []
-                    }
-                    destinationName={
-                        order.status === 'Picked up' || order.status === 'Out for Delivery'
-                            ? order.address?.split(',')[0]
-                            : sellerLocations.length > 0
-                                ? sellerLocations[0].storeName
-                                : undefined
-                    }
-                    onRouteInfoUpdate={setRouteInfo}
-                    lastUpdate={lastUpdate}
-                />
+                <div className="relative">
+                    <GoogleMapsTracking
+                        apiKey={publicConfig?.googleMapsKey}
+                        sellerLocations={
+                            (order.status === 'Out for Delivery' || order.status === 'Picked up')
+                                ? []  // Hide seller markers when delivering to customer
+                                : sellerLocations.map(s => ({
+                                    lat: s.latitude,
+                                    lng: s.longitude,
+                                    name: s.storeName
+                                }))
+                        }
+                        customerLocation={{
+                            lat: order.deliveryAddress?.latitude || order.address?.latitude || 0,
+                            lng: order.deliveryAddress?.longitude || order.address?.longitude || 0
+                        }}
+                        deliveryLocation={deliveryBoyLocation || undefined}
+                        isTracking={!!deliveryBoyLocation}
+                        showRoute={!!deliveryBoyLocation && (
+                            ((order.status === 'Picked up' || order.status === 'Out for Delivery') && hasValidCustomerLocation) ||
+                            (sellerLocations.length > 0 && order.status !== 'Delivered' && order.status !== 'Picked up' && order.status !== 'Out for Delivery')
+                        )}
+                        routeOrigin={deliveryBoyLocation || undefined}
+                        routeDestination={
+                            order.status === 'Picked up' || order.status === 'Out for Delivery'
+                                ? (hasValidCustomerLocation ? {
+                                    lat: customerLat!,
+                                    lng: customerLng!
+                                } : undefined)
+                                : sellerLocations.length > 0
+                                    ? { lat: sellerLocations[sellerLocations.length - 1].latitude, lng: sellerLocations[sellerLocations.length - 1].longitude }
+                                    : undefined
+                        }
+                        routeWaypoints={
+                            order.status === 'Picked up' || order.status === 'Out for Delivery'
+                                ? []
+                                : sellerLocations.length > 1
+                                    ? sellerLocations.slice(0, -1).map(s => ({ lat: s.latitude, lng: s.longitude }))
+                                    : []
+                        }
+                        destinationName={
+                            order.status === 'Picked up' || order.status === 'Out for Delivery'
+                                ? order.address?.split(',')[0]
+                                : sellerLocations.length > 0
+                                    ? sellerLocations[0].storeName
+                                    : undefined
+                        }
+                        onRouteInfoUpdate={setRouteInfo}
+                        lastUpdate={lastUpdate}
+                    />
+                    
+                    {/* Navigation Floating Actions */}
+                    <div className="absolute top-4 right-4 flex flex-col gap-2">
+                        <button 
+                            onClick={() => {
+                                const dest = order.status === 'Out for Delivery' || order.status === 'Picked up'
+                                    ? (customerLat && customerLng ? `${customerLat},${customerLng}` : encodeURIComponent(order.address))
+                                    : (sellerLocations.length > 0 ? `${sellerLocations[0].latitude},${sellerLocations[0].longitude}` : "");
+                                if(dest) window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`, '_blank');
+                            }}
+                            className="p-3 bg-white text-blue-600 rounded-full shadow-lg border border-blue-100 hover:bg-blue-50"
+                            title="Open in Google Maps"
+                        >
+                            <Icons.Navigation size={24} />
+                        </button>
+                    </div>
+                </div>
             )}
+
+            {/* Manual Navigation Hub - Primum Address Card (Crucial for manual delivery) */}
+            <div className="px-4 -mt-6 relative z-10 space-y-3">
+                <div className="bg-white rounded-3xl p-5 shadow-xl border border-neutral-100 ring-4 ring-neutral-50/50">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className={`w-2 h-2 rounded-full animate-pulse ${order.status === 'Delivered' ? 'bg-green-500' : 'bg-primary-dark'}`} />
+                        <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-400">Current Goal</h2>
+                    </div>
+
+                    {order.status === 'Accepted' || order.status === 'Pending' || order.status === 'Ready for pickup' ? (
+                        <div className="space-y-3">
+                            <p className="text-lg font-bold text-neutral-800">Pick up from Sellers</p>
+                            {sellerLocations.map((s, idx) => (
+                                <div key={idx} className="flex items-start gap-3 p-3 bg-neutral-50 rounded-2xl">
+                                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0">
+                                        <Icons.Store size={16} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-neutral-900 truncate">{s.storeName}</p>
+                                        <p className="text-xs text-neutral-500 leading-tight">{s.address}, {s.city}</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`, '_blank')}
+                                        className="p-2 bg-white rounded-xl shadow-sm border border-neutral-100 text-blue-600"
+                                    >
+                                        <Icons.Navigation size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <p className="text-lg font-bold text-neutral-800">Deliver to Customer</p>
+                            <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-8 h-8 bg-orange-200 rounded-full flex items-center justify-center text-orange-700">
+                                        <Icons.User size={16} />
+                                    </div>
+                                    <p className="font-bold text-neutral-900">{order.customerName}</p>
+                                </div>
+                                <p className="text-sm text-neutral-700 mb-3">{order.address}</p>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => window.open(`tel:${order.customerPhone}`, '_system')}
+                                        className="flex-1 py-2.5 bg-white rounded-xl shadow-sm border border-neutral-200 flex items-center justify-center gap-2 text-neutral-700 font-bold text-xs"
+                                    >
+                                        <Icons.Phone size={14} />
+                                        Call Customer
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            const dest = hasValidCustomerLocation ? `${customerLat},${customerLng}` : encodeURIComponent(order.address);
+                                            window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`, '_blank');
+                                        }}
+                                        className="flex-1 py-2.5 bg-blue-600 rounded-xl shadow-sm flex items-center justify-center gap-2 text-white font-bold text-xs"
+                                    >
+                                        <Icons.Navigation size={14} />
+                                        Navigate
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
 
             {/* Seller Locations Card with Pickup Buttons (before all sellers picked up) */}
             {showSellerLocations && sellerLocations.length > 0 && (
@@ -762,50 +845,23 @@ export default function DeliveryOrderDetail() {
                 )}
 
 
-                {/* Customer Details */}
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100">
-                    <h3 className="font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                        <Icons.User size={18} className="text-neutral-500" />
-                        Customer Details
-                    </h3>
-                    <div className="space-y-4">
-                        <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
-                                <Icons.User size={20} />
-                            </div>
-                            <div>
-                                <p className="font-medium text-neutral-900">{order.customerName}</p>
-                                <p className="text-sm text-neutral-500">Customer</p>
-                            </div>
-                            <button
-                                onClick={() => window.open(`tel:${order.customerPhone}`, '_system')}
-                                className="ml-auto p-3 bg-yellow-400 text-white rounded-full hover:bg-primary-dark shadow-md transition-transform hover:scale-105 active:scale-95"
-                            >
-                                <Icons.Phone size={20} />
-                            </button>
-                        </div>
-                        <div className="flex items-start gap-3 pt-3 border-t border-neutral-50">
-                            <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0 text-orange-600">
-                                <Icons.MapPin size={20} />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-sm text-neutral-600 leading-relaxed font-medium mb-2">{order.address}</p>
-                                {hasValidCustomerLocation && (
-                                    <button
-                                        onClick={() => {
-                                            const dest = (order.deliveryAddress.latitude && order.deliveryAddress.longitude) ? `${order.deliveryAddress.latitude},${order.deliveryAddress.longitude}` : encodeURIComponent(`${order.deliveryAddress.address}, ${order.deliveryAddress.city}`);
-                                            window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`, '_blank');
-                                        }}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors"
-                                    >
-                                        <Icons.Navigation size={14} />
-                                        Navigate to Customer
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+                {/* Main Action Button - Now much more prominent below goal */}
+                {nextStatus && order.status !== 'Out for Delivery' && !showOtpInput && (
+                    <div className="pt-2">
+                        <button
+                            onClick={() => handleStatusChange(nextStatus)}
+                            className="w-full py-5 rounded-3xl bg-neutral-900 text-white font-bold text-xl shadow-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all hover:bg-black ring-offset-2 ring-2 ring-black/5"
+                            disabled={loading}
+                        >
+                            {loading ? 'Updating...' :
+                                nextStatus === 'Accepted' ? 'Accept Order' :
+                                    nextStatus === 'Picked up' ? 'Mark as Picked Up' :
+                                        nextStatus === 'Out for Delivery' ? 'Start Delivery Journey' :
+                                            `Set to ${nextStatus}`}
+                            {!loading && <Icons.ChevronLeft className="rotate-180" size={20} />}
+                        </button>
                     </div>
-                </div>
+                )}
 
                 {/* Delivery Earning Card - Show only if delivered or has earning */}
                 {(order.status === 'Delivered' || (order.deliveryEarning && order.deliveryEarning > 0)) && (
@@ -869,24 +925,6 @@ export default function DeliveryOrderDetail() {
                     </div>
                 </div>
 
-                {/* Main Action Button - Now in regular flow for simplicity and reliability */}
-                {nextStatus && order.status !== 'Out for Delivery' && !showOtpInput && (
-                    <div className="px-5 py-6">
-                        <button
-                            onClick={() => handleStatusChange(nextStatus)}
-                            className="w-full py-4 rounded-2xl bg-black text-white font-bold text-lg shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all hover:bg-neutral-800"
-                            disabled={loading}
-                        >
-                            {loading ? 'Updating...' :
-                                nextStatus === 'Accepted' ? 'Accept Order' :
-                                    nextStatus === 'Picked up' ? 'Order Taken' :
-                                        nextStatus === 'Out for Delivery' ? 'Start Delivery' :
-                                            `Mark as ${nextStatus}`}
-                            {!loading && <Icons.ChevronLeft className="rotate-180" size={18} />}
-                        </button>
-                    </div>
-                )}
-                
                 {/* Bottom Spacer for better scrolling on mobile */}
                 <div className="h-32"></div>
             </div>
