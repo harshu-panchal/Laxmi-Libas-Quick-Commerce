@@ -4,7 +4,7 @@ import AppSettings from "../models/AppSettings";
 /**
  * Get public configuration like Google Maps Key
  */
-export const getPublicConfig = async (req: Request, res: Response) => {
+export const getPublicConfig = async (_req: Request, res: Response) => {
   try {
     const settings = await AppSettings.getSettings();
     

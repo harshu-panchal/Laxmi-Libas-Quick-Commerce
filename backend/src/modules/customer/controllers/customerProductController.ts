@@ -160,7 +160,8 @@ export const getProducts = async (req: Request, res: Response) => {
 export const getProductById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { latitude, longitude } = req.query; // User location
+    // latitude and longitude are no longer used following geolocation restriction removal
+    // const { latitude, longitude } = req.query; 
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
