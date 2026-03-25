@@ -4,6 +4,18 @@ import Delivery from "../../../models/Delivery";
 import DeliveryAssignment from "../../../models/DeliveryAssignment";
 import CashCollection from "../../../models/CashCollection";
 
+const formatDeliveryBoy = (deliveryBoy: any) => {
+  if (!deliveryBoy) return deliveryBoy;
+
+  const plainDeliveryBoy =
+    typeof deliveryBoy.toObject === "function" ? deliveryBoy.toObject() : deliveryBoy;
+
+  return {
+    ...plainDeliveryBoy,
+    available: plainDeliveryBoy.isOnline ? "Available" : "Not Available",
+  };
+};
+
 /**
  * Create a new delivery boy
  */
@@ -57,7 +69,7 @@ export const createDeliveryBoy = asyncHandler(
     return res.status(201).json({
       success: true,
       message: "Delivery boy created successfully",
-      data: deliveryBoy,
+      data: formatDeliveryBoy(deliveryBoy),
     });
   }
 );
@@ -80,7 +92,9 @@ export const getAllDeliveryBoys = asyncHandler(
     const query: any = {};
 
     if (status) query.status = status;
-    if (available) query.available = available;
+    if (available) {
+      query.isOnline = available === "Available";
+    }
     if (search) {
       query.$or = [
         { name: { $regex: search as string, $options: "i" } },
@@ -107,7 +121,7 @@ export const getAllDeliveryBoys = asyncHandler(
     return res.status(200).json({
       success: true,
       message: "Delivery boys fetched successfully",
-      data: deliveryBoys,
+      data: deliveryBoys.map((deliveryBoy) => formatDeliveryBoy(deliveryBoy)),
       pagination: {
         page: parseInt(page as string),
         limit: parseInt(limit as string),
@@ -137,7 +151,7 @@ export const getDeliveryBoyById = asyncHandler(
     return res.status(200).json({
       success: true,
       message: "Delivery boy fetched successfully",
-      data: deliveryBoy,
+      data: formatDeliveryBoy(deliveryBoy),
     });
   }
 );
@@ -168,7 +182,7 @@ export const updateDeliveryBoy = asyncHandler(
     return res.status(200).json({
       success: true,
       message: "Delivery boy updated successfully",
-      data: deliveryBoy,
+      data: formatDeliveryBoy(deliveryBoy),
     });
   }
 );
@@ -249,7 +263,7 @@ export const updateDeliveryStatus = asyncHandler(
     return res.status(200).json({
       success: true,
       message: "Delivery boy status updated successfully",
-      data: deliveryBoy,
+      data: formatDeliveryBoy(deliveryBoy),
     });
   }
 );
@@ -271,7 +285,7 @@ export const updateDeliveryBoyAvailability = asyncHandler(
 
     const deliveryBoy = await Delivery.findByIdAndUpdate(
       id,
-      { available },
+      { isOnline: available === "Available" },
       { new: true, runValidators: true }
     ).select("-password");
 
@@ -285,7 +299,7 @@ export const updateDeliveryBoyAvailability = asyncHandler(
     return res.status(200).json({
       success: true,
       message: "Delivery boy availability updated successfully",
-      data: deliveryBoy,
+      data: formatDeliveryBoy(deliveryBoy),
     });
   }
 );

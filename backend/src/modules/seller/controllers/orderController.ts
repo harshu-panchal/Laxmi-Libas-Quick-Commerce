@@ -59,10 +59,11 @@ export const getOrders = asyncHandler(
     // Search filter
     if (search) {
       query.$or = [
-        { orderId: { $regex: search, $options: "i" } },
+        { orderNumber: { $regex: search, $options: "i" } },
         { invoiceNumber: { $regex: search, $options: "i" } },
-        { 'deliveryAddress.name': { $regex: search, $options: "i" } },
-        { 'deliveryAddress.phone': { $regex: search, $options: "i" } },
+        { customerName: { $regex: search, $options: "i" } },
+        { customerPhone: { $regex: search, $options: "i" } },
+        { customerEmail: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -127,7 +128,7 @@ export const getOrderById = asyncHandler(
     // First check if this seller has items in this order
     const sellerItems = await OrderItem.find({ order: id, seller: sellerId })
       .populate("seller", "storeName")
-      .populate("product");
+      .populate("product", "productName mainImage pack");
 
     if (!sellerItems || sellerItems.length === 0) {
       return res.status(404).json({
@@ -151,25 +152,36 @@ export const getOrderById = asyncHandler(
     // Get only this seller's order items
     const orderItems = sellerItems;
 
+    const sellerSubtotal = orderItems.reduce((sum, item) => sum + (item.total || 0), 0);
+    const orderSubtotal = order.subtotal || sellerSubtotal || 0;
+    const sellerTaxTotal =
+      orderSubtotal > 0 ? Number((((order.tax || 0) * sellerSubtotal) / orderSubtotal).toFixed(2)) : 0;
+
     // Format order items for frontend
     const formattedItems = orderItems.map(item => {
+      const itemSubtotal = item.total || 0;
+      const itemTax =
+        sellerSubtotal > 0 ? Number(((sellerTaxTotal * itemSubtotal) / sellerSubtotal).toFixed(2)) : 0;
+      const populatedProduct = item.product as any;
+
       return {
         srNo: item._id.toString().slice(-4), // Use last 4 chars of ID as srNo
-        product: item.productName || 'Unknown Product',
+        product: item.productName || populatedProduct?.productName || 'Unknown Product',
+        productImage: item.productImage || populatedProduct?.mainImage || '',
         soldBy: (item.seller as any)?.storeName || 'N/A',
-        unit: item.variation || 'N/A',
+        unit: item.variation || item.variantTitle || populatedProduct?.pack || 'N/A',
         price: item.unitPrice || 0,
-        tax: 0,
-        taxPercent: 0,
+        tax: itemTax,
+        taxPercent: itemSubtotal > 0 ? Number(((itemTax / itemSubtotal) * 100).toFixed(2)) : 0,
         qty: item.quantity || 0,
-        subtotal: item.total || 0,
+        subtotal: itemSubtotal,
       };
     });
 
     // Format order data for frontend
     const orderDetail = {
       id: order._id,
-      invoiceNumber: order.invoiceNumber || order.orderNumber || 'N/A',
+      invoiceNumber: order.invoiceNumber || `INV-${order.orderNumber}-${String(sellerId).slice(-4)}`,
       orderDate: order.orderDate ? order.orderDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       deliveryDate: order.estimatedDeliveryDate ? order.estimatedDeliveryDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       timeSlot: order.timeSlot || 'N/A',
@@ -180,9 +192,9 @@ export const getOrderById = asyncHandler(
       deliveryBoyName: (order.deliveryBoy as any)?.name || '',
       deliveryBoyPhone: (order.deliveryBoy as any)?.mobile || '',
       items: formattedItems,
-      subtotal: order.subtotal || 0,
-      tax: order.tax || 0,
-      grandTotal: order.total || 0,
+      subtotal: sellerSubtotal,
+      tax: sellerTaxTotal,
+      grandTotal: Number((sellerSubtotal + sellerTaxTotal).toFixed(2)),
       paymentMethod: order.paymentMethod || 'N/A',
       paymentStatus: order.paymentStatus || 'Pending',
       deliveryAddress: order.deliveryAddress || {},

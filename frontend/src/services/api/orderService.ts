@@ -21,6 +21,7 @@ export interface Order {
 export interface OrderItem {
   srNo: string;
   product: string;
+  productImage?: string;
   soldBy: string;
   unit: string;
   price: number;
@@ -47,7 +48,15 @@ export interface OrderDetail {
   orderDate: string;
   deliveryDate: string;
   timeSlot: string;
-  status: 'Out For Delivery' | 'Received' | 'Payment Pending' | 'Cancelled' | 'Rejected';
+  status:
+    | 'Accepted'
+    | 'On the way'
+    | 'Out For Delivery'
+    | 'Received'
+    | 'Payment Pending'
+    | 'Delivered'
+    | 'Cancelled'
+    | 'Rejected';
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -63,7 +72,7 @@ export interface OrderDetail {
 }
 
 export interface UpdateOrderStatusData {
-  status: 'Accepted' | 'On the way' | 'Delivered' | 'Cancelled';
+  status: 'Accepted' | 'On the way' | 'Delivered' | 'Cancelled' | 'Rejected';
 }
 
 export interface GetOrdersParams {

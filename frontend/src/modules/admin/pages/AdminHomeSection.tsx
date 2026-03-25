@@ -1000,7 +1000,7 @@ export default function AdminHomeSection() {
             <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white mt-auto">
                 Copyright © 2025. Developed By{" "}
                 <a href="#" className="text-blue-600 hover:underline">
-                    LaxMart - 10 Minute App
+                    LaxMart
                 </a>
             </footer>
         </div>

@@ -204,11 +204,19 @@ export const assignDeliveryBoy = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const { deliveryBoyId } = req.body;
+    const adminUserId = req.user?.userId;
 
     if (!deliveryBoyId) {
       return res.status(400).json({
         success: false,
         message: "Delivery boy ID is required",
+      });
+    }
+
+    if (!adminUserId) {
+      return res.status(401).json({
+        success: false,
+        message: "Admin authentication is required",
       });
     }
 
@@ -249,7 +257,7 @@ export const assignDeliveryBoy = asyncHandler(
         order: id,
         deliveryBoy: deliveryBoyId,
         assignedAt: new Date(),
-        assignedBy: req.user?.userId,
+        assignedBy: adminUserId,
         status: "Assigned",
       },
       { upsert: true, new: true }

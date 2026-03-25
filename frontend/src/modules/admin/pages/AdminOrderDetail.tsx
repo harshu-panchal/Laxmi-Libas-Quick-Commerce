@@ -38,7 +38,7 @@ export default function AdminOrderDetail() {
     const fetchDeliveryBoys = async () => {
       setLoadingDeliveryBoys(true);
       try {
-        const response = await getDeliveryBoys({ status: 'Active', available: 'Available' });
+        const response = await getDeliveryBoys({ status: 'Active', limit: 100 });
         if (response.success && response.data) {
           setDeliveryBoys(response.data);
         }
@@ -347,7 +347,7 @@ export default function AdminOrderDetail() {
                   ))}
                 </select>
                 {deliveryBoys.length === 0 && !loadingDeliveryBoys && (
-                  <p className="text-xs text-red-500 mt-1">No active/available delivery boys found.</p>
+                  <p className="text-xs text-red-500 mt-1">No active delivery boys found.</p>
                 )}
               </div>
               <button
