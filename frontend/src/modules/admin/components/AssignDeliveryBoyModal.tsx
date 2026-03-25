@@ -47,8 +47,7 @@ export default function AssignDeliveryBoyModal({
             setLoading(true);
             setError(null);
             const response = await getDeliveryBoys({
-                status: 'Active',
-                limit: 100, // Get all active delivery boys
+                limit: 100, // Get all registered delivery boys
             });
             if (response.success && response.data) {
                 setDeliveryBoys(response.data);
@@ -170,8 +169,8 @@ export default function AssignDeliveryBoyModal({
                                 <option value="">-- Select Delivery Boy --</option>
                                 {deliveryBoys.map((deliveryBoy) => (
                                     <option key={deliveryBoy._id} value={deliveryBoy._id}>
-                                        {deliveryBoy.name} - {deliveryBoy.mobile}
-                                        {deliveryBoy.available === 'Available' ? ' (Available)' : ' (Not Available)'}
+                                        {deliveryBoy.name} - {deliveryBoy.mobile} [{deliveryBoy.status}]
+                                        {deliveryBoy.available === 'Available' ? ' (Online)' : ' (Offline)'}
                                     </option>
                                 ))}
                             </select>

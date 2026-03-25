@@ -10,7 +10,7 @@ async function checkNavalCentre() {
     console.log('✓ Connected to MongoDB\n');
 
     // Find Naval Centre specifically
-    const seller = await Seller.findOne({ storeName: /naval/i });
+    const seller = await Seller.findOne({ storeName: /naval/i }) as any;
 
     if (!seller) {
       console.log('❌ Naval Centre not found');

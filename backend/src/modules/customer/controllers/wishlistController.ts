@@ -6,10 +6,10 @@ import Product from '../../../models/Product';
 export const getWishlist = async (req: Request, res: Response) => {
     try {
         const userId = req.user?.userId;
-        const { latitude, longitude } = req.query;
+        // const { latitude, longitude } = req.query;
 
         // Location requirement disabled
-        const nearbySellerIds: any[] | null = null;
+        // const nearbySellerIds: any[] | null = null;
 
         let wishlist = await Wishlist.findOne({ customer: userId }).populate({
             path: 'products',
@@ -45,7 +45,7 @@ export const addToWishlist = async (req: Request, res: Response) => {
     try {
         const userId = req.user?.userId;
         const { productId } = req.body;
-        const { latitude, longitude } = req.query;
+        // const { latitude, longitude } = req.query;
 
         if (!productId) {
             return res.status(400).json({ success: false, message: 'Product ID is required' });

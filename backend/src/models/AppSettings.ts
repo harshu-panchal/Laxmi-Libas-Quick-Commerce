@@ -411,6 +411,14 @@ AppSettingsSchema.statics.getSettings = async function () {
       appName: "Dhakad Snazzy",
       contactEmail: "contact@dhakadsnazzy.com",
       contactPhone: "1234567890",
+      deliveryConfig: {
+        isDistanceBased: false,
+        googleMapsKey: process.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyBwY-YpAy3lHQb1FAHIDne2Cu_Q_hVEEVM",
+        baseCharge: 0,
+        baseDistance: 0,
+        kmRate: 0,
+        assignmentMode: "Automatic"
+      }
     });
   }
   return settings;

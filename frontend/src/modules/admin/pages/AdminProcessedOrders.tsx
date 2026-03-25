@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getOrdersByStatus, type Order } from '../../../services/api/admin/adminOrderService';
+import AssignDeliveryBoyModal from '../components/AssignDeliveryBoyModal';
 import { useAuth } from '../../../context/AuthContext';
 
 type SortField = 'orderId' | 'customerDetails' | 'address' | 'deliveryDate' | 'orderDate' | 'status' | 'deliveryBoyStatus' | 'amount';
@@ -19,6 +20,9 @@ export default function AdminProcessedOrders() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (!isAuthenticated || !token) {
@@ -70,7 +74,7 @@ export default function AdminProcessedOrders() {
     };
 
     fetchOrders();
-  }, [isAuthenticated, token, currentPage, entriesPerPage, searchQuery, dateRange]);
+  }, [isAuthenticated, token, currentPage, entriesPerPage, searchQuery, dateRange, refreshTrigger]);
 
   const handleClearDate = () => {
     setDateRange('');
@@ -84,6 +88,15 @@ export default function AdminProcessedOrders() {
       setSortField(field);
       setSortDirection('asc');
     }
+  };
+
+  const handleAssignSuccess = () => {
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
+  const handleOpenAssignModal = (order: Order) => {
+    setSelectedOrder(order);
+    setIsAssignModalOpen(true);
   };
 
   const handleExport = () => {
@@ -659,14 +672,24 @@ export default function AdminProcessedOrders() {
                       </td>
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 font-medium">?{order.total?.toFixed(2) || '0.00'}</td>
                       <td className="px-4 sm:px-6 py-3">
-                        <Link to={`/admin/orders/${order._id}`}>
-                          <button className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors" aria-label="View order">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleOpenAssignModal(order)}
+                            className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${order.deliveryBoyStatus === 'Assigned' ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-blue-600 text-white hover:bg-blue-700'
+                              }`}
+                            title={order.deliveryBoyStatus === 'Assigned' ? 'Re-assign delivery boy' : 'Assign delivery boy'}
+                          >
+                            {order.deliveryBoyStatus === 'Assigned' ? 'Re-assign' : 'Assign'}
                           </button>
-                        </Link>
+                          <Link to={`/admin/orders/${order._id}`}>
+                            <button className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors" aria-label="View order">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            </button>
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -705,6 +728,18 @@ export default function AdminProcessedOrders() {
           </div>
         </div>
       </div>
+
+      {/* Delivery Boy Assignment Modal */}
+      {isAssignModalOpen && selectedOrder && (
+        <AssignDeliveryBoyModal
+          isOpen={isAssignModalOpen}
+          onClose={() => setIsAssignModalOpen(false)}
+          orderId={selectedOrder._id}
+          orderNumber={selectedOrder.orderNumber}
+          currentDeliveryBoy={selectedOrder.deliveryBoy}
+          onAssignSuccess={handleAssignSuccess}
+        />
+      )}
 
       {/* Footer */}
       <div className="text-center py-4 text-xs sm:text-sm text-neutral-600">

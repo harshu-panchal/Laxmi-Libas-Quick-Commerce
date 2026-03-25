@@ -85,7 +85,7 @@ const Icons = {
     )
 };
 
-type DeliveryOrderStatus = 'Pending' | 'Ready for pickup' | 'Picked up' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Returned';
+type DeliveryOrderStatus = 'Received' | 'Accepted' | 'Pending' | 'Ready for pickup' | 'Picked up' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Returned';
 
 export default function DeliveryOrderDetail() {
     const { id } = useParams();
@@ -103,6 +103,7 @@ export default function DeliveryOrderDetail() {
     const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
     const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string } | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
+    const [publicConfig, setPublicConfig] = useState<any>(null);
 
     // New state for seller proximity and pickup tracking
     const [sellerProximity, setSellerProximity] = useState<Record<string, { withinRange: boolean; distance: number }>>({});
@@ -110,7 +111,7 @@ export default function DeliveryOrderDetail() {
 
     // New state for customer proximity
     const [customerProximity, setCustomerProximity] = useState<{ withinRange: boolean; distance: number } | null>(null);
-    const [getOtpEnabled, setGetOtpEnabled] = useState(false);
+    const [getOtpEnabled, setGetOtpEnabled] = useState(true);
 
     const fetchOrder = async () => {
         if (!id) return;
@@ -134,7 +135,7 @@ export default function DeliveryOrderDetail() {
         const fetchSellerLocations = async () => {
             if (!id || !order) return;
             // Only fetch if order has delivery boy assigned and status is before "Picked up"
-            if (order.status && order.status !== 'Picked up' && order.status !== 'Delivered') {
+            if (order.status && order.status !== 'Picked up' && order.status !== 'Delivered' && order.status !== 'Cancelled') {
                 try {
                     const locations = await getSellerLocationsForOrder(id);
                     setSellerLocations(locations || []);
@@ -145,6 +146,22 @@ export default function DeliveryOrderDetail() {
         };
         fetchSellerLocations();
     }, [id, order?.status]);
+
+    // Fetch public config (like maps key) on mount
+    useEffect(() => {
+        const fetchConfig = async () => {
+            try {
+                const { default: api } = await import('../../../services/api/config');
+                const response = await api.get('/config/public');
+                if (response.data && response.data.success) {
+                    setPublicConfig(response.data.data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch public config:', err);
+            }
+        };
+        fetchConfig();
+    }, []);
 
     // Clean up when component unmounts
     useEffect(() => {
@@ -498,7 +515,7 @@ export default function DeliveryOrderDetail() {
         );
     }
 
-    const statusFlow: DeliveryOrderStatus[] = ['Pending', 'Ready for pickup', 'Picked up', 'Out for Delivery', 'Delivered'];
+    const statusFlow: DeliveryOrderStatus[] = ['Received', 'Accepted', 'Picked up', 'Out for Delivery', 'Delivered'];
 
     let currentStatusIndex = statusFlow.indexOf(order.status as DeliveryOrderStatus);
     // Handle cases where status might not be in the flow (e.g. Cancelled)
@@ -558,16 +575,17 @@ export default function DeliveryOrderDetail() {
                 <div className="ml-auto">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.status === 'Delivered' ? 'bg-yellow-100 text-yellow-700' :
                         order.status === 'Picked up' ? 'bg-indigo-100 text-indigo-700' :
-                            order.status === 'Ready for pickup' ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-orange-100 text-orange-700'
+                            order.status === 'Accepted' || order.status === 'Ready for pickup' ? 'bg-yellow-100 text-yellow-700' :
+                                order.status === 'Received' ? 'bg-blue-100 text-blue-700' :
+                                    'bg-orange-100 text-orange-700'
                         }`}>
                         {order.status}
                     </span>
                 </div>
             </div>
 
-            {/* Location Error Warning */}
-            {locationError && (
+            {/* Location Error Warning - Hidden per user request to avoid blocking UI */}
+            {/* {locationError && (
                 <div className="mx-4 mt-4 bg-red-50 border border-red-100 rounded-xl p-4 flex items-start gap-3">
                     <Icons.AlertTriangle size={20} className="text-red-500 shrink-0 mt-0.5" />
                     <div>
@@ -575,11 +593,12 @@ export default function DeliveryOrderDetail() {
                         <p className="text-xs text-red-600 mt-0.5">{locationError}</p>
                     </div>
                 </div>
-            )}
+            )} */}
 
             {/* Google Maps View - Shared Component for Parity */}
             {isMapVisible && (
                 <GoogleMapsTracking
+                    apiKey={publicConfig?.googleMapsKey}
                     sellerLocations={
                         (order.status === 'Out for Delivery' || order.status === 'Picked up')
                             ? []  // Hide seller markers when delivering to customer
@@ -660,7 +679,20 @@ export default function DeliveryOrderDetail() {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-sm text-neutral-600">{seller.address}, {seller.city}</p>
+                                                <div className="flex items-start gap-2">
+                                                    <p className="text-sm text-neutral-600 flex-1">{seller.address}, {seller.city}</p>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const dest = (seller.latitude && seller.longitude) ? `${seller.latitude},${seller.longitude}` : encodeURIComponent(`${seller.address}, ${seller.city}`);
+                                                            window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`, '_blank');
+                                                        }}
+                                                        className="p-1.5 bg-blue-50 text-blue-600 rounded-lg shrink-0 hover:bg-blue-100 transition-colors"
+                                                        title="Navigate in Maps App"
+                                                    >
+                                                        <Icons.Navigation size={16} />
+                                                    </button>
+                                                </div>
                                                 {/* Distance hidden per user request */}
                                             </div>
                                         </div>
@@ -747,7 +779,7 @@ export default function DeliveryOrderDetail() {
                             </div>
                             <button
                                 onClick={() => window.open(`tel:${order.customerPhone}`, '_system')}
-                                className="ml-auto p-3 bg-yellow-500 text-white rounded-full hover:bg-primary-dark shadow-md transition-transform hover:scale-105 active:scale-95"
+                                className="ml-auto p-3 bg-yellow-400 text-white rounded-full hover:bg-primary-dark shadow-md transition-transform hover:scale-105 active:scale-95"
                             >
                                 <Icons.Phone size={20} />
                             </button>
@@ -756,9 +788,20 @@ export default function DeliveryOrderDetail() {
                             <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0 text-orange-600">
                                 <Icons.MapPin size={20} />
                             </div>
-                            <div>
-                                <p className="text-sm text-neutral-600 leading-relaxed font-medium">{order.address}</p>
-                                {/* Distance hidden per user request */}
+                            <div className="flex-1">
+                                <p className="text-sm text-neutral-600 leading-relaxed font-medium mb-2">{order.address}</p>
+                                {hasValidCustomerLocation && (
+                                    <button
+                                        onClick={() => {
+                                            const dest = (order.deliveryAddress.latitude && order.deliveryAddress.longitude) ? `${order.deliveryAddress.latitude},${order.deliveryAddress.longitude}` : encodeURIComponent(`${order.deliveryAddress.address}, ${order.deliveryAddress.city}`);
+                                            window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`, '_blank');
+                                        }}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors"
+                                    >
+                                        <Icons.Navigation size={14} />
+                                        Navigate to Customer
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -826,6 +869,26 @@ export default function DeliveryOrderDetail() {
                     </div>
                 </div>
 
+                {/* Main Action Button - Now in regular flow for simplicity and reliability */}
+                {nextStatus && order.status !== 'Out for Delivery' && !showOtpInput && (
+                    <div className="px-5 py-6">
+                        <button
+                            onClick={() => handleStatusChange(nextStatus)}
+                            className="w-full py-4 rounded-2xl bg-black text-white font-bold text-lg shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all hover:bg-neutral-800"
+                            disabled={loading}
+                        >
+                            {loading ? 'Updating...' :
+                                nextStatus === 'Accepted' ? 'Accept Order' :
+                                    nextStatus === 'Picked up' ? 'Order Taken' :
+                                        nextStatus === 'Out for Delivery' ? 'Start Delivery' :
+                                            `Mark as ${nextStatus}`}
+                            {!loading && <Icons.ChevronLeft className="rotate-180" size={18} />}
+                        </button>
+                    </div>
+                )}
+                
+                {/* Bottom Spacer for better scrolling on mobile */}
+                <div className="h-32"></div>
             </div>
 
             {/* Customer Delivery OTP Section (only when order is Out for Delivery) */}
@@ -861,13 +924,13 @@ export default function DeliveryOrderDetail() {
                             {!showOtpInput ? (
                                 <button
                                     onClick={handleSendOtp}
-                                    disabled={!getOtpEnabled || otpSending}
-                                    className={`flex-1 py-3 rounded-xl font-semibold transition-all ${getOtpEnabled && !otpSending
+                                    disabled={otpSending}
+                                    className={`flex-1 py-3 rounded-xl font-semibold transition-all ${!otpSending
                                             ? 'bg-primary-dark text-white hover:bg-yellow-700 active:scale-[0.98]'
                                             : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                                         }`}
                                 >
-                                    {otpSending ? 'Sending...' : getOtpEnabled ? 'Get OTP' : 'Move within 500m to get OTP'}
+                                    {otpSending ? 'Sending...' : 'Get OTP'}
                                 </button>
                             ) : (
                                 <>
@@ -891,26 +954,6 @@ export default function DeliveryOrderDetail() {
                             )}
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* Floating Glassmorphic Action Button Dock - Order Taken button or status update */}
-            {/* Hide this button when order is "Out for Delivery" because OTP section is shown instead */}
-            {nextStatus && order.status !== 'Picked up' && order.status !== 'Out for Delivery' && !showOtpInput && (
-                <div className="fixed bottom-24 left-6 right-6 z-30">
-                    <button
-                        onClick={() => handleStatusChange(nextStatus)}
-                        className="w-full py-4 rounded-2xl bg-black/75 backdrop-blur-md border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] text-white font-bold text-lg transition-transform active:scale-[0.98] flex items-center justify-center gap-3 overflow-hidden group"
-                        disabled={loading}
-                    >
-                        <span className="relative z-10">
-                            {loading ? 'Updating...' : nextStatus === 'Picked up' ? 'Order Taken' : `Mark as ${nextStatus}`}
-                        </span>
-                        {!loading && <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center relative z-10 group-hover:bg-white/30 transition-colors">
-                            <Icons.ChevronLeft className="rotate-180" size={18} />
-                        </div>}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent pointer-events-none"></div>
-                    </button>
                 </div>
             )}
         </div>

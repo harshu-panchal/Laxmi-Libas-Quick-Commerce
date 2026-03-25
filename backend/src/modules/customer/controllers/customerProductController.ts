@@ -4,7 +4,7 @@ import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
 import Seller from "../../../models/Seller";
 import mongoose from "mongoose";
-import { findSellersWithinRange } from "../../../utils/locationHelper";
+// import { findSellersWithinRange } from "../../../utils/locationHelper";
 
 // Get products with filtering options (public)
 export const getProducts = async (req: Request, res: Response) => {
@@ -186,26 +186,26 @@ export const getProductById = async (req: Request, res: Response) => {
       });
     }
 
-    // Parse location
-    const userLat = latitude ? parseFloat(latitude as string) : null;
-    const userLng = longitude ? parseFloat(longitude as string) : null;
+    // Parse location (unused but kept for potential future use)
+    // const userLat = latitude ? parseFloat(latitude as string) : null;
+    // const userLng = longitude ? parseFloat(longitude as string) : null;
     const seller = product.seller as any;
 
     // Initialize availability flag - Always true as per user request
     let isAvailableAtLocation = true;
 
     // Safely get seller ID - handle both populated and unpopulated cases
-    let sellerId: mongoose.Types.ObjectId | null = null;
+    // let sellerId: mongoose.Types.ObjectId | null = null;
     if (seller) {
       if (typeof seller === "object" && seller._id) {
         // Seller is populated
-        sellerId = seller._id;
+        // sellerId = seller._id;
       } else if (seller instanceof mongoose.Types.ObjectId) {
         // Seller is an ObjectId (not populated)
-        sellerId = seller;
+        // sellerId = seller;
       } else if (typeof seller === "string") {
         // Seller is a string ID
-        sellerId = new mongoose.Types.ObjectId(seller);
+        // sellerId = new mongoose.Types.ObjectId(seller);
       }
     }
 

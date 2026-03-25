@@ -38,7 +38,7 @@ export default function AdminOrderDetail() {
     const fetchDeliveryBoys = async () => {
       setLoadingDeliveryBoys(true);
       try {
-        const response = await getDeliveryBoys({ status: 'Active', limit: 100 });
+        const response = await getDeliveryBoys({ limit: 100 });
         if (response.success && response.data) {
           setDeliveryBoys(response.data);
         }
@@ -342,7 +342,7 @@ export default function AdminOrderDetail() {
                   <option value="">-- Choose Delivery Boy --</option>
                   {deliveryBoys.map((boy) => (
                     <option key={boy._id} value={boy._id}>
-                      {boy.name} ({boy.mobile}) - {boy.city}
+                      {boy.name} ({boy.mobile}) - {boy.city} [{boy.status}]
                     </option>
                   ))}
                 </select>

@@ -38,6 +38,7 @@ import sellerWalletRoutes from "./sellerWalletRoutes";
 import deliveryWalletRoutes from "./deliveryWalletRoutes";
 import adminWithdrawalRoutes from "./adminWithdrawalRoutes";
 import bannerRoutes from "./bannerRoutes";
+import * as configController from "../controllers/configController";
 
 // Multi-category controllers
 import * as serviceController from "../modules/seller/controllers/serviceController";
@@ -47,7 +48,6 @@ import {
   createOrder,
   getMyOrders,
   getOrderById,
-  cancelOrder,
   cancelOrder,
 } from "../modules/customer/controllers/customerOrderController";
 
@@ -61,6 +61,9 @@ router.get("/health", (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Public Configuration routes
+router.get("/config/public", configController.getPublicConfig);
 
 // Authentication routes
 router.use("/auth/admin", adminAuthRoutes);

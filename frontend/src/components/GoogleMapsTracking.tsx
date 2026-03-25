@@ -29,6 +29,7 @@ interface GoogleMapsTrackingProps {
         distanceValue: number; // raw meters
     } | null) => void
     lastUpdate?: Date | null // Last location update timestamp
+    apiKey?: string // Optional dynamic API key
 }
 
 const mapContainerStyle = {
@@ -48,9 +49,10 @@ export default function GoogleMapsTracking({
     routeWaypoints = [],
     destinationName,
     onRouteInfoUpdate,
-    lastUpdate
+    lastUpdate,
+    apiKey: apiKeyProp
 }: GoogleMapsTrackingProps) {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+    const apiKey = apiKeyProp || import.meta.env.VITE_GOOGLE_MAPS_API_KEY
     const mapRef = useRef<any>(null)
     const directionsServiceRef = useRef<any>(null)
     const directionsRendererRef = useRef<any>(null)
@@ -108,7 +110,7 @@ export default function GoogleMapsTracking({
         ...allSellers,
         ...(deliveryLocation ? [deliveryLocation] : []),
         customerLocation
-    ].filter(loc => loc && (loc.lat !== 0 || loc.lng !== 0))
+    ].filter(loc => loc && typeof loc.lat === 'number' && typeof loc.lng === 'number' && !isNaN(loc.lat) && !isNaN(loc.lng));
 
     // Auto-center and fit bounds when location or route changes
     useEffect(() => {
@@ -371,9 +373,13 @@ export default function GoogleMapsTracking({
             calculateAndDisplayRoute(routeOrigin, routeDestination, routeWaypoints)
         } else if (!showRoute && directionsRendererRef.current) {
             // Clear route if showRoute is false
-            directionsRendererRef.current.setMap(null)
-            directionsRendererRef.current = null
-            setRouteInfo(null)
+            try {
+                directionsRendererRef.current.setMap(null);
+            } catch (e) {
+                console.error('Error clearing map directions:', e);
+            }
+            directionsRendererRef.current = null;
+            setRouteInfo(null);
         }
     }, [showRoute, routeOrigin, routeDestination, routeWaypoints, isLoaded, calculateAndDisplayRoute])
 
@@ -576,7 +582,7 @@ export default function GoogleMapsTracking({
             >
                 {/* Customer Marker */}
                 {/* Customer Marker - Only show if valid location */}
-                {customerLocation && (customerLocation.lat !== 0 || customerLocation.lng !== 0) && (
+                {customerLocation && typeof customerLocation.lat === 'number' && typeof customerLocation.lng === 'number' && !isNaN(customerLocation.lat) && (
                 <Marker
                     position={customerLocation}
                     icon={{
@@ -588,7 +594,7 @@ export default function GoogleMapsTracking({
                 )}
 
                 {/* Seller Markers */}
-                {allSellers.map((seller, index) => (
+                {allSellers.filter(s => s && typeof s.lat === 'number' && typeof s.lng === 'number' && !isNaN(s.lat)).map((seller, index) => (
                     <Marker
                         key={`seller-${index}`}
                         position={seller}

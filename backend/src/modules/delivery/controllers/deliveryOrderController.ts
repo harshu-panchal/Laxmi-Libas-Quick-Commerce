@@ -153,9 +153,12 @@ export const getPendingOrders = asyncHandler(
       deliveryBoy: deliveryId,
       status: {
         $in: [
+          "Received",
+          "Accepted",
+          "Pending",
           "Ready for pickup",
           "Out for Delivery",
-          "Picked Up",
+          "Picked up",
           "Assigned",
           "In Transit",
         ],
@@ -411,8 +414,7 @@ export const getSellerLocationsForOrder = asyncHandler(
 
     // Format seller locations
     const sellerLocations = sellers
-      .filter((seller) => seller.latitude && seller.longitude) // Only include sellers with location data
-      .map((seller) => ({
+      .map((seller: any) => ({
         sellerId: seller._id.toString(),
         storeName: seller.storeName,
         address: seller.address,
@@ -647,7 +649,7 @@ export const checkSellerProximity = asyncHandler(
         .json({ success: false, message: "Seller location not found" });
     }
 
-    // Calculate distance using locationHelper
+    /* Calculate distance using locationHelper
     const { calculateDistance } = await import("../../../utils/locationHelper");
     const distance = calculateDistance(
       latitude,
@@ -657,6 +659,7 @@ export const checkSellerProximity = asyncHandler(
     );
 
     const withinRange = distance <= 0.5; // 500m = 0.5km
+    */
 
     return res.status(200).json({
       success: true,
@@ -713,7 +716,7 @@ export const confirmSellerPickup = asyncHandler(
     }
 
     // Geolocation proximity check removed per user request
-    const distance = 0;
+    // const distance = 0;
 
     // Check if this seller is already picked up
     const existingPickup = order.sellerPickups?.find(
@@ -857,7 +860,7 @@ export const checkCustomerProximity = asyncHandler(
       });
     }
 
-    // Calculate distance
+    /* Calculate distance
     const { calculateDistance } = await import("../../../utils/locationHelper");
     const distance = calculateDistance(
       latitude,
@@ -867,6 +870,7 @@ export const checkCustomerProximity = asyncHandler(
     );
 
     const withinRange = distance <= 0.5; // 500m = 0.5km
+    */
 
     return res.status(200).json({
       success: true,

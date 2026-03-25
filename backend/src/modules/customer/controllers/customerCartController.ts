@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import Cart from '../../../models/Cart';
 import CartItem from '../../../models/CartItem';
 import Product from '../../../models/Product';
-import { findSellersWithinRange } from '../../../utils/locationHelper';
+// import { findSellersWithinRange } from '../../../utils/locationHelper';
 import mongoose from 'mongoose';
 import AppSettings from '../../../models/AppSettings';
 import { getRoadDistances } from '../../../services/mapService';
@@ -77,7 +77,7 @@ const calculateDeliveryStuff = async (total: number, items: any[], userLat: numb
                         const sellers = await Seller.find({ _id: { $in: uniqueSellerIds } }).select('location latitude longitude');
 
                         const sellerLocations: { lat: number; lng: number }[] = [];
-                        sellers.forEach(seller => {
+                        sellers.forEach((seller: any) => {
                             let lat, lng;
                             if (seller.location?.coordinates?.length === 2) {
                                 lng = seller.location.coordinates[0];

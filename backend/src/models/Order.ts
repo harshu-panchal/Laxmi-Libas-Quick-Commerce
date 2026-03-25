@@ -251,6 +251,7 @@ const OrderSchema = new Schema<IOrder>(
         "Received",
         "Accepted",
         "Pending",
+        "Ready for pickup",
         "Processed",
         "Shipped",
         "Picked up",

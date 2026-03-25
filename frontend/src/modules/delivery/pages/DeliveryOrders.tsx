@@ -27,6 +27,9 @@ export default function DeliveryOrders() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'Received':
+        return 'bg-blue-100 text-blue-700';
+      case 'Accepted':
       case 'Pending':
         return 'bg-orange-100 text-orange-700';
       case 'Ready for pickup':

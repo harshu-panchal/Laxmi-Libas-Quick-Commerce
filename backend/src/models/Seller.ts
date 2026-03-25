@@ -59,6 +59,13 @@ export interface ISeller extends Document {
   logo?: string;
   city?: string;
   isShopOpen: boolean;
+  latitude?: string;
+  longitude?: string;
+  location?: {
+    type: string;
+    coordinates: number[];
+  };
+  serviceRadiusKm?: number;
 
   createdAt: Date;
   updatedAt: Date;
@@ -258,6 +265,29 @@ const SellerSchema = new Schema<ISeller>(
     isShopOpen: {
       type: Boolean,
       default: true,
+    },
+    latitude: {
+      type: String,
+      trim: true,
+    },
+    longitude: {
+      type: String,
+      trim: true,
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+      },
+      coordinates: {
+        type: [Number],
+        default: [0, 0],
+      },
+    },
+    serviceRadiusKm: {
+      type: Number,
+      default: 10,
     },
     // FCM Push Notification Tokens
     fcmTokens: {

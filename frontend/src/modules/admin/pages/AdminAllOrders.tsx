@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
+  getOrdersByStatus,
   getAllOrders,
   type Order,
 } from "../../../services/api/admin/adminOrderService";
+import AssignDeliveryBoyModal from "../components/AssignDeliveryBoyModal";
 import { useAuth } from "../../../context/AuthContext";
 
 type SortField =
@@ -30,6 +32,11 @@ export default function AdminAllOrders() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Delivery Boy Assignment State
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Fetch orders on component mount
   useEffect(() => {
@@ -97,7 +104,17 @@ export default function AdminAllOrders() {
     status,
     searchQuery,
     dateRange,
+    refreshTrigger,
   ]);
+
+  const handleOpenAssignModal = (order: Order) => {
+    setSelectedOrder(order);
+    setIsAssignModalOpen(true);
+  };
+
+  const handleAssignSuccess = () => {
+    setRefreshTrigger((prev) => prev + 1);
+  };
 
   const handleClearDate = () => {
     setDateRange("");
@@ -807,35 +824,72 @@ export default function AdminAllOrders() {
                         ?{order.total?.toFixed(2) || "0.00"}
                       </td>
                       <td className="px-4 sm:px-6 py-3">
-                        <Link to={`/admin/orders/${order._id}`}>
-                          <button
-                            className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors"
-                            aria-label="View order">
-                            <svg
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg">
-                              <path
-                                d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <circle
-                                cx="12"
-                                cy="12"
-                                r="3"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </button>
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link to={`/admin/orders/${order._id}`}>
+                            <button
+                              className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors"
+                              title="View order"
+                              aria-label="View order">
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                  d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <circle
+                                  cx="12"
+                                  cy="12"
+                                  r="3"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          </Link>
+                          {order.status !== "Cancelled" && order.status !== "Delivered" && order.status !== "Rejected" && (
+                            <button
+                              onClick={() => handleOpenAssignModal(order)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded transition-colors"
+                              title="Assign Delivery Boy"
+                              aria-label="Assign Delivery Boy">
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                  d="M5 17L5 7M5 7L9 11M5 7L1 11"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M19 12a7 7 0 11-14 0 7 7 0 0114 0z"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                />
+                                <path
+                                  d="M12 9v3l2 2"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -897,6 +951,18 @@ export default function AdminAllOrders() {
           </div>
         </div>
       </div>
+
+      {/* Delivery Boy Assignment Modal */}
+      {isAssignModalOpen && selectedOrder && (
+        <AssignDeliveryBoyModal
+          isOpen={isAssignModalOpen}
+          onClose={() => setIsAssignModalOpen(false)}
+          orderId={selectedOrder._id}
+          orderNumber={selectedOrder.orderNumber}
+          currentDeliveryBoy={selectedOrder.deliveryBoy}
+          onAssignSuccess={handleAssignSuccess}
+        />
+      )}
 
       {/* Footer */}
       <div className="text-center py-4 text-xs sm:text-sm text-neutral-600">

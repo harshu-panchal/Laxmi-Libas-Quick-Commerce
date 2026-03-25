@@ -28,6 +28,30 @@ export const useDeliveryOrderNotifications = () => {
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const reconnectAttemptsRef = useRef(0);
 
+    // Shared notification handler
+    const handleNewNotification = useCallback((orderData: OrderNotificationData) => {
+        setState(prev => {
+            // Check if this order is already in queue or current to avoid duplicates
+            const isDuplicate = prev.currentNotification?.orderId === orderData.orderId || 
+                               prev.notificationQueue.some(n => n.orderId === orderData.orderId);
+            
+            if (isDuplicate) return prev;
+
+            // If there's already a current notification, queue this one
+            if (prev.currentNotification) {
+                return {
+                    ...prev,
+                    notificationQueue: [...prev.notificationQueue, orderData],
+                };
+            }
+            // Otherwise, show it immediately
+            return {
+                ...prev,
+                currentNotification: orderData,
+            };
+        });
+    }, []);
+
     const connectSocket = useCallback(() => {
         if (!isAuthenticated || user?.userType !== 'Delivery' || !user?.id) {
             return;
@@ -90,21 +114,29 @@ export const useDeliveryOrderNotifications = () => {
 
         socket.on('new-order', (orderData: OrderNotificationData) => {
             console.log('📦 New order notification received:', orderData);
+            handleNewNotification(orderData);
+        });
 
-            setState(prev => {
-                // If there's already a current notification, queue this one
-                if (prev.currentNotification) {
-                    return {
-                        ...prev,
-                        notificationQueue: [...prev.notificationQueue, orderData],
-                    };
-                }
-                // Otherwise, show it immediately
-                return {
-                    ...prev,
-                    currentNotification: orderData,
-                };
-            });
+        socket.on('order-assigned', (data: any) => {
+            console.log('📋 Order assigned notification received:', data);
+            // Transform order-assigned into the interface format
+            const orderData: OrderNotificationData = {
+                orderId: data.orderId,
+                orderNumber: data.orderNumber,
+                customerName: data.order?.customer?.name || 'Customer',
+                customerPhone: data.order?.customer?.phone || '',
+                deliveryAddress: {
+                    address: data.order?.destinationAddress || data.order?.customer?.address?.address || '',
+                    city: data.order?.customer?.address?.city || '',
+                    pincode: data.order?.customer?.address?.pincode || '',
+                },
+                total: data.order?.totalAmount || 0,
+                subtotal: data.order?.itemsPrice || 0,
+                shipping: data.order?.shippingFee || 0,
+                deliveryBoyEarning: data.order?.deliveryEarning || 0,
+                createdAt: data.order?.createdAt || new Date().toISOString()
+            };
+            handleNewNotification(orderData);
         });
 
         socket.on('order-accepted', (data: { orderId: string; acceptedBy: string }) => {

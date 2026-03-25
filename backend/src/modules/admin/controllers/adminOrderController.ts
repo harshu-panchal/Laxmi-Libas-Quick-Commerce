@@ -229,13 +229,6 @@ export const assignDeliveryBoy = asyncHandler(
       });
     }
 
-    if (deliveryBoy.status !== "Active") {
-      return res.status(400).json({
-        success: false,
-        message: "Delivery boy is not active",
-      });
-    }
-
     const order = await Order.findById(id);
     if (!order) {
       return res.status(404).json({
@@ -267,6 +260,30 @@ export const assignDeliveryBoy = asyncHandler(
       .populate("customer", "name email phone")
       .populate("deliveryBoy", "name mobile email")
       .populate("items");
+    
+    // Notify Seller and Delivery Boy via Socket
+    if (updatedOrder) {
+      const io: any = (req.app as any).get("io");
+      if (io) {
+        // Notify Delivery Boy
+        io.to(`delivery-${deliveryBoyId}`).emit("order-assigned", {
+          orderId: id,
+          orderNumber: updatedOrder.orderNumber,
+          message: "A new order has been assigned to you",
+          order: updatedOrder
+        });
+
+        // Notify Sellers (Optional but helpful to refresh their order view)
+        notifySellersOfOrderUpdate(io, updatedOrder, "STATUS_UPDATE");
+        
+        // Also emit to specific order room to update tracking/detail pages
+        io.to(`order-${id}`).emit("delivery-assigned", {
+          orderId: id,
+          deliveryBoy: updatedOrder.deliveryBoy,
+          message: "Delivery partner assigned"
+        });
+      }
+    }
 
     return res.status(200).json({
       success: true,

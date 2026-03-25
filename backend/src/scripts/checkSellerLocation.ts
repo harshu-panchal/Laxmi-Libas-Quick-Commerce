@@ -13,7 +13,7 @@ async function checkSellerLocations() {
 
     console.log('\n=== SELLER LOCATION DATA ===\n');
 
-    sellers.forEach((seller, index) => {
+    sellers.forEach((seller: any, index) => {
       console.log(`${index + 1}. ${seller.storeName} (${seller.city})`);
       console.log(`   Status: ${seller.status}`);
       console.log(`   Latitude: ${seller.latitude}`);

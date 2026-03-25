@@ -10,7 +10,7 @@ import BestsellerCard from "../../../models/BestsellerCard";
 import LowestPricesProduct from "../../../models/LowestPricesProduct";
 import PromoStrip from "../../../models/PromoStrip";
 import mongoose from "mongoose";
-import { cache } from "../../../utils/cache";
+// import { cache } from "../../../utils/cache";
 import { findSellersWithinRange } from "../../../utils/locationHelper";
 
 // Helper function to fetch data for a home section based on its configuration
@@ -573,6 +573,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
         title: `Explore ${headerCategorySlug}`,
         slug: "category-products",
         displayType: "products",
+        bannerData: undefined,
         columns: 4,
         data: fallbackCategoryProducts,
       });

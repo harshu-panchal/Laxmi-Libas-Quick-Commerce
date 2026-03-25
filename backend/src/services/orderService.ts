@@ -121,10 +121,14 @@ export const validateStatusTransition = (
   newStatus: string
 ): { valid: boolean; message?: string } => {
   const validTransitions: Record<string, string[]> = {
-    Received: ["Pending", "Cancelled", "Rejected"],
+    Received: ["Accepted", "Cancelled", "Rejected"],
+    Accepted: ["Pending", "Ready for pickup", "Picked up", "Cancelled", "Rejected"],
     Pending: ["Processed", "Cancelled", "Rejected"],
     Processed: ["Shipped", "Cancelled", "Rejected"],
     Shipped: ["Out for Delivery", "Cancelled", "Rejected"],
+    "Ready for pickup": ["Picked up", "Cancelled", "Rejected"],
+    "Picked up": ["In Transit", "Out for Delivery", "Cancelled", "Rejected"],
+    "In Transit": ["Out for Delivery", "Delivered", "Cancelled", "Rejected"],
     "Out for Delivery": ["Delivered", "Cancelled", "Rejected"],
     Delivered: ["Returned"],
     Cancelled: [],

@@ -5,11 +5,11 @@ import OrderItem from "../../../models/OrderItem";
 import Customer from "../../../models/Customer";
 import Seller from "../../../models/Seller";
 import mongoose from "mongoose";
-import { calculateDistance } from "../../../utils/locationHelper";
+// import { calculateDistance } from "../../../utils/locationHelper";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
 import { generateDeliveryOtp } from "../../../services/deliveryOtpService";
-import AppSettings from "../../../models/AppSettings";
-import { getRoadDistances } from "../../../services/mapService";
+// import AppSettings from "../../../models/AppSettings";
+// import { getRoadDistances } from "../../../services/mapService";
 import { Server as SocketIOServer } from "socket.io";
 import { getOrderItemCommissionRate } from "../../../services/commissionService";
 import { DiscountService } from "../../../services/discountService";
@@ -444,7 +444,7 @@ export const cancelOrder = async (req: Request, res: Response) => {
         return res.status(200).json({ success: true, message: "Order cancelled" });
 
     } catch (error: any) {
-        if (session) await session.abortTransaction().catch(e => { });
+        if (session) await session.abortTransaction().catch(() => { });
         return res.status(500).json({ success: false, message: "Error cancelling order", error: error.message });
     } finally {
         if (session) session.endSession();
