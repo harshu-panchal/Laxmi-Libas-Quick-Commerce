@@ -25,6 +25,8 @@ export const getProducts = async (req: Request, res: Response) => {
     console.log(`[getProducts] Incoming Request - Category: ${category}, Search: ${search}`);
 
     // REQUIRE category or search - strict rule
+    /* Category requirement relaxed for home page sections */
+    /*
     if (!category && !search) {
       console.warn("[getProducts] Missing category or search parameter");
       return res.status(400).json({
@@ -32,6 +34,7 @@ export const getProducts = async (req: Request, res: Response) => {
         message: "Category is required for listing products",
       });
     }
+    */
 
     const query: any = {
       status: "Active",

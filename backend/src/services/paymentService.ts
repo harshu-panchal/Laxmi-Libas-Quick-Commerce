@@ -52,10 +52,16 @@ export const createRazorpayOrder = async (
             },
         };
     } catch (error: any) {
-        console.error('Error creating Razorpay order:', error);
+        console.error('❌ Razorpay Order Creation Failed:', {
+            error: error.message,
+            stack: error.stack,
+            orderId,
+            amount: Math.round(amount * 100)
+        });
         return {
             success: false,
-            message: error.message || 'Failed to create Razorpay order',
+            message: error.description || error.message || 'Failed to create Razorpay order',
+            error: error
         };
     }
 };
