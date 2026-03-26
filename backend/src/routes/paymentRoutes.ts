@@ -39,7 +39,11 @@ router.post('/create-order', authenticate, requireUserType('Customer'), async (r
         const result = await createRazorpayOrder(orderId, order.total);
 
         if (!result.success) {
-            return res.status(400).json(result);
+            return res.status(400).json({
+                success: false,
+                message: result.message, // This now contains the specific Razorpay error
+                errorCode: (result.error as any)?.code || 'RAZORPAY_ERROR'
+            });
         }
 
         return res.status(200).json(result);

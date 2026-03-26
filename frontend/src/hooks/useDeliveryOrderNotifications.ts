@@ -123,17 +123,17 @@ export const useDeliveryOrderNotifications = () => {
             const orderData: OrderNotificationData = {
                 orderId: data.orderId,
                 orderNumber: data.orderNumber,
-                customerName: data.order?.customer?.name || 'Customer',
-                customerPhone: data.order?.customer?.phone || '',
+                customerName: data.order?.customerName || data.order?.customer?.name || 'Customer',
+                customerPhone: data.order?.customerPhone || data.order?.customer?.phone || '',
                 deliveryAddress: {
-                    address: data.order?.destinationAddress || data.order?.customer?.address?.address || '',
-                    city: data.order?.customer?.address?.city || '',
-                    pincode: data.order?.customer?.address?.pincode || '',
+                    address: data.order?.deliveryAddress?.address || data.order?.destinationAddress || '',
+                    city: data.order?.deliveryAddress?.city || '',
+                    pincode: data.order?.deliveryAddress?.pincode || '',
                 },
-                total: data.order?.totalAmount || 0,
-                subtotal: data.order?.itemsPrice || 0,
-                shipping: data.order?.shippingFee || 0,
-                deliveryBoyEarning: data.order?.deliveryEarning || 0,
+                total: data.order?.total || 0,
+                subtotal: data.order?.subtotal || 0,
+                shipping: data.order?.shipping || 0,
+                deliveryBoyEarning: data.order?.deliveryBoyEarning || 0,
                 createdAt: data.order?.createdAt || new Date().toISOString()
             };
             handleNewNotification(orderData);

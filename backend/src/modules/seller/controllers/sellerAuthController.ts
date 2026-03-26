@@ -177,13 +177,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Determine initial status based on category (Auto-approve for specific categories)
-  const categoryName = categoryExists.name.toLowerCase();
-  const shouldAutoApprove =
-    categoryName.includes('fruit') ||
-    categoryName.includes('vegetable') ||
-    categoryName.includes('grocery') ||
-    categoryName.includes('clothing');
+  // All sellers must be approved by admin by default
+  // Auto-approve during development/testing per user needs
+  const shouldAutoApprove = true;
 
   // Check if seller already exists
   const existingSeller = await Seller.findOne({
@@ -197,6 +193,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
+  const { latitude, longitude } = req.body;
+
   const seller = await Seller.create({
     sellerName,
     mobile,
@@ -205,6 +203,12 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     category,
     address,
     city: req.body.city,
+    latitude: latitude || "",
+    longitude: longitude || "",
+    location: (latitude && longitude) ? {
+      type: "Point",
+      coordinates: [parseFloat(longitude), parseFloat(latitude)]
+    } : undefined,
     idProof: req.body.idProof,
     businessLicense: req.body.businessLicense,
     status: shouldAutoApprove ? "Approved" : "Pending",
@@ -216,12 +220,29 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     categories: req.body.categories || [],
   });
 
-  // Generate token
-  const token = generateToken(seller._id.toString(), "Seller", undefined, seller.category.toString());
+  // Notify admin of new seller registration
+  try {
+    const io = (req.app as any).get("io");
+    if (io) {
+      io.to('admin').emit('new-seller-registered', {
+        sellerId: seller._id,
+        sellerName: seller.sellerName,
+        storeName: seller.storeName,
+        message: `New seller application from ${seller.storeName}`
+      });
+    }
+  } catch (err) {
+    console.error("Socket error notifying admin on seller registration:", err);
+  }
+
+  // Generate token only if auto-approved
+  const token = shouldAutoApprove 
+    ? generateToken(seller._id.toString(), "Seller", undefined, seller.category.toString())
+    : undefined;
 
   return res.status(201).json({
     success: true,
-    message: "Seller registered successfully. Awaiting admin approval.",
+    message: "Seller registered successfully. Awaiting admin approval before you can login.",
     data: {
       token,
       user: {

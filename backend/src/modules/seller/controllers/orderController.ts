@@ -274,15 +274,9 @@ export const updateOrderStatus = asyncHandler(
             .lean();
 
           if (fullOrder) {
-            // @ts-ignore - getSettings is a static method
-            const settings = await AppSettings.getSettings();
-
-            if (settings?.deliveryConfig?.assignmentMode === 'Manual') {
-              console.log(`Manual Assignment mode active. Real-time notification skipped for order ${order.orderNumber}`);
-            } else {
-              await notifyDeliveryBoysOfNewOrder(io, fullOrder);
-              console.log(`Delivery notification triggered for Accepted order ${order.orderNumber}`);
-            }
+            // Automatic Assignment Mode: Always notify delivery boys on seller acceptance
+            await notifyDeliveryBoysOfNewOrder(io, fullOrder);
+            console.log(`Automatic delivery notification triggered for Accepted order ${order.orderNumber}`);
           }
         }
       } catch (notifyError) {

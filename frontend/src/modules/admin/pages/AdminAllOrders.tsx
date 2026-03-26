@@ -5,7 +5,6 @@ import {
   getAllOrders,
   type Order,
 } from "../../../services/api/admin/adminOrderService";
-import AssignDeliveryBoyModal from "../components/AssignDeliveryBoyModal";
 import { useAuth } from "../../../context/AuthContext";
 
 type SortField =
@@ -32,11 +31,6 @@ export default function AdminAllOrders() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Delivery Boy Assignment State
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Fetch orders on component mount
   useEffect(() => {
@@ -103,18 +97,9 @@ export default function AdminAllOrders() {
     entriesPerPage,
     status,
     searchQuery,
+    searchQuery,
     dateRange,
-    refreshTrigger,
   ]);
-
-  const handleOpenAssignModal = (order: Order) => {
-    setSelectedOrder(order);
-    setIsAssignModalOpen(true);
-  };
-
-  const handleAssignSuccess = () => {
-    setRefreshTrigger((prev) => prev + 1);
-  };
 
   const handleClearDate = () => {
     setDateRange("");
@@ -138,7 +123,6 @@ export default function AdminAllOrders() {
       "D. Date",
       "O. Date",
       "Status",
-      "Delivery Boy Assign Status",
       "Amount",
     ];
     const csvContent = [
@@ -151,7 +135,6 @@ export default function AdminAllOrders() {
           order.estimatedDeliveryDate || "",
           order.orderDate || "",
           order.status || "",
-          order.deliveryBoyStatus || "Not Assigned",
           `?${order.total?.toFixed(2) || "0.00"}`,
         ].join(",")
       ),
@@ -682,39 +665,6 @@ export default function AdminAllOrders() {
                     </div>
                   </th>
                   <th
-                    onClick={() => handleSort("deliveryBoyStatus")}
-                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                    <div className="flex items-center gap-1">
-                      Delivery Boy Assign Status
-                      {sortField === "deliveryBoyStatus" && (
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg">
-                          {sortDirection === "asc" ? (
-                            <path
-                              d="M7 14L12 9L17 14"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          ) : (
-                            <path
-                              d="M17 10L12 15L7 10"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
                     onClick={() => handleSort("amount")}
                     className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
                     <div className="flex items-center gap-1">
@@ -812,14 +762,6 @@ export default function AdminAllOrders() {
                           {order.status}
                         </span>
                       </td>
-                      <td className="px-4 sm:px-6 py-3">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDeliveryBoyStatusColor(
-                            order.deliveryBoyStatus || "Not Assigned"
-                          )}`}>
-                          {order.deliveryBoyStatus || "Not Assigned"}
-                        </span>
-                      </td>
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 font-medium">
                         ?{order.total?.toFixed(2) || "0.00"}
                       </td>
@@ -855,40 +797,6 @@ export default function AdminAllOrders() {
                               </svg>
                             </button>
                           </Link>
-                          {order.status !== "Cancelled" && order.status !== "Delivered" && order.status !== "Rejected" && (
-                            <button
-                              onClick={() => handleOpenAssignModal(order)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded transition-colors"
-                              title="Assign Delivery Boy"
-                              aria-label="Assign Delivery Boy">
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path
-                                  d="M5 17L5 7M5 7L9 11M5 7L1 11"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                                <path
-                                  d="M19 12a7 7 0 11-14 0 7 7 0 0114 0z"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                />
-                                <path
-                                  d="M12 9v3l2 2"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>
@@ -952,17 +860,7 @@ export default function AdminAllOrders() {
         </div>
       </div>
 
-      {/* Delivery Boy Assignment Modal */}
-      {isAssignModalOpen && selectedOrder && (
-        <AssignDeliveryBoyModal
-          isOpen={isAssignModalOpen}
-          onClose={() => setIsAssignModalOpen(false)}
-          orderId={selectedOrder._id}
-          orderNumber={selectedOrder.orderNumber}
-          currentDeliveryBoy={selectedOrder.deliveryBoy}
-          onAssignSuccess={handleAssignSuccess}
-        />
-      )}
+
 
       {/* Footer */}
       <div className="text-center py-4 text-xs sm:text-sm text-neutral-600">

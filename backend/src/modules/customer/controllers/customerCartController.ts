@@ -79,12 +79,14 @@ const calculateDeliveryStuff = async (total: number, items: any[], userLat: numb
                         const sellerLocations: { lat: number; lng: number }[] = [];
                         sellers.forEach((seller: any) => {
                             let lat, lng;
-                            if (seller.location?.coordinates?.length === 2) {
-                                lng = seller.location.coordinates[0];
-                                lat = seller.location.coordinates[1];
-                            } else if (seller.latitude && seller.longitude) {
-                                lat = parseFloat(seller.latitude);
-                                lng = parseFloat(seller.longitude);
+                            // Safe check for location coordinates
+                            const loc = (seller as any).location;
+                            if (loc && loc.coordinates && loc.coordinates.length === 2) {
+                                lng = loc.coordinates[0];
+                                lat = loc.coordinates[1];
+                            } else if ((seller as any).latitude && (seller as any).longitude) {
+                                lat = parseFloat((seller as any).latitude);
+                                lng = parseFloat((seller as any).longitude);
                             }
                             if (lat && lng) sellerLocations.push({ lat, lng });
                         });
@@ -98,8 +100,17 @@ const calculateDeliveryStuff = async (total: number, items: any[], userLat: numb
 
                             if (distances && distances.length > 0) {
                                 const maxDistance = Math.max(...distances);
-                                const extraKm = Math.max(0, maxDistance - config.baseDistance);
-                                estimatedDeliveryFee = Math.ceil(config.baseCharge + (extraKm * config.kmRate));
+                                // Limit distance based calculation to a reasonable range (e.g. 50km)
+                                // If they are further, they probably shouldn't be ordering, but we'll cap it
+                                const billableDistance = Math.min(50, maxDistance);
+                                const extraKm = Math.max(0, billableDistance - config.baseDistance);
+                                let calculatedFee = Math.ceil(config.baseCharge + (extraKm * config.kmRate));
+                                
+                                // Absolute maximum cap for delivery fee to prevent crazy values
+                                const MAX_DELIVERY_FEE = 250; 
+                                estimatedDeliveryFee = Math.min(MAX_DELIVERY_FEE, calculatedFee);
+                                
+                                console.log(`[Delivery] Distance: ${maxDistance.toFixed(2)}km, Billable: ${billableDistance}km, Fee: ${calculatedFee}, Capped: ${estimatedDeliveryFee}`);
                             }
                         }
                     }

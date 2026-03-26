@@ -301,6 +301,7 @@ export const getMyOrders = async (req: Request, res: Response) => {
             return {
                 ...orderObj,
                 id: orderObj._id.toString(),
+                totalAmount: orderObj.total || orderObj.grandTotal || 0,
                 totalItems: orderObj.items?.length || 0,
                 fees: {
                     platformFee: orderObj.platformFee || 0,
@@ -347,6 +348,7 @@ export const getOrderById = async (req: Request, res: Response) => {
         const transformedOrder = {
             ...orderObj,
             id: orderObj._id.toString(),
+            totalAmount: orderObj.total || orderObj.grandTotal || 0,
             totalItems: orderObj.items?.length || 0,
             fees: {
                 platformFee: orderObj.platformFee || 0,

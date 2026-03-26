@@ -10,9 +10,6 @@ export default function AdminOrderDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [updating, setUpdating] = useState(false);
-  const [deliveryBoys, setDeliveryBoys] = useState<DeliveryBoy[]>([]);
-  const [selectedDeliveryBoy, setSelectedDeliveryBoy] = useState<string>('');
-  const [loadingDeliveryBoys, setLoadingDeliveryBoys] = useState(false);
 
   // Fetch order detail from API
   useEffect(() => {
@@ -35,43 +32,8 @@ export default function AdminOrderDetail() {
       }
     };
 
-    const fetchDeliveryBoys = async () => {
-      setLoadingDeliveryBoys(true);
-      try {
-        const response = await getDeliveryBoys({ limit: 100 });
-        if (response.success && response.data) {
-          setDeliveryBoys(response.data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch delivery boys:', err);
-      } finally {
-        setLoadingDeliveryBoys(false);
-      }
-    };
-
     fetchOrderDetail();
-    fetchDeliveryBoys();
   }, [id]);
-
-  // Handle delivery boy assignment
-  const handleAssignDeliveryBoy = async () => {
-    if (!order || !selectedDeliveryBoy) return;
-
-    setUpdating(true);
-    try {
-      const response = await assignDeliveryBoy(order._id, { deliveryBoyId: selectedDeliveryBoy });
-      if (response.success && response.data) {
-        setOrder(response.data);
-        alert('Delivery boy assigned successfully');
-      } else {
-        alert(response.message || 'Failed to assign delivery boy');
-      }
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to assign delivery boy');
-    } finally {
-      setUpdating(false);
-    }
-  };
 
   // Handle status update
   const handleStatusUpdate = async (newStatus: string) => {
@@ -325,42 +287,7 @@ export default function AdminOrderDetail() {
             </div>
           </div>
 
-          {/* Delivery Boy Assignment (Manual) */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Assign Delivery Boy</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  Select Delivery Boy
-                </label>
-                <select
-                  value={selectedDeliveryBoy}
-                  onChange={(e) => setSelectedDeliveryBoy(e.target.value)}
-                  disabled={updating || loadingDeliveryBoys}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
-                >
-                  <option value="">-- Choose Delivery Boy --</option>
-                  {deliveryBoys.map((boy) => (
-                    <option key={boy._id} value={boy._id}>
-                      {boy.name} ({boy.mobile}) - {boy.city} [{boy.status}]
-                    </option>
-                  ))}
-                </select>
-                {deliveryBoys.length === 0 && !loadingDeliveryBoys && (
-                  <p className="text-xs text-red-500 mt-1">No active delivery boys found.</p>
-                )}
-              </div>
-              <button
-                onClick={handleAssignDeliveryBoy}
-                disabled={updating || !selectedDeliveryBoy || loadingDeliveryBoys}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-md font-medium transition-colors disabled:bg-neutral-300 disabled:cursor-not-allowed text-sm"
-              >
-                {updating ? 'Assigning...' : 'Assign Delivery Boy'}
-              </button>
-            </div>
-          </div>
-
-          {/* Delivery Information */}
+          {/* Payment Information */}
           {deliveryBoy && (
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold mb-4">Current Delivery Information</h2>

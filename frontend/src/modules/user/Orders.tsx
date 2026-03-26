@@ -84,7 +84,7 @@ export default function Orders() {
                   {order.totalItems} {order.totalItems === 1 ? 'item' : 'items'}
                 </div>
                 <div className="text-lg font-bold text-neutral-900">
-                  ₹{order.totalAmount.toFixed(0)}
+                  ₹{(order.totalAmount || 0).toFixed(0)}
                 </div>
               </div>
             </Link>

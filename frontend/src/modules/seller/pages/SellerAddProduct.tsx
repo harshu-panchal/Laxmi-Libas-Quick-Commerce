@@ -128,6 +128,7 @@ export default function SellerAddProduct() {
 
   const [uploadError, setUploadError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
@@ -257,6 +258,9 @@ export default function SellerAddProduct() {
               seoKeywords: product.seoKeywords || "",
               seoImageAlt: product.seoImageAlt || "",
               seoDescription: product.seoDescription || "",
+              price: product.price?.toString() || "0",
+              discPrice: product.discPrice?.toString() || "0",
+              stock: product.stock?.toString() || "0",
               variationType: product.variationType || "",
               manufacturer: product.manufacturer || "",
               madeIn: product.madeIn || "",
@@ -831,8 +835,8 @@ export default function SellerAddProduct() {
                     name="headerCategory"
                     value={formData.headerCategory}
                     onChange={handleChange}
-                    disabled={!!formData.headerCategory && (user?.mobile || user?.phone) !== '9111966732'} // Locked only if already filled and not super seller
-                    className={`w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${!!formData.headerCategory && (user?.mobile || user?.phone) !== '9111966732' ? "bg-neutral-100 cursor-not-allowed text-neutral-500" : "bg-white"}`}>
+                    disabled={(user?.userType === 'Seller' && (user?.mobile || user?.phone) !== '9111966732')} 
+                    className={`w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${(user?.userType === 'Seller' && (user?.mobile || user?.phone) !== '9111966732') ? "bg-neutral-100 cursor-not-allowed text-neutral-500" : "bg-white"}`}>
                     <option value="">Select Header Category</option>
                     {headerCategories
                       .map((headerCat) => (
@@ -857,14 +861,14 @@ export default function SellerAddProduct() {
                     value={formData.category}
                     onChange={(e) => {
                       handleChange(e);
-                      // Update categoryName for dynamic fields when super user changes category
+                      // Update categoryName for dynamic fields 
                       const selectedCat = categories.find((cat: any) => (cat._id || cat.id) === e.target.value);
                       if (selectedCat) {
                         setCategoryName(selectedCat.name);
                       }
                     }}
-                    disabled={!!formData.category && (user?.mobile || user?.phone) !== "9111966732"} // Locked only if already filled and not super seller
-                    className={`w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${!!formData.category && (user?.mobile || user?.phone) !== "9111966732" ? "bg-neutral-100 cursor-not-allowed text-neutral-500" : "bg-white"}`}>
+                    disabled={(user?.userType === 'Seller' && (user?.mobile || user?.phone) !== "9111966732")}
+                    className={`w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${(user?.userType === 'Seller' && (user?.mobile || user?.phone) !== "9111966732") ? "bg-neutral-100 cursor-not-allowed text-neutral-500" : "bg-white"}`}>
                     <option value="">Select Category</option>
                     {categories
                       .map((cat: any) => (
@@ -926,25 +930,7 @@ export default function SellerAddProduct() {
                     </select>
                   </div>
                   {/* Hidden Popular/Deal of the day for Sellers as they are admin features */}
-                  {!isProduce && (
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Select Brand
-                      </label>
-                      <select
-                        name="brand"
-                        value={formData.brand}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
-                        <option value="">Select Brand</option>
-                        {brands.map((brand) => (
-                          <option key={brand._id} value={brand._id}>
-                            {brand.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                  {/* Brand is now handled in DynamicCategoryFields per category for better relevance */}
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
                       Select Tags
@@ -998,247 +984,144 @@ export default function SellerAddProduct() {
             </div>
           </div>
 
-          {categoryType === "product" && !isProduce && (
+
+          {/* Price & Stock Section */}
+          {categoryType === "product" && (
             <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
               <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
-                <h2 className="text-lg font-semibold">SEO Details</h2>
+                <h2 className="text-lg font-semibold">Price & Stock</h2>
               </div>
               <div className="p-4 sm:p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-neutral-50 rounded-lg">
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      SEO Title
+                      Selling Price (₹) *
                     </label>
                     <input
-                      type="text"
-                      name="seoTitle"
-                      value={formData.seoTitle}
+                      type="number"
+                      name="price"
+                      value={formData.price}
                       onChange={handleChange}
-                      placeholder="Enter SEO Title"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      placeholder="100"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      required
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      SEO Keywords
+                      Discounted Price (₹)
                     </label>
                     <input
-                      type="text"
-                      name="seoKeywords"
-                      value={formData.seoKeywords}
+                      type="number"
+                      name="discPrice"
+                      value={formData.discPrice}
                       onChange={handleChange}
-                      placeholder="Enter SEO Keywords (comma separated)"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      placeholder="80"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    SEO Image Alt Text
-                  </label>
-                  <input
-                    type="text"
-                    name="seoImageAlt"
-                    value={formData.seoImageAlt}
-                    onChange={handleChange}
-                    placeholder="Enter SEO Image Alt Text"
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    SEO Description
-                  </label>
-                  <textarea
-                    name="seoDescription"
-                    value={formData.seoDescription}
-                    onChange={handleChange}
-                    placeholder="Enter SEO Description"
-                    rows={4}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Available Stock
+                    </label>
+                    <input
+                      type="number"
+                      name="stock"
+                      value={formData.stock}
+                      onChange={handleChange}
+                      placeholder="50"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {
-            categoryType === "product" && (
-              <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-                <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
-                  <h2 className="text-lg font-semibold">Price & Stock</h2>
-                </div>
-                <div className="p-4 sm:p-6 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-neutral-50 rounded-lg">
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Selling Price (₹) *
-                      </label>
-                      <input
-                        type="number"
-                        name="price"
-                        value={formData.price}
-                        onChange={handleChange}
-                        placeholder="100"
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Discounted Price (₹)
-                      </label>
-                      <input
-                        type="number"
-                        name="discPrice"
-                        value={formData.discPrice}
-                        onChange={handleChange}
-                        placeholder="80"
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Available Stock
-                      </label>
-                      <input
-                        type="number"
-                        name="stock"
-                        value={formData.stock}
-                        onChange={handleChange}
-                        placeholder="50"
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          }
+          <div className="flex justify-between items-center bg-teal-50 p-4 rounded-lg border border-teal-100">
+            <div>
+              <h3 className="text-sm font-semibold text-teal-900">Advanced Configuration</h3>
+              <p className="text-xs text-teal-700">SEO, Marketing, and Regulatory details</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="px-4 py-2 bg-white border border-teal-200 text-teal-600 rounded-lg hover:bg-teal-50 transition-colors font-medium text-sm shadow-sm"
+            >
+              {showAdvanced ? "Hide Advanced Content" : "Show Advanced Content"}
+            </button>
+          </div>
 
-          {categoryType === "product" && !isProduce && (
-            <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-              <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
-                <h2 className="text-lg font-semibold">Add Other Details</h2>
-              </div>
-              <div className="p-4 sm:p-6 space-y-4">
-                {!isProduce && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Manufacturer Name
-                      </label>
-                      <input
-                        type="text"
-                        name="manufacturer"
-                        value={formData.manufacturer}
-                        onChange={handleChange}
-                        placeholder="Enter Manufacturer Name"
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Made In
-                      </label>
-                      <input
-                        type="text"
-                        name="madeIn"
-                        value={formData.madeIn}
-                        onChange={handleChange}
-                        placeholder="e.g. India"
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                      />
-                    </div>
+          {showAdvanced && (
+            <div className="space-y-6">
+              {categoryType === "product" && !isProduce && (
+                <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+                  <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+                    <h2 className="text-lg font-semibold">SEO Details</h2>
                   </div>
-                )}
-                {isProduce && (
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Origin
-                    </label>
-                    <input
-                      type="text"
-                      name="madeIn"
-                      value={formData.madeIn}
-                      onChange={handleChange}
-                      placeholder="e.g. Local Farm"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Select Tax
-                  </label>
-                  <select
-                    name="tax"
-                    value={formData.tax}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
-                    <option value="">Select Tax</option>
-                    <option value="5">5%</option>
-                    <option value="12">12%</option>
-                    <option value="18">18%</option>
-                    <option value="28">28%</option>
-                  </select>
-                </div>
-                {!isProduce && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">
-                        Is Returnable?
-                      </label>
-                      <select
-                        name="isReturnable"
-                        value={formData.isReturnable}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
-                        <option value="No">No</option>
-                        <option value="Yes">Yes</option>
-                      </select>
-                    </div>
-                    {formData.isReturnable === "Yes" && (
+                  <div className="p-4 sm:p-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">
-                          Max Return Days
-                        </label>
-                        <input
-                          type="number"
-                          name="maxReturnDays"
-                          value={formData.maxReturnDays}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                        />
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">SEO Title</label>
+                        <input type="text" name="seoTitle" value={formData.seoTitle} onChange={handleChange} placeholder="Enter SEO Title" className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">SEO Keywords</label>
+                        <input type="text" name="seoKeywords" value={formData.seoKeywords} onChange={handleChange} placeholder="Enter SEO Keywords" className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">SEO Description</label>
+                      <textarea name="seoDescription" value={formData.seoDescription} onChange={handleChange} placeholder="Enter SEO Description" rows={3} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {categoryType === "product" && (
+                <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+                  <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+                    <h2 className="text-lg font-semibold">Regulatory & Logistics</h2>
+                  </div>
+                  <div className="p-4 sm:p-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {!isProduce && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-neutral-700 mb-2">Manufacturer</label>
+                            <input type="text" name="manufacturer" value={formData.manufacturer} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-neutral-700 mb-2">Made In</label>
+                            <input type="text" name="madeIn" value={formData.madeIn} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                          </div>
+                        </>
+                      )}
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">Tax Rate (%)</label>
+                        <select name="tax" value={formData.tax} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg bg-white">
+                          <option value="">Select Tax</option>
+                          <option value="5">5%</option>
+                          <option value="12">12%</option>
+                          <option value="18">18%</option>
+                          <option value="28">28%</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">Max Qty per Order</label>
+                        <input type="number" name="totalAllowedQuantity" value={formData.totalAllowedQuantity} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg" />
+                      </div>
+                    </div>
+
+                    {(categoryName.toLowerCase().includes('food') || categoryName.toLowerCase().includes('grocery')) && (
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">FSSAI License Number</label>
+                        <input type="text" name="fssaiLicNo" value={formData.fssaiLicNo} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg" placeholder="14-digit FSSAI No." />
                       </div>
                     )}
                   </div>
-                )}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    FSSAI License Number (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    name="fssaiLicNo"
-                    value={formData.fssaiLicNo}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Total Allowed Quantity per Order
-                  </label>
-                  <input
-                    type="number"
-                    name="totalAllowedQuantity"
-                    value={formData.totalAllowedQuantity}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
-              </div>
+              )}
             </div>
           )}
 

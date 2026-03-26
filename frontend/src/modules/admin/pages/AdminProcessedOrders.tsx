@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getOrdersByStatus, type Order } from '../../../services/api/admin/adminOrderService';
-import AssignDeliveryBoyModal from '../components/AssignDeliveryBoyModal';
 import { useAuth } from '../../../context/AuthContext';
 
 type SortField = 'orderId' | 'customerDetails' | 'address' | 'deliveryDate' | 'orderDate' | 'status' | 'deliveryBoyStatus' | 'amount';
@@ -20,9 +19,6 @@ export default function AdminProcessedOrders() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (!isAuthenticated || !token) {
@@ -74,7 +70,7 @@ export default function AdminProcessedOrders() {
     };
 
     fetchOrders();
-  }, [isAuthenticated, token, currentPage, entriesPerPage, searchQuery, dateRange, refreshTrigger]);
+  }, [isAuthenticated, token, currentPage, entriesPerPage, searchQuery, dateRange]);
 
   const handleClearDate = () => {
     setDateRange('');
@@ -90,17 +86,8 @@ export default function AdminProcessedOrders() {
     }
   };
 
-  const handleAssignSuccess = () => {
-    setRefreshTrigger((prev) => prev + 1);
-  };
-
-  const handleOpenAssignModal = (order: Order) => {
-    setSelectedOrder(order);
-    setIsAssignModalOpen(true);
-  };
-
   const handleExport = () => {
-    const headers = ['O. Id', 'Customer Details', 'Address', 'D. Date', 'O. Date', 'Status', 'Delivery Boy Assign Status', 'Amount'];
+    const headers = ['O. Id', 'Customer Details', 'Address', 'D. Date', 'O. Date', 'Status', 'Amount'];
     const csvContent = [
       headers.join(','),
       ...filteredAndSortedOrders.map(order =>
@@ -111,7 +98,6 @@ export default function AdminProcessedOrders() {
           order.estimatedDeliveryDate ? new Date(order.estimatedDeliveryDate).toLocaleDateString() : '',
           order.orderDate ? new Date(order.orderDate).toLocaleDateString() : '',
           order.status || '',
-          order.deliveryBoyStatus || 'Not Assigned',
           `?${order.total?.toFixed(2) || '0.00'}`
         ].join(',')
       )
@@ -575,29 +561,6 @@ export default function AdminProcessedOrders() {
                     </div>
                   </th>
                   <th
-                    onClick={() => handleSort('deliveryBoyStatus')}
-                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
-                  >
-                    <div className="flex items-center gap-1">
-                      Delivery Boy Assign Status
-                      {sortField === 'deliveryBoyStatus' && (
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          {sortDirection === 'asc' ? (
-                            <path d="M7 14L12 9L17 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          ) : (
-                            <path d="M17 10L12 15L7 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
                     onClick={() => handleSort('amount')}
                     className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
                   >
@@ -628,19 +591,19 @@ export default function AdminProcessedOrders() {
               <tbody className="bg-white divide-y divide-neutral-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={9} className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
+                    <td colSpan={8} className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
                       Loading orders...
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={9} className="px-4 sm:px-6 py-8 text-center text-sm text-red-600">
+                    <td colSpan={8} className="px-4 sm:px-6 py-8 text-center text-sm text-red-600">
                       {error}
                     </td>
                   </tr>
                 ) : paginatedOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
+                    <td colSpan={8} className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
                       No data available in table
                     </td>
                   </tr>
@@ -665,22 +628,9 @@ export default function AdminProcessedOrders() {
                           {order.status}
                         </span>
                       </td>
-                      <td className="px-4 sm:px-6 py-3">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDeliveryBoyStatusColor(order.deliveryBoyStatus || 'Not Assigned')}`}>
-                          {order.deliveryBoyStatus || 'Not Assigned'}
-                        </span>
-                      </td>
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 font-medium">?{order.total?.toFixed(2) || '0.00'}</td>
                       <td className="px-4 sm:px-6 py-3">
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleOpenAssignModal(order)}
-                            className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${order.deliveryBoyStatus === 'Assigned' ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-blue-600 text-white hover:bg-blue-700'
-                              }`}
-                            title={order.deliveryBoyStatus === 'Assigned' ? 'Re-assign delivery boy' : 'Assign delivery boy'}
-                          >
-                            {order.deliveryBoyStatus === 'Assigned' ? 'Re-assign' : 'Assign'}
-                          </button>
                           <Link to={`/admin/orders/${order._id}`}>
                             <button className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors" aria-label="View order">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -729,21 +679,9 @@ export default function AdminProcessedOrders() {
         </div>
       </div>
 
-      {/* Delivery Boy Assignment Modal */}
-      {isAssignModalOpen && selectedOrder && (
-        <AssignDeliveryBoyModal
-          isOpen={isAssignModalOpen}
-          onClose={() => setIsAssignModalOpen(false)}
-          orderId={selectedOrder._id}
-          orderNumber={selectedOrder.orderNumber}
-          currentDeliveryBoy={selectedOrder.deliveryBoy}
-          onAssignSuccess={handleAssignSuccess}
-        />
-      )}
-
       {/* Footer */}
       <div className="text-center py-4 text-xs sm:text-sm text-neutral-600">
-        Copyright © 2025. Developed By{' '}
+        Copyright © 2025. Developed By{" "}
         <Link to="/" className="text-blue-600 hover:text-blue-700">
           LaxMart
         </Link>

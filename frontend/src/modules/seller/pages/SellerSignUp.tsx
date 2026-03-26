@@ -5,6 +5,7 @@ import OTPInput from '../../../components/OTPInput';
 import { useAuth } from '../../../context/AuthContext';
 import { getCategories, Category } from '../../../services/api/categoryService';
 import { useEffect } from 'react';
+import GoogleMapsLocationPicker from '../../../components/GoogleMapsLocationPicker';
 
 export default function SellerSignUp() {
   const navigate = useNavigate();
@@ -26,7 +27,11 @@ export default function SellerSignUp() {
     branch: '',
     accountNumber: '',
     ifsc: '',
+    latitude: 0,
+    longitude: 0,
   });
+  const [showMap, setShowMap] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number, lng: number } | null>(null);
   const [idProofFile, setIdProofFile] = useState<File | null>(null);
   const [businessLicenseFile, setBusinessLicenseFile] = useState<File | null>(null);
   const [uploadingDocs, setUploadingDocs] = useState(false);
@@ -173,6 +178,8 @@ export default function SellerSignUp() {
         city: formData.city,
         idProof: idProofUrl,
         businessLicense: businessLicenseUrl,
+        latitude: formData.latitude.toString(),
+        longitude: formData.longitude.toString(),
       });
 
       if (response.success) {
@@ -467,8 +474,85 @@ export default function SellerSignUp() {
                   />
                 </div>
 
+                {/* Location Picker Section */}
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-neutral-700">
+                      Pin Store Location <span className="text-red-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (navigator.geolocation) {
+                          navigator.geolocation.getCurrentPosition((pos) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              latitude: pos.coords.latitude,
+                              longitude: pos.coords.longitude
+                            }));
+                            setShowMap(true);
+                          });
+                        } else {
+                          setShowMap(true);
+                        }
+                      }}
+                      className="text-xs font-semibold text-teal-600 hover:text-teal-700 px-3 py-1 bg-teal-50 rounded-full border border-teal-100"
+                    >
+                      {formData.latitude ? '📍 Location Pinned' : '📍 Auto-Detect Location'}
+                    </button>
+                  </div>
+                  
+                  {!showMap && !formData.latitude && (
+                     <button
+                        type="button"
+                        onClick={() => setShowMap(true)}
+                        className="w-full py-6 border-2 border-dashed border-neutral-300 rounded-lg text-neutral-500 text-sm hover:border-teal-500 hover:text-teal-600 transition-all flex flex-col items-center justify-center gap-2"
+                     >
+                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                         <circle cx="12" cy="10" r="3" />
+                       </svg>
+                       <span>Tap to select location on Map</span>
+                     </button>
+                  )}
 
+                  {showMap && (
+                    <div className="space-y-4">
+                      <div className="h-64 rounded-xl overflow-hidden ring-1 ring-neutral-200">
+                        <GoogleMapsLocationPicker
+                          initialLat={formData.latitude || 26.9124}
+                          initialLng={formData.longitude || 75.7873}
+                          height="256px"
+                          onLocationSelect={(lat, lng, address) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              latitude: lat,
+                              longitude: lng,
+                              address: address?.street ? `${address.street}, ${address.landmark || ''}` : prev.address,
+                              city: address?.city || prev.city
+                            }));
+                          }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-neutral-500 italic text-center">
+                        Drag the map to pinpoint your exact store location
+                      </p>
+                    </div>
+                  )}
 
+                  {formData.latitude > 0 && (
+                    <div className="grid grid-cols-2 gap-3 p-3 bg-neutral-50 rounded-lg border border-neutral-200 shadow-inner">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] uppercase font-bold text-neutral-400">Latitude</span>
+                        <span className="text-xs font-medium text-neutral-700">{formData.latitude.toFixed(6)}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] uppercase font-bold text-neutral-400">Longitude</span>
+                        <span className="text-xs font-medium text-neutral-700">{formData.longitude.toFixed(6)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Optional Fields Section */}

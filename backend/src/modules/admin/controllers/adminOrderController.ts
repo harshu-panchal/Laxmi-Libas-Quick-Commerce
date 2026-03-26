@@ -7,6 +7,7 @@ import DeliveryAssignment from "../../../models/DeliveryAssignment";
 import Return from "../../../models/Return";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
 import { Server as SocketIOServer } from "socket.io";
+import { calculateEstimatedDeliveryBoyEarning } from "../../../services/orderNotificationService";
 
 /**
  * Get all orders with filters
@@ -265,12 +266,19 @@ export const assignDeliveryBoy = asyncHandler(
     if (updatedOrder) {
       const io: any = (req.app as any).get("io");
       if (io) {
+        // Calculate estimated delivery boy earning
+        const earning = await calculateEstimatedDeliveryBoyEarning(updatedOrder);
+        const orderWithEarning = {
+          ...updatedOrder.toObject(),
+          deliveryBoyEarning: earning
+        };
+
         // Notify Delivery Boy
         io.to(`delivery-${deliveryBoyId}`).emit("order-assigned", {
           orderId: id,
           orderNumber: updatedOrder.orderNumber,
           message: "A new order has been assigned to you",
-          order: updatedOrder
+          order: orderWithEarning
         });
 
         // Notify Sellers (Optional but helpful to refresh their order view)

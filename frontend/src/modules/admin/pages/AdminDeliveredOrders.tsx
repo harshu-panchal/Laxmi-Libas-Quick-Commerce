@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { getOrdersByStatus, type Order } from '../../../services/api/admin/adminOrderService';
 import { useAuth } from '../../../context/AuthContext';
 
-type SortField = 'orderId' | 'customerDetails' | 'address' | 'deliveryDate' | 'orderDate' | 'status' | 'deliveryBoyStatus' | 'amount';
+type SortField = 'orderId' | 'customerDetails' | 'address' | 'deliveryDate' | 'orderDate' | 'status' | 'amount';
 type SortDirection = 'asc' | 'desc';
 
 export default function AdminDeliveredOrders() {
@@ -87,7 +87,7 @@ export default function AdminDeliveredOrders() {
   };
 
   const handleExport = () => {
-    const headers = ['O. Id', 'Customer Details', 'Address', 'D. Date', 'O. Date', 'Status', 'Delivery Boy Assign Status', 'Amount'];
+    const headers = ['O. Id', 'Customer Details', 'Address', 'D. Date', 'O. Date', 'Status', 'Amount'];
     const csvContent = [
       headers.join(','),
       ...filteredAndSortedOrders.map(order =>
@@ -98,7 +98,6 @@ export default function AdminDeliveredOrders() {
           order.estimatedDeliveryDate ? new Date(order.estimatedDeliveryDate).toLocaleDateString() : '',
           order.orderDate ? new Date(order.orderDate).toLocaleDateString() : '',
           order.status || '',
-          order.deliveryBoyStatus || 'Not Assigned',
           `?${order.total?.toFixed(2) || '0.00'}`
         ].join(',')
       )
@@ -562,29 +561,6 @@ export default function AdminDeliveredOrders() {
                     </div>
                   </th>
                   <th
-                    onClick={() => handleSort('deliveryBoyStatus')}
-                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
-                  >
-                    <div className="flex items-center gap-1">
-                      Delivery Boy Assign Status
-                      {sortField === 'deliveryBoyStatus' && (
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          {sortDirection === 'asc' ? (
-                            <path d="M7 14L12 9L17 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          ) : (
-                            <path d="M17 10L12 15L7 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
                     onClick={() => handleSort('amount')}
                     className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
                   >
@@ -615,19 +591,19 @@ export default function AdminDeliveredOrders() {
               <tbody className="bg-white divide-y divide-neutral-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={9} className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
+                    <td colSpan={8} className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
                       Loading orders...
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={9} className="px-4 sm:px-6 py-8 text-center text-sm text-red-600">
+                    <td colSpan={8} className="px-4 sm:px-6 py-8 text-center text-sm text-red-600">
                       {error}
                     </td>
                   </tr>
                 ) : paginatedOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
+                    <td colSpan={8} className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
                       No data available in table
                     </td>
                   </tr>
@@ -650,11 +626,6 @@ export default function AdminDeliveredOrders() {
                       <td className="px-4 sm:px-6 py-3">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                           {order.status}
-                        </span>
-                      </td>
-                      <td className="px-4 sm:px-6 py-3">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDeliveryBoyStatusColor(order.deliveryBoyStatus || 'Not Assigned')}`}>
-                          {order.deliveryBoyStatus || 'Not Assigned'}
                         </span>
                       </td>
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 font-medium">?{order.total?.toFixed(2) || '0.00'}</td>

@@ -31,8 +31,6 @@ export default function AdminPendingOrders() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Fetch orders on component mount
   useEffect(() => {
@@ -126,7 +124,6 @@ export default function AdminPendingOrders() {
       "D. Date",
       "O. Date",
       "Status",
-      "Delivery Boy Assign Status",
       "Amount",
     ];
     const csvContent = [
@@ -141,7 +138,6 @@ export default function AdminPendingOrders() {
             : "",
           order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "",
           order.status || "",
-          order.deliveryBoyStatus || "Not Assigned",
           `?${order.total?.toFixed(2) || "0.00"}`,
         ].join(",")
       ),
@@ -667,39 +663,6 @@ export default function AdminPendingOrders() {
                     </div>
                   </th>
                   <th
-                    onClick={() => handleSort("deliveryBoyStatus")}
-                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                    <div className="flex items-center gap-1">
-                      Delivery Boy Assign Status
-                      {sortField === "deliveryBoyStatus" && (
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg">
-                          {sortDirection === "asc" ? (
-                            <path
-                              d="M7 14L12 9L17 14"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          ) : (
-                            <path
-                              d="M17 10L12 15L7 10"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
                     onClick={() => handleSort("amount")}
                     className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
                     <div className="flex items-center gap-1">
@@ -797,37 +760,11 @@ export default function AdminPendingOrders() {
                           {order.status}
                         </span>
                       </td>
-                      <td className="px-4 sm:px-6 py-3">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDeliveryBoyStatusColor(
-                            order.deliveryBoyStatus || "Not Assigned"
-                          )}`}>
-                          {order.deliveryBoyStatus || "Not Assigned"}
-                        </span>
-                      </td>
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 font-medium">
                         ?{order.total?.toFixed(2) || "0.00"}
                       </td>
                       <td className="px-4 sm:px-6 py-3">
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedOrder(order);
-                              setAssignModalOpen(true);
-                            }}
-                            className={`px-2 py-1.5 text-xs font-medium rounded transition-colors ${order.deliveryBoyStatus === "Assigned"
-                                ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                                : "bg-blue-600 text-white hover:bg-blue-700"
-                              }`}
-                            title={
-                              order.deliveryBoyStatus === "Assigned"
-                                ? "Re-assign delivery boy"
-                                : "Assign delivery boy"
-                            }>
-                            {order.deliveryBoyStatus === "Assigned"
-                              ? "Re-assign"
-                              : "Assign"}
-                          </button>
                           <Link to={`/admin/orders/${order._id}`}>
                             <button
                               className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors"
@@ -927,45 +864,6 @@ export default function AdminPendingOrders() {
           LaxMart
         </Link>
       </div>
-
-      {/* Assign Delivery Boy Modal */}
-      {assignModalOpen && selectedOrder && (
-        <AssignDeliveryBoyModal
-          isOpen={assignModalOpen}
-          onClose={() => {
-            setAssignModalOpen(false);
-            setSelectedOrder(null);
-          }}
-          orderId={selectedOrder._id}
-          orderNumber={selectedOrder.orderNumber}
-          currentDeliveryBoy={
-            typeof selectedOrder.deliveryBoy === "string"
-              ? selectedOrder.deliveryBoy
-              : selectedOrder.deliveryBoy &&
-                typeof selectedOrder.deliveryBoy === "object"
-                ? (selectedOrder.deliveryBoy as any)._id || undefined
-                : undefined
-          }
-          onAssignSuccess={async () => {
-            // Refresh orders after successful assignment
-            try {
-              const params: any = {
-                page: currentPage,
-                limit: parseInt(entriesPerPage),
-              };
-              if (searchQuery) params.search = searchQuery;
-              const response = await getOrdersByStatus("Pending", params);
-              if (response.success) {
-                setOrders(response.data);
-              }
-            } catch (err) {
-              console.error("Error refreshing orders:", err);
-            }
-            setAssignModalOpen(false);
-            setSelectedOrder(null);
-          }}
-        />
-      )}
     </div>
   );
 }

@@ -12,7 +12,7 @@ import { notifySellersOfOrderUpdate } from './sellerNotificationService';
  * Uses the same logic as commission distribution but provides an estimate
  * before the order is assigned
  */
-async function calculateEstimatedDeliveryBoyEarning(order: any): Promise<number> {
+export async function calculateEstimatedDeliveryBoyEarning(order: any): Promise<number> {
     try {
         // @ts-ignore - getSettings is a static method
         const settings = await AppSettings.getSettings();
@@ -270,7 +270,7 @@ export async function findDeliveryBoysNearSellerLocations(
                 continue;
             }
 
-            const radius = seller.serviceRadiusKm || 10; // Default 10km
+            const radius = Math.max(seller.serviceRadiusKm || 40, 40); // Standardized search radius to 40km
             const nearbyBoys = await findDeliveryBoysNearLocation(lat, lng, radius);
 
             for (const boy of nearbyBoys) {

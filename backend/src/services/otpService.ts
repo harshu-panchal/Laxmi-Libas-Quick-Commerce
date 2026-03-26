@@ -221,6 +221,24 @@ function isDeveloperBypass(otp: string): boolean {
 // SMS OTP (Customer / Delivery)
 // ==========================================
 
+export async function sendDeliveryOtpSms(mobile: string, otp: string): Promise<OtpResponse> {
+  try {
+    if (isMockMode()) {
+      console.log(`[Mock SMS] Sending delivery OTP ${otp} to ${mobile}`);
+      return { success: true, message: 'Delivery OTP sent successfully (Mock)' };
+    }
+
+    const appName = process.env.APP_NAME || 'LaxMart';
+    const message = `Your delivery verification OTP for ${appName} is ${otp}. Please share this with the delivery partner upon delivery.`;
+    
+    await sendSmsViaApi(mobile, message);
+    return { success: true, message: 'Delivery OTP sent successfully via SMS' };
+  } catch (error: any) {
+    console.error('Failed to send delivery OTP SMS:', error);
+    throw new Error(error.message || 'Failed to send delivery OTP');
+  }
+}
+
 export async function sendSmsOtp(
   mobile: string,
   userType: 'Customer' | 'Delivery' = 'Delivery'

@@ -1,5 +1,6 @@
 import Order from '../models/Order';
 import Customer from '../models/Customer';
+import { sendDeliveryOtpSms } from './otpService';
 
 /**
  * Generate delivery OTP is no longer needed for regular orders.
@@ -8,7 +9,7 @@ import Customer from '../models/Customer';
  */
 export async function generateDeliveryOtp(orderId: string): Promise<{ success: boolean; message: string }> {
   try {
-    const order = await Order.findById(orderId);
+    const order = await Order.findById(orderId).populate('customer');
 
     if (!order) {
       throw new Error('Order not found');
@@ -18,17 +19,33 @@ export async function generateDeliveryOtp(orderId: string): Promise<{ success: b
       throw new Error('Order is already delivered');
     }
 
-    // No longer generate per-order OTP - customer has permanent deliveryOtp
-    // Just return success as the customer's permanent OTP will be used
-    console.log(`[Delivery OTP] Using customer's permanent delivery OTP for order ${orderId}`);
+    // Get customer's permanent delivery OTP and phone
+    let customerOtp: string | undefined;
+    let customerPhone: string | undefined;
+
+    if (order.customer && typeof order.customer === 'object') {
+       customerOtp = (order.customer as any).deliveryOtp;
+       customerPhone = (order.customer as any).phone;
+    } else if (order.customer) {
+       const customer = await Customer.findById(order.customer);
+       customerOtp = customer?.deliveryOtp;
+       customerPhone = customer?.phone;
+    }
+
+    if (!customerOtp || !customerPhone) {
+      throw new Error('Customer details or delivery OTP not found.');
+    }
+
+    const { success } = await sendDeliveryOtpSms(customerPhone, customerOtp);
+    if (!success) throw new Error('Failed to send SMS');
 
     return {
       success: true,
-      message: 'Customer has a permanent delivery OTP. Share it with the delivery partner.',
+      message: 'Delivery OTP has been sent to the customer\'s mobile number.',
     };
   } catch (error: any) {
     console.error('Error in generateDeliveryOtp:', error);
-    throw new Error(error.message || 'Failed to process delivery OTP request');
+    throw new Error(error.message || 'Failed to send delivery OTP');
   }
 }
 

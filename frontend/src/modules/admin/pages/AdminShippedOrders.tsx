@@ -13,7 +13,7 @@ type SortField =
   | "deliveryDate"
   | "orderDate"
   | "status"
-  | "deliveryBoyStatus"
+  | "status"
   | "amount";
 type SortDirection = "asc" | "desc";
 
@@ -120,7 +120,6 @@ export default function AdminShippedOrders() {
       "D. Date",
       "O. Date",
       "Status",
-      "Delivery Boy Assign Status",
       "Amount",
     ];
     const csvContent = [
@@ -135,7 +134,6 @@ export default function AdminShippedOrders() {
             : "",
           order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "",
           order.status || "",
-          order.deliveryBoyStatus || "Not Assigned",
           `?${order.total?.toFixed(2) || "0.00"}`,
         ].join(",")
       ),
@@ -660,39 +658,6 @@ export default function AdminShippedOrders() {
                     </div>
                   </th>
                   <th
-                    onClick={() => handleSort("deliveryBoyStatus")}
-                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                    <div className="flex items-center gap-1">
-                      Delivery Boy Assign Status
-                      {sortField === "deliveryBoyStatus" && (
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg">
-                          {sortDirection === "asc" ? (
-                            <path
-                              d="M7 14L12 9L17 14"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          ) : (
-                            <path
-                              d="M17 10L12 15L7 10"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
                     onClick={() => handleSort("amount")}
                     className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
                     <div className="flex items-center gap-1">
@@ -788,14 +753,6 @@ export default function AdminShippedOrders() {
                             order.status
                           )}`}>
                           {order.status}
-                        </span>
-                      </td>
-                      <td className="px-4 sm:px-6 py-3">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDeliveryBoyStatusColor(
-                            order.deliveryBoyStatus || "Not Assigned"
-                          )}`}>
-                          {order.deliveryBoyStatus || "Not Assigned"}
                         </span>
                       </td>
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 font-medium">

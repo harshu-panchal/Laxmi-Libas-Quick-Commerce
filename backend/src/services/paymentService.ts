@@ -6,8 +6,8 @@ import mongoose from 'mongoose';
 
 // Initialize Razorpay instance
 const getRazorpayInstance = () => {
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    const keyId = process.env.RAZORPAY_KEY_ID?.trim();
+    const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
 
     if (!keyId || !keySecret) {
         throw new Error('Razorpay credentials not configured');
@@ -30,8 +30,19 @@ export const createRazorpayOrder = async (
     try {
         const razorpay = getRazorpayInstance();
 
+        // Razorpay requirement: Amount must be at least 100 paise (Rs. 1)
+        const amountInPaise = Math.round(amount * 100);
+        
+        if (isNaN(amountInPaise) || amountInPaise < 100) {
+            console.error('❌ Razorpay Amount Invalid:', { amount, amountInPaise, orderId });
+            return {
+                success: false,
+                message: `Invalid payment amount: ₹${amount || 0}. Minimum amount required is ₹1.`,
+            };
+        }
+
         const options = {
-            amount: Math.round(amount * 100), // Amount in paise
+            amount: amountInPaise,
             currency,
             receipt: orderId,
             notes: {
@@ -39,6 +50,7 @@ export const createRazorpayOrder = async (
             },
         };
 
+        console.log('📦 Creating Razorpay Order:', { orderId, amountInPaise, currency });
         const razorpayOrder = await razorpay.orders.create(options);
 
         return {
@@ -54,13 +66,21 @@ export const createRazorpayOrder = async (
     } catch (error: any) {
         console.error('❌ Razorpay Order Creation Failed:', {
             error: error.message,
-            stack: error.stack,
+            description: error.description,
+            code: error.code,
             orderId,
             amount: Math.round(amount * 100)
         });
+        
+        // Extract the most descriptive error message from Razorpay
+        const errorMessage = error.description || 
+                           (error.error && error.error.description) || 
+                           error.message || 
+                           'Failed to create Razorpay order';
+        
         return {
             success: false,
-            message: error.description || error.message || 'Failed to create Razorpay order',
+            message: errorMessage,
             error: error
         };
     }

@@ -31,6 +31,13 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
 
     try {
       const decoded = verifyToken(token);
+      if (!decoded || !decoded.userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Invalid token payload: userId missing',
+        });
+        return;
+      }
       req.user = decoded;
       next();
     } catch (error: any) {
