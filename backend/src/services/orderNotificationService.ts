@@ -311,6 +311,7 @@ export async function notifyDeliveryBoysOfNewOrder(
     try {
         // Find delivery boys near seller locations (within service radius)
         let nearbyDeliveryBoyIds = await findDeliveryBoysNearSellerLocations(order);
+        const originalNearbyIds = [...nearbyDeliveryBoyIds]; // Keep a copy for fallback
 
         if (nearbyDeliveryBoyIds.length === 0) {
             console.log('No available delivery boys to notify (including fallback)');
@@ -336,9 +337,9 @@ export async function notifyDeliveryBoysOfNewOrder(
             console.log(`ℹ️ Filtered out ${originalCount - nearbyDeliveryBoyIds.length} busy delivery boys. Active: ${nearbyDeliveryBoyIds.length}`);
 
             if (nearbyDeliveryBoyIds.length === 0) {
-                console.log('⚠️ All nearby delivery boys are currently busy with other orders.');
-                // Optionally: could emit to admin or retry later
-                return;
+                console.log('⚠️ All nearby delivery boys are currently busy with other orders. Notifying them anyway to allow queuing.');
+                // Proceed with original list if filtered list is empty
+                nearbyDeliveryBoyIds = originalNearbyIds;
             }
         }
         // ---------------------------------
@@ -369,19 +370,15 @@ export async function notifyDeliveryBoysOfNewOrder(
         const orderId = order._id.toString();
         const notifiedIds = new Set<string>();
 
-        // Only add delivery boys who are actually connected to the notification room
+        // Notify all nearby delivery boys regardless of current room state
+        // (Socket.io handles empty rooms gracefully, and this avoids race conditions)
         for (const id of nearbyDeliveryBoyIds) {
             const idString = id.toString().trim();
             const roomName = `delivery-${idString}`;
-            const room = io.sockets.adapter.rooms.get(roomName);
-
-            if (room && room.size > 0) {
-                notifiedIds.add(idString);
-                io.to(roomName).emit('new-order', orderData);
-                console.log(`📤 Emitted new-order to connected delivery boy room: ${roomName}`);
-            } else {
-                console.log(`⏩ Skipping disconnected delivery boy: ${idString}`);
-            }
+            
+            notifiedIds.add(idString);
+            io.to(roomName).emit('new-order', orderData);
+            console.log(`📤 Emitted new-order to delivery boy room: ${roomName}`);
         }
 
         if (notifiedIds.size === 0) {

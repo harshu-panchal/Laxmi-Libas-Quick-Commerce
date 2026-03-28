@@ -12,8 +12,10 @@ import { initializeSocket } from "./socket/socketService";
 import { initializeFirebaseAdmin } from "./services/firebaseAdmin";
 
 
-// Load environment variables
-dotenv.config();
+import path from "path";
+
+// Load environment variables - using absolute path for robustness
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const app: Application = express();
 const httpServer = createServer(app);

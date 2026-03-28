@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { handleOrderAcceptance, handleOrderRejection } from '../services/orderNotificationService';
 import Order from '../models/Order';
 import DeliveryTracking from '../models/DeliveryTracking';
+import Delivery from '../models/Delivery';
 
 // In-memory cache for order destinations (lat, lng) to avoid DB reads on every update
 // Key: orderId, Value: { latitude, longitude }
@@ -326,6 +327,15 @@ export const initializeSocket = (httpServer: HttpServer) => {
                             }
                         }
                         await tracking.save();
+
+                        // 7. Update Delivery model (Slow Path - synced with tracking)
+                        await Delivery.findByIdAndUpdate(deliveryBoyId, {
+                            location: {
+                                type: 'Point',
+                                coordinates: [longitude, latitude]
+                            }
+                        });
+                        console.log(`📍 Location synced to Delivery model for ${deliveryBoyId}`);
                     } catch (dbError) {
                          console.error('Error syncing location to DB:', dbError);
                     }

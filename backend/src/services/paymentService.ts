@@ -8,7 +8,8 @@ import mongoose from 'mongoose';
 const getRazorpayInstance = () => {
     const keyId = process.env.RAZORPAY_KEY_ID?.trim();
     const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
-
+    console.log("keyId", keyId)
+    console.log("keySecret", keySecret)
     if (!keyId || !keySecret) {
         throw new Error('Razorpay credentials not configured');
     }
@@ -32,7 +33,7 @@ export const createRazorpayOrder = async (
 
         // Razorpay requirement: Amount must be at least 100 paise (Rs. 1)
         const amountInPaise = Math.round(amount * 100);
-        
+
         if (isNaN(amountInPaise) || amountInPaise < 100) {
             console.error('❌ Razorpay Amount Invalid:', { amount, amountInPaise, orderId });
             return {
@@ -49,7 +50,6 @@ export const createRazorpayOrder = async (
                 orderId,
             },
         };
-
         console.log('📦 Creating Razorpay Order:', { orderId, amountInPaise, currency });
         const razorpayOrder = await razorpay.orders.create(options);
 
@@ -71,13 +71,13 @@ export const createRazorpayOrder = async (
             orderId,
             amount: Math.round(amount * 100)
         });
-        
+
         // Extract the most descriptive error message from Razorpay
-        const errorMessage = error.description || 
-                           (error.error && error.error.description) || 
-                           error.message || 
-                           'Failed to create Razorpay order';
-        
+        const errorMessage = error.description ||
+            (error.error && error.error.description) ||
+            error.message ||
+            'Failed to create Razorpay order';
+
         return {
             success: false,
             message: errorMessage,

@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
 import Product from "../../../models/Product";
@@ -104,7 +105,7 @@ export const getSubcategories = asyncHandler(
     const {
       search,
       page = "1",
-      limit = "10",
+      limit = "100",
       sortBy = "name",
       sortOrder = "asc",
     } = req.query;
@@ -125,11 +126,13 @@ export const getSubcategories = asyncHandler(
     }
     
     // Ensure id is the ObjectId for following queries if we found it by slug
-    const objectId = parentCategory._id.toString();
+    const objectId = parentCategory._id;
+
+    console.log(`Fetching subcategories for category: ${parentCategory.name} (${objectId})`);
 
     // Pagination parameters
     const pageNum = parseInt(page as string) || 1;
-    const limitNum = parseInt(limit as string) || 10;
+    const limitNum = parseInt(limit as string) || 100;
     const skip = (pageNum - 1) * limitNum;
 
     // Sort parameters
@@ -288,7 +291,7 @@ export const getAllSubcategories = asyncHandler(
     const {
       search,
       page = "1",
-      limit = "10",
+      limit = "100",
       sortBy = "name",
       sortOrder = "asc",
     } = req.query;
