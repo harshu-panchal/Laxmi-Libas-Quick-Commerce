@@ -282,39 +282,81 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
     >
       {/* Top section with delivery info and buttons - NOT sticky */}
       {!hideTopContent && (
-        <div>
-          <div ref={topSectionRef} className="px-4 md:px-6 lg:px-8 pt-[30px] md:pt-3 pb-0">
-            <div className="flex items-start justify-between mb-2 md:mb-2 gap-2">
-              {/* Left: Text content */}
-              <div className="flex-1 pr-2">
-                {/* Brand Name */}
-                <div className="text-neutral-900 font-bold text-[30px] mb-1 leading-none tracking-tighter">
-                  LAXMART
+        <div className="pt-3 px-3">
+          {/* Row 1: App Icons / Service Tiles */}
+          <div className="flex justify-between pb-3 scrollbar-hide px-1">
+            {/* Laxmart Card (Yellow) */}
+            <div className="flex flex-col items-center flex-shrink-0">
+              <div className="w-[72px] h-[54px] rounded-xl bg-[#ffec00] p-1 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center justify-between border border-yellow-300">
+                <div className="flex-1 flex items-center justify-center">
+                  <img src="/laxmart_logo_flat_1774950312611.png" alt="Laxmart" className="w-[26px] h-[26px] object-contain" />
                 </div>
-                {/* Location with dropdown indicator - only show if location is provided */}
-                {locationDisplayText && (
-                  <div className="text-neutral-700 text-[11px] md:text-xs flex items-center gap-1 leading-tight">
-                    <span className="line-clamp-1" title={locationDisplayText}>{locationDisplayText}</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-
-              {/* Right: Notification Bell */}
-              <div className="flex-shrink-0 mt-1">
-                <button
-                  onClick={() => navigate('/notifications')}
-                  className="flex items-center justify-center transition-all duration-300 relative"
-                >
-                  <Bell size={26} style={{ color: theme.headerTextColor || '#000000' }} />
-                  {/* Notification Badge - always show red dot for demo if no real count service yet */}
-                  <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></div>
-                </button>
+                <span className="text-[9px] font-[900] text-gray-900 pb-0.5 italic tracking-tight">Laxmart</span>
               </div>
             </div>
+            
+            {/* 10 Minutes Card (White) - Hidden by user request */}
+            {/*
+            <div className="flex flex-col items-center flex-shrink-0">
+              <div className="w-[72px] h-[54px] rounded-xl bg-white p-1 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center justify-between border border-gray-100">
+                <div className="flex-1 flex items-center justify-center">
+                  <img src="/minutes_8_badge_1774950333277.png" alt="10 Mins" className="w-[26px] h-[26px] object-contain" />
+                </div>
+                <span className="text-[9px] font-[900] text-gray-900 pb-0.5 italic tracking-tight">Minutes</span>
+              </div>
+            </div>
+            */}
 
+            {/* Travel Card (White) - Hidden by user request */}
+            {/*
+            <div className="flex flex-col items-center flex-shrink-0">
+              <div className="w-[72px] h-[54px] rounded-xl bg-white p-1 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center justify-between border border-gray-100">
+                <div className="flex-1 flex items-center justify-center">
+                  <img src="/travel_airplane_red_flat_1774950352120.png" alt="Travel" className="w-[26px] h-[26px] object-contain" />
+                </div>
+                <span className="text-[9px] font-[900] text-gray-900 pb-0.5 italic tracking-tight">Travel</span>
+              </div>
+            </div>
+            */}
+
+            {/* Grocery Card (White) - Hidden by user request */}
+            {/*
+            <div className="flex flex-col items-center flex-shrink-0">
+              <div className="w-[72px] h-[54px] rounded-xl bg-white p-1 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center justify-between border border-gray-100">
+                <div className="flex-1 flex items-center justify-center">
+                  <img src="/grocery_saver_green_flat_1774950367400.png" alt="Grocery" className="w-[26px] h-[26px] object-contain" />
+                </div>
+                <span className="text-[9px] font-[900] text-gray-900 pb-0.5 italic tracking-tight">Grocery</span>
+              </div>
+            </div>
+            */}
+          </div>
+
+          {/* Row 2: Location and Rewards Bar */}
+          <div className="flex items-center justify-between gap-2 mb-0">
+            <div className="flex-1 min-w-0 bg-[#dff1ff] rounded-full px-3 py-1.5 flex items-center gap-2 shadow-sm border border-[#c5e4ff]">
+              <div className="bg-gray-800 rounded-md p-1 flex-shrink-0">
+                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                </svg>
+              </div>
+              <span className="text-[12px] font-[900] text-gray-800 uppercase tracking-tight flex-shrink-0">HOME</span>
+              <span className="text-[11px] font-bold text-gray-600 truncate">
+                {locationDisplayText || "Sarvanad nagar ,near pearl gi..."}
+              </span>
+              <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            <div className="flex-shrink-0 bg-white rounded-full px-2 py-0.5 flex items-center gap-1 shadow-sm border border-gray-100 h-[32px]">
+              <div className="w-4.5 h-4.5 bg-yellow-400 rounded-full flex items-center justify-center shadow-inner flex-shrink-0">
+                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M13 3l-1 5h4L7 21l1-8H4l9-10z" />
+                </svg>
+              </div>
+              <span className="text-[13px] font-black text-gray-800 leading-none">23</span>
+            </div>
           </div>
         </div>
       )}
@@ -335,53 +377,54 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
           }),
         }}
       >
-        <div className="px-4 md:px-6 lg:px-8 pt-2 md:pt-2 pb-[30px] md:pb-[30px]">
-          {/* Search Bar */}
-          <div
-            onClick={() => navigate('/search')}
-            className="w-full md:w-auto md:max-w-xl md:mx-auto rounded-xl shadow-sm px-3 py-2 md:px-3 md:py-2 flex items-center gap-2 cursor-pointer hover:shadow-md transition-all duration-300 mb-2 bg-white"
-            style={{
-              backgroundColor: scrollProgress > 0.1 ? `rgba(249, 250, 251, ${scrollProgress})` : 'white',
-              border: scrollProgress > 0.1 ? `1px solid rgba(229, 231, 235, ${scrollProgress})` : '1px solid rgba(255,255,255,0.6)',
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4 text-yellow-700">
-              <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
-              <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-            <div className="flex-1 relative h-4 md:h-4 overflow-hidden">
-              {searchSuggestions.map((suggestion, index) => {
-                const isActive = index === currentSearchIndex;
-                const prevIndex = (currentSearchIndex - 1 + searchSuggestions.length) % searchSuggestions.length;
-                const isPrev = index === prevIndex;
-
-                return (
-                  <div
-                    key={suggestion}
-                    className={`absolute inset-0 flex items-center transition-all duration-500 ${isActive
-                      ? 'translate-y-0 opacity-100'
-                      : isPrev
-                        ? '-translate-y-full opacity-0'
-                        : 'translate-y-full opacity-0'
-                      }`}
-                  >
-                    <span className="text-xs md:text-xs text-neutral-500">
-                      Search {suggestion}
-                    </span>
-                  </div>
-                );
-              })}
+        <div className="px-4 md:px-6 lg:px-8 pt-2 md:pt-2 pb-2">
+          {/* Search Bar Row */}
+          <div className="flex items-center gap-2.5">
+            <div
+              onClick={() => navigate('/search')}
+              className="flex-1 rounded-[14px] border-2 border-[#1e90ff] px-3 py-2 md:py-2.5 flex items-center gap-2 bg-white shadow-sm active:scale-[0.99] transition-all cursor-pointer h-[42px] md:h-[46px]"
+            >
+              <svg className="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <div className="flex-1 relative h-5 overflow-hidden">
+                {searchSuggestions.map((suggestion, index) => {
+                  const isActive = index === currentSearchIndex;
+                  return (
+                    <div
+                      key={suggestion}
+                      className={`absolute inset-0 flex items-center transition-all duration-500 ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}
+                    >
+                      <span className="text-[13.5px] md:text-[15px] font-medium text-gray-400 truncate pr-2">
+                        Search {suggestion}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Internal Camera Icon - Hidden by user request */}
+              {/*
+              <div className="ml-auto text-gray-500 flex-shrink-0">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              */}
             </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4 text-neutral-500">
-              <path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M12 19v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M8 23h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            
+            {/* QR Scan Icon - Hidden by user request */}
+            {/*
+            <div className="bg-white p-1.5 md:p-2 rounded-[14px] shadow-sm border border-gray-100 text-gray-500 cursor-pointer active:scale-95 transition-transform flex items-center justify-center h-[42px] md:h-[46px] w-[42px] md:w-[46px]">
+              <svg className="w-[24px] h-[24px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h2M4 8h16" />
+              </svg>
+            </div>
+            */}
           </div>
 
           {/* Category Tabs Section - Substituted with circular icons bar */}
-          <div className="mt-1">
+          <div className="mt-0">
             <CategoryTabBar
               activeCategory={activeTab}
               onCategoryChange={onTabChange}

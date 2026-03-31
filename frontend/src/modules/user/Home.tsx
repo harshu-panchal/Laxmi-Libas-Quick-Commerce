@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import HomeHero from "./components/HomeHero";
+import HomeBannerCarousel from "./components/HomeBannerCarousel";
 import BannerSlider from "./components/BannerSlider";
-import PromoStrip from "./components/PromoStrip";
 import LowestPricesEver from "./components/LowestPricesEver";
 import CategoryTileSection from "./components/CategoryTileSection";
 import FeaturedThisWeek from "./components/FeaturedThisWeek";
@@ -97,6 +97,18 @@ export default function Home() {
             };
           }
           
+          // CRITICAL: Filter out mock/placeholder products (like the 'jeans' 200 card)
+          const isMockProduct = (p: any) => p.name?.toLowerCase() === 'jeans' && p.price === 200;
+          
+          data = {
+            ...data,
+            bestsellers: (data.bestsellers || []).filter((p: any) => !isMockProduct(p)),
+            homeSections: (data.homeSections || []).map((section: any) => ({
+              ...section,
+              data: section.displayType === "banners" ? section.data : (section.data || []).filter((p: any) => !isMockProduct(p))
+            })).filter((section: any) => section.displayType === "banners" || (section.data && section.data.length > 0))
+          };
+
           setHomeData(data);
           
           // Products for the "Filtered Products Section" at the bottom
@@ -299,12 +311,8 @@ export default function Home() {
       {/* Hero Header with Gradient and Tabs */}
       <HomeHero activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Promo Strip */}
-      <PromoStrip activeTab={activeTab} />
-
-
-      {/* LOWEST PRICES EVER Section */}
-      <LowestPricesEver activeTab={activeTab} products={homeData.lowestPrices} />
+      {/* Premium Home Banner Carousel */}
+      <HomeBannerCarousel />
 
       {/* Main content */}
       <div
@@ -463,8 +471,8 @@ export default function Home() {
               />
             </div>
 
-            {/* Featured this week Section */}
-            <FeaturedThisWeek />
+            {/* Featured this week Section - Hidden by user request */}
+            {/* <FeaturedThisWeek /> */}
 
             {/* Shop by Store Section */}
             <div className="mb-6 mt-6 md:mb-8 md:mt-8">

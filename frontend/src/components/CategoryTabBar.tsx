@@ -1,35 +1,31 @@
 import { useRef, useEffect } from 'react';
-import {
-    Shirt,
-    Footprints,
-    ShoppingBasket,
-    Soup,
-    Sparkles,
-    Smartphone,
-    Gamepad2,
-    Armchair,
-    Glasses,
-    Key,
-    Wrench,
-    Settings,
-    LayoutGrid,
-    Crown,
-    Zap,
-    Flower2,
-    MonitorSmartphone,
-    Home,
-    Car,
-    Apple
-} from 'lucide-react';
+import { CategoryIcons } from './CategoryIcons';
 
 interface Category {
     id: string;
     name: string;
     icon: any;
     slug: string;
-    color: string; // Base color name for variants
-    accentIcon?: any;
 }
+
+const CATEGORIES: Category[] = [
+    { id: '1', name: 'For You', icon: CategoryIcons.ForYou, slug: 'all' },
+    { id: '2', name: 'Clothing', icon: CategoryIcons.Fashion, slug: 'fashion' },
+    /*
+    { id: '3', name: 'Mobiles', icon: CategoryIcons.Mobiles, slug: 'mobiles' },
+    { id: '4', name: 'Beauty', icon: CategoryIcons.Beauty, slug: 'beauty' },
+    { id: '5', name: 'Electronics', icon: CategoryIcons.Electronics, slug: 'electronics' },
+    { id: '6', name: 'Home', icon: CategoryIcons.Home, slug: 'home' },
+    { id: '7', name: 'Appliances', icon: CategoryIcons.Appliances, slug: 'appliances' },
+    { id: '8', name: 'Toys, baby', icon: CategoryIcons.ToysBaby, slug: 'toys-baby' },
+    { id: '9', name: 'Food & Health', icon: CategoryIcons.FoodHealth, slug: 'food-health' },
+    { id: '10', name: 'Auto Access...', icon: CategoryIcons.AutoAccessories, slug: 'auto-accessories' },
+    { id: '11', name: '2 Wheelers', icon: CategoryIcons.TwoWheelers, slug: 'two-wheelers' },
+    { id: '12', name: 'Sports & Out...', icon: CategoryIcons.Sports, slug: 'sports' },
+    { id: '13', name: 'Books & More', icon: CategoryIcons.Books, slug: 'books' },
+    { id: '14', name: 'Furniture', icon: CategoryIcons.Furniture, slug: 'furniture' },
+    */
+];
 
 interface CategoryTabBarProps {
     activeCategory?: string;
@@ -38,14 +34,8 @@ interface CategoryTabBarProps {
     isLightMode?: boolean;
 }
 
-const CATEGORIES: Category[] = [
-    { id: '1', name: 'Clothing', icon: Shirt, slug: 'clothing', color: 'pink', accentIcon: Crown },
-];
-
-export default function CategoryTabBar({ activeCategory, onCategoryChange, onTabClick, isLightMode = false }: CategoryTabBarProps) {
+export default function CategoryTabBar({ activeCategory = 'all', onCategoryChange, onTabClick, isLightMode = false }: CategoryTabBarProps) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const activeTextClass = isLightMode ? 'text-neutral-900' : 'text-neutral-900';
-    const inactiveTextClass = isLightMode ? 'text-neutral-500' : 'text-neutral-700';
 
     useEffect(() => {
         if (activeCategory && scrollContainerRef.current) {
@@ -62,31 +52,16 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
     };
 
     return (
-        <div className="w-full pb-1">
+        <div className="w-full">
             <div
                 ref={scrollContainerRef}
-                className="flex overflow-x-auto scrollbar-hide px-4 py-0.5 gap-3 md:gap-4"
+                className="flex overflow-x-auto scrollbar-hide px-3 py-0.5 gap-[10px] items-end"
                 style={{
                     scrollbarWidth: 'none',
                     msOverflowStyle: 'none',
                     WebkitOverflowScrolling: 'touch',
                 }}
             >
-                {/* 'All' option */}
-                <button
-                    onClick={() => handleCategoryChange('all')}
-                    data-category="all"
-                    className="flex flex-col items-center justify-center min-w-[56px] group"
-                >
-                    <div className="w-8 h-8 flex items-center justify-center">
-                        <LayoutGrid size={22} strokeWidth={1.8} className={activeCategory === 'all' ? activeTextClass : inactiveTextClass} />
-                    </div>
-                    <span className={`mt-0.5 text-[11px] font-medium text-center leading-tight ${activeCategory === 'all' ? activeTextClass : inactiveTextClass}`}>
-                        Everything
-                    </span>
-                    <span className={`mt-0.5 h-0.5 w-6 rounded-full ${activeCategory === 'all' ? 'bg-neutral-900' : 'bg-transparent'}`} />
-                </button>
-
                 {CATEGORIES.map((category) => {
                     const isActive = activeCategory === category.slug;
                     const Icon = category.icon;
@@ -96,16 +71,21 @@ export default function CategoryTabBar({ activeCategory, onCategoryChange, onTab
                             key={category.id}
                             data-category={category.slug}
                             onClick={() => handleCategoryChange(category.slug)}
-                            className="flex flex-col items-center justify-center min-w-[56px] group"
+                            className="flex flex-col items-center justify-end min-w-[50px] group flex-shrink-0 outline-none"
                         >
-                            <div className="w-8 h-8 flex items-center justify-center">
-                                <Icon size={22} strokeWidth={1.8} className={isActive ? activeTextClass : inactiveTextClass} />
+                            {/* Icon Wrapper */}
+                            <div className={`w-[42px] h-[42px] sm:w-[48px] sm:h-[48px] flex items-center justify-center rounded-[16px] transition-all duration-300 ${isActive ? 'bg-[#eef8ff]/60 border border-[#eef8ff]' : 'bg-transparent'}`}>
+                                <Icon className={`w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] ${isActive ? 'text-gray-900' : 'text-gray-700'}`} />
                             </div>
 
-                            <span className={`mt-0.5 text-[11px] font-medium text-center leading-tight ${isActive ? activeTextClass : inactiveTextClass}`}>
-                                {category.name}
-                            </span>
-                            <span className={`mt-0.5 h-0.5 w-6 rounded-full ${isActive ? 'bg-neutral-900' : 'bg-transparent'}`} />
+                            {/* Text and Underline Wrapper */}
+                            <div className="flex flex-col items-center mt-0.5">
+                                <span className={`text-[10px] sm:text-[11px] whitespace-nowrap text-center leading-[14px] ${isActive ? 'font-bold text-gray-900' : 'font-medium text-gray-500'}`}>
+                                    {category.name}
+                                </span>
+                                {/* Blue underline for active state */}
+                                <div className={`h-[3px] rounded-t-sm transition-all duration-300 mt-1 ${isActive ? 'w-full bg-[#1e90ff]' : 'w-0 bg-transparent'}`} />
+                            </div>
                         </button>
                     );
                 })}

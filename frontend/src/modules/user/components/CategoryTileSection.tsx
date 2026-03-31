@@ -92,9 +92,13 @@ export default function CategoryTileSection({
       <div className="px-4 md:px-6 lg:px-8 overflow-visible">
         <div className={`grid ${gridCols} ${gapClass} overflow-visible auto-rows-fr`}>
           {tiles.map((tile) => {
-            const images =
-              tile.productImages || (tile.image ? [tile.image] : []);
-            const hasImages = images.filter(Boolean).length > 0;
+            const isMockImage = (src: string | undefined) => 
+              src?.includes('10mins_icon_pink') || src?.includes('loading');
+
+            const images = (tile.productImages || (tile.image ? [tile.image] : []))
+              .filter(img => img && !isMockImage(img));
+              
+            const hasImages = images.length > 0;
 
             return (
               <motion.div

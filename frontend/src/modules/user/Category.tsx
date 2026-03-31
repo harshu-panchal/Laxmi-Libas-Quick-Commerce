@@ -95,8 +95,13 @@ export default function CategoryPage() {
 
         const response = await getProducts(params);
         if (response.success) {
+          const isMockProduct = (p: any) => 
+            p.name?.toLowerCase() === 'jeans' && 
+            (p.price === 200 || p.price === 50 || p.originalPrice === 200);
+
           const safeProducts = (response.data || [])
             .filter(isClothingRelated)
+            .filter((p: any) => !isMockProduct(p))
             .map((p: any) => ({
               ...p,
               tags: Array.isArray(p.tags) ? p.tags : [],

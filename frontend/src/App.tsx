@@ -22,6 +22,7 @@ import { initializePushNotifications, setupForegroundNotificationHandler } from 
 
 // Critical routes - load immediately (Home, Cart, Checkout)
 import Home from "./modules/user/Home";
+import LaxmartEntry from "./modules/user/LaxmartEntry";
 import Cart from "./modules/user/Cart";
 import Checkout from "./modules/user/Checkout";
 import CheckoutAddress from "./modules/user/CheckoutAddress";
@@ -165,7 +166,6 @@ function App() {
     <ErrorBoundary>
       <LoadingProvider>
         <AxiosLoadingInterceptor>
-          <IconLoader />
           <AuthProvider>
             <ThemeProvider>
               <LocationProvider>
@@ -185,7 +185,7 @@ function App() {
                             path="/login"
                             element={
                               <PublicRoute>
-                                <Suspense fallback={<IconLoader forceShow />}>
+                                <Suspense fallback={<LoadingSpinner />}>
                                   <Login />
                                 </Suspense>
                               </PublicRoute>
@@ -373,7 +373,7 @@ function App() {
                             path="/*"
                             element={
                               <AppLayout>
-                                <Suspense fallback={<IconLoader forceShow />}>
+                                <Suspense fallback={<LoadingSpinner />}>
                                   <Routes>
                                     <Route path="/" element={<Home />} />
                                     <Route path="/user/home" element={<Home />} />
