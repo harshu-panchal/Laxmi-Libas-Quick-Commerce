@@ -134,7 +134,7 @@ export default function FeaturedThisWeek() {
 
           <div className="flex-shrink-0 w-[110px]">
             <Link
-              to="/category/snacks"
+              to="/category/clothing"
               className="block bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 border-2 border-blue-400 rounded-2xl overflow-hidden relative h-48 shadow-lg hover:shadow-xl transition-shadow group"
             >
               <div className="absolute inset-0 opacity-10">
@@ -174,7 +174,7 @@ export default function FeaturedThisWeek() {
 
           <div className="flex-shrink-0 w-[110px]">
             <Link
-              to="/category/biscuits-bakery"
+              to="/category/clothing"
               className="block bg-gradient-to-br from-red-900 via-red-800 to-red-900 border-2 border-white/30 rounded-2xl overflow-hidden relative h-48 shadow-lg hover:shadow-xl transition-shadow group"
             >
               <div className="absolute inset-0 opacity-5">
@@ -187,14 +187,14 @@ export default function FeaturedThisWeek() {
               </div>
               <div className="absolute top-8 left-0 right-0 z-20 text-center px-2">
                 <h3 className="text-white text-sm font-black tracking-wide drop-shadow-lg" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
-                  Plum Cakes
+                  New Style
                 </h3>
               </div>
               <div className="absolute top-14 right-2 w-6 h-6 bg-white/10 rounded-full blur-sm"></div>
               <div className="absolute bottom-10 left-2 w-5 h-5 bg-amber-300/20 rounded-full blur-sm"></div>
               <div className="flex items-center justify-center h-full pt-12 relative z-10">
                 <div className="text-5xl transform group-hover:scale-110 transition-transform drop-shadow-2xl">
-                  🎂
+                  👕
                 </div>
               </div>
             </Link>
@@ -202,7 +202,7 @@ export default function FeaturedThisWeek() {
 
           <div className="flex-shrink-0 w-[110px]">
             <Link
-              to="/category/fruits-veg"
+              to="/category/clothing"
               className="block bg-gradient-to-br from-primary-dark via-yellow-500 to-primary-dark border-2 border-yellow-400 rounded-2xl overflow-hidden relative h-48 shadow-lg hover:shadow-xl transition-shadow group"
             >
               <div className="absolute inset-0 opacity-10">
@@ -215,15 +215,15 @@ export default function FeaturedThisWeek() {
               </div>
               <div className="absolute top-8 left-0 right-0 z-20 text-center px-2">
                 <h3 className="text-white text-sm font-black tracking-wide drop-shadow-lg" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
-                  Fresh Arrivals
+                  Best In Class
                 </h3>
               </div>
               <div className="absolute top-14 right-2 w-8 h-8 bg-white/20 rounded-full blur-md"></div>
               <div className="absolute bottom-10 left-2 w-6 h-6 bg-yellow-300/30 rounded-full blur-md"></div>
               <div className="flex items-center justify-center h-full pt-12 relative z-10 gap-1.5">
-                <div className="text-3xl transform group-hover:scale-110 transition-transform">🍎</div>
-                <div className="text-3xl transform group-hover:scale-110 transition-transform">🍌</div>
-                <div className="text-3xl transform group-hover:scale-110 transition-transform">🍊</div>
+                <div className="text-3xl transform group-hover:scale-110 transition-transform">👕</div>
+                <div className="text-3xl transform group-hover:scale-110 transition-transform">👗</div>
+                <div className="text-3xl transform group-hover:scale-110 transition-transform">👟</div>
               </div>
             </Link>
           </div>

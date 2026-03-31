@@ -40,18 +40,6 @@ interface CategoryTabBarProps {
 
 const CATEGORIES: Category[] = [
     { id: '1', name: 'Clothing', icon: Shirt, slug: 'clothing', color: 'pink', accentIcon: Crown },
-    { id: '2', name: 'Footwear', icon: Footprints, slug: 'footwear', color: 'blue' },
-    { id: '3', name: 'Grocery', icon: ShoppingBasket, slug: 'grocery', color: 'green' },
-    { id: '4', name: 'Food', icon: Soup, slug: 'food', color: 'orange' },
-    { id: '13', name: 'Fruits & Vegetables', icon: Apple, slug: 'fruits-vegetables', color: 'lime' },
-    { id: '5', name: 'Beauty', icon: Flower2, slug: 'beauty', color: 'purple', accentIcon: Sparkles },
-    { id: '6', name: 'Electronics', icon: MonitorSmartphone, slug: 'electronics', color: 'cyan', accentIcon: Zap },
-    { id: '7', name: 'Toys', icon: Gamepad2, slug: 'toys', color: 'yellow' },
-    { id: '8', name: 'Home & Furniture', icon: Home, slug: 'home-furniture', color: 'amber' },
-    { id: '9', name: 'Eyeglasses', icon: Glasses, slug: 'eyeglasses', color: 'indigo' },
-    { id: '10', name: 'Rental', icon: Key, slug: 'rental', color: 'teal' },
-    { id: '11', name: 'Automotive Parts', icon: Car, slug: 'automotive-parts', color: 'slate' },
-    { id: '12', name: 'Services', icon: Wrench, slug: 'services', color: 'rose' },
 ];
 
 export default function CategoryTabBar({ activeCategory, onCategoryChange, onTabClick, isLightMode = false }: CategoryTabBarProps) {

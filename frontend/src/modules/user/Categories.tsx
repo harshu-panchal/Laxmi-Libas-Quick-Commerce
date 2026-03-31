@@ -22,7 +22,19 @@ export default function Categories() {
           location?.longitude || undefined
         );
         if (response.success && response.data) {
-          setHomeData(response.data);
+          const isClothingRelated = (item: any) => {
+            const name = (item.name || item.title || item.slug || "").toLowerCase();
+            return name.includes('clothing') || name.includes('fashion') || name.includes('wear') || name.includes('shirt');
+          };
+
+          const filteredData = {
+            ...response.data,
+            categories: (response.data.categories || []).filter(isClothingRelated),
+            homeSections: (response.data.homeSections || []).filter((section: any) => {
+              return section.displayType === "banners" || isClothingRelated(section);
+            }),
+          };
+          setHomeData(filteredData);
         } else {
           setError("Failed to load categories. Please try again.");
         }

@@ -73,7 +73,28 @@ export default function Home() {
         );
         
         if (response.success && response.data) {
-          setHomeData(response.data);
+          let data = response.data;
+          
+          // Filter data to only show clothing-related items if we are on "all" tab
+          if (activeTab === "all") {
+            const isClothingRelated = (item: any) => {
+              const name = (item.name || item.title || item.slug || "").toLowerCase();
+              return name.includes('clothing') || name.includes('fashion') || name.includes('wear') || name.includes('shirt');
+            };
+
+            data = {
+              ...data,
+              categories: (data.categories || []).filter(isClothingRelated),
+              homeSections: (data.homeSections || []).filter((section: any) => {
+                // Keep hero/banners or clothing related sections
+                return section.displayType === "banners" || isClothingRelated(section);
+              }),
+              shops: (data.shops || []).filter(isClothingRelated),
+              bestsellers: (data.bestsellers || []).filter(isClothingRelated),
+            };
+          }
+          
+          setHomeData(data);
           
           // Products for the "Filtered Products Section" at the bottom
           // If we are on "all" tab, we might show bestsellers or other global items
@@ -115,7 +136,14 @@ export default function Home() {
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         const headerCategories = await getHeaderCategoriesPublic(true);
-        const slugsToPreload = ['all', ...headerCategories.map(cat => cat.slug)];
+        // Filter to only show clothing-related categories
+        const filteredHeaderCategories = headerCategories.filter(c => 
+          c.slug.toLowerCase().includes('clothing') || 
+          c.name.toLowerCase().includes('clothing') ||
+          c.slug.toLowerCase().includes('fashion') || 
+          c.name.toLowerCase().includes('fashion')
+        );
+        const slugsToPreload = ['all', ...filteredHeaderCategories.map(cat => cat.slug)];
 
         const batchSize = 2;
         for (let i = 0; i < slugsToPreload.length; i += batchSize) {

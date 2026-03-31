@@ -139,6 +139,11 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
         let newSaleTextValue = theme.saleText;
         let newDateRange = "";
 
+        const isClothingRelated = (item: any) => {
+          const name = (item.name || item.title || item.slug || "").toLowerCase();
+          return name.includes('clothing') || name.includes('fashion') || name.includes('wear') || name.includes('shirt');
+        };
+
         if (response.success && response.data) {
           // 1. Check for PromoStrip data from backend (highest priority)
           if (response.data.promoStrip && response.data.promoStrip.isActive) {
@@ -174,7 +179,8 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                     imageUrl: category?.image,
                     bgColor: "bg-yellow-50",
                   };
-                });
+                })
+                .filter(isClothingRelated); // Filter here
             }
 
             // Map featured products from PromoStrip
@@ -215,7 +221,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
           }
           // 2. Fallback to promoCards if no PromoStrip
           else if (response.data.promoCards && response.data.promoCards.length > 0) {
-            fetchedCards = response.data.promoCards;
+            fetchedCards = response.data.promoCards.filter(isClothingRelated); // Filter here
           }
           // 3. Fallback to categories if no promo cards
           else if (
@@ -223,14 +229,15 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
             response.data.categories.length > 0
           ) {
             fetchedCards = response.data.categories
-              .slice(0, 4)
               .map((c: any) => ({
                 id: c._id || c.id,
                 badge: "Up to 50% OFF",
                 title: c.name,
                 categoryId: c.slug || c._id,
                 bgColor: c.color || "bg-yellow-50",
-              }));
+              }))
+              .filter(isClothingRelated) // Filter here
+              .slice(0, 4);
           }
 
           // Fallback: Map bestsellers to FeaturedProducts if no PromoStrip featured products

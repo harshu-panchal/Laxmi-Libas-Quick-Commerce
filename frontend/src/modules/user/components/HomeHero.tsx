@@ -45,7 +45,15 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
       try {
         const cats = await getHeaderCategoriesPublic();
         if (cats && cats.length > 0) {
-          const mapped = cats.map(c => ({
+          // Filter to only show clothing-related categories
+          const filteredCats = cats.filter(c => 
+            c.slug.toLowerCase().includes('clothing') || 
+            c.name.toLowerCase().includes('clothing') ||
+            c.slug.toLowerCase().includes('fashion') || 
+            c.name.toLowerCase().includes('fashion')
+          );
+          
+          const mapped = filteredCats.map(c => ({
             id: c.slug,
             label: c.name,
             icon: getIconByName(c.iconName)
@@ -117,24 +125,11 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
     }
 
     switch (activeTab) {
-      case 'wedding':
-        return [baseSuggestion, 'gift packs', 'dry fruits', 'sweets', 'decorative items', 'wedding cards', 'return gifts'];
-      case 'winter':
-        return [baseSuggestion, 'woolen clothes', 'caps', 'gloves', 'blankets', 'heater', 'winter wear'];
-      case 'electronics':
-        return [baseSuggestion, 'chargers', 'cables', 'power banks', 'earphones', 'phone cases', 'screen guards'];
-      case 'beauty':
-        return [baseSuggestion, 'lipstick', 'makeup', 'skincare', 'kajal', 'face wash', 'moisturizer'];
-      case 'grocery':
-        return [baseSuggestion, 'atta', 'milk', 'dal', 'rice', 'oil', 'vegetables'];
+      case 'clothing':
       case 'fashion':
         return [baseSuggestion, 'clothing', 'shoes', 'accessories', 'watches', 'bags', 'jewelry'];
-      case 'sports':
-        return [baseSuggestion, 'cricket bat', 'football', 'badminton', 'fitness equipment', 'sports shoes', 'gym wear'];
-      case 'home-furniture':
-        return ['bedsheet', 'sofa cover', 'cushions', 'wall decor', 'lamps', 'storage boxes'];
       default: // 'all'
-        return [baseSuggestion, 'atta', 'milk', 'dal', 'coke', 'bread', 'eggs', 'rice', 'oil'];
+        return [baseSuggestion, 't-shirts', 'jeans', 'jackets', 'dresses', 'shoes', 'fashion accessories'];
     }
   }, [activeTab, categories]);
 
