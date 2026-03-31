@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { getOrdersByStatus, type Order } from '../../../services/api/admin/adminOrderService';
 import { useAuth } from '../../../context/AuthContext';
 
-type SortField = 'orderId' | 'customerDetails' | 'address' | 'deliveryDate' | 'orderDate' | 'status' | 'amount';
+type SortField = 'orderId' | 'customerDetails' | 'address' | 'deliveryDate' | 'orderDate' | 'status' | 'amount' | 'deliveryBoyStatus';
 type SortDirection = 'asc' | 'desc';
 
 export default function AdminCancelledOrders() {
@@ -98,7 +98,7 @@ export default function AdminCancelledOrders() {
           order.estimatedDeliveryDate ? new Date(order.estimatedDeliveryDate).toLocaleDateString() : '',
           order.orderDate ? new Date(order.orderDate).toLocaleDateString() : '',
           order.status || '',
-          `?${order.total?.toFixed(2) || '0.00'}`
+          `₹${order.total?.toFixed(2) || '0.00'}`
         ].join(',')
       )
     ].join('\n');
@@ -628,7 +628,7 @@ export default function AdminCancelledOrders() {
                           {order.status}
                         </span>
                       </td>
-                      <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 font-medium">?{order.total?.toFixed(2) || '0.00'}</td>
+                      <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 font-medium">₹{order.total?.toFixed(2) || '0.00'}</td>
                       <td className="px-4 sm:px-6 py-3">
                         <Link to={`/admin/orders/${order._id}`}>
                           <button className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors" aria-label="View order">

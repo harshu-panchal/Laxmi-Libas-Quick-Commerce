@@ -54,6 +54,9 @@ export interface Product {
   galleryImageUrls: string[];
   variations: ProductVariation[];
   variationType?: string;
+  price?: number;
+  discPrice?: number;
+  stock?: number;
   createdAt?: string;
   updatedAt?: string;
   // Fallback for old fields if any legacy code uses them
@@ -132,6 +135,9 @@ export interface CreateProductData {
   isShopByStoreOnly?: boolean;
   shopId?: string;
   productVideoUrl?: string;
+  price?: number;
+  discPrice?: number;
+  stock?: number;
 
   // Category Specific Fields
   brandName?: string;
