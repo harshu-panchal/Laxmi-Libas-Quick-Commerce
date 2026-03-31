@@ -15,6 +15,8 @@ import PageLoader from "../../components/PageLoader";
 import CategoryTabBar from "../../components/CategoryTabBar";
 import { getTheme } from "../../utils/themes";
 import { useThemeContext } from "../../context/ThemeContext";
+import { isClothingRelated } from "../../utils/clothingUtils";
+
 
 export default function Home() {
   const navigate = useNavigate();
@@ -77,15 +79,6 @@ export default function Home() {
           
           // Filter data to only show clothing-related items if we are on "all" tab
           if (activeTab === "all") {
-            const isClothingRelated = (item: any) => {
-              const name = (item.name || item.productName || item.title || item.slug || "").toLowerCase();
-              const isClothing = name.includes('clothing') || name.includes('fashion') || name.includes('wear') || name.includes('shirt') || 
-                                 name.includes('pant') || name.includes('jeans') || name.includes('top') || name.includes('dress') || 
-                                 name.includes('kurta') || name.includes('saree') || name.includes('suit') || name.includes('jacket');
-              const isFootwear = name.includes('footwear') || name.includes('shoes') || name.includes('sandal') || name.includes('slipper') || name.includes('boot');
-              return isClothing && !isFootwear;
-            };
-
             data = {
               ...data,
               categories: (data.categories || []).filter(isClothingRelated),
@@ -115,7 +108,7 @@ export default function Home() {
              setProducts([]); 
           } else {
              // Look for a products section in the dynamic sections
-             const productSection = response.data.homeSections?.find(
+             const productSection = data.homeSections?.find(
                (s: any) => s.displayType === "products" || s.id === "category-products"
              );
              if (productSection && productSection.data) {
@@ -147,15 +140,7 @@ export default function Home() {
 
         const headerCategories = await getHeaderCategoriesPublic(true);
         // Filter to only show clothing-related categories
-        const filteredHeaderCategories = headerCategories.filter(c => {
-          const name = c.name.toLowerCase();
-          const slug = c.slug.toLowerCase();
-          const isClothing = name.includes('clothing') || name.includes('fashion') || 
-                             slug.includes('clothing') || slug.includes('fashion');
-          const isFootwear = name.includes('footwear') || name.includes('shoes') ||
-                             slug.includes('footwear') || slug.includes('shoes');
-          return isClothing && !isFootwear;
-        });
+        const filteredHeaderCategories = headerCategories.filter(isClothingRelated);
         const slugsToPreload = ['all', ...filteredHeaderCategories.map(cat => cat.slug)];
 
         const batchSize = 2;

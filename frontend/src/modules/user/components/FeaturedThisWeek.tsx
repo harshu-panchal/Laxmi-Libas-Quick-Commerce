@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getProducts } from '../../../services/api/customerProductService';
+import { isClothingRelated } from '../../../utils/clothingUtils';
+
 
 interface FeaturedCard {
   id: string;
@@ -50,13 +52,9 @@ export default function FeaturedThisWeek() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await getProducts({ limit: 6 });
+        const res = await getProducts({ limit: 20 });
         if (res.success && res.data) {
-          const isFootwear = (item: any) => {
-            const name = (item.name || item.productName || "").toLowerCase();
-            return name.includes('footwear') || name.includes('shoes') || name.includes('sandal') || name.includes('slipper') || name.includes('boot');
-          };
-          setNewlyLaunchedProducts((res.data || []).filter((p: any) => !isFootwear(p)));
+          setNewlyLaunchedProducts((res.data || []).filter(isClothingRelated).slice(0, 6));
         }
       } catch (e) {
         console.error(e);

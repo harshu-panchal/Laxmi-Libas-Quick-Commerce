@@ -3,6 +3,8 @@ import { getHomeContent } from "../../services/api/customerHomeService";
 import { useLocation } from "../../hooks/useLocation";
 import CategoryTileSection from "./components/CategoryTileSection";
 import ProductCard from "./components/ProductCard";
+import { isClothingRelated } from "../../utils/clothingUtils";
+
 
 export default function Categories() {
   const { location } = useLocation();
@@ -22,14 +24,7 @@ export default function Categories() {
           location?.longitude || undefined
         );
         if (response.success && response.data) {
-          const isClothingRelated = (item: any) => {
-            const name = (item.name || item.productName || item.title || item.slug || "").toLowerCase();
-            const isClothing = name.includes('clothing') || name.includes('fashion') || name.includes('wear') || name.includes('shirt') || 
-                               name.includes('pant') || name.includes('jeans') || name.includes('top') || name.includes('dress') || 
-                               name.includes('kurta') || name.includes('saree') || name.includes('suit') || name.includes('jacket');
-            const isFootwear = name.includes('footwear') || name.includes('shoes') || name.includes('sandal') || name.includes('slipper') || name.includes('boot');
-            return isClothing && !isFootwear;
-          };
+
 
           const filteredData = {
             ...response.data,

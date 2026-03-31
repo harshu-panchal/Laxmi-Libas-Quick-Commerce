@@ -8,6 +8,8 @@ import { useCart } from '../../../context/CartContext';
 import { Product } from '../../../types/domain';
 import { useWishlist } from '../../../hooks/useWishlist';
 import { calculateProductPrice } from '../../../utils/priceUtils';
+import { isClothingRelated } from '../../../utils/clothingUtils';
+
 
 interface LowestPricesEverProps {
   activeTab?: string;
@@ -381,14 +383,7 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
       .filter((product) => {
         if (!product.mrp) return false;
         const discount = Math.round(((product.mrp - product.price) / product.mrp) * 100);
-        const name = (product.name || product.productName || "").toLowerCase();
-        
-        const isClothing = name.includes('clothing') || name.includes('fashion') || name.includes('wear') || name.includes('shirt') || 
-                           name.includes('pant') || name.includes('jeans') || name.includes('top') || name.includes('dress') || 
-                           name.includes('kurta') || name.includes('saree') || name.includes('suit') || name.includes('jacket');
-        const isFootwear = name.includes('footwear') || name.includes('shoes') || name.includes('sandal') || name.includes('slipper') || name.includes('boot');
-        
-        return discount > 0 && isClothing && !isFootwear;
+        return discount > 0 && isClothingRelated(product);
       })
       .slice(0, 10); // Show top 10 discounted products
   };

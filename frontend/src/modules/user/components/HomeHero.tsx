@@ -11,6 +11,8 @@ import { Category } from '../../../types/domain';
 import { getHeaderCategoriesPublic } from '../../../services/api/headerCategoryService';
 import { getIconByName } from '../../../utils/iconLibrary';
 import CategoryTabBar from '../../../components/CategoryTabBar';
+import { isClothingRelated } from '../../../utils/clothingUtils';
+
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -46,15 +48,7 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
         const cats = await getHeaderCategoriesPublic();
         if (cats && cats.length > 0) {
           // Filter to only show clothing-related categories
-          const filteredCats = cats.filter(c => {
-            const name = c.name.toLowerCase();
-            const slug = c.slug.toLowerCase();
-            const isClothing = name.includes('clothing') || name.includes('fashion') || 
-                               slug.includes('clothing') || slug.includes('fashion');
-            const isFootwear = name.includes('footwear') || name.includes('shoes') ||
-                               slug.includes('footwear') || slug.includes('shoes');
-            return isClothing && !isFootwear;
-          });
+          const filteredCats = cats.filter(isClothingRelated);
           
           const mapped = filteredCats.map(c => ({
             id: c.slug,
@@ -130,9 +124,9 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
     switch (activeTab) {
       case 'clothing':
       case 'fashion':
-        return [baseSuggestion, 'clothing', 'shoes', 'accessories', 'watches', 'bags', 'jewelry'];
+        return [baseSuggestion, 'clothing', 'uniform', 'accessories', 'jackets', 'shirts', 'tops'];
       default: // 'all'
-        return [baseSuggestion, 't-shirts', 'jeans', 'jackets', 'dresses', 'shoes', 'fashion accessories'];
+        return [baseSuggestion, 't-shirts', 'jeans', 'jackets', 'dresses', 'uniforms', 'fashion accessories'];
     }
   }, [activeTab, categories]);
 

@@ -7,6 +7,8 @@ import { getSubcategories } from "../../../services/api/categoryService";
 import { apiCache } from "../../../utils/apiCache";
 import { useLocation } from "../../../hooks/useLocation";
 import { calculateProductPrice } from "../../../utils/priceUtils";
+import { isClothingRelated } from "../../../utils/clothingUtils";
+
 
 interface PromoCard {
   id: string;
@@ -139,14 +141,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
         let newSaleTextValue = theme.saleText;
         let newDateRange = "";
 
-        const isClothingRelated = (item: any) => {
-          const name = (item.name || item.productName || item.title || item.slug || "").toLowerCase();
-          const isClothing = name.includes('clothing') || name.includes('fashion') || name.includes('wear') || name.includes('shirt') || 
-                             name.includes('pant') || name.includes('jeans') || name.includes('top') || name.includes('dress') || 
-                             name.includes('kurta') || name.includes('saree') || name.includes('suit') || name.includes('jacket');
-          const isFootwear = name.includes('footwear') || name.includes('shoes') || name.includes('sandal') || name.includes('slipper') || name.includes('boot');
-          return isClothing && !isFootwear;
-        };
+
 
         if (response.success && response.data) {
           // 1. Check for PromoStrip data from backend (highest priority)

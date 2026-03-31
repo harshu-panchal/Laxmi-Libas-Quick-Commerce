@@ -8,6 +8,8 @@ import {
   Category as ApiCategory,
 } from "../../services/api/customerProductService";
 import { useLocation as useLocationContext } from "../../hooks/useLocation";
+import { isClothingRelated } from "../../utils/clothingUtils";
+
 
 export default function CategoryPage() {
   const { id } = useParams<{ id: string }>();
@@ -42,11 +44,6 @@ export default function CategoryPage() {
           } = response.data;
 
           setCategory(cat);
-          const isFootwear = (item: any) => {
-            const name = (item.name || "").toLowerCase();
-            return name.includes('footwear') || name.includes('shoes') || name.includes('sandal') || name.includes('slipper') || name.includes('boot');
-          };
-
           setSubcategories([
             {
               _id: "all",
@@ -55,7 +52,7 @@ export default function CategoryPage() {
               icon: "📦",
               isActive: true,
             } as any,
-            ...(subs || []).filter((s: any) => !isFootwear(s)),
+            ...(subs || []).filter(isClothingRelated),
           ]);
 
           // Check URL query params first, then API response
@@ -98,11 +95,13 @@ export default function CategoryPage() {
 
         const response = await getProducts(params);
         if (response.success) {
-          const safeProducts = response.data.map((p: any) => ({
-            ...p,
-            tags: Array.isArray(p.tags) ? p.tags : [],
-            nameParts: (p.productName || p.name || "").toLowerCase().split(" "),
-          }));
+          const safeProducts = (response.data || [])
+            .filter(isClothingRelated)
+            .map((p: any) => ({
+              ...p,
+              tags: Array.isArray(p.tags) ? p.tags : [],
+              nameParts: (p.productName || p.name || "").toLowerCase().split(" "),
+            }));
           setProducts(safeProducts);
         } else {
           setError("Failed to fetch products for this category.");

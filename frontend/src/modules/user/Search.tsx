@@ -5,6 +5,8 @@ import { getProducts } from '../../services/api/customerProductService';
 import { getHomeContent } from '../../services/api/customerHomeService';
 import { Product } from '../../types/domain';
 import { useLocation } from '../../hooks/useLocation';
+import { isClothingRelated } from '../../utils/clothingUtils';
+
 
 export default function Search() {
   const navigate = useNavigate();
@@ -34,12 +36,7 @@ export default function Search() {
           params.longitude = location.longitude;
         }
         const response = await getProducts(params);
-        const isFootwear = (item: any) => {
-          const name = (item.name || item.productName || item.title || "").toLowerCase();
-          return name.includes('footwear') || name.includes('shoes') || name.includes('sandal') || name.includes('slipper') || name.includes('boot');
-        };
-
-        setSearchResults((response.data as unknown as Product[]).filter(p => !isFootwear(p)));
+        setSearchResults((response.data as unknown as Product[]).filter(isClothingRelated));
       } catch (error) {
         console.error('Error searching products:', error);
         setSearchResults([]);
@@ -61,12 +58,8 @@ export default function Search() {
           location?.longitude
         );
         if (response.success && response.data) {
-          const isFootwear = (item: any) => {
-            const name = (item.name || item.title || "").toLowerCase();
-            return name.includes('footwear') || name.includes('shoes') || name.includes('sandal') || name.includes('slipper') || name.includes('boot');
-          };
-          setTrendingItems((response.data.trending || []).filter((item: any) => !isFootwear(item)));
-          setCookingIdeas((response.data.cookingIdeas || []).filter((idea: any) => !isFootwear(idea)));
+          setTrendingItems((response.data.trending || []).filter(isClothingRelated));
+          setCookingIdeas((response.data.cookingIdeas || []).filter(isClothingRelated));
         }
       } catch (error) {
         console.error("Error fetching search initial content", error);
