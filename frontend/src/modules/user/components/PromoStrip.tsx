@@ -140,7 +140,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
         let newDateRange = "";
 
         const isClothingRelated = (item: any) => {
-          const name = (item.name || item.title || item.slug || "").toLowerCase();
+          const name = (item.name || item.productName || item.title || item.slug || "").toLowerCase();
           const isClothing = name.includes('clothing') || name.includes('fashion') || name.includes('wear') || name.includes('shirt') || 
                              name.includes('pant') || name.includes('jeans') || name.includes('top') || name.includes('dress') || 
                              name.includes('kurta') || name.includes('saree') || name.includes('suit') || name.includes('jacket');

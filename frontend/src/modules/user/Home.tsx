@@ -78,7 +78,7 @@ export default function Home() {
           // Filter data to only show clothing-related items if we are on "all" tab
           if (activeTab === "all") {
             const isClothingRelated = (item: any) => {
-              const name = (item.name || item.title || item.slug || "").toLowerCase();
+              const name = (item.name || item.productName || item.title || item.slug || "").toLowerCase();
               const isClothing = name.includes('clothing') || name.includes('fashion') || name.includes('wear') || name.includes('shirt') || 
                                  name.includes('pant') || name.includes('jeans') || name.includes('top') || name.includes('dress') || 
                                  name.includes('kurta') || name.includes('saree') || name.includes('suit') || name.includes('jacket');
@@ -89,10 +89,15 @@ export default function Home() {
             data = {
               ...data,
               categories: (data.categories || []).filter(isClothingRelated),
-              homeSections: (data.homeSections || []).filter((section: any) => {
-                // Keep hero/banners or clothing related sections
-                return section.displayType === "banners" || isClothingRelated(section);
-              }),
+              homeSections: (data.homeSections || [])
+                .map((section: any) => ({
+                  ...section,
+                  data: section.displayType === "banners" ? section.data : (section.data || []).filter(isClothingRelated)
+                }))
+                .filter((section: any) => {
+                  // Keep banners/hero or sections with clothing-related data
+                  return section.displayType === "banners" || (section.data && section.data.length > 0);
+                }),
               shops: (data.shops || []).filter(isClothingRelated),
               bestsellers: (data.bestsellers || []).filter(isClothingRelated),
               lowestPrices: (data.lowestPrices || []).filter(isClothingRelated),

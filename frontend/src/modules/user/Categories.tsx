@@ -23,7 +23,7 @@ export default function Categories() {
         );
         if (response.success && response.data) {
           const isClothingRelated = (item: any) => {
-            const name = (item.name || item.title || item.slug || "").toLowerCase();
+            const name = (item.name || item.productName || item.title || item.slug || "").toLowerCase();
             const isClothing = name.includes('clothing') || name.includes('fashion') || name.includes('wear') || name.includes('shirt') || 
                                name.includes('pant') || name.includes('jeans') || name.includes('top') || name.includes('dress') || 
                                name.includes('kurta') || name.includes('saree') || name.includes('suit') || name.includes('jacket');
@@ -34,9 +34,15 @@ export default function Categories() {
           const filteredData = {
             ...response.data,
             categories: (response.data.categories || []).filter(isClothingRelated),
-            homeSections: (response.data.homeSections || []).filter((section: any) => {
-              return section.displayType === "banners" || isClothingRelated(section);
-            }),
+            homeSections: (response.data.homeSections || [])
+              .map((section: any) => ({
+                ...section,
+                data: section.displayType === "banners" ? section.data : (section.data || []).filter(isClothingRelated)
+              }))
+              .filter((section: any) => {
+                // Keep banners/hero or sections with clothing-related data
+                return section.displayType === "banners" || (section.data && section.data.length > 0);
+              }),
           };
           setHomeData(filteredData);
         } else {
