@@ -40,6 +40,11 @@ const Login = lazy(() => import("./modules/user/Login"));
 const Notifications = lazy(() => import("./modules/user/Notifications"));
 
 const AboutUs = lazy(() => import("./modules/user/AboutUs"));
+const ContactUs = lazy(() => import("./modules/user/ContactUs"));
+const ReturnAndRefundPolicy = lazy(() => import("./modules/user/ReturnAndRefundPolicy"));
+const TermsAndConditions = lazy(() => import("./modules/user/TermsAndConditions"));
+const PrivacyPolicy = lazy(() => import("./modules/user/PrivacyPolicy"));
+const ShippingPolicy = lazy(() => import("./modules/user/ShippingPolicy"));
 const FAQ = lazy(() => import("./modules/user/FAQ"));
 const Wishlist = lazy(() => import("./modules/user/Wishlist"));
 const Addresses = lazy(() => import("./modules/user/Addresses"));
@@ -379,6 +384,11 @@ function App() {
                                     <Route path="/order-again" element={<OrderAgain />} />
                                     <Route path="/account" element={<Account />} />
                                     <Route path="/about-us" element={<AboutUs />} />
+                                    <Route path="/contact-us" element={<ContactUs />} />
+                                    <Route path="/return-refund-policy" element={<ReturnAndRefundPolicy />} />
+                                    <Route path="/terms-conditions" element={<TermsAndConditions />} />
+                                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                                    <Route path="/shipping-policy" element={<ShippingPolicy />} />
                                     <Route path="/faq" element={<FAQ />} />
                                     <Route path="/wishlist" element={<Wishlist />} />
                                     <Route path="/categories" element={<Categories />} />

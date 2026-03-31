@@ -46,12 +46,15 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
         const cats = await getHeaderCategoriesPublic();
         if (cats && cats.length > 0) {
           // Filter to only show clothing-related categories
-          const filteredCats = cats.filter(c => 
-            c.slug.toLowerCase().includes('clothing') || 
-            c.name.toLowerCase().includes('clothing') ||
-            c.slug.toLowerCase().includes('fashion') || 
-            c.name.toLowerCase().includes('fashion')
-          );
+          const filteredCats = cats.filter(c => {
+            const name = c.name.toLowerCase();
+            const slug = c.slug.toLowerCase();
+            const isClothing = name.includes('clothing') || name.includes('fashion') || 
+                               slug.includes('clothing') || slug.includes('fashion');
+            const isFootwear = name.includes('footwear') || name.includes('shoes') ||
+                               slug.includes('footwear') || slug.includes('shoes');
+            return isClothing && !isFootwear;
+          });
           
           const mapped = filteredCats.map(c => ({
             id: c.slug,

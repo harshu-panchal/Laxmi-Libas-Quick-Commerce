@@ -24,7 +24,11 @@ export default function Categories() {
         if (response.success && response.data) {
           const isClothingRelated = (item: any) => {
             const name = (item.name || item.title || item.slug || "").toLowerCase();
-            return name.includes('clothing') || name.includes('fashion') || name.includes('wear') || name.includes('shirt');
+            const isClothing = name.includes('clothing') || name.includes('fashion') || name.includes('wear') || name.includes('shirt') || 
+                               name.includes('pant') || name.includes('jeans') || name.includes('top') || name.includes('dress') || 
+                               name.includes('kurta') || name.includes('saree') || name.includes('suit') || name.includes('jacket');
+            const isFootwear = name.includes('footwear') || name.includes('shoes') || name.includes('sandal') || name.includes('slipper') || name.includes('boot');
+            return isClothing && !isFootwear;
           };
 
           const filteredData = {

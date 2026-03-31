@@ -52,7 +52,11 @@ export default function FeaturedThisWeek() {
       try {
         const res = await getProducts({ limit: 6 });
         if (res.success && res.data) {
-          setNewlyLaunchedProducts(res.data);
+          const isFootwear = (item: any) => {
+            const name = (item.name || item.productName || "").toLowerCase();
+            return name.includes('footwear') || name.includes('shoes') || name.includes('sandal') || name.includes('slipper') || name.includes('boot');
+          };
+          setNewlyLaunchedProducts((res.data || []).filter((p: any) => !isFootwear(p)));
         }
       } catch (e) {
         console.error(e);

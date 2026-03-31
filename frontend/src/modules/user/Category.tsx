@@ -42,6 +42,11 @@ export default function CategoryPage() {
           } = response.data;
 
           setCategory(cat);
+          const isFootwear = (item: any) => {
+            const name = (item.name || "").toLowerCase();
+            return name.includes('footwear') || name.includes('shoes') || name.includes('sandal') || name.includes('slipper') || name.includes('boot');
+          };
+
           setSubcategories([
             {
               _id: "all",
@@ -50,7 +55,7 @@ export default function CategoryPage() {
               icon: "📦",
               isActive: true,
             } as any,
-            ...(subs || []),
+            ...(subs || []).filter((s: any) => !isFootwear(s)),
           ]);
 
           // Check URL query params first, then API response

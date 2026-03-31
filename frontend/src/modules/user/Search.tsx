@@ -34,7 +34,12 @@ export default function Search() {
           params.longitude = location.longitude;
         }
         const response = await getProducts(params);
-        setSearchResults(response.data as unknown as Product[]);
+        const isFootwear = (item: any) => {
+          const name = (item.name || item.productName || item.title || "").toLowerCase();
+          return name.includes('footwear') || name.includes('shoes') || name.includes('sandal') || name.includes('slipper') || name.includes('boot');
+        };
+
+        setSearchResults((response.data as unknown as Product[]).filter(p => !isFootwear(p)));
       } catch (error) {
         console.error('Error searching products:', error);
         setSearchResults([]);
@@ -56,8 +61,12 @@ export default function Search() {
           location?.longitude
         );
         if (response.success && response.data) {
-          setTrendingItems(response.data.trending || []);
-          setCookingIdeas(response.data.cookingIdeas || []);
+          const isFootwear = (item: any) => {
+            const name = (item.name || item.title || "").toLowerCase();
+            return name.includes('footwear') || name.includes('shoes') || name.includes('sandal') || name.includes('slipper') || name.includes('boot');
+          };
+          setTrendingItems((response.data.trending || []).filter((item: any) => !isFootwear(item)));
+          setCookingIdeas((response.data.cookingIdeas || []).filter((idea: any) => !isFootwear(idea)));
         }
       } catch (error) {
         console.error("Error fetching search initial content", error);
