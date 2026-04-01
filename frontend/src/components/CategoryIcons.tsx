@@ -108,5 +108,19 @@ export const CategoryIcons = {
       <path d="M4 14H3v-3h1v3Z M21 14h-1v-3h1v3Z" />
       <path d="M6 14h12V9a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v5Z" fill="#ffec00" stroke="currentColor" />
     </svg>
+  ),
+  Contact: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <path d="M13 8H7M17 12H7" stroke="#ffec00" strokeWidth="2" />
+    </svg>
+  ),
+  Privacy: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" fill="#ffec00" stroke="none" opacity="0.3" />
+      <circle cx="12" cy="11" r="3" />
+      <path d="M12 12v4" />
+    </svg>
   )
 };

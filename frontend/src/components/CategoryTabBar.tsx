@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CategoryIcons } from './CategoryIcons';
 
 interface Category {
@@ -6,11 +7,14 @@ interface Category {
     name: string;
     icon: any;
     slug: string;
+    navUrl?: string;
 }
 
 const CATEGORIES: Category[] = [
     { id: '1', name: 'For You', icon: CategoryIcons.ForYou, slug: 'all' },
     { id: '2', name: 'Clothing', icon: CategoryIcons.Fashion, slug: 'fashion' },
+    { id: '15', name: 'Contact Us', icon: CategoryIcons.Contact, slug: 'contact', navUrl: '/contact-us' },
+    { id: '16', name: 'Privacy Policy', icon: CategoryIcons.Privacy, slug: 'privacy', navUrl: '/privacy-policy' },
     /*
     { id: '3', name: 'Mobiles', icon: CategoryIcons.Mobiles, slug: 'mobiles' },
     { id: '4', name: 'Beauty', icon: CategoryIcons.Beauty, slug: 'beauty' },
@@ -46,9 +50,15 @@ export default function CategoryTabBar({ activeCategory = 'all', onCategoryChang
         }
     }, [activeCategory]);
 
-    const handleCategoryChange = (categorySlug: string) => {
-        if (onTabClick) onTabClick(categorySlug);
-        if (onCategoryChange) onCategoryChange(categorySlug);
+    const navigate = useNavigate();
+
+    const handleCategoryChange = (category: Category) => {
+        if (category.navUrl) {
+            navigate(category.navUrl);
+            return;
+        }
+        if (onTabClick) onTabClick(category.slug);
+        if (onCategoryChange) onCategoryChange(category.slug);
     };
 
     return (
@@ -70,7 +80,7 @@ export default function CategoryTabBar({ activeCategory = 'all', onCategoryChang
                         <button
                             key={category.id}
                             data-category={category.slug}
-                            onClick={() => handleCategoryChange(category.slug)}
+                            onClick={() => handleCategoryChange(category)}
                             className="flex flex-col items-center justify-end min-w-[50px] group flex-shrink-0 outline-none"
                         >
                             {/* Icon Wrapper */}
