@@ -91,7 +91,17 @@ export default function ProductDetail() {
           // Reset selected variant and image when product changes
           setSelectedVariantIndex(0);
           setSelectedImageIndex(0);
-          setSimilarProducts(response.data.similarProducts || []);
+          
+          const isMockProduct = (p: any) => 
+            ((p.name?.toLowerCase() === 'jeans' || (p.productName || p.title || "").toLowerCase() === 'jeans') && 
+             (Number(p.price) === 200 || Number(p.price) === 50 || Number(p.originalPrice) === 200)) ||
+            ((p.imageUrl || "").includes('10mins_icon_pink') || (p.mainImage || "").includes('10mins_icon_pink') || 
+             (p.imageUrl || "").includes('truck') || (p.mainImage || "").includes('truck'));
+
+          const safeSimilarProducts = (response.data.similarProducts || [])
+            .filter((p: any) => !isMockProduct(p));
+
+          setSimilarProducts(safeSimilarProducts);
 
 
         } else {

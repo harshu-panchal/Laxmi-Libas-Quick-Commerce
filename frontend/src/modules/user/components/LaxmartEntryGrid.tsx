@@ -34,7 +34,7 @@ const LaxmartEntryGrid: React.FC = () => {
             subtitle: 'Flights, hotels, and buses',
             image: '/laxmart_travel_tile_1774949219806.png',
             bgColor: 'linear-gradient(to bottom, #0369a1, #0ea5e9)',
-            path: '#travel',
+            path: '/store/travel',
             textColor: 'white'
         }
     ];

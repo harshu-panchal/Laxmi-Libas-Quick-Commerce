@@ -169,25 +169,24 @@ export default function AppLayout({ children }: AppLayoutProps) {
             >
               {/* Home */}
               <Link
-                to="/"
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isActive('/')
+                to="/user/home"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isActive('/user/home')
                   ? 'bg-white shadow-md font-semibold'
                   : 'hover:bg-white/20'
                   }`}
                 style={{
-                  color: isActive('/') ? currentTheme.accentColor : currentTheme.headerTextColor
+                  color: isActive('/user/home') ? currentTheme.accentColor : currentTheme.headerTextColor
                 }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {isActive('/') ? (
+                  {isActive('/user/home') ? (
                     <>
                       <path d="M2 12L12 4L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" />
                       <rect x="4" y="12" width="16" height="8" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
                     </>
                   ) : (
                     <>
-                      <path d="M2 12L12 4L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                      <rect x="4" y="12" width="16" height="8" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" fill="none" />
+                      <path d="M12 2L2 12H5V20H19V12H22L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                     </>
                   )}
                 </svg>
@@ -324,7 +323,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
               {/* Header Title & Notification Bell for Non-Search pages */}
               {/* Header line with Title & Bell - show for non-search pages, skip on order-again */}
-              {!isSearchPage && !isOrderAgainPage && (
+              {!isSearchPage && !isOrderAgainPage && location.pathname !== '/store/travel' && location.pathname !== '/store/minutes' && (
                 <div className="px-4 py-2 flex items-center justify-between border-b border-neutral-100">
                   <button onClick={() => navigate(-1)} className="p-1">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -417,7 +416,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           )}
 
           {/* Fixed Bottom Navigation - Mobile Only, Hidden on checkout pages */}
-          {showFooter && (
+          {showFooter && location.pathname !== '/' && (
             <nav
               className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-yellow-100 shadow-[0_-2px_8px_rgba(0,0,0,0.08)] z-50 md:hidden pb-[22px]"
             >
@@ -429,11 +428,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   className="flex-1 h-full"
                 >
                   <Link
-                    to="/"
+                    to="/user/home"
                     className="flex flex-col items-center justify-center h-full relative gap-1"
                   >
                     <div
-                      className={`flex items-center justify-center rounded-full w-10 h-10 transition-colors ${isActive('/') ? 'bg-yellow-300' : 'bg-transparent'
+                      className={`flex items-center justify-center rounded-full w-10 h-10 transition-colors ${isActive('/user/home') ? 'bg-yellow-300' : 'bg-transparent'
                         }`}
                     >
                       <motion.svg
@@ -442,8 +441,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         viewBox="0 0 24 24"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={isActive('/') ? 'text-neutral-900' : 'text-neutral-500'}
-                        animate={isActive('/') ? {
+                        className={isActive('/user/home') ? 'text-neutral-900' : 'text-neutral-500'}
+                        animate={isActive('/user/home') ? {
                           scale: [1, 1.1, 1],
                           y: [0, -2, 0]
                         } : {}}
@@ -479,7 +478,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         )}
                       </motion.svg>
                     </div>
-                    <span className={`text-xs relative z-10 ${isActive('/') ? 'font-semibold text-yellow-700' : 'font-medium text-neutral-900'}`}>
+                    <span className={`text-xs relative z-10 ${isActive('/user/home') ? 'font-semibold text-yellow-700' : 'font-medium text-neutral-900'}`}>
                       Home
                     </span>
                   </Link>
@@ -604,6 +603,52 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     </div>
                     <span className={`text-xs relative z-10 ${(isActive('/categories') || location.pathname.startsWith('/category/')) ? 'font-semibold text-yellow-700' : 'font-medium text-neutral-900'}`}>
                       Categories
+                    </span>
+                  </Link>
+                </motion.div>
+
+                {/* Cart navigation item */}
+                <motion.div
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ duration: 0.1 }}
+                  className="flex-1 h-full"
+                >
+                  <Link
+                    to="/cart"
+                    className="flex flex-col items-center justify-center h-full relative gap-1"
+                  >
+                    <div
+                      className={`flex items-center justify-center rounded-full w-10 h-10 transition-colors ${isActive('/cart') ? 'bg-yellow-300' : 'bg-transparent'
+                        }`}
+                    >
+                      <div className="relative">
+                        <motion.svg
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className={isActive('/cart') ? 'text-neutral-900' : 'text-neutral-500'}
+                          animate={isActive('/cart') ? {
+                            scale: [1, 1.1, 1],
+                            y: [0, -2, 0]
+                          } : {}}
+                          transition={{ duration: 0.4 }}
+                        >
+                          {isActive('/cart') ? (
+                            <path d="M3 3H5L5.4 5M5.4 5H21L17 13H7L5.4 5ZM7 13L4.707 15.293C4.077 15.923 4.523 17 5.414 17H19M17 17C15.895 17 15 17.895 15 19C15 20.105 15.895 21 17 21C18.105 21 19 20.105 19 19C19 17.895 18.105 17 17 17ZM9 17C7.895 17 7 17.895 7 19C7 20.105 7.895 21 9 21C10.105 21 11 20.105 11 19C11 17.895 10.105 17 9 17Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" />
+                          ) : (
+                            <path d="M3 3H5L5.4 5M5.4 5H21L17 13H7L5.4 5ZM7 13L4.707 15.293C4.077 15.923 4.523 17 5.414 17H19M17 17C15.895 17 15 17.895 15 19C15 20.105 15.895 21 17 21C18.105 21 19 20.105 19 19C19 17.895 18.105 17 17 17ZM9 17C7.895 17 7 17.895 7 19C7 20.105 7.895 21 9 21C10.105 21 11 20.105 11 19C11 17.895 10.105 17 9 17Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          )}
+                        </motion.svg>
+                        {/* Cart Badge */}
+                        <div className="absolute -top-2 -right-2 bg-red-600 text-white text-[9px] font-bold min-w-[15px] h-[15px] flex items-center justify-center rounded-full border border-white px-0.5">
+                          2
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`text-xs relative z-10 ${isActive('/cart') ? 'font-semibold text-yellow-700' : 'font-medium text-neutral-900'}`}>
+                      Cart
                     </span>
                   </Link>
                 </motion.div>

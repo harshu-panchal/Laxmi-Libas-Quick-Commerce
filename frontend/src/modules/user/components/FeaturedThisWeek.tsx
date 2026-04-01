@@ -54,7 +54,17 @@ export default function FeaturedThisWeek() {
       try {
         const res = await getProducts({ limit: 20 });
         if (res.success && res.data) {
-          setNewlyLaunchedProducts((res.data || []).filter(isClothingRelated).slice(0, 6));
+          const isMockProduct = (p: any) => 
+            ((p.name?.toLowerCase() === 'jeans' || p.productName?.toLowerCase() === 'jeans') && 
+             (p.price === 200 || p.price === 50 || p.originalPrice === 200)) ||
+            (p.imageUrl?.includes('10mins_icon_pink') || (p.mainImage || "").includes('10mins_icon_pink') || 
+             p.imageUrl?.includes('truck') || (p.mainImage || "").includes('truck'));
+             
+          setNewlyLaunchedProducts((res.data || [])
+            .filter(isClothingRelated)
+            .filter((p: any) => !isMockProduct(p))
+            .slice(0, 6)
+          );
         }
       } catch (e) {
         console.error(e);

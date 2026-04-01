@@ -52,7 +52,9 @@ export default function CategoryPage() {
               icon: "📦",
               isActive: true,
             } as any,
-            ...(subs || []).filter(isClothingRelated),
+            ...(subs || [])
+              .filter(isClothingRelated)
+              .filter((sub: ApiCategory) => (sub.name || "").toLowerCase().includes("men") && !(sub.name || "").toLowerCase().includes("women")),
           ]);
 
           // Check URL query params first, then API response
@@ -96,8 +98,10 @@ export default function CategoryPage() {
         const response = await getProducts(params);
         if (response.success) {
           const isMockProduct = (p: any) => 
-            p.name?.toLowerCase() === 'jeans' && 
-            (p.price === 200 || p.price === 50 || p.originalPrice === 200);
+            ((p.name?.toLowerCase() === 'jeans' || p.productName?.toLowerCase() === 'jeans') && 
+             (p.price === 200 || p.price === 50 || p.originalPrice === 200)) ||
+            (p.imageUrl?.includes('10mins_icon_pink') || (p.mainImage || "").includes('10mins_icon_pink') || 
+             p.imageUrl?.includes('truck') || (p.mainImage || "").includes('truck'));
 
           const safeProducts = (response.data || [])
             .filter(isClothingRelated)

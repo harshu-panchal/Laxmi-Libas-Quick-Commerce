@@ -58,6 +58,18 @@ export interface CategoryListResponse {
  */
 export const getProducts = async (params?: GetProductsParams): Promise<ProductListResponse> => {
     const response = await api.get<ProductListResponse>('/customer/products', { params });
+    
+    if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        // Global filter to hide mock/placeholder products (jeans 50/200 or truck icon)
+        const isMockProduct = (p: any) => 
+            ((p.name?.toLowerCase() === 'jeans' || (p.productName || p.title || "").toLowerCase() === 'jeans') && 
+             (Number(p.price) === 200 || Number(p.price) === 50 || Number(p.originalPrice) === 200)) ||
+            ((p.imageUrl || "").includes('10mins_icon_pink') || (p.mainImage || "").includes('10mins_icon_pink') || 
+             (p.imageUrl || "").includes('truck') || (p.mainImage || "").includes('truck'));
+
+        response.data.data = response.data.data.filter(p => !isMockProduct(p));
+    }
+    
     return response.data;
 };
 
@@ -72,6 +84,17 @@ export const getProductById = async (id: string, latitude?: number, longitude?: 
         params.longitude = longitude;
     }
     const response = await api.get<ProductDetailResponse>(`/customer/products/${id}`, { params });
+    
+    if (response.data && response.data.success && response.data.data && Array.isArray(response.data.data.similarProducts)) {
+        const isMockProduct = (p: any) => 
+            ((p.name?.toLowerCase() === 'jeans' || (p.productName || p.title || "").toLowerCase() === 'jeans') && 
+             (Number(p.price) === 200 || Number(p.price) === 50 || Number((p as any).originalPrice) === 200)) ||
+            ((p.imageUrl || "").includes('10mins_icon_pink') || (p.mainImage || "").includes('10mins_icon_pink') || 
+             (p.imageUrl || "").includes('truck') || (p.mainImage || "").includes('truck'));
+
+        response.data.data.similarProducts = response.data.data.similarProducts.filter(p => !isMockProduct(p));
+    }
+    
     return response.data;
 };
 

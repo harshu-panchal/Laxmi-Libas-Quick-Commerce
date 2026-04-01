@@ -82,8 +82,13 @@ export default function OrderAgain() {
       try {
         const response = await getProducts({ sort: 'popular', limit: 20 });
         if (response.success && response.data) {
+          const isMockProduct = (p: any) => 
+            ((p.name?.toLowerCase() === 'jeans' || (p.productName || p.title || "").toLowerCase() === 'jeans') && 
+             (Number(p.price) === 200 || Number(p.price) === 50 || Number(p.originalPrice) === 200));
+
           const mapped = (response.data as any[])
             .filter(isClothingRelated)
+            .filter(p => !isMockProduct(p))
             .slice(0, 6)
             .map(p => {
               // Clean product name - remove description suffixes

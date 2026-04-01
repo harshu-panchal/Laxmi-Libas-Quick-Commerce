@@ -97,8 +97,12 @@ export default function Home() {
             };
           }
           
-          // CRITICAL: Filter out mock/placeholder products (like the 'jeans' 200 card)
-          const isMockProduct = (p: any) => p.name?.toLowerCase() === 'jeans' && p.price === 200;
+          // CRITICAL: Filter out mock/placeholder products (like the 'jeans' 200 card or truck icon)
+          const isMockProduct = (p: any) => 
+            ((p.name?.toLowerCase() === 'jeans' || p.productName?.toLowerCase() === 'jeans') && 
+             (p.price === 200 || p.price === 50 || p.originalPrice === 200)) ||
+            (p.imageUrl?.includes('10mins_icon_pink') || (p.mainImage || "").includes('10mins_icon_pink') || 
+             p.imageUrl?.includes('truck') || (p.mainImage || "").includes('truck'));
           
           data = {
             ...data,
@@ -447,6 +451,7 @@ export default function Home() {
         {/* Bestsellers Section */}
         {activeTab === "all" && (
           <>
+            {false && (
             <div className="mt-2 md:mt-4">
               <CategoryTileSection
                 title="Bestsellers"
@@ -470,6 +475,7 @@ export default function Home() {
                 showProductCount={true}
               />
             </div>
+            )}
 
             {/* Featured this week Section - Hidden by user request */}
             {/* <FeaturedThisWeek /> */}

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy, startTransition } from "react";
 import { CartProvider } from "./context/CartContext";
 import { OrdersProvider } from "./context/OrdersContext";
@@ -23,6 +23,9 @@ import { initializePushNotifications, setupForegroundNotificationHandler } from 
 // Critical routes - load immediately (Home, Cart, Checkout)
 import Home from "./modules/user/Home";
 import LaxmartEntry from "./modules/user/LaxmartEntry";
+import TravelStore from "./modules/user/TravelStore";
+import HotelBooking from "./modules/user/HotelBooking";
+import MinutesStore from "./modules/user/MinutesStore";
 import Cart from "./modules/user/Cart";
 import Checkout from "./modules/user/Checkout";
 import CheckoutAddress from "./modules/user/CheckoutAddress";
@@ -375,8 +378,11 @@ function App() {
                               <AppLayout>
                                 <Suspense fallback={<LoadingSpinner />}>
                                   <Routes>
-                                    <Route path="/" element={<Home />} />
+                                    <Route path="/" element={<Navigate to="/user/home" replace />} />
                                     <Route path="/user/home" element={<Home />} />
+                                    <Route path="/store/travel" element={<TravelStore />} />
+                                    <Route path="/store/travel/hotels" element={<HotelBooking />} />
+                                    <Route path="/store/minutes" element={<MinutesStore />} />
                                     <Route path="/search" element={<Search />} />
                                     <Route path="/orders" element={<Orders />} />
                                     <Route path="/notifications" element={<Notifications />} />
@@ -400,7 +406,6 @@ function App() {
                                     <Route path="/invoice/:id" element={<Invoice />} />
                                     <Route path="/cart" element={<Cart />} />
                                     <Route path="/addresses" element={<Addresses />} />
-                                    <Route path="/store/:slug" element={<StorePage />} />
                                     <Route path="/store/spiritual" element={<SpiritualStore />} />
                                     <Route path="/store/pharma" element={<PharmaStore />} />
                                     <Route path="/store/e-gifts" element={<EGiftStore />} />
@@ -409,6 +414,7 @@ function App() {
                                     <Route path="/store/fashion-basics" element={<FashionStore />} />
                                     <Route path="/store/toy" element={<ToyStore />} />
                                     <Route path="/store/hobby" element={<HobbyStore />} />
+                                    <Route path="/store/:slug" element={<StorePage />} />
                                   </Routes>
                                 </Suspense>
                               </AppLayout>
