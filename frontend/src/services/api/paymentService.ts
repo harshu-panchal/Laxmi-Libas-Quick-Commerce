@@ -3,9 +3,9 @@ import api from './config';
 /**
  * Create Razorpay order for payment
  */
-export const createRazorpayOrder = async (orderId: string) => {
+export const createRazorpayOrder = async (orderId: string, amount?: number) => {
     try {
-        const response = await api.post('/payment/create-order', { orderId });
+        const response = await api.post('/payment/create-order', { orderId, amount });
         return response.data;
     } catch (error: any) {
         console.error('Error creating Razorpay order:', error);

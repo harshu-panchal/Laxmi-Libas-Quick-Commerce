@@ -53,8 +53,9 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                     return;
                 }
 
-                // Create Razorpay order
-                const orderResponse = await createRazorpayOrder(orderId);
+                // Create Razorpay order - backend now handles mock IDs by using the provided amount
+                // We pass amount in the body for mock orders support
+                const orderResponse = await createRazorpayOrder(orderId, amount);
 
                 if (!orderResponse.success) {
                     onFailure(orderResponse.message || 'Failed to create payment order');

@@ -323,7 +323,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
               {/* Header Title & Notification Bell for Non-Search pages */}
               {/* Header line with Title & Bell - show for non-search pages, skip on order-again */}
-              {!isSearchPage && !isOrderAgainPage && location.pathname !== '/store/travel' && location.pathname !== '/store/minutes' && (
+              {!isSearchPage && !isOrderAgainPage && location.pathname !== '/store/travel' && location.pathname !== '/store/minutes' && location.pathname !== '/categories' && (
                 <div className="px-4 py-2 flex items-center justify-between border-b border-neutral-100">
                   <button onClick={() => navigate(-1)} className="p-1">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

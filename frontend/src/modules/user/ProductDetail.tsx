@@ -16,6 +16,7 @@ import { getProductById } from '../../services/api/customerProductService';
 import WishlistButton from '../../components/WishlistButton';
 import StarRating from "../../components/ui/StarRating";
 import { calculateProductPrice } from '../../utils/priceUtils';
+import { CLOTHING_MOCK_DATA } from "../../utils/clothingMockData";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -50,6 +51,26 @@ export default function ProductDetail() {
       setLoading(true);
       setError(null);
       startLoading();
+
+      // Handle mock products
+      if (id?.startsWith("mock-p")) {
+        const mockProduct = CLOTHING_MOCK_DATA.products.find(p => p._id === id);
+        if (mockProduct) {
+          setProduct({
+            ...mockProduct,
+            id: mockProduct._id,
+            allImages: mockProduct.images,
+            imageUrl: mockProduct.images[0],
+            mrp: mockProduct.price,
+            pack: "Standard"
+          });
+          setSimilarProducts(CLOTHING_MOCK_DATA.products.filter(p => p._id !== id));
+          setLoading(false);
+          stopLoading();
+          return;
+        }
+      }
+
       try {
         // Check if navigation came from store page
         const fromStore = (routerLocation.state as any)?.fromStore === true;

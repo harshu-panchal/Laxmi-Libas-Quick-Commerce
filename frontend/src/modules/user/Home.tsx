@@ -16,6 +16,7 @@ import CategoryTabBar from "../../components/CategoryTabBar";
 import { getTheme } from "../../utils/themes";
 import { useThemeContext } from "../../context/ThemeContext";
 import { isClothingRelated } from "../../utils/clothingUtils";
+import { CLOTHING_MOCK_DATA } from "../../utils/clothingMockData";
 
 
 export default function Home() {
@@ -316,7 +317,7 @@ export default function Home() {
       <HomeHero activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Premium Home Banner Carousel */}
-      <HomeBannerCarousel />
+      {/* <HomeBannerCarousel /> */}
 
       {/* Main content */}
       <div
@@ -331,48 +332,14 @@ export default function Home() {
             {homeData.homeSections.map((section: any) => {
               const columnCount = Number(section.columns) || 4;
 
-              if (section.displayType === "banners" && section.data && section.data.length > 0) {
-                return (
-                  <div key={section.id} className="px-4 md:px-6 lg:px-8 mb-6 md:mb-8">
-                    <div className="relative w-full overflow-hidden rounded-xl">
-                      <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4">
-                        {section.data.map((banner: any, index: number) => (
-                          <div
-                            key={index}
-                            onClick={() => banner.link && (window.location.href = banner.link)}
-                            className="relative flex-none w-full snap-start cursor-pointer aspect-[21/9] md:aspect-[3/1]"
-                          >
-                            <img
-                              src={banner.imageUrl}
-                              alt={banner.title || 'Banner'}
-                              className="w-full h-full object-cover rounded-xl"
-                            />
-                            {banner.title && (
-                              <div className="absolute bottom-4 left-4 bg-black/30 backdrop-blur-md px-4 py-2 rounded-lg text-white">
-                                <h3 className="text-sm md:text-lg font-bold">{banner.title}</h3>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
+              // Banners display - hidden as per user request
+              if (section.displayType === "banners") {
+                return null;
               }
 
               if (section.displayType === "products" && section.data && section.data.length > 0) {
-                // Strict column mapping as requested - applies to ALL screen sizes including mobile
-                const gridClass = {
-                  2: "grid-cols-2",
-                  3: "grid-cols-3",
-                  4: "grid-cols-4",
-                  6: "grid-cols-6",
-                  8: "grid-cols-8"
-                }[columnCount] || "grid-cols-4";
-
-                // Use compact mode for 4 or more columns to fit content on mobile
-                const isCompact = columnCount >= 4;
-                const gapClass = columnCount >= 4 ? "gap-2" : "gap-3 md:gap-4";
+                const productCount = section.data.length;
+                const shouldScroll = productCount > 3;
 
                 return (
                   <div key={section.id} className="mt-6 mb-6 md:mt-8 md:mb-8">
@@ -382,19 +349,36 @@ export default function Home() {
                       </h2>
                     )}
                     <div className="px-4 md:px-6 lg:px-8">
-                      <div className={`grid ${gridClass} ${gapClass}`}>
-                        {section.data.map((product: any) => (
-                          <ProductCard
-                            key={product.id || product._id}
-                            product={product}
-                            categoryStyle={true}
-                            showBadge={true}
-                            showPackBadge={false}
-                            showStockInfo={false}
-                            compact={isCompact}
-                          />
-                        ))}
-                      </div>
+                      {shouldScroll ? (
+                        <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-3 pb-2">
+                          {section.data.map((product: any) => (
+                            <div key={product.id || product._id} className="flex-none w-[31.5%] snap-start">
+                              <ProductCard
+                                product={product}
+                                categoryStyle={true}
+                                showBadge={true}
+                                showPackBadge={false}
+                                showStockInfo={false}
+                                compact={true}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className={`grid grid-cols-3 gap-3 md:gap-4`}>
+                          {section.data.map((product: any) => (
+                            <ProductCard
+                              key={product.id || product._id}
+                              product={product}
+                              categoryStyle={true}
+                              showBadge={true}
+                              showPackBadge={false}
+                              showStockInfo={false}
+                              compact={false}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -420,30 +404,46 @@ export default function Home() {
               {activeTab === "grocery" ? "Grocery Items" : activeTab}
             </h2>
             <div className="px-4 md:px-6 lg:px-8">
-              {filteredProducts.length > 0 ? (
-                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4">
-                  {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id || product._id}
-                      product={product}
-                      categoryStyle={true}
-                      showBadge={true}
-                      showPackBadge={false}
-                      showStockInfo={true}
+              {(() => {
+                const isFashion = isClothingRelated({ name: activeTab });
+                const hasProducts = filteredProducts.length > 0;
+
+                if (isFashion && !hasProducts) {
+                  return (
+                    <CategoryTileSection
+                      title=""
+                      tiles={CLOTHING_MOCK_DATA.subcategories as any}
+                      columns={4}
+                      showProductCount={false}
                     />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-20 px-4 bg-white rounded-2xl shadow-sm border border-neutral-100">
-                  <div className="w-16 h-16 bg-neutral-50 rounded-full flex items-center justify-center mb-4">
-                    <svg className="w-8 h-8 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
+                  );
+                }
+
+                return hasProducts ? (
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4">
+                    {filteredProducts.map((product) => (
+                      <ProductCard
+                        key={product.id || product._id}
+                        product={product}
+                        categoryStyle={true}
+                        showBadge={true}
+                        showPackBadge={false}
+                        showStockInfo={true}
+                      />
+                    ))}
                   </div>
-                  <h3 className="text-lg font-medium text-neutral-900">No products available</h3>
-                  <p className="text-sm text-neutral-500 mt-1">We're working on bringing more items to this category soon.</p>
-                </div>
-              )}
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-20 px-4 bg-white rounded-2xl shadow-sm border border-neutral-100">
+                    <div className="w-16 h-16 bg-neutral-50 rounded-full flex items-center justify-center mb-4">
+                      <svg className="w-8 h-8 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-neutral-900">No products available</h3>
+                    <p className="text-sm text-neutral-500 mt-1">We're working on bringing more items to this category soon.</p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}

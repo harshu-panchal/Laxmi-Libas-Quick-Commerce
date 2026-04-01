@@ -9,6 +9,7 @@ import {
 } from "../../services/api/customerProductService";
 import { useLocation as useLocationContext } from "../../hooks/useLocation";
 import { isClothingRelated } from "../../utils/clothingUtils";
+import { CLOTHING_MOCK_DATA } from "../../utils/clothingMockData";
 
 
 export default function CategoryPage() {
@@ -34,6 +35,24 @@ export default function CategoryPage() {
     const fetchCategoryDetails = async () => {
       setCategoryLoading(true);
       setError(null);
+      
+      // Handle mock Men's Wear category
+      if (id === "mens-wear") {
+        setCategory({ _id: "mens-wear", id: "mens-wear", name: "Men's Wear" } as any);
+        setSubcategories([
+          {
+            _id: "all",
+            id: "all",
+            name: "All",
+            icon: "📦",
+            isActive: true,
+          } as any,
+          ...CLOTHING_MOCK_DATA.subcategories.filter(s => s.type === 'subcategory')
+        ]);
+        setCategoryLoading(false);
+        return;
+      }
+
       try {
         const response = await getCategoryById(id!);
         if (response.success && response.data) {
@@ -89,6 +108,20 @@ export default function CategoryPage() {
       setProducts([]); // RESET product list on change
       setLoading(true);
       setError(null);
+
+      // Handle mock Men's Wear products
+      if (id === "mens-wear") {
+        let mockProducts = CLOTHING_MOCK_DATA.products;
+        if (selectedSubcategory !== "all") {
+          mockProducts = mockProducts.filter(p => 
+            p.subcategoryId === selectedSubcategory || (p as any).subcategory === selectedSubcategory
+          );
+        }
+        setProducts(mockProducts);
+        setLoading(false);
+        return;
+      }
+
       try {
         const params: any = { category: category?._id || id };
         if (selectedSubcategory !== "all") {

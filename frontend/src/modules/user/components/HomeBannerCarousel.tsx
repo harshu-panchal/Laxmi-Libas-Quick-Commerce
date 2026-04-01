@@ -53,7 +53,7 @@ export default function HomeBannerCarousel() {
             style={{ background: slide.bgGradient }}
           >
             {/* Background Grid Pattern */}
-            <div className="absolute inset-0 opacity-10 pointer-events-none" 
+            <div className="absolute inset-0 opacity-10 pointer-events-none"
               style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
             </div>
 
@@ -77,21 +77,21 @@ export default function HomeBannerCarousel() {
             <div className="relative w-[140px] sm:w-[160px] h-full flex items-center justify-center pr-4">
               {/* Product Card Container */}
               <div className="bg-white/80 backdrop-blur-sm rounded-xl p-1 shadow-lg transform rotate-2">
-                 <img src={slide.image} alt={slide.title} className="w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] object-contain" />
+                <img src={slide.image} alt={slide.title} className="w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] object-contain" />
               </div>
-              
+
               {/* Decorative Floating items */}
               <div className="absolute top-4 right-8 w-6 h-6 bg-yellow-400 rounded-full blur-xl opacity-40 animate-pulse"></div>
               <div className="absolute bottom-4 left-0 w-8 h-8 bg-blue-300 rounded-full blur-xl opacity-30"></div>
             </div>
           </div>
         ))}
-        
+
         {/* Pagination Dots */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
           {SLIDES.map((_, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className={`h-1 rounded-full transition-all duration-300 ${i === currentSlide ? 'w-4 bg-gray-900/60' : 'w-1 bg-gray-900/20'}`}
             />
           ))}
