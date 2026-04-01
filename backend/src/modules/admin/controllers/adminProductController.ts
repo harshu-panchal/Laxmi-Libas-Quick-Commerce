@@ -809,22 +809,22 @@ export const createProduct = asyncHandler(
       // If seller is not provided, use/create default Admin Store
       if (!productData.seller) {
         try {
-          // Check for existing admin seller by email OR mobile to avoid duplicate key errors
-          let adminSeller = await Seller.findOne({
-            $or: [
-              { email: "admin-store@dhakadsnazzy.com" },
-              { mobile: "9999999999" },
-            ],
-          });
+            // Check for existing admin seller by email OR mobile to avoid duplicate key errors
+            let adminSeller = await Seller.findOne({
+              $or: [
+                { email: "admin-store@laxmart.store" },
+                { mobile: "9999999999" },
+              ],
+            });
 
-          if (!adminSeller) {
-            // Create default admin seller
-            adminSeller = await Seller.create({
-              sellerName: "Dhakad Snazzy Admin",
-              storeName: "Dhakad Snazzy Admin Store",
-              email: "admin-store@dhakadsnazzy.com",
-              mobile: "9999999999",
-              password: "AdminStore@123", // Should be hashed by pre-save hook
+            if (!adminSeller) {
+              // Create default admin seller
+              adminSeller = await Seller.create({
+                sellerName: "LaxMart Admin",
+                storeName: "LaxMart Admin Store",
+                email: "admin-store@laxmart.store",
+                mobile: "9999999999",
+                password: "AdminStore@123", // Should be hashed by pre-save hook
               address: "",
               city: "",
               category: "Admin",

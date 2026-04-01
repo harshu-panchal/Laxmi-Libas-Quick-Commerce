@@ -8,7 +8,7 @@ export interface TokenPayload {
   categoryId?: string;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = (process.env.JWT_SECRET || 'your-secret-key-change-in-production').trim();
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 /**

@@ -22,6 +22,9 @@ const httpServer = createServer(app);
 const allowedOrigins = [
   "https://www.dhakadsnazzy.com",
   "https://dhakadsnazzy.com",
+  "https://laxmart.store",
+  "https://www.laxmart.store",
+  "https://api.laxmart.store",
   // Add more origins from environment variable if needed
   ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(",").map(url => url.trim()) : [])
 ];
@@ -76,7 +79,7 @@ app.set("io", io);
 // Routes
 app.get("/", (_req: Request, res: Response) => {
   res.json({
-    message: "dhakadsnazzy API Server is running!",
+    message: "LaxMart API Server is running!",
     version: "1.0.0",
     socketIO: "Listening for WebSocket connections",
   });
@@ -121,7 +124,7 @@ async function startServer() {
   });
 
   httpServer.listen(PORT, () => {
-    console.log("\n\x1b[32m✓\x1b[0m \x1b[1mdhakadsnazzy Server Started\x1b[0m");
+    console.log("\n\x1b[32m✓\x1b[0m \x1b[1mLaxMart Server Started\x1b[0m");
     console.log(`   \x1b[36mPort:\x1b[0m http://localhost:${PORT}`);
     console.log(
       `   \x1b[36mEnvironment:\x1b[0m ${process.env.NODE_ENV || "development"}`

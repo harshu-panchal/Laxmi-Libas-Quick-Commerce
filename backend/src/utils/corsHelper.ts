@@ -29,10 +29,11 @@ export const isOriginAllowed = (origin: string | undefined): boolean => {
       .map((url) => url.trim().replace(/\/$/, '')) // Remove trailing slashes
       .filter((url) => url.length > 0);
 
-    // Default production origins (explicitly include www.dhakadsnazzy.com)
+    // Default production origins (explicitly include laxmart.store)
     const defaultOrigins = [
-      'https://www.dhakadsnazzy.com',
-      'https://dhakadsnazzy.com',
+      'https://www.laxmart.store',
+      'https://laxmart.store',
+      'https://api.laxmart.store',
     ];
 
     // Combine and remove duplicates
