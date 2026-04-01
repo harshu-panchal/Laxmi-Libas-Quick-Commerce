@@ -41,7 +41,7 @@ router.post('/create-order', authenticate, requireUserType('Customer'), async (r
         if (!result.success) {
             return res.status(400).json({
                 success: false,
-                message: result.message, // This now contains the specific Razorpay error
+                message: result.message, // Ensure this contains the specific Razorpay error
                 errorCode: (result.error as any)?.code || 'RAZORPAY_ERROR'
             });
         }
