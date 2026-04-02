@@ -36,6 +36,7 @@ export default function CategoryPage() {
       setCategoryLoading(true);
       setError(null);
       
+      /* 
       // Handle mock Men's Wear category
       if (id === "mens-wear") {
         setCategory({ _id: "mens-wear", id: "mens-wear", name: "Men's Wear" } as any);
@@ -47,11 +48,11 @@ export default function CategoryPage() {
             icon: "📦",
             isActive: true,
           } as any,
-          ...CLOTHING_MOCK_DATA.subcategories.filter(s => s.type === 'subcategory')
         ]);
         setCategoryLoading(false);
         return;
       }
+      */
 
       try {
         const response = await getCategoryById(id!);
@@ -71,9 +72,12 @@ export default function CategoryPage() {
               icon: "📦",
               isActive: true,
             } as any,
-            ...(subs || [])
-              .filter(isClothingRelated)
-              .filter((sub: ApiCategory) => (sub.name || "").toLowerCase().includes("men") && !(sub.name || "").toLowerCase().includes("women")),
+            ...(subs || []).filter((s: any) => {
+               const name = s.name?.toLowerCase() || "";
+               const slug = s.slug?.toLowerCase() || "";
+               return (name.includes('men') && !name.includes('women')) || 
+                      (slug.includes('men') && !slug.includes('women'));
+            }),
           ]);
 
           // Check URL query params first, then API response
@@ -109,18 +113,14 @@ export default function CategoryPage() {
       setLoading(true);
       setError(null);
 
+      /* 
       // Handle mock Men's Wear products
       if (id === "mens-wear") {
-        let mockProducts = CLOTHING_MOCK_DATA.products;
-        if (selectedSubcategory !== "all") {
-          mockProducts = mockProducts.filter(p => 
-            p.subcategoryId === selectedSubcategory || (p as any).subcategory === selectedSubcategory
-          );
-        }
-        setProducts(mockProducts);
+        setProducts([]);
         setLoading(false);
         return;
       }
+      */
 
       try {
         const params: any = { category: category?._id || id };
@@ -136,14 +136,38 @@ export default function CategoryPage() {
             (p.imageUrl?.includes('10mins_icon_pink') || (p.mainImage || "").includes('10mins_icon_pink') || 
              p.imageUrl?.includes('truck') || (p.mainImage || "").includes('truck'));
 
-          const safeProducts = (response.data || [])
-            .filter(isClothingRelated)
-            .filter((p: any) => !isMockProduct(p))
+          let safeProducts = (response.data || [])
             .map((p: any) => ({
               ...p,
               tags: Array.isArray(p.tags) ? p.tags : [],
               nameParts: (p.productName || p.name || "").toLowerCase().split(" "),
+            }))
+            .filter((p: any) => {
+              const name = p.name?.toLowerCase() || "";
+              const catName = p.category?.name?.toLowerCase() || "";
+              const subName = p.subcategory?.name?.toLowerCase() || "";
+              return (name.includes('men') && !name.includes('women')) || 
+                     (catName.includes('men') && !catName.includes('women')) ||
+                     (subName.includes('men') && !subName.includes('women'));
+            });
+
+          // Fallback to mock data if empty and it's a clothing-related category
+          const isClothingCat = 
+            isClothingRelated(id) || 
+            isClothingRelated(category?.name) || 
+            isClothingRelated(selectedSubcategory) ||
+            (subcategories.find(s => (s.id || s._id) === selectedSubcategory)?.name?.toLowerCase().includes('men'));
+
+          if (safeProducts.length === 0 && isClothingCat) {
+            const activeId = category?._id || category?.id || id;
+            safeProducts = CLOTHING_MOCK_DATA.products.map(p => ({
+              ...p,
+              category: activeId,
+              categoryId: activeId,
+              subcategoryId: selectedSubcategory !== 'all' ? selectedSubcategory : p.subcategoryId
             }));
+          }
+          
           setProducts(safeProducts);
         } else {
           setError("Failed to fetch products for this category.");

@@ -7,7 +7,7 @@ import { useCart } from '../../context/CartContext';
 import { getProducts } from '../../services/api/customerProductService';
 import WishlistButton from '../../components/WishlistButton';
 import { calculateProductPrice } from '../../utils/priceUtils';
-import { isClothingRelated } from '../../utils/clothingUtils';
+// import { isClothingRelated } from '../../utils/clothingUtils';
 
 
 const formatDate = (dateString: string) => {
@@ -87,7 +87,6 @@ export default function OrderAgain() {
              (Number(p.price) === 200 || Number(p.price) === 50 || Number(p.originalPrice) === 200));
 
           const mapped = (response.data as any[])
-            .filter(isClothingRelated)
             .filter(p => !isMockProduct(p))
             .slice(0, 6)
             .map(p => {

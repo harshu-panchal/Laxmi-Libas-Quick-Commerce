@@ -178,8 +178,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                     imageUrl: category?.image,
                     bgColor: "bg-yellow-50",
                   };
-                })
-                .filter(isClothingRelated); // Filter here
+                });
             }
 
             // Map featured products from PromoStrip
@@ -215,12 +214,12 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                   discountedPrice: isNaN(discountedPrice) ? 499 : discountedPrice,
                   imageUrl: imageUrl,
                 };
-              }).filter(isClothingRelated);
+              });
             }
           }
           // 2. Fallback to promoCards if no PromoStrip
           else if (response.data.promoCards && response.data.promoCards.length > 0) {
-            fetchedCards = response.data.promoCards.filter(isClothingRelated); // Filter here
+            fetchedCards = response.data.promoCards;
           }
           // 3. Fallback to categories if no promo cards
           else if (
@@ -235,7 +234,6 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                 categoryId: c.slug || c._id,
                 bgColor: c.color || "bg-yellow-50",
               }))
-              .filter(isClothingRelated) // Filter here
               .slice(0, 4);
           }
 
@@ -261,18 +259,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
               // Always prioritize productName to avoid showing category names
               const productName = p.productName || p.name || "Product";
 
-              return {
-                id: p._id,
-                _id: p._id,
-                name: productName,
-                productName: productName, // Always use productName, never category name
-                price: price,
-                mrp: mrp,
-                originalPrice: isNaN(originalPrice) ? 999 : originalPrice,
-                discountedPrice: isNaN(discountedPrice) ? 499 : discountedPrice,
-                imageUrl: imageUrl,
-              };
-            }).filter(isClothingRelated);
+            });
           }
         }
 

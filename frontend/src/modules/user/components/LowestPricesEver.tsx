@@ -383,7 +383,7 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
       .filter((product) => {
         if (!product.mrp) return false;
         const discount = Math.round(((product.mrp - product.price) / product.mrp) * 100);
-        return discount > 0 && isClothingRelated(product);
+        return discount > 0;
       })
       .slice(0, 10); // Show top 10 discounted products
   };

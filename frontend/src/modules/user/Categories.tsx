@@ -119,7 +119,9 @@ export default function Categories() {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar (Left) */}
         <div className="w-24 bg-neutral-50 overflow-y-auto scrollbar-hide border-r border-neutral-100">
-          {homeData.categories?.map((cat: any) => {
+          {homeData.categories
+            ?.filter((cat: any) => isClothingRelated(cat.name) || isClothingRelated(cat.slug))
+            .map((cat: any) => {
             const id = cat.slug || cat._id;
             const isActive = selectedCategoryId === id;
             return (
@@ -172,30 +174,29 @@ export default function Categories() {
                   <h3 className="text-sm font-bold text-neutral-800 tracking-tight">Popular Store</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-y-6 gap-x-4">
-                  {(isClothingRelated(currentCategory?.name || '') && homeData.homeSections?.filter((s: any) => s.displayType === 'categories')?.flatMap((s: any) => s.data)?.length === 0
-                    ? CLOTHING_MOCK_DATA.subcategories
-                    : homeData.homeSections
-                        ?.filter((s: any) => s.displayType === 'categories' || s.displayType === 'banners')
-                        ?.flatMap((s: any) => s.data)
-                        ?.slice(0, 6)
-                  )?.map((item: any, idx: number) => (
-                      <button 
-                        key={idx}
-                        className="flex flex-col items-center gap-2 group"
-                        onClick={() => navigate(item.type === 'category' ? `/category/${item.categoryId}` : '/')}
-                      >
-                        <div className="w-16 h-16 rounded-full bg-neutral-50 border border-neutral-100 flex items-center justify-center overflow-hidden group-active:scale-95 transition-transform">
-                          <img 
-                            src={item.image || item.imageUrl || "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png"} 
-                            alt={item.name} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <span className="text-[10px] font-bold text-neutral-700 text-center leading-tight">
-                          {item.name || item.title || 'Special'}
-                        </span>
-                      </button>
-                    ))}
+                  {((homeData.homeSections
+                          ?.filter((s: any) => s.displayType === 'categories' || s.displayType === 'banners')
+                          ?.flatMap((s: any) => s.data)
+                          ?.filter((item: any) => isClothingRelated(item.name) || isClothingRelated(item.title) || isClothingRelated(item.slug))
+                          ?.slice(0, 6)) || []
+                    ).map((item: any, idx: number) => (
+                        <button 
+                          key={idx}
+                          className="flex flex-col items-center gap-2 group"
+                          onClick={() => navigate(item.type === 'category' ? `/category/${item.categoryId}` : '/')}
+                        >
+                          <div className="w-16 h-16 rounded-full bg-neutral-50 border border-neutral-100 flex items-center justify-center overflow-hidden group-active:scale-95 transition-transform">
+                            <img 
+                              src={item.image || item.imageUrl || "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png"} 
+                              alt={item.name} 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="text-[10px] font-bold text-neutral-700 text-center leading-tight">
+                            {item.name || item.title || 'Special'}
+                          </span>
+                        </button>
+                      ))}
                 </div>
               </section>
 
@@ -205,26 +206,26 @@ export default function Categories() {
                   <h3 className="text-sm font-bold text-neutral-800 tracking-tight">New & Upcoming Launches</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  {(isClothingRelated(currentCategory?.name || '') && homeData.homeSections?.find((s: any) => s.displayType === 'products')?.data?.length === 0
-                    ? CLOTHING_MOCK_DATA.products
-                    : homeData.homeSections
-                        ?.find((s: any) => s.displayType === 'products')
-                        ?.data?.slice(0, 4)
-                  )?.map((product: any, idx: number) => (
-                      <div key={idx} className="relative group">
-                        <div className="absolute top-2 left-2 z-10">
-                          <span className={`${idx % 2 === 0 ? 'bg-emerald-500' : 'bg-primary-dark'} text-white text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm uppercase`}>
-                            {idx % 2 === 0 ? 'NOTIFY ME' : 'BUY NOW'}
-                          </span>
+                  {((homeData.homeSections
+                          ?.find((s: any) => s.displayType === 'products')
+                          ?.data
+                          ?.filter((p: any) => isClothingRelated(p.name) || isClothingRelated(p.category?.name))
+                          ?.slice(0, 4)) || []
+                    ).map((product: any, idx: number) => (
+                        <div key={idx} className="relative group">
+                          <div className="absolute top-2 left-2 z-10">
+                            <span className={`${idx % 2 === 0 ? 'bg-emerald-500' : 'bg-primary-dark'} text-white text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm uppercase`}>
+                              {idx % 2 === 0 ? 'NOTIFY ME' : 'BUY NOW'}
+                            </span>
+                          </div>
+                          <ProductCard
+                            product={product}
+                            compact={true}
+                            categoryStyle={true}
+                            showBadge={false}
+                          />
                         </div>
-                        <ProductCard
-                          product={product}
-                          compact={true}
-                          categoryStyle={true}
-                          showBadge={false}
-                        />
-                      </div>
-                    ))}
+                      ))}
                 </div>
               </section>
 
@@ -234,7 +235,10 @@ export default function Categories() {
                   <h3 className="text-sm font-bold text-neutral-800 tracking-tight">Recently Viewed Stores</h3>
                 </div>
                 <div className="flex overflow-x-auto gap-4 scrollbar-hide pb-2">
-                  {homeData.categories?.slice(0, 5).map((cat: any, idx: number) => (
+                  {homeData.categories
+                    ?.filter((cat: any) => isClothingRelated(cat.name) || isClothingRelated(cat.slug))
+                    ?.slice(0, 5)
+                    .map((cat: any, idx: number) => (
                     <div key={idx} className="shrink-0 w-28 aspect-[4/5] rounded-xl bg-neutral-50 overflow-hidden border border-neutral-100">
                       <img
                         src={cat.image}

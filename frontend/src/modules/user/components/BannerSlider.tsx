@@ -13,11 +13,7 @@ export default function BannerSlider() {
             try {
                 const response = await getActiveBanners();
                 if (response.success && response.data.length > 0) {
-                    const isClothingRelated = (item: any) => {
-                        const text = (item.title || item.link || "").toLowerCase();
-                        return text.includes('clothing') || text.includes('fashion') || text.includes('wear') || text.includes('shirt');
-                    };
-                    setBanners(response.data.filter(isClothingRelated));
+                    setBanners(response.data);
                 }
             } catch (error) {
                 console.error('Failed to fetch banners', error);

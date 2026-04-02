@@ -43,9 +43,9 @@ const ALL_TAB: Tab = {
   ),
 };
 
-export default function HomeHero({ 
-  activeTab = 'all', 
-  onTabChange, 
+export default function HomeHero({
+  activeTab = 'all',
+  onTabChange,
   hideTopContent = false,
   activeStore = 'laxmart',
   hideLocationBar = false,
@@ -59,10 +59,7 @@ export default function HomeHero({
       try {
         const cats = await getHeaderCategoriesPublic();
         if (cats && cats.length > 0) {
-          // Filter to only show clothing-related categories
-          const filteredCats = cats.filter(isClothingRelated);
-          
-          const mapped = filteredCats.map(c => ({
+          const mapped = cats.map(c => ({
             id: c.slug,
             label: c.name,
             icon: getIconByName(c.iconName)
@@ -295,60 +292,17 @@ export default function HomeHero({
       {/* Top section with delivery info and buttons - NOT sticky */}
       {!hideTopContent && (
         <div className="pt-3 px-3">
-          {/* Row 1: App Icons / Service Tiles */}
-          <div className="flex justify-between pb-3 scrollbar-hide px-1">
+          {/* Row 1: App Icons / Service Tiles - Only Laxmart */}
+          <div className="flex justify-center pb-3 scrollbar-hide px-1">
             <div className="flex flex-col items-center flex-shrink-0" onClick={() => navigate('/user/home')}>
-              <div className={`w-[72px] h-[54px] rounded-xl p-1 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center justify-between border ${
-                activeStore === 'laxmart' ? 'bg-[#ffec00] border-yellow-300' : 'bg-white border-gray-100'
-              }`}>
+              <div className={`w-[72px] h-[54px] rounded-xl p-1 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center justify-between border ${activeStore === 'laxmart' ? 'bg-[#ffec00] border-yellow-300' : 'bg-white border-gray-100'
+                }`}>
                 <div className="flex-1 flex items-center justify-center">
                   <img src="/laxmart_logo_flat_1774950312611.png" alt="Laxmart" className="w-[26px] h-[26px] object-contain" />
                 </div>
                 <span className="text-[9px] font-[900] text-gray-900 pb-0.5 italic tracking-tight">Laxmart</span>
               </div>
             </div>
-            
-            {/* 10 Minutes Card (White) - Hidden for now */}
-            {false && (
-              <div className="flex flex-col items-center flex-shrink-0" onClick={() => navigate('/store/minutes')}>
-                <div className={`w-[72px] h-[54px] rounded-xl p-1 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center justify-between border ${
-                  activeStore === 'minutes' ? 'bg-[#ff6b6b] border-red-300' : 'bg-white border-gray-100'
-                }`}>
-                  <div className="flex-1 flex items-center justify-center">
-                    <img src="/minutes_8_badge_1774950333277.png" alt="10 Mins" className="w-[26px] h-[26px] object-contain" />
-                  </div>
-                  <span className={`text-[9px] font-[900] pb-0.5 italic tracking-tight ${activeStore === 'minutes' ? 'text-white' : 'text-gray-900'}`}>Minutes</span>
-                </div>
-              </div>
-            )}
-
-            {/* Travel Card (White) - Hidden for now */}
-            {false && (
-              <div className="flex flex-col items-center flex-shrink-0" onClick={() => navigate('/store/travel')}>
-                <div className={`w-[72px] h-[54px] rounded-xl p-1 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center justify-between border ${
-                  activeStore === 'travel' ? 'bg-[#ff6000] border-orange-400' : 'bg-white border-gray-100'
-                }`}>
-                  <div className="flex-1 flex items-center justify-center">
-                    <img src="/travel_new_icon.png" alt="Travel" className="w-[26px] h-[26px] object-contain" />
-                  </div>
-                  <span className={`text-[9px] font-[900] pb-0.5 italic tracking-tight ${activeStore === 'travel' ? 'text-white' : 'text-gray-900'}`}>Travel</span>
-                </div>
-              </div>
-            )}
-
-            {/* Grocery Card (White) - Hidden for now */}
-            {false && (
-              <div className="flex flex-col items-center flex-shrink-0" onClick={() => navigate('/user/home')}>
-                <div className={`w-[72px] h-[54px] rounded-xl p-1 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center justify-between border ${
-                  activeStore === 'grocery' ? 'bg-[#00d084] border-emerald-300' : 'bg-white border-gray-100'
-                }`}>
-                  <div className="flex-1 flex items-center justify-center">
-                    <img src="/grocery_saver_green_flat_1774950367400.png" alt="Grocery" className="w-[26px] h-[26px] object-contain" />
-                  </div>
-                  <span className={`text-[9px] font-[900] pb-0.5 italic tracking-tight ${activeStore === 'grocery' ? 'text-white' : 'text-gray-900'}`}>Grocery</span>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Row 2: Location and Rewards Bar */}
@@ -368,7 +322,7 @@ export default function HomeHero({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
-              
+
               <div className="flex-shrink-0 bg-white rounded-full px-2 py-0.5 flex items-center gap-1 shadow-sm border border-gray-100 h-[32px]">
                 <div className="w-4.5 h-4.5 bg-yellow-400 rounded-full flex items-center justify-center shadow-inner flex-shrink-0">
                   <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">

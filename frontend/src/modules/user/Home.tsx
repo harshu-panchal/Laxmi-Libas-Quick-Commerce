@@ -42,6 +42,7 @@ export default function Home() {
     trending: [],
     cookingIdeas: [],
   });
+  const [selectedMockSubCategory, setSelectedMockSubCategory] = useState<string | null>(null);
 
   const [products, setProducts] = useState<any[]>([]);
 
@@ -65,7 +66,7 @@ export default function Home() {
         setLoading(true);
         setError(null);
         setProducts([]); // CRITICAL: Reset products to prevent old category data showing
-        
+
         const slug = activeTab === "all" ? undefined : activeTab;
         console.log(`[Home] Fetching content for tab: ${activeTab}, slug: ${slug}`);
 
@@ -74,65 +75,29 @@ export default function Home() {
           location?.latitude,
           location?.longitude
         );
-        
+
         if (response.success && response.data) {
           let data = response.data;
-          
-          // Filter data to only show clothing-related items if we are on "all" tab
-          if (activeTab === "all") {
-            data = {
-              ...data,
-              categories: (data.categories || []).filter(isClothingRelated),
-              homeSections: (data.homeSections || [])
-                .map((section: any) => ({
-                  ...section,
-                  data: section.displayType === "banners" ? section.data : (section.data || []).filter(isClothingRelated)
-                }))
-                .filter((section: any) => {
-                  // Keep banners/hero or sections with clothing-related data
-                  return section.displayType === "banners" || (section.data && section.data.length > 0);
-                }),
-              shops: (data.shops || []).filter(isClothingRelated),
-              bestsellers: (data.bestsellers || []).filter(isClothingRelated),
-              lowestPrices: (data.lowestPrices || []).filter(isClothingRelated),
-            };
-          }
-          
-          // CRITICAL: Filter out mock/placeholder products (like the 'jeans' 200 card or truck icon)
-          const isMockProduct = (p: any) => 
-            ((p.name?.toLowerCase() === 'jeans' || p.productName?.toLowerCase() === 'jeans') && 
-             (p.price === 200 || p.price === 50 || p.originalPrice === 200)) ||
-            (p.imageUrl?.includes('10mins_icon_pink') || (p.mainImage || "").includes('10mins_icon_pink') || 
-             p.imageUrl?.includes('truck') || (p.mainImage || "").includes('truck'));
-          
-          data = {
-            ...data,
-            bestsellers: (data.bestsellers || []).filter((p: any) => !isMockProduct(p)),
-            homeSections: (data.homeSections || []).map((section: any) => ({
-              ...section,
-              data: section.displayType === "banners" ? section.data : (section.data || []).filter((p: any) => !isMockProduct(p))
-            })).filter((section: any) => section.displayType === "banners" || (section.data && section.data.length > 0))
-          };
 
           setHomeData(data);
-          
+
           // Products for the "Filtered Products Section" at the bottom
           // If we are on "all" tab, we might show bestsellers or other global items
           // If on a specific tab, we show products returned for that category
           if (activeTab === "all") {
-             // For "all" tab, products state can hold bestsellers for legacy sections 
-             // but we should distinguish between bestseller tiles and actual products.
-             setProducts([]); 
+            // For "all" tab, products state can hold bestsellers for legacy sections 
+            // but we should distinguish between bestseller tiles and actual products.
+            setProducts([]);
           } else {
-             // Look for a products section in the dynamic sections
-             const productSection = data.homeSections?.find(
-               (s: any) => s.displayType === "products" || s.id === "category-products"
-             );
-             if (productSection && productSection.data) {
-               setProducts(productSection.data);
-             } else {
-               setProducts([]);
-             }
+            // Look for a products section in the dynamic sections
+            const productSection = data.homeSections?.find(
+              (s: any) => s.displayType === "products" || s.id === "category-products"
+            );
+            if (productSection && productSection.data) {
+              setProducts(productSection.data);
+            } else {
+              setProducts([]);
+            }
           }
         } else {
           setError("Failed to load content. Please try again.");
@@ -147,6 +112,7 @@ export default function Home() {
     };
 
     fetchData();
+    setSelectedMockSubCategory(null); // Reset when tab changes
   }, [location?.latitude, location?.longitude, activeTab]);
 
   // Separate effect for preloading only on mount/location change, NOT activeTab
@@ -156,9 +122,7 @@ export default function Home() {
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         const headerCategories = await getHeaderCategoriesPublic(true);
-        // Filter to only show clothing-related categories
-        const filteredHeaderCategories = headerCategories.filter(isClothingRelated);
-        const slugsToPreload = ['all', ...filteredHeaderCategories.map(cat => cat.slug)];
+        const slugsToPreload = ['all', ...headerCategories.map(cat => cat.slug)];
 
         const batchSize = 2;
         for (let i = 0; i < slugsToPreload.length; i += batchSize) {
@@ -332,9 +296,13 @@ export default function Home() {
             {homeData.homeSections.map((section: any) => {
               const columnCount = Number(section.columns) || 4;
 
-              // Banners display - hidden as per user request
+              // Banners display
               if (section.displayType === "banners") {
-                return null;
+                return (
+                  <div key={section.id} className="px-4 md:px-6 lg:px-8 mt-2 mb-4">
+                    <BannerSlider />
+                  </div>
+                );
               }
 
               if (section.displayType === "products" && section.data && section.data.length > 0) {
@@ -384,11 +352,19 @@ export default function Home() {
                 );
               }
 
+              // Filter tiles for clothing related items only
+              const filteredTiles = (section.data || []).filter((tile: any) => 
+                isClothingRelated(tile.name) || isClothingRelated(tile.slug)
+              );
+
+              // If no tiles left after filtering, don't show the section
+              if (filteredTiles.length === 0) return null;
+
               return (
                 <CategoryTileSection
                   key={section.id}
                   title={section.title}
-                  tiles={section.data || []}
+                  tiles={filteredTiles}
                   columns={columnCount as 2 | 3 | 4 | 6 | 8}
                   showProductCount={false}
                 />
@@ -405,17 +381,57 @@ export default function Home() {
             </h2>
             <div className="px-4 md:px-6 lg:px-8">
               {(() => {
-                const isFashion = isClothingRelated({ name: activeTab });
+                const isFashion = isClothingRelated(activeTab);
                 const hasProducts = filteredProducts.length > 0;
 
                 if (isFashion && !hasProducts) {
+                  const filteredMockProducts = selectedMockSubCategory
+                    ? CLOTHING_MOCK_DATA.products.filter(p => p.subcategoryId === selectedMockSubCategory || p.category === selectedMockSubCategory)
+                    : [];
+
                   return (
-                    <CategoryTileSection
-                      title=""
-                      tiles={CLOTHING_MOCK_DATA.subcategories as any}
-                      columns={4}
-                      showProductCount={false}
-                    />
+                    <div className="space-y-4">
+                      {selectedMockSubCategory && (
+                        <button
+                          onClick={() => setSelectedMockSubCategory(null)}
+                          className="flex items-center text-primary-dark font-semibold text-sm px-4 md:px-6 mb-2"
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                          Back to {activeTab} categories
+                        </button>
+                      )}
+
+                      {selectedMockSubCategory ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-6">
+                          {filteredMockProducts.length > 0 ? (
+                            filteredMockProducts.map(product => (
+                              <ProductCard
+                                key={product.id}
+                                product={{ ...product, categoryId: product.category } as any}
+                                categoryStyle={true}
+                                showBadge={true}
+                                showPackBadge={false}
+                                showStockInfo={true}
+                              />
+                            ))
+                          ) : (
+                            <div className="col-span-full py-10 text-center text-neutral-500">
+                              No mock products found for this subcategory.
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <CategoryTileSection
+                          title=""
+                          tiles={CLOTHING_MOCK_DATA.subcategories as any}
+                          columns={4}
+                          showProductCount={false}
+                          onTileClick={(tile) => setSelectedMockSubCategory(tile.id)}
+                        />
+                      )}
+                    </div>
                   );
                 }
 
@@ -448,10 +464,10 @@ export default function Home() {
           </div>
         )}
 
-        {/* Bestsellers Section */}
+        {/* Bestsellers Section - Hidden as per request */}
         {activeTab === "all" && (
           <>
-            {false && (
+            {/* 
             <div className="mt-2 md:mt-4">
               <CategoryTileSection
                 title="Bestsellers"
@@ -475,9 +491,9 @@ export default function Home() {
                 showProductCount={true}
               />
             </div>
-            )}
+            */}
 
-            {/* Featured this week Section - Hidden by user request */}
+            {/* Featured this week Section - Hidden as per request */}
             {/* <FeaturedThisWeek /> */}
 
             {/* Shop by Store Section */}
@@ -487,7 +503,9 @@ export default function Home() {
               </h2>
               <div className="px-4 md:px-6 lg:px-8">
                 <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-4">
-                  {(homeData.shops || []).map((tile: any) => {
+                  {(homeData.shops || [])
+                    .filter((tile: any) => isClothingRelated(tile.name) || isClothingRelated(tile.slug))
+                    .map((tile: any) => {
                     const hasImages =
                       tile.image ||
                       (tile.productImages &&
@@ -502,7 +520,7 @@ export default function Home() {
                             saveScrollPosition();
                             navigate(`/store/${storeSlug}`);
                           }}
-                          className="block bg-white rounded-xl shadow-sm border border-neutral-200 hover:shadow-md transition-shadow cursor-pointer overflow-hidden">
+                          className="block bg-white rounded-[28px] shadow-sm border border-neutral-200 hover:shadow-md transition-shadow cursor-pointer overflow-hidden">
                           {hasImages ? (
                             <img
                               src={

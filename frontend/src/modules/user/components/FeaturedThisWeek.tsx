@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getProducts } from '../../../services/api/customerProductService';
-import { isClothingRelated } from '../../../utils/clothingUtils';
+// import { isClothingRelated } from '../../../utils/clothingUtils';
 
 
 interface FeaturedCard {
@@ -61,7 +61,6 @@ export default function FeaturedThisWeek() {
              p.imageUrl?.includes('truck') || (p.mainImage || "").includes('truck'));
              
           setNewlyLaunchedProducts((res.data || [])
-            .filter(isClothingRelated)
             .filter((p: any) => !isMockProduct(p))
             .slice(0, 6)
           );
@@ -146,7 +145,7 @@ export default function FeaturedThisWeek() {
 
           <div className="flex-shrink-0 w-[110px]">
             <Link
-              to="/category/clothing"
+              to="/category/all"
               className="block bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 border-2 border-blue-400 rounded-2xl overflow-hidden relative h-48 shadow-lg hover:shadow-xl transition-shadow group"
             >
               <div className="absolute inset-0 opacity-10">
@@ -186,7 +185,7 @@ export default function FeaturedThisWeek() {
 
           <div className="flex-shrink-0 w-[110px]">
             <Link
-              to="/category/clothing"
+              to="/category/all"
               className="block bg-gradient-to-br from-red-900 via-red-800 to-red-900 border-2 border-white/30 rounded-2xl overflow-hidden relative h-48 shadow-lg hover:shadow-xl transition-shadow group"
             >
               <div className="absolute inset-0 opacity-5">
@@ -214,7 +213,7 @@ export default function FeaturedThisWeek() {
 
           <div className="flex-shrink-0 w-[110px]">
             <Link
-              to="/category/clothing"
+              to="/category/all"
               className="block bg-gradient-to-br from-primary-dark via-yellow-500 to-primary-dark border-2 border-yellow-400 rounded-2xl overflow-hidden relative h-48 shadow-lg hover:shadow-xl transition-shadow group"
             >
               <div className="absolute inset-0 opacity-10">
