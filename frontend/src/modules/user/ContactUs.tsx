@@ -91,9 +91,10 @@ export default function ContactUs() {
                             <div>
                                 <h3 className="text-base font-bold text-neutral-900 mb-1">Office</h3>
                                 <p className="text-sm text-neutral-600">
-                                    LaxMart Headquarters<br />
-                                    123, Dynamic Plaza, Hitech City<br />
-                                    Hyderabad, Telangana - 500081<br />
+                                    House No. 313, Laxmi Niwas,<br />
+                                    Railway Station Road, Near Petrol Pump,<br />
+                                    Noamundi, Kotgarh, West Singhbhum,<br />
+                                    Jharkhand - 833218<br />
                                     India
                                 </p>
                             </div>
