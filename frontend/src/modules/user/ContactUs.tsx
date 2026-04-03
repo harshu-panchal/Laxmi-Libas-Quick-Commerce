@@ -48,13 +48,13 @@ export default function ContactUs() {
                                 <h3 className="text-base font-bold text-neutral-900 mb-1">Customer Support</h3>
                                 <p className="text-sm text-neutral-600 mb-4">Our team is available 24/7 to assist you.</p>
                                 <div className="space-y-2">
-                                    <a href="mailto:support@laxmart.com" className="flex items-center gap-2 text-sm text-teal-600 font-medium">
+                                    <a href="mailto:Laxmilibas2@gmail.com" className="flex items-center gap-2 text-sm text-teal-600 font-medium">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><polyline points="22,6 12,13 2,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                                        support@laxmart.com
+                                        Laxmilibas2@gmail.com
                                     </a>
-                                    <a href="tel:+9118001234567" className="flex items-center gap-2 text-sm text-teal-600 font-medium">
+                                    <a href="tel:+917004308732" className="flex items-center gap-2 text-sm text-teal-600 font-medium">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                                        +91 1800-123-4567
+                                        +91 7004308732
                                     </a>
                                 </div>
                             </div>
@@ -72,9 +72,9 @@ export default function ContactUs() {
                             <div>
                                 <h3 className="text-base font-bold text-neutral-900 mb-1">Business Inquiries</h3>
                                 <p className="text-sm text-neutral-600 mb-4">Partner with us or discuss corporate solutions.</p>
-                                <a href="mailto:business@laxmart.com" className="flex items-center gap-2 text-sm text-teal-600 font-medium">
+                                <a href="mailto:Laxmilibas2@gmail.com" className="flex items-center gap-2 text-sm text-teal-600 font-medium">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><polyline points="22,6 12,13 2,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                                    business@laxmart.com
+                                    Laxmilibas2@gmail.com
                                 </a>
                             </div>
                         </div>

@@ -352,6 +352,29 @@ export default function PrivacyPolicy() {
                     </div>
                 </div>
 
+                {/* Contact Us */}
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100 space-y-4">
+                    <h2 className="text-sm font-bold text-neutral-900 mb-2 uppercase tracking-wider flex items-center gap-2">
+                        <div className="w-1.5 h-4 bg-teal-600 rounded-full"></div>
+                        Contact Us / Grievance Officer
+                    </h2>
+                    <div className="space-y-4 text-[13px] text-neutral-600 leading-relaxed">
+                        <p>
+                            In accordance with Information Technology Act 2000 and rules made there under and the Consumer Protection (E-Commerce) Rules, 2020, the name and contact details of the Grievance Officer are provided below:
+                        </p>
+                        <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100 space-y-2">
+                            <p><strong>Name:</strong> Laxmi Libas Support Team</p>
+                            <p><strong>Address:</strong> House No. 313, Laxmi Niwas, Railway Station Road, Near Petrol Pump, Noamundi, Kotgarh, West Singhbhum, Jharkhand, 833218</p>
+                            <p>
+                                <strong>Email:</strong> <a href="mailto:Laxmilibas2@gmail.com" className="text-teal-600 font-medium hover:underline">Laxmilibas2@gmail.com</a>
+                            </p>
+                            <p>
+                                <strong>Phone:</strong> <a href="tel:+917004308732" className="text-teal-600 font-medium hover:underline">+91 7004308732</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="text-center pt-8">
                     <p className="text-[10px] text-neutral-400 font-medium uppercase tracking-widest">Last Updated: April 2026 • INDIA</p>
                 </div>
