@@ -10,10 +10,13 @@ import { ensureDefaultAdmin } from "./utils/ensureDefaultAdmin";
 import { seedHeaderCategories } from "./utils/seedHeaderCategories";
 import { initializeSocket } from "./socket/socketService";
 import { initializeFirebaseAdmin } from "./services/firebaseAdmin";
+import { logStartupEnvChecks } from "./utils/startupEnvChecks";
 
 
-// Load environment variables
-dotenv.config();
+import path from "path";
+
+// Load environment variables - using absolute path for robustness
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const app: Application = express();
 const httpServer = createServer(app);
@@ -101,6 +104,8 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
+  logStartupEnvChecks();
+
   // Connect DB then ensure default admin exists
   await connectDB();
   await ensureDefaultAdmin();
