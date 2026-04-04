@@ -363,7 +363,8 @@ export default function Checkout() {
     setCouponError(null);
   };
 
-  const handleMoveToWishlist = async (product: any) => {
+  const handleMoveToWishlist = async (cartItem: any) => {
+    const product = cartItem.product;
     if (!product?.id && !product?._id) return;
 
     const productId = product.id || product._id;
@@ -384,7 +385,7 @@ export default function Checkout() {
         userLocation.longitude,
       );
       // Remove from cart
-      await removeFromCart(productId, item.variant);
+      await removeFromCart(productId, cartItem.variant);
       // Show success message
       showGlobalToast("Item moved to wishlist");
     } catch (error: any) {
@@ -1153,7 +1154,7 @@ export default function Checkout() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleMoveToWishlist(item.product);
+                        handleMoveToWishlist(item);
                       }}
                       className="text-[10px] text-primary-dark font-medium mb-1.5 hover:text-yellow-700 transition-colors">
                       Move to wishlist

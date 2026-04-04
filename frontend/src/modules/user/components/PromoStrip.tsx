@@ -7,6 +7,8 @@ import { getSubcategories } from "../../../services/api/categoryService";
 import { apiCache } from "../../../utils/apiCache";
 import { useLocation } from "../../../hooks/useLocation";
 import { calculateProductPrice } from "../../../utils/priceUtils";
+import { isClothingRelated } from "../../../utils/clothingUtils";
+
 
 interface PromoCard {
   id: string;
@@ -139,6 +141,8 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
         let newSaleTextValue = theme.saleText;
         let newDateRange = "";
 
+
+
         if (response.success && response.data) {
           // 1. Check for PromoStrip data from backend (highest priority)
           if (response.data.promoStrip && response.data.promoStrip.isActive) {
@@ -223,14 +227,14 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
             response.data.categories.length > 0
           ) {
             fetchedCards = response.data.categories
-              .slice(0, 4)
               .map((c: any) => ({
                 id: c._id || c.id,
                 badge: "Up to 50% OFF",
                 title: c.name,
                 categoryId: c.slug || c._id,
                 bgColor: c.color || "bg-yellow-50",
-              }));
+              }))
+              .slice(0, 4);
           }
 
           // Fallback: Map bestsellers to FeaturedProducts if no PromoStrip featured products
@@ -255,17 +259,6 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
               // Always prioritize productName to avoid showing category names
               const productName = p.productName || p.name || "Product";
 
-              return {
-                id: p._id,
-                _id: p._id,
-                name: productName,
-                productName: productName, // Always use productName, never category name
-                price: price,
-                mrp: mrp,
-                originalPrice: isNaN(originalPrice) ? 999 : originalPrice,
-                discountedPrice: isNaN(discountedPrice) ? 499 : discountedPrice,
-                imageUrl: imageUrl,
-              };
             });
           }
         }

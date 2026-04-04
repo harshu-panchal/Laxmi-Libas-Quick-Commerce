@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getHomeContent } from "../../services/api/customerHomeService";
 import { useLocation } from "../../hooks/useLocation";
-import CategoryTileSection from "./components/CategoryTileSection";
+import { useCart } from "../../context/CartContext";
+import { isClothingRelated } from "../../utils/clothingUtils";
+import { CLOTHING_MOCK_DATA } from "../../utils/clothingMockData";
 import ProductCard from "./components/ProductCard";
+import { Search, Camera, ShoppingCart, ChevronRight } from "lucide-react";
+
 
 export default function Categories() {
   const { location } = useLocation();
@@ -10,7 +15,11 @@ export default function Categories() {
   const [error, setError] = useState<string | null>(null);
   const [homeData, setHomeData] = useState<any>({
     homeSections: [],
+    categories: [],
   });
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const { cart } = useCart();
+  const navigate = useNavigate();
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -22,7 +31,24 @@ export default function Categories() {
           location?.longitude || undefined
         );
         if (response.success && response.data) {
-          setHomeData(response.data);
+
+
+          const filteredData = {
+            ...response.data,
+            categories: response.data.categories || [],
+            homeSections: (response.data.homeSections || [])
+              .map((section: any) => ({
+                ...section,
+                data: section.data || []
+              }))
+              .filter((section: any) => {
+                return (section.data && section.data.length > 0) || section.displayType === "banners";
+              }),
+          };
+          setHomeData(filteredData);
+          if (filteredData.categories && filteredData.categories.length > 0 && !selectedCategoryId) {
+            setSelectedCategoryId(filteredData.categories[0].slug || filteredData.categories[0]._id);
+          }
         } else {
           setError("Failed to load categories. Please try again.");
         }
@@ -62,98 +88,174 @@ export default function Categories() {
   }
 
 
+  const cartItemsCount = cart?.items?.reduce((acc, item) => acc + (item.quantity || 0), 0) || 0;
+
+  const currentCategory = homeData.categories?.find((cat: any) => (cat.slug || cat._id) === selectedCategoryId);
+
   return (
-    <div className="pb-4 md:pb-8 bg-white min-h-screen">
-      {/* Page Header */}
-      <div className="px-4 py-4 md:px-6 md:py-6 bg-white border-b border-neutral-200 sticky top-0 z-10 shadow-sm">
-        <h1 className="text-xl md:text-2xl font-bold text-neutral-900">Categories</h1>
+    <div className="flex flex-col h-screen bg-white overflow-hidden">
+      {/* Premium Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-neutral-100 shrink-0">
+        <h1 className="text-xl font-bold text-neutral-900">All Categories</h1>
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate('/search')} className="p-1 hover:bg-neutral-50 rounded-full transition-colors">
+            <Search size={22} className="text-neutral-700" />
+          </button>
+          <button className="p-1 hover:bg-neutral-50 rounded-full transition-colors">
+            <Camera size={22} className="text-neutral-700" />
+          </button>
+          <button onClick={() => navigate('/cart')} className="p-1 relative hover:bg-neutral-50 rounded-full transition-colors">
+            <ShoppingCart size={22} className="text-neutral-700" />
+            {cartItemsCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full border-2 border-white">
+                {cartItemsCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
-      <div className="bg-neutral-50 pt-1 space-y-5 md:space-y-8 md:pt-4">
-        {/* Render All Categories if available */}
-        {homeData.categories && homeData.categories.length > 0 && (
-          <CategoryTileSection
-            title="Shop by Category"
-            tiles={homeData.categories.map((cat: any) => ({
-              id: cat._id,
-              name: cat.name === 'Room Rent' ? 'Rent' : cat.name,
-              image: cat.image,
-              slug: cat.slug,
-              categoryId: cat.slug || cat._id,
-              type: "category",
-              bgColor: cat.color,
-            }))}
-            columns={4}
-          />
-        )}
+      {/* Main Content Area: Sidebar + Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar (Left) */}
+        <div className="w-24 bg-neutral-50 overflow-y-auto scrollbar-hide border-r border-neutral-100">
+          {homeData.categories
+            ?.filter((cat: any) => isClothingRelated(cat.name) || isClothingRelated(cat.slug))
+            .map((cat: any) => {
+            const id = cat.slug || cat._id;
+            const isActive = selectedCategoryId === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setSelectedCategoryId(id)}
+                className={`w-full flex flex-col items-center py-4 px-2 relative transition-all ${isActive ? 'bg-white shadow-[0_4px_12px_rgba(0,0,0,0.05)]' : 'transparent'
+                  }`}
+              >
+                {isActive && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-dark rounded-r-full" />
+                )}
+                <div className={`w-12 h-12 rounded-full mb-1.5 flex items-center justify-center overflow-hidden border-2 transition-all ${isActive ? 'border-primary-dark/20 scale-110' : 'border-transparent'
+                  }`}>
+                  <img
+                    src={cat.image || "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png"}
+                    alt={cat.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className={`text-[10px] leading-tight text-center font-bold tracking-tight ${isActive ? 'text-primary-dark capitalize' : 'text-neutral-500 capitalize'
+                  }`}>
+                  {cat.name}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-        {/* Render all admin-created home sections */}
-        {homeData.homeSections && homeData.homeSections.length > 0 && (
-          <>
-            {homeData.homeSections.map((section: any) => {
-              const columnCount = Number(section.columns) || 4;
+        {/* Content (Right) */}
+        <div className="flex-1 overflow-y-auto bg-white p-4 pb-24 scrollbar-hide">
+          {selectedCategoryId ? (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+              {/* Category Breadcrumb/Title */}
+              <div className="flex items-center justify-between pb-2 border-b border-neutral-50">
+                <h2 className="text-lg font-bold text-neutral-900 capitalize italic">
+                  {currentCategory?.name || 'Explore'}
+                </h2>
+                <button
+                  onClick={() => navigate(`/category/${selectedCategoryId}`)}
+                  className="flex items-center text-xs font-semibold text-primary-dark hover:gap-1 transition-all"
+                >
+                  View All <ChevronRight size={14} />
+                </button>
+              </div>
 
-              if (section.displayType === "products" && section.data && section.data.length > 0) {
-                // Products display - same as home page
-                const gridClass = {
-                  2: "grid-cols-2",
-                  3: "grid-cols-3",
-                  4: "grid-cols-4",
-                  6: "grid-cols-6",
-                  8: "grid-cols-8"
-                }[columnCount] || "grid-cols-4";
+              {/* Popular Stores Section (Circles) */}
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-neutral-800 tracking-tight">Popular Store</h3>
+                </div>
+                <div className="grid grid-cols-3 gap-y-6 gap-x-4">
+                  {((homeData.homeSections
+                          ?.filter((s: any) => s.displayType === 'categories' || s.displayType === 'banners')
+                          ?.flatMap((s: any) => s.data)
+                          ?.filter((item: any) => isClothingRelated(item.name) || isClothingRelated(item.title) || isClothingRelated(item.slug))
+                          ?.slice(0, 6)) || []
+                    ).map((item: any, idx: number) => (
+                        <button 
+                          key={idx}
+                          className="flex flex-col items-center gap-2 group"
+                          onClick={() => navigate(item.type === 'category' ? `/category/${item.categoryId}` : '/')}
+                        >
+                          <div className="w-16 h-16 rounded-full bg-neutral-50 border border-neutral-100 flex items-center justify-center overflow-hidden group-active:scale-95 transition-transform">
+                            <img 
+                              src={item.image || item.imageUrl || "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png"} 
+                              alt={item.name} 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="text-[10px] font-bold text-neutral-700 text-center leading-tight">
+                            {item.name || item.title || 'Special'}
+                          </span>
+                        </button>
+                      ))}
+                </div>
+              </section>
 
-                const isCompact = columnCount >= 4;
-                const gapClass = columnCount >= 4 ? "gap-2" : "gap-3 md:gap-4";
-
-                return (
-                  <div key={section.id} className="mt-6 mb-6 md:mt-8 md:mb-8">
-                    {section.title && (
-                      <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight capitalize">
-                        {section.title}
-                      </h2>
-                    )}
-                    <div className="px-4 md:px-6 lg:px-8">
-                      <div className={`grid ${gridClass} ${gapClass}`}>
-                        {section.data.map((product: any) => (
+              {/* New & Upcoming Launches (Grid with badges) */}
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-neutral-800 tracking-tight">New & Upcoming Launches</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {((homeData.homeSections
+                          ?.find((s: any) => s.displayType === 'products')
+                          ?.data
+                          ?.filter((p: any) => isClothingRelated(p.name) || isClothingRelated(p.category?.name))
+                          ?.slice(0, 4)) || []
+                    ).map((product: any, idx: number) => (
+                        <div key={idx} className="relative group">
+                          <div className="absolute top-2 left-2 z-10">
+                            <span className={`${idx % 2 === 0 ? 'bg-emerald-500' : 'bg-primary-dark'} text-white text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm uppercase`}>
+                              {idx % 2 === 0 ? 'NOTIFY ME' : 'BUY NOW'}
+                            </span>
+                          </div>
                           <ProductCard
-                            key={product.id || product._id}
                             product={product}
+                            compact={true}
                             categoryStyle={true}
-                            showBadge={true}
-                            showPackBadge={false}
-                            showStockInfo={false}
-                            compact={isCompact}
+                            showBadge={false}
                           />
-                        ))}
-                      </div>
+                        </div>
+                      ))}
+                </div>
+              </section>
+
+              {/* Recently Viewed / Stores */}
+              <section className="pb-10">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-neutral-800 tracking-tight">Recently Viewed Stores</h3>
+                </div>
+                <div className="flex overflow-x-auto gap-4 scrollbar-hide pb-2">
+                  {homeData.categories
+                    ?.filter((cat: any) => isClothingRelated(cat.name) || isClothingRelated(cat.slug))
+                    ?.slice(0, 5)
+                    .map((cat: any, idx: number) => (
+                    <div key={idx} className="shrink-0 w-28 aspect-[4/5] rounded-xl bg-neutral-50 overflow-hidden border border-neutral-100">
+                      <img
+                        src={cat.image}
+                        alt={cat.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                  </div>
-                );
-              }
-
-              // Categories/Subcategories display - same as home page
-              return (
-                <CategoryTileSection
-                  key={section.id}
-                  title={section.title}
-                  tiles={section.data || []}
-                  columns={columnCount as 2 | 3 | 4 | 6 | 8}
-                  showProductCount={false}
-                />
-              );
-            })}
-          </>
-        )}
-
-        {(!homeData.categories?.length && !homeData.homeSections?.length) && (
-          <div className="text-center py-12 md:py-16 text-neutral-500 px-4">
-            <p className="text-lg md:text-xl mb-2">No categories found</p>
-            <p className="text-sm md:text-base">
-              Please create home sections from the admin panel
-            </p>
-          </div>
-        )}
+                  ))}
+                </div>
+              </section>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full text-neutral-400 font-medium">
+              Select a category to explore
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

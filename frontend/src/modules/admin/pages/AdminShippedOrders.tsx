@@ -13,7 +13,7 @@ type SortField =
   | "deliveryDate"
   | "orderDate"
   | "status"
-  | "status"
+  | "deliveryBoyStatus"
   | "amount";
 type SortDirection = "asc" | "desc";
 

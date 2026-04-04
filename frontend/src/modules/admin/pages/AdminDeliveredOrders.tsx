@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { getOrdersByStatus, type Order } from '../../../services/api/admin/adminOrderService';
 import { useAuth } from '../../../context/AuthContext';
 
-type SortField = 'orderId' | 'customerDetails' | 'address' | 'deliveryDate' | 'orderDate' | 'status' | 'amount';
+type SortField = 'orderId' | 'customerDetails' | 'address' | 'deliveryDate' | 'orderDate' | 'status' | 'amount' | 'deliveryBoyStatus';
 type SortDirection = 'asc' | 'desc';
 
 export default function AdminDeliveredOrders() {

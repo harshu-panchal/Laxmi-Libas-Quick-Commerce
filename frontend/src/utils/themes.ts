@@ -12,7 +12,7 @@ export interface Theme {
 
 export const themes: Record<string, Theme> = {
   all: {
-    primary: ['#FCDC75', '#FCE291', '#FDE9AC', '#FEEFCA'],
+    primary: ['#0ea5e9', '#38bdf8', '#7dd3fc', '#e0f2fe'],
     secondary: ['#FEEFCA', '#FDE9AC', '#FCE291'],
     backgroundColor: '#ffffff',
     surfaceColor: '#f8fafc',

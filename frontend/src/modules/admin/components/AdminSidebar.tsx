@@ -60,30 +60,6 @@ const menuSections: MenuSection[] = [
               </svg>
             ),
           },
-          {
-            label: "Header Category",
-            path: "/admin/category/header",
-            icon: (
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round">
-                <rect
-                  x="3"
-                  y="3"
-                  width="18"
-                  height="18"
-                  rx="2"
-                  strokeDasharray="4 2"></rect>
-                <path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01"></path>
-              </svg>
-            ),
-          },
         ],
         icon: (
           <svg
@@ -748,23 +724,6 @@ const menuSections: MenuSection[] = [
             <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z"></path>
             <path d="M9 22V12H15V22"></path>
             <path d="M9 12H15"></path>
-          </svg>
-        ),
-      },
-      {
-        label: "Bestseller Cards",
-        path: "/admin/bestseller-cards",
-        icon: (
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round">
-            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"></path>
           </svg>
         ),
       },

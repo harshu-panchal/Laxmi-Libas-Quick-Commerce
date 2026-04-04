@@ -139,6 +139,7 @@ export default function SellerAddProduct() {
     []
   );
   const [shops, setShops] = useState<Shop[]>([]);
+  const [variations, setVariations] = useState<ProductVariation[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -177,7 +178,7 @@ export default function SellerAddProduct() {
 
                 setFormData(prev => ({
                   ...prev,
-                  category: sellerCat._id || sellerCat.id,
+                  category: sellerCat._id || (sellerCat as any).id,
                   headerCategory: headerId || ''
                 }));
               } else {
@@ -307,9 +308,6 @@ export default function SellerAddProduct() {
               experience: product.experience || "",
               availability: product.availability || "",
               productVideoUrl: (product as any).productVideoUrl || "",
-              price: product.price?.toString() || "0",
-              discPrice: product.discPrice?.toString() || "0",
-              stock: product.stock?.toString() || "0",
             });
             if (product.category) {
               setCategoryName((product.category as any).name || "");
@@ -637,6 +635,7 @@ export default function SellerAddProduct() {
         isShopByStoreOnly: formData.isShopByStoreOnly === "Yes",
         shopId: formData.isShopByStoreOnly === "Yes" && formData.shopId ? formData.shopId : undefined,
         productVideoUrl: productVideoUrl || undefined,
+        variations: variations,
 
         // Category Specific Fields
         brandName: formData.brandName || undefined,

@@ -1,0 +1,6 @@
+﻿
+> dhakad-snazzy-backend@1.0.0 build
+> tsc
+
+src/modules/seller/controllers/categoryController.ts(114,9): error TS2304: Cannot find name 'mongoose'.
+src/modules/seller/controllers/orderController.ts(9,1): error TS6133: 'AppSettings' is declared but its value is never read.

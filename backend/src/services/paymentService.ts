@@ -11,7 +11,11 @@ const getRazorpayInstance = () => {
     console.log("keyId", keyId)
     console.log("keySecret", keySecret)
     if (!keyId || !keySecret) {
-        throw new Error('Razorpay credentials not configured');
+        console.error('❌ Razorpay Configuration Error: Missing credentials', { 
+            hasKeyId: !!keyId, 
+            hasKeySecret: !!keySecret 
+        });
+        throw new Error('Razorpay credentials not configured or empty');
     }
 
     return new Razorpay({
@@ -57,7 +61,7 @@ export const createRazorpayOrder = async (
             success: true,
             data: {
                 razorpayOrderId: razorpayOrder.id,
-                razorpayKey: process.env.RAZORPAY_KEY_ID, // Send key to frontend
+                razorpayKey: process.env.RAZORPAY_KEY_ID?.trim(), // Send trimmed key to frontend
                 amount: razorpayOrder.amount,
                 currency: razorpayOrder.currency,
                 receipt: razorpayOrder.receipt,
@@ -65,11 +69,12 @@ export const createRazorpayOrder = async (
         };
     } catch (error: any) {
         console.error('❌ Razorpay Order Creation Failed:', {
-            error: error.message,
+            message: error.message,
             description: error.description,
             code: error.code,
+            metadata: error.metadata,
             orderId,
-            amount: Math.round(amount * 100)
+            amountPaise: Math.round(amount * 100)
         });
 
         // Extract the most descriptive error message from Razorpay

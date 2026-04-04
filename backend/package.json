@@ -1,7 +1,7 @@
 {
-  "name": "dhakad-snazzy-backend",
+  "name": "laxmart-backend",
   "version": "1.0.0",
-  "description": "Dhakad Snazzy Backend API Server",
+  "description": "LaxMart Backend API Server",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",

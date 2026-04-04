@@ -8,6 +8,8 @@ import { useCart } from '../../../context/CartContext';
 import { Product } from '../../../types/domain';
 import { useWishlist } from '../../../hooks/useWishlist';
 import { calculateProductPrice } from '../../../utils/priceUtils';
+import { isClothingRelated } from '../../../utils/clothingUtils';
+
 
 interface LowestPricesEverProps {
   activeTab?: string;

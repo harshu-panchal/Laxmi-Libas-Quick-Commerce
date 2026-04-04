@@ -47,8 +47,15 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                     return;
                 }
 
-                // Create Razorpay order
-                const orderResponse = await createRazorpayOrder(orderId);
+                // Razorpay requirement: Minimum ₹1
+                if (amount < 1) {
+                    onFailure('Minimum payment amount required is ₹1. Please add more items to your cart.');
+                    return;
+                }
+
+                // Create Razorpay order - backend now handles mock IDs by using the provided amount
+                // We pass amount in the body for mock orders support
+                const orderResponse = await createRazorpayOrder(orderId, amount);
 
                 if (!orderResponse.success) {
                     onFailure(orderResponse.message || 'Failed to create payment order');
@@ -104,7 +111,13 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                 razorpay.open();
             } catch (error: any) {
                 console.error('Payment initiation error:', error);
-                onFailure(error.response?.data?.message || 'Failed to initiate payment');
+                
+                // Extract error message from backend response if available
+                const errorMessage = error.response?.data?.message || 
+                                   error.message || 
+                                   'Failed to initiate payment';
+                                   
+                onFailure(errorMessage);
             }
         };
 

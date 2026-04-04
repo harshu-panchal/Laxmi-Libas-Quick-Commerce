@@ -126,14 +126,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
         longitude: queryLng
       });
       if (response && response.data && response.data.items) {
-        setItems(mapApiItemsToState(response.data.items));
+        const apiItems = mapApiItemsToState(response.data.items);
+        setItems((prevItems) => {
+          // Identify mock items in current state
+          const mockItems = prevItems.filter(item => 
+            item?.product && (item.product.id?.toString().startsWith('mock-') || item.product._id?.toString().startsWith('mock-'))
+          );
+          // Combine API items with local mock items
+          return [...apiItems, ...mockItems];
+        });
         setEstimatedFee(response.data.estimatedDeliveryFee);
         setPlatformFee(response.data.platformFee);
         setFreeDeliveryThreshold(response.data.freeDeliveryThreshold);
         (items as any).debug_config = response.data.debug_config; // Hack to pass it through
         (items as any).backendTotal = response.data.backendTotal; // Hack to pass backend total
       } else {
-        setItems([]);
+        setItems((prevItems) => {
+          // Even if API returns empty, keep our mock items
+          return prevItems.filter(item => 
+            item?.product && (item.product.id?.toString().startsWith('mock-') || item.product._id?.toString().startsWith('mock-'))
+          );
+        });
         setEstimatedFee(undefined);
         setPlatformFee(undefined);
         setFreeDeliveryThreshold(undefined);
@@ -297,8 +310,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [...validItems, { product: normalizedProduct, quantity: 1 }];
     });
 
-    // Only sync to API if user is authenticated
-    if (isAuthenticated && user?.userType === 'Customer') {
+    // Only sync to API if user is authenticated and NOT a mock product
+    if (isAuthenticated && user?.userType === 'Customer' && !productId.toString().startsWith('mock-')) {
       try {
         // Pass variation info to API if available
         // If product has variations but no variantId/selectedVariant is provided (e.g. from Home page),
@@ -380,8 +393,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return item.id !== itemToRemove.id;
     }));
 
-    // Only sync to API if user is authenticated and item has CartItemID
-    if (isAuthenticated && user?.userType === 'Customer' && itemToRemove?.id) {
+    // Only sync to API if user is authenticated, item has ID, and NOT a mock product
+    if (isAuthenticated && user?.userType === 'Customer' && itemToRemove?.id && !productId.toString().startsWith('mock-')) {
       try {
         const response = await apiRemoveFromCart(
           itemToRemove.id
@@ -467,8 +480,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       })
     );
 
-    // Only sync to API if user is authenticated and item has CartItemID
-    if (isAuthenticated && user?.userType === 'Customer' && itemToUpdate?.id) {
+    // Only sync to API if user is authenticated, item has ID, and NOT a mock product
+    if (isAuthenticated && user?.userType === 'Customer' && itemToUpdate?.id && !productId.toString().startsWith('mock-')) {
       try {
         const response = await apiUpdateCartItem(
           itemToUpdate.id,

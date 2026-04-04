@@ -21,6 +21,7 @@ interface CategoryTileSectionProps {
   tiles: CategoryTile[];
   columns?: 2 | 3 | 4 | 6 | 8; // Support all column options
   showProductCount?: boolean; // Show product count only for bestsellers
+  onTileClick?: (tile: CategoryTile) => void;
 }
 
 export default function CategoryTileSection({
@@ -28,6 +29,7 @@ export default function CategoryTileSection({
   tiles,
   columns = 4,
   showProductCount = false,
+  onTileClick
 }: CategoryTileSectionProps) {
   const navigate = useNavigate();
 
@@ -92,9 +94,13 @@ export default function CategoryTileSection({
       <div className="px-4 md:px-6 lg:px-8 overflow-visible">
         <div className={`grid ${gridCols} ${gapClass} overflow-visible auto-rows-fr`}>
           {tiles.map((tile) => {
-            const images =
-              tile.productImages || (tile.image ? [tile.image] : []);
-            const hasImages = images.filter(Boolean).length > 0;
+            const isMockImage = (src: string | undefined) =>
+              src?.includes('10mins_icon_pink') || src?.includes('loading');
+
+            const images = (tile.productImages || (tile.image ? [tile.image] : []))
+              .filter(img => img && !isMockImage(img));
+
+            const hasImages = images.length > 0;
 
             return (
               <motion.div
@@ -130,6 +136,11 @@ export default function CategoryTileSection({
                               : "#"
                   }
                   onClick={(e) => {
+                    if (onTileClick) {
+                      e.preventDefault();
+                      onTileClick(tile);
+                      return;
+                    }
                     if (
                       !tile.categoryId &&
                       !tile.productId &&
@@ -140,7 +151,7 @@ export default function CategoryTileSection({
                       handleTileClick(tile);
                     }
                   }}
-                  className={`block bg-white rounded-xl shadow-sm border border-neutral-200 hover:shadow-md transition-shadow h-full ${showProductCount ? "px-2.5" : "px-1.5"
+                  className={`block transition-shadow h-full ${showProductCount ? "px-2.5" : "px-0"
                     }`}>
                   {/* Image - Single image for non-bestsellers, 2x2 grid for bestsellers */}
                   <div
@@ -177,7 +188,7 @@ export default function CategoryTileSection({
                         <img
                           src={images[0]}
                           alt={tile.name}
-                          className="w-full h-full object-contain rounded-lg"
+                          className="w-full h-full object-cover"
                           onError={(e) => {
                             // Hide broken image and show fallback
                             const target = e.target as HTMLImageElement;

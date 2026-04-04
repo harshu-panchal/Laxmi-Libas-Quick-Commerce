@@ -41,6 +41,15 @@ export default function ProductCard({
   compact = false,
   categoryStyle = false,
 }: ProductCardProps) {
+  // Global check to hide mock/placeholder products (like the 'jeans' 200/50 card or truck icon)
+  const isMockProduct = 
+    ((product.name?.toLowerCase() === 'jeans' || (product as any).productName?.toLowerCase() === 'jeans') && 
+     (Number(product.price) === 200 || Number(product.price) === 50 || Number((product as any).originalPrice) === 200)) ||
+    ((product.imageUrl || "").includes('10mins_icon_pink') || (product.mainImage || "").includes('10mins_icon_pink') || 
+     (product.imageUrl || "").includes('truck') || (product.mainImage || "").includes('truck'));
+
+  if (isMockProduct) return null;
+
   const navigate = useNavigate();
   const { cart, addToCart, updateQuantity } = useCart();
   const { isAuthenticated } = useAuth();

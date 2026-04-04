@@ -5,6 +5,8 @@ import { getProducts } from '../../services/api/customerProductService';
 import { getHomeContent } from '../../services/api/customerHomeService';
 import { Product } from '../../types/domain';
 import { useLocation } from '../../hooks/useLocation';
+// import { isClothingRelated } from '../../utils/clothingUtils';
+
 
 export default function Search() {
   const navigate = useNavigate();
@@ -34,7 +36,7 @@ export default function Search() {
           params.longitude = location.longitude;
         }
         const response = await getProducts(params);
-        setSearchResults(response.data as unknown as Product[]);
+        setSearchResults((response.data as unknown as Product[]));
       } catch (error) {
         console.error('Error searching products:', error);
         setSearchResults([]);
@@ -56,8 +58,8 @@ export default function Search() {
           location?.longitude
         );
         if (response.success && response.data) {
-          setTrendingItems(response.data.trending || []);
-          setCookingIdeas(response.data.cookingIdeas || []);
+          setTrendingItems((response.data.trending || []));
+          setCookingIdeas((response.data.cookingIdeas || []));
         }
       } catch (error) {
         console.error("Error fetching search initial content", error);

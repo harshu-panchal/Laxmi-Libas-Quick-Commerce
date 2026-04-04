@@ -7,6 +7,8 @@ import { useCart } from '../../context/CartContext';
 import { getProducts } from '../../services/api/customerProductService';
 import WishlistButton from '../../components/WishlistButton';
 import { calculateProductPrice } from '../../utils/priceUtils';
+// import { isClothingRelated } from '../../utils/clothingUtils';
+
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -78,22 +80,29 @@ export default function OrderAgain() {
   useEffect(() => {
     const fetchBestsellers = async () => {
       try {
-        const response = await getProducts({ sort: 'popular', limit: 6 });
+        const response = await getProducts({ sort: 'popular', limit: 20 });
         if (response.success && response.data) {
-          const mapped = (response.data as any[]).map(p => {
-            // Clean product name - remove description suffixes
-            let productName = p.productName || p.name || '';
-            productName = productName.replace(/\s*-\s*(Fresh|Quality|Assured|Premium|Best|Top|Hygienic|Carefully|Selected).*$/i, '').trim();
+          const isMockProduct = (p: any) => 
+            ((p.name?.toLowerCase() === 'jeans' || (p.productName || p.title || "").toLowerCase() === 'jeans') && 
+             (Number(p.price) === 200 || Number(p.price) === 50 || Number(p.originalPrice) === 200));
 
-            return {
-              ...p,
-              id: p._id || p.id,
-              name: productName,
-              imageUrl: p.mainImage || p.imageUrl,
-              mrp: p.mrp || p.price,
-              pack: p.variations?.[0]?.title || p.smallDescription || 'Standard'
-            };
-          });
+          const mapped = (response.data as any[])
+            .filter(p => !isMockProduct(p))
+            .slice(0, 6)
+            .map(p => {
+              // Clean product name - remove description suffixes
+              let productName = p.productName || p.name || '';
+              productName = productName.replace(/\s*-\s*(Fresh|Quality|Assured|Premium|Best|Top|Hygienic|Carefully|Selected).*$/i, '').trim();
+
+              return {
+                ...p,
+                id: p._id || p.id,
+                name: productName,
+                imageUrl: p.mainImage || p.imageUrl,
+                mrp: p.mrp || p.price,
+                pack: p.variations?.[0]?.title || p.smallDescription || 'Standard'
+              };
+            });
           setBestsellerProducts(mapped);
         }
       } catch (error) {

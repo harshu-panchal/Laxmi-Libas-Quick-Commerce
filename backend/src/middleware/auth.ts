@@ -20,6 +20,11 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.warn('🔓 Auth Warning: No token provided or invalid format', { 
+        path: req.path, 
+        hasAuthHeader: !!authHeader,
+        origin: req.headers.origin 
+      });
       res.status(401).json({
         success: false,
         message: 'No token provided. Authorization header must be in format: Bearer <token>',
@@ -32,6 +37,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
     try {
       const decoded = verifyToken(token);
       if (!decoded || !decoded.userId) {
+        console.error('❌ Auth Error: Invalid token payload', { path: req.path });
         res.status(401).json({
           success: false,
           message: 'Invalid token payload: userId missing',
@@ -41,6 +47,10 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
       req.user = decoded;
       next();
     } catch (error: any) {
+      console.error('❌ Auth Error: Token verification failed', { 
+        path: req.path, 
+        errorMessage: error.message 
+      });
       res.status(401).json({
         success: false,
         message: error.message || 'Invalid or expired token',
@@ -48,6 +58,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
       return;
     }
   } catch (error: any) {
+    console.error('🔥 Auth Fatal Error:', error);
     res.status(500).json({
       success: false,
       message: 'Authentication error',

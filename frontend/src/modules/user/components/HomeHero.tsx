@@ -11,6 +11,8 @@ import { Category } from '../../../types/domain';
 import { getHeaderCategoriesPublic } from '../../../services/api/headerCategoryService';
 import { getIconByName } from '../../../utils/iconLibrary';
 import CategoryTabBar from '../../../components/CategoryTabBar';
+import { isClothingRelated } from '../../../utils/clothingUtils';
+
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -18,6 +20,10 @@ interface HomeHeroProps {
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
   hideTopContent?: boolean;
+  activeStore?: 'laxmart' | 'minutes' | 'travel' | 'grocery' | 'none';
+  hideLocationBar?: boolean;
+  hideSearchBar?: boolean;
+  hideCategoryTabs?: boolean;
 }
 
 interface Tab {
@@ -37,7 +43,15 @@ const ALL_TAB: Tab = {
   ),
 };
 
-export default function HomeHero({ activeTab = 'all', onTabChange, hideTopContent = false }: HomeHeroProps) {
+export default function HomeHero({
+  activeTab = 'all',
+  onTabChange,
+  hideTopContent = false,
+  activeStore = 'laxmart',
+  hideLocationBar = false,
+  hideSearchBar = false,
+  hideCategoryTabs = false
+}: HomeHeroProps) {
   const [tabs, setTabs] = useState<Tab[]>([ALL_TAB]);
 
   useEffect(() => {
@@ -117,24 +131,11 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
     }
 
     switch (activeTab) {
-      case 'wedding':
-        return [baseSuggestion, 'gift packs', 'dry fruits', 'sweets', 'decorative items', 'wedding cards', 'return gifts'];
-      case 'winter':
-        return [baseSuggestion, 'woolen clothes', 'caps', 'gloves', 'blankets', 'heater', 'winter wear'];
-      case 'electronics':
-        return [baseSuggestion, 'chargers', 'cables', 'power banks', 'earphones', 'phone cases', 'screen guards'];
-      case 'beauty':
-        return [baseSuggestion, 'lipstick', 'makeup', 'skincare', 'kajal', 'face wash', 'moisturizer'];
-      case 'grocery':
-        return [baseSuggestion, 'atta', 'milk', 'dal', 'rice', 'oil', 'vegetables'];
+      case 'clothing':
       case 'fashion':
-        return [baseSuggestion, 'clothing', 'shoes', 'accessories', 'watches', 'bags', 'jewelry'];
-      case 'sports':
-        return [baseSuggestion, 'cricket bat', 'football', 'badminton', 'fitness equipment', 'sports shoes', 'gym wear'];
-      case 'home-furniture':
-        return ['bedsheet', 'sofa cover', 'cushions', 'wall decor', 'lamps', 'storage boxes'];
+        return [baseSuggestion, 'clothing', 'uniform', 'accessories', 'jackets', 'shirts', 'tops'];
       default: // 'all'
-        return [baseSuggestion, 'atta', 'milk', 'dal', 'coke', 'bread', 'eggs', 'rice', 'oil'];
+        return [baseSuggestion, 't-shirts', 'jeans', 'jackets', 'dresses', 'uniforms', 'fashion accessories'];
     }
   }, [activeTab, categories]);
 
@@ -290,40 +291,48 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
     >
       {/* Top section with delivery info and buttons - NOT sticky */}
       {!hideTopContent && (
-        <div>
-          <div ref={topSectionRef} className="px-4 md:px-6 lg:px-8 pt-[30px] md:pt-3 pb-0">
-            <div className="flex items-start justify-between mb-2 md:mb-2 gap-2">
-              {/* Left: Text content */}
-              <div className="flex-1 pr-2">
-                {/* Brand Name */}
-                <div className="text-neutral-900 font-bold text-[30px] mb-1 leading-none tracking-tighter">
-                  LAXMART
+        <div className="pt-3 px-3">
+          {/* Row 1: App Icons / Service Tiles - Only Laxmart */}
+          <div className="flex justify-center pb-3 scrollbar-hide px-1">
+            <div className="flex flex-col items-center flex-shrink-0" onClick={() => navigate('/user/home')}>
+              <div className={`w-[72px] h-[54px] rounded-xl p-1 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center justify-between border ${activeStore === 'laxmart' ? 'bg-[#ffec00] border-yellow-300' : 'bg-white border-gray-100'
+                }`}>
+                <div className="flex-1 flex items-center justify-center">
+                  <img src="/laxmart_logo_flat_1774950312611.png" alt="Laxmart" className="w-[26px] h-[26px] object-contain" />
                 </div>
-                {/* Location with dropdown indicator - only show if location is provided */}
-                {locationDisplayText && (
-                  <div className="text-neutral-700 text-[11px] md:text-xs flex items-center gap-1 leading-tight">
-                    <span className="line-clamp-1" title={locationDisplayText}>{locationDisplayText}</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-
-              {/* Right: Notification Bell */}
-              <div className="flex-shrink-0 mt-1">
-                <button
-                  onClick={() => navigate('/notifications')}
-                  className="flex items-center justify-center transition-all duration-300 relative"
-                >
-                  <Bell size={26} style={{ color: theme.headerTextColor || '#000000' }} />
-                  {/* Notification Badge - always show red dot for demo if no real count service yet */}
-                  <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></div>
-                </button>
+                <span className="text-[9px] font-[900] text-gray-900 pb-0.5 italic tracking-tight">Laxmart</span>
               </div>
             </div>
-
           </div>
+
+          {/* Row 2: Location and Rewards Bar */}
+          {!hideLocationBar && (
+            <div className="flex items-center justify-between gap-2 mb-0">
+              <div className="flex-1 min-w-0 bg-[#dff1ff] rounded-full px-3 py-1.5 flex items-center gap-2 shadow-sm border border-[#c5e4ff]">
+                <div className="bg-gray-800 rounded-md p-1 flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                  </svg>
+                </div>
+                <span className="text-[12px] font-[900] text-gray-800 uppercase tracking-tight flex-shrink-0">HOME</span>
+                <span className="text-[11px] font-bold text-gray-600 truncate">
+                  {locationDisplayText || "Sarvanad nagar ,near pearl gi..."}
+                </span>
+                <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+
+              <div className="flex-shrink-0 bg-white rounded-full px-2 py-0.5 flex items-center gap-1 shadow-sm border border-gray-100 h-[32px]">
+                <div className="w-4.5 h-4.5 bg-yellow-400 rounded-full flex items-center justify-center shadow-inner flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M13 3l-1 5h4L7 21l1-8H4l9-10z" />
+                  </svg>
+                </div>
+                <span className="text-[13px] font-black text-gray-800 leading-none">23</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -343,60 +352,47 @@ export default function HomeHero({ activeTab = 'all', onTabChange, hideTopConten
           }),
         }}
       >
-        <div className="px-4 md:px-6 lg:px-8 pt-2 md:pt-2 pb-[30px] md:pb-[30px]">
-          {/* Search Bar */}
-          <div
-            onClick={() => navigate('/search')}
-            className="w-full md:w-auto md:max-w-xl md:mx-auto rounded-xl shadow-sm px-3 py-2 md:px-3 md:py-2 flex items-center gap-2 cursor-pointer hover:shadow-md transition-all duration-300 mb-2 bg-white"
-            style={{
-              backgroundColor: scrollProgress > 0.1 ? `rgba(249, 250, 251, ${scrollProgress})` : 'white',
-              border: scrollProgress > 0.1 ? `1px solid rgba(229, 231, 235, ${scrollProgress})` : '1px solid rgba(255,255,255,0.6)',
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4 text-yellow-700">
-              <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
-              <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-            <div className="flex-1 relative h-4 md:h-4 overflow-hidden">
-              {searchSuggestions.map((suggestion, index) => {
-                const isActive = index === currentSearchIndex;
-                const prevIndex = (currentSearchIndex - 1 + searchSuggestions.length) % searchSuggestions.length;
-                const isPrev = index === prevIndex;
-
-                return (
-                  <div
-                    key={suggestion}
-                    className={`absolute inset-0 flex items-center transition-all duration-500 ${isActive
-                      ? 'translate-y-0 opacity-100'
-                      : isPrev
-                        ? '-translate-y-full opacity-0'
-                        : 'translate-y-full opacity-0'
-                      }`}
-                  >
-                    <span className="text-xs md:text-xs text-neutral-500">
-                      Search {suggestion}
-                    </span>
-                  </div>
-                );
-              })}
+        <div className="px-4 md:px-6 lg:px-8 pt-2 md:pt-2 pb-2">
+          {/* Search Bar Row */}
+          {!hideSearchBar && (
+            <div className="flex items-center gap-2.5">
+              <div
+                onClick={() => navigate('/search')}
+                className="flex-1 rounded-[14px] border-2 border-[#1e90ff] px-3 py-2 md:py-2.5 flex items-center gap-2 bg-white shadow-sm active:scale-[0.99] transition-all cursor-pointer h-[42px] md:h-[46px]"
+              >
+                <svg className="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <div className="flex-1 relative h-5 overflow-hidden">
+                  {searchSuggestions.map((suggestion, index) => {
+                    const isActive = index === currentSearchIndex;
+                    return (
+                      <div
+                        key={suggestion}
+                        className={`absolute inset-0 flex items-center transition-all duration-500 ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}
+                      >
+                        <span className="text-[13.5px] md:text-[15px] font-medium text-gray-400 truncate pr-2">
+                          Search {suggestion}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4 text-neutral-500">
-              <path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M12 19v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M8 23h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
+          )}
 
           {/* Category Tabs Section - Substituted with circular icons bar */}
-          <div className="mt-1">
-            <CategoryTabBar
-              activeCategory={activeTab}
-              onCategoryChange={onTabChange}
-              onTabClick={handleTabClick}
-              isLightMode={scrollProgress > 0.5}
-            />
-          </div>
+          {!hideCategoryTabs && (
+            <div className="mt-0">
+              <CategoryTabBar
+                activeCategory={activeTab}
+                onCategoryChange={onTabChange}
+                onTabClick={handleTabClick}
+                isLightMode={scrollProgress > 0.5}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

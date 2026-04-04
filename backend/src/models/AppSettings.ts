@@ -408,8 +408,8 @@ AppSettingsSchema.statics.getSettings = async function () {
   let settings = await this.findOne();
   if (!settings) {
     settings = await this.create({
-      appName: "Dhakad Snazzy",
-      contactEmail: "contact@dhakadsnazzy.com",
+      appName: "LaxMart",
+      contactEmail: "contact@laxmart.store",
       contactPhone: "1234567890",
       deliveryConfig: {
         isDistanceBased: false,
