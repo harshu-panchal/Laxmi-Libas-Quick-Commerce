@@ -117,7 +117,7 @@ export default function Search() {
             </div>
           )}
 
-          {!contentLoading && trendingItems.length > 0 && (
+          {/* {!contentLoading && trendingItems.length > 0 && (
             <div className="px-4 md:px-6 lg:px-8 py-4 md:py-6">
               <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6">Trending in your city</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
@@ -145,17 +145,18 @@ export default function Search() {
                 ))}
               </div>
             </div>
-          )}
+          )} */}
 
           {/* See all products - Placeholder or link to popular items */}
-          <div className="px-4 md:px-6 lg:px-8 py-2 md:py-4">
+          {/* <div className="px-4 md:px-6 lg:px-8 py-2 md:py-4">
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2 cursor-pointer" onClick={() => navigate('/category/all')}>
               <span className="text-sm md:text-base text-neutral-700 font-medium whitespace-nowrap">Browse all categories ▸</span>
             </div>
-          </div>
+          </div> */}
+
 
           {/* Cooking ideas */}
-          {!contentLoading && cookingIdeas.length > 0 && (
+          {/* {!contentLoading && cookingIdeas.length > 0 && (
             <div className="px-4 md:px-6 lg:px-8 py-4 md:py-6">
               <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6">Cooking ideas</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
@@ -180,7 +181,8 @@ export default function Search() {
                 ))}
               </div>
             </div>
-          )}
+          )} */}
+
         </>
       )}
     </div>
