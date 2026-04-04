@@ -1,21 +1,29 @@
 import { Router } from 'express';
 import { authenticate, requireUserType } from '../middleware/auth';
 import { Request, Response } from 'express';
-import { createRazorpayOrder, capturePayment, handleWebhook } from '../services/paymentService';
+import { createRazorpayOrder, capturePayment, handleWebhook, logRazorpayConfigStatus } from '../services/paymentService';
 import Order from '../models/Order';
 
 const router = Router();
 
-/**
- * Create Razorpay order for payment
- */
 router.post('/create-order', authenticate, requireUserType('Customer'), async (req: Request, res: Response) => {
     try {
         const { orderId } = req.body;
+        const requestedAmount = Number(req.body.amount);
 
-        // Support mock orders for testing clothing category
+        console.log('[PaymentRoute] create-order request received', {
+            orderId,
+            requestedAmount: Number.isFinite(requestedAmount) ? requestedAmount : undefined,
+            userId: req.user?.userId,
+            origin: req.headers.origin,
+            host: req.headers.host,
+            protocol: req.protocol,
+            forwardedProto: req.headers['x-forwarded-proto'],
+        });
+        logRazorpayConfigStatus('create-order-route');
+
         if (typeof orderId === 'string' && orderId.startsWith('mock-ord-')) {
-            const amount = req.body.amount || 100; // Default to 100 if not provided
+            const amount = req.body.amount || 100;
             const result = await createRazorpayOrder(orderId, amount);
             if (!result.success) {
                 return res.status(400).json({
@@ -35,7 +43,6 @@ router.post('/create-order', authenticate, requireUserType('Customer'), async (r
             });
         }
 
-        // Verify order belongs to customer
         if (order.customer.toString() !== req.user!.userId) {
             return res.status(403).json({
                 success: false,
@@ -46,16 +53,29 @@ router.post('/create-order', authenticate, requireUserType('Customer'), async (r
         const result = await createRazorpayOrder(orderId, order.total);
 
         if (!result.success) {
+            console.error('[PaymentRoute] create-order failed', {
+                orderId,
+                userId: req.user?.userId,
+                message: result.message,
+                errorCode: (result.error as any)?.code || 'RAZORPAY_ERROR',
+            });
             return res.status(400).json({
                 success: false,
-                message: result.message, // Ensure this contains the specific Razorpay error
+                message: result.message,
                 errorCode: (result.error as any)?.code || 'RAZORPAY_ERROR'
             });
         }
 
+        console.log('[PaymentRoute] create-order success', {
+            orderId,
+            razorpayOrderId: result.data?.id || result.data?.razorpayOrderId,
+            amount: result.data?.amount,
+            currency: result.data?.currency,
+        });
+
         return res.status(200).json(result);
     } catch (error: any) {
-        console.error('Error creating Razorpay order:', error);
+        console.error('[PaymentRoute] Error creating Razorpay order:', error);
         return res.status(500).json({
             success: false,
             message: error.message || 'Failed to create payment order',
@@ -63,9 +83,6 @@ router.post('/create-order', authenticate, requireUserType('Customer'), async (r
     }
 });
 
-/**
- * Verify payment after Razorpay checkout
- */
 router.post('/verify', authenticate, requireUserType('Customer'), async (req: Request, res: Response) => {
     try {
         const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
@@ -77,7 +94,6 @@ router.post('/verify', authenticate, requireUserType('Customer'), async (req: Re
             });
         }
 
-        // Support mock orders for testing clothing category
         if (typeof orderId === 'string' && orderId.startsWith('mock-ord-')) {
             return res.status(200).json({
                 success: true,
@@ -94,7 +110,6 @@ router.post('/verify', authenticate, requireUserType('Customer'), async (req: Re
             });
         }
 
-        // Verify order belongs to customer
         if (order.customer.toString() !== req.user!.userId) {
             return res.status(403).json({
                 success: false,
@@ -123,9 +138,6 @@ router.post('/verify', authenticate, requireUserType('Customer'), async (req: Re
     }
 });
 
-/**
- * Razorpay webhook endpoint
- */
 router.post('/webhook', async (req: Request, res: Response) => {
     try {
         const signature = req.headers['x-razorpay-signature'] as string;

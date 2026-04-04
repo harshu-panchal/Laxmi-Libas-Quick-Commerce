@@ -10,6 +10,7 @@ import { ensureDefaultAdmin } from "./utils/ensureDefaultAdmin";
 import { seedHeaderCategories } from "./utils/seedHeaderCategories";
 import { initializeSocket } from "./socket/socketService";
 import { initializeFirebaseAdmin } from "./services/firebaseAdmin";
+import { logStartupEnvChecks } from "./utils/startupEnvChecks";
 
 
 import path from "path";
@@ -103,6 +104,8 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
+  logStartupEnvChecks();
+
   // Connect DB then ensure default admin exists
   await connectDB();
   await ensureDefaultAdmin();
