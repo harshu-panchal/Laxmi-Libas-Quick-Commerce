@@ -278,7 +278,7 @@ export default function Home() {
       }}
     >
       {/* Hero Header with Gradient and Tabs */}
-      <HomeHero activeTab={activeTab} onTabChange={setActiveTab} />
+      <HomeHero activeTab={activeTab} onTabChange={setActiveTab} hideSearchBar={true} />
 
       {/* Premium Home Banner Carousel */}
       {/* <HomeBannerCarousel /> */}
@@ -496,8 +496,8 @@ export default function Home() {
             {/* Featured this week Section - Hidden as per request */}
             {/* <FeaturedThisWeek /> */}
 
-            {/* Shop by Store Section */}
-            <div className="mb-6 mt-6 md:mb-8 md:mt-8">
+            {/* Shop by Store Section - Hidden as per request */}
+            {/* <div className="mb-6 mt-6 md:mb-8 md:mt-8">
               <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight">
                 Shop by Store
               </h2>
@@ -541,7 +541,6 @@ export default function Home() {
                           )}
                         </div>
 
-                        {/* Tile name - outside card */}
                         <div className="mt-1.5 text-center">
                           <span className="text-xs font-semibold text-neutral-900 line-clamp-2 leading-tight">
                             {tile.name}
@@ -552,7 +551,7 @@ export default function Home() {
                   })}
                 </div>
               </div>
-            </div>
+            </div> */}
           </>
         )}
       </div>

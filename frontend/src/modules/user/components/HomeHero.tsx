@@ -49,7 +49,7 @@ export default function HomeHero({
   hideTopContent = false,
   activeStore = 'laxmart',
   hideLocationBar = false,
-  hideSearchBar = false,
+  hideSearchBar = true,
   hideCategoryTabs = false
 }: HomeHeroProps) {
   const [tabs, setTabs] = useState<Tab[]>([ALL_TAB]);

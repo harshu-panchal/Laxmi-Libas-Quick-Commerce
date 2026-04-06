@@ -142,7 +142,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const isCheckoutPage = location.pathname === '/checkout' || location.pathname.startsWith('/checkout/');
   const isCartPage = location.pathname === '/cart';
   const showHeader = isSearchPage && !isCheckoutPage && !isCartPage;
-  const showSearchBar = isSearchPage && !isCheckoutPage && !isCartPage;
+  const showSearchBar = false; // Hidden as per request
   const showFooter = !isCheckoutPage && !isProductDetailPage;
 
   const isHomePage = location.pathname === '/' || location.pathname === '/user/home';
