@@ -554,7 +554,7 @@ export default function SellerProductList() {
                     (p) => p._id === variation.productId
                   );
                   const hasMultipleVariations =
-                    product && product.variations.length > 1;
+                    product?.variations && product.variations.length > 1;
                   const isExpanded = expandedProducts.has(variation.productId);
 
                   return (

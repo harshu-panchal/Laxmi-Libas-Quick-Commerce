@@ -115,6 +115,20 @@ export interface IProduct extends Document {
   // Flexible attributes for other dynamic data
   attributes?: Record<string, any>;
 
+  // Variations
+  variations: {
+    _id?: string;
+    name?: string;
+    value?: string;
+    title?: string;
+    price: number;
+    discPrice: number;
+    stock: number;
+    status: string;
+    sku?: string;
+  }[];
+  variationType?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -366,6 +380,20 @@ const ProductSchema = new Schema<IProduct>(
     availability: { type: String, trim: true },
     // Flexible attributes for other dynamic data
     attributes: { type: Map, of: Schema.Types.Mixed, default: {} },
+    // Variations
+    variations: [
+      {
+        name: { type: String, trim: true },
+        value: { type: String, trim: true },
+        title: { type: String, trim: true },
+        price: { type: Number, required: true, default: 0 },
+        discPrice: { type: Number, default: 0 },
+        stock: { type: Number, required: true, default: 0 },
+        status: { type: String, default: "Available" },
+        sku: { type: String, trim: true },
+      },
+    ],
+    variationType: { type: String, trim: true },
   },
   {
     timestamps: true,

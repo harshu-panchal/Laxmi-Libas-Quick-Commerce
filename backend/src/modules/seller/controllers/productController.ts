@@ -84,7 +84,7 @@ export const createProduct = asyncHandler(
       "productVideoUrl", "taxId", "isShopByStoreOnly", "shopId", "publish", "popular",
       "dealOfDay", "status", "manufacturer", "madeIn", "requiresApproval", "tags",
       "sellerId", "seller", "headerCategoryId", "category", "subcategory", "brand",
-      "mainImage", "galleryImages"
+      "mainImage", "galleryImages", "variations", "variationType"
     ];
 
     const attributes: any = {};
@@ -374,7 +374,7 @@ export const updateProduct = asyncHandler(
       "productVideoUrl", "taxId", "isShopByStoreOnly", "shopId", "publish", "popular",
       "dealOfDay", "status", "manufacturer", "madeIn", "requiresApproval", "tags",
       "sellerId", "seller", "headerCategoryId", "category", "subcategory", "brand",
-      "mainImage", "galleryImages"
+      "mainImage", "galleryImages", "variations", "variationType"
     ];
 
     const attributes: any = {};

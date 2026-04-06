@@ -834,8 +834,7 @@ export default function SellerAddProduct() {
                     name="headerCategory"
                     value={formData.headerCategory}
                     onChange={handleChange}
-                    disabled={(user?.userType === 'Seller' && (user?.mobile || user?.phone) !== '9111966732')} 
-                    className={`w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${(user?.userType === 'Seller' && (user?.mobile || user?.phone) !== '9111966732') ? "bg-neutral-100 cursor-not-allowed text-neutral-500" : "bg-white"}`}>
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
                     <option value="">Select Header Category</option>
                     {headerCategories
                       .map((headerCat) => (
@@ -866,8 +865,7 @@ export default function SellerAddProduct() {
                         setCategoryName(selectedCat.name);
                       }
                     }}
-                    disabled={(user?.userType === 'Seller' && (user?.mobile || user?.phone) !== "9111966732")}
-                    className={`w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${(user?.userType === 'Seller' && (user?.mobile || user?.phone) !== "9111966732") ? "bg-neutral-100 cursor-not-allowed text-neutral-500" : "bg-white"}`}>
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
                     <option value="">Select Category</option>
                     {categories
                       .map((cat: any) => (

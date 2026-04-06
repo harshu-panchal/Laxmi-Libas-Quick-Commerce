@@ -278,7 +278,7 @@ export default function Home() {
       }}
     >
       {/* Hero Header with Gradient and Tabs */}
-      <HomeHero activeTab={activeTab} onTabChange={setActiveTab} />
+      <HomeHero activeTab={activeTab} onTabChange={setActiveTab} hideSearchBar={true} />
 
       {/* Premium Home Banner Carousel */}
       {/* <HomeBannerCarousel /> */}
