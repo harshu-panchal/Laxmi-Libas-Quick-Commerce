@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useThemeContext } from '../../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import HomeHero from './components/HomeHero';
 import { useOrders } from '../../hooks/useOrders';
@@ -40,7 +41,13 @@ export default function OrderAgain() {
   const { orders } = useOrders();
   const { cart, addToCart, updateQuantity } = useCart();
   const navigate = useNavigate();
+  const { activeCategory, setActiveCategory } = useThemeContext();
   const [addedOrders, setAddedOrders] = useState<Set<string>>(new Set());
+
+  const handleTabChange = (category: string) => {
+    setActiveCategory(category);
+    navigate('/user/home');
+  };
 
   // Handle "Order Again" - Add all items from an order to cart
   const handleOrderAgain = (order: any, e: React.MouseEvent) => {
@@ -118,7 +125,7 @@ export default function OrderAgain() {
     <div className="pb-4">
       {/* BESSELLERS SECTION REMOVED - If you see this comment, new code is loaded */}
       {/* Header - Same as Home page but with redundant info hidden */}
-      <HomeHero hideSearchBar={true} />
+      <HomeHero hideSearchBar={true} activeTab={activeCategory} onTabChange={handleTabChange} />
 
       {/* Orders Section - Show when orders exist */}
       {hasOrders && (
