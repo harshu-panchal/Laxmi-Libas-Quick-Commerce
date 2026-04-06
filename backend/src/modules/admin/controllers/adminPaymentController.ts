@@ -14,8 +14,8 @@ export const getPaymentMethods = asyncHandler(
             // Only show COD and Razorpay payment methods
             $or: [
                 { type: "COD" },
-                { provider: { $regex: /razorpay/i } },
-                { name: { $regex: /razorpay/i } }
+                { provider: { $regex: /phonepe/i } },
+                { name: { $regex: /phonepe/i } }
             ]
         };
 
@@ -37,10 +37,10 @@ export const getPaymentMethods = asyncHandler(
                     order: 1,
                 },
                 {
-                    name: "Razorpay",
+                    name: "PhonePe",
                     type: "Online",
-                    provider: "razorpay",
-                    description: "Pay securely with Razorpay",
+                    provider: "phonepe",
+                    description: "Pay securely with PhonePe",
                     isActive: true,
                     order: 2,
                 }
@@ -57,7 +57,7 @@ export const getPaymentMethods = asyncHandler(
             name: pm.name,
             description: pm.description,
             status: pm.isActive ? "Active" : "InActive",
-            // Razorpay credentials are sourced only from environment variables.
+            // PhonePe credentials are sourced only from environment variables.
             hasApiKeys: false,
             provider: pm.provider,
             type: pm.type === "COD" ? "cod" : "gateway",
@@ -82,8 +82,8 @@ export const getPaymentMethodById = asyncHandler(
         let query: any;
         if (id === "cod") {
             query = { type: "COD" };
-        } else if (id === "razorpay") {
-            query = { $or: [{ provider: "razorpay" }, { name: "Razorpay" }] };
+        } else if (id === "phonepe") {
+            query = { $or: [{ provider: "phonepe" }, { name: "PhonePe" }] };
         } else if (mongoose.Types.ObjectId.isValid(id)) {
             query = { _id: id };
         } else {
@@ -128,8 +128,8 @@ export const updatePaymentMethod = asyncHandler(
         let query: any;
         if (id === "cod") {
             query = { type: "COD" };
-        } else if (id === "razorpay") {
-            query = { $or: [{ provider: "razorpay" }, { name: "Razorpay" }] };
+        } else if (id === "phonepe") {
+            query = { $or: [{ provider: "phonepe" }, { name: "PhonePe" }] };
         } else if (mongoose.Types.ObjectId.isValid(id)) {
             query = { _id: id };
         } else {
@@ -149,8 +149,8 @@ export const updatePaymentMethod = asyncHandler(
         if (status) paymentMethod.isActive = status === "Active";
         if (provider) paymentMethod.provider = provider;
 
-        // Force Razorpay keys to remain empty in MongoDB.
-        if (paymentMethod.provider?.toLowerCase() === "razorpay" || paymentMethod.name?.toLowerCase().includes("razorpay")) {
+        // Force PhonePe keys to remain empty in MongoDB.
+        if (paymentMethod.provider?.toLowerCase() === "phonepe" || paymentMethod.name?.toLowerCase().includes("phonepe")) {
             paymentMethod.apiKey = undefined;
             paymentMethod.secretKey = undefined;
         }
@@ -180,8 +180,8 @@ export const updatePaymentMethodStatus = asyncHandler(
         let query: any;
         if (id === "cod") {
             query = { type: "COD" };
-        } else if (id === "razorpay") {
-            query = { $or: [{ provider: "razorpay" }, { name: "Razorpay" }] };
+        } else if (id === "phonepe") {
+            query = { $or: [{ provider: "phonepe" }, { name: "PhonePe" }] };
         } else if (mongoose.Types.ObjectId.isValid(id)) {
             query = { _id: id };
         } else {
