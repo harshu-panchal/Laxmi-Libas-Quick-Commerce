@@ -29,8 +29,7 @@ const getPhonePeClient = () => {
 };
 
 export const createPhonePeOrder = async (
-    amount: number,
-    userId: string
+    amount: number
 ) => {
     try {
         const client = getPhonePeClient();

@@ -21,7 +21,7 @@ router.post('/phonepe/create', authenticate, requireUserType('Customer'), async 
             return res.status(403).json({ success: false, message: 'Unauthorized access to order' });
         }
 
-        const result = await createPhonePeOrder(order.total, req.user!.userId);
+        const result = await createPhonePeOrder(order.total);
 
         if (!result.success) {
             return res.status(400).json(result);
