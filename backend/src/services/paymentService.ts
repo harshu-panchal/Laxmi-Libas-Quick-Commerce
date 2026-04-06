@@ -29,7 +29,6 @@ const getPhonePeClient = () => {
 };
 
 export const createPhonePeOrder = async (
-    orderId: string,
     amount: number,
     userId: string
 ) => {
@@ -45,7 +44,6 @@ export const createPhonePeOrder = async (
         }
 
         const merchantTransactionId = `T${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
-        const merchantUserId = `U${userId}`;
 
         const request = StandardCheckoutPayRequest.builder()
             .merchantOrderId(merchantTransactionId) // The unique transaction ID

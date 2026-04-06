@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import path from "path";
-import fs from "fs";
+
 import { v2 as cloudinary } from "cloudinary";
-import Category from "../models/Category";
+
 import Product from "../models/Product";
-import Seller from "../models/Seller";
+
 
 dotenv.config({ path: path.join(__dirname, "../../.env") });
 

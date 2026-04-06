@@ -6,7 +6,7 @@ import Seller from "../../../models/Seller";
 import WalletTransaction from "../../../models/WalletTransaction";
 import { notifyDeliveryBoysOfNewOrder } from "../../../services/orderNotificationService";
 import { Server as SocketIOServer } from "socket.io";
-import AppSettings from "../../../models/AppSettings";
+
 
 /**
  * Get seller's orders with filters, sorting, and pagination
