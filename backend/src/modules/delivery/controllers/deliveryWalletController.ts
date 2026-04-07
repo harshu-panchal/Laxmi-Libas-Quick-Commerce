@@ -10,11 +10,8 @@ import {
   processPendingCODPayouts,
 } from "../../../services/commissionService";
 import Delivery from "../../../models/Delivery";
-import {
-  createRazorpayOrder,
-  verifyPaymentSignature,
-} from "../../../services/paymentService";
 import WalletTransaction from "../../../models/WalletTransaction";
+import { StandardCheckoutClient, Env } from '@phonepe-pg/pg-sdk-node';
 
 /**
  * Get delivery boy wallet balance and pending admin payout
@@ -79,14 +76,44 @@ export const createAdminPayoutOrder = async (req: Request, res: Response) => {
       });
     }
 
-    const receipt = `PAYOUT-ADMIN-${Date.now()}`;
-    const result = await createRazorpayOrder(receipt, amount);
+    const clientId = process.env.PHONEPE_CLIENT_ID?.trim() || '';
+    const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
+    const clientVersion = Number(process.env.PHONEPE_CLIENT_VERSION?.trim()) || 1;
+    const env = process.env.NODE_ENV === 'production' ? Env.PRODUCTION : (Env as any).SANDBOX || (Env as any).UAT;
 
-    if (!result.success) {
-      return res.status(400).json(result);
-    }
+    const phonePeClient = StandardCheckoutClient.getInstance(
+        clientId,
+        clientSecret,
+        clientVersion,
+        env
+    );
 
-    return res.status(200).json(result);
+    const merchantTransactionId = `PAYOUT-ADMIN-${deliveryBoyId}-${Date.now()}`;
+    const amountInPaise = Math.round(amount * 100);
+
+    const payRequest: any = {
+        merchantTransactionId: merchantTransactionId,
+        merchantOrderId: `ORD-${Date.now()}`,
+        merchantUserId: deliveryBoyId,
+        amount: amountInPaise,
+        redirectUrl: `${process.env.FRONTEND_URL}/delivery/wallet?merchantTransactionId=${merchantTransactionId}`,
+        redirectMode: "REDIRECT",
+        callbackUrl: `${process.env.BACKEND_URL || 'http://localhost'}/api/payment/phonepe/callback`,
+        mobileNumber: "",
+        paymentInstrument: {  type: "PAY_PAGE" },
+        paymentFlow: "CHECKOUT"
+    };
+
+    const phonePeResponse = await phonePeClient.pay(payRequest);
+
+    return res.status(200).json({
+        success: true,
+        data: {
+            redirectUrl: phonePeResponse.redirectUrl,
+            merchantTransactionId,
+            amount
+        }
+    });
   } catch (error: any) {
     console.error("Error creating admin payout order:", error);
     return res.status(500).json({
@@ -105,22 +132,32 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
 
   try {
     const deliveryBoyId = req.user!.userId;
-    const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
-    // Ensure amount is a number and rounded
-    const amount = Math.round(Number(req.body.amount) * 100) / 100;
+    const { merchantTransactionId } = req.body;
 
-    const isValid = verifyPaymentSignature(
-      razorpayOrderId,
-      razorpayPaymentId,
-      razorpaySignature,
+    const clientId = process.env.PHONEPE_CLIENT_ID?.trim() || '';
+    const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
+    const clientVersion = Number(process.env.PHONEPE_CLIENT_VERSION?.trim()) || 1;
+    const env = process.env.NODE_ENV === 'production' ? Env.PRODUCTION : (Env as any).SANDBOX || (Env as any).UAT;
+
+    const phonePeClient = StandardCheckoutClient.getInstance(
+        clientId,
+        clientSecret,
+        clientVersion,
+        env
     );
 
-    if (!isValid) {
+    const statusResponse = await phonePeClient.getOrderStatus(merchantTransactionId);
+
+    const state = (statusResponse as any).state || (statusResponse as any).data?.state;
+
+    if (state !== 'COMPLETED') {
       return res.status(400).json({
         success: false,
-        message: "Invalid payment signature",
+        message: `Payment status is ${state}`,
       });
     }
+
+    const amount = ((statusResponse as any).amount || (statusResponse as any).data?.amount) / 100;
 
     // Update delivery boy pendingAdminPayout
     const deliveryBoy = await Delivery.findById(deliveryBoyId).session(session);
@@ -139,13 +176,13 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
     }
 
     // Record transaction first
-    const reference = `PAYOUT-${razorpayPaymentId}`;
+    const reference = `PAYOUT-${merchantTransactionId}`;
     const transaction = new WalletTransaction({
       userId: deliveryBoyId,
       userType: "DELIVERY_BOY",
       amount: amount,
       type: "Debit",
-      description: "Payout to Admin via Razorpay",
+      description: "Payout to Admin via PhonePe",
       status: "Completed",
       reference,
     });

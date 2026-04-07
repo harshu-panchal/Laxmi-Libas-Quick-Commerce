@@ -38,18 +38,33 @@ export default function DeliveryWallet() {
 
   useEffect(() => {
     fetchWalletData();
-    // Load Razorpay script
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    document.body.appendChild(script);
-
-    return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
+    
+    // Check for return from PhonePe
+    const params = new URLSearchParams(window.location.search);
+    const merchantTransactionId = params.get('merchantTransactionId');
+    if (merchantTransactionId) {
+        verifyPayoutMethod(merchantTransactionId);
+        // Clear param from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, []);
+
+  const verifyPayoutMethod = async (merchantTransactionId: string) => {
+      try {
+        setLoading(true);
+        const verifyRes = await verifyAdminPayout({ merchantTransactionId });
+        if (verifyRes.success) {
+            showToast("Payment to admin successful", "success");
+            fetchWalletData();
+        } else {
+            showToast(verifyRes.message || "Payment verification failed", "error");
+        }
+      } catch (error: any) {
+         showToast(error.message || "Verification failed", "error");
+      } finally {
+        setLoading(false);
+      }
+  };
 
   const fetchWalletData = async () => {
     try {
@@ -126,47 +141,10 @@ export default function DeliveryWallet() {
         return;
       }
 
-      const { razorpayOrderId, razorpayKey, amount, currency } = orderRes.data;
-
-      const options = {
-        key: razorpayKey,
-        amount: amount,
-        currency: currency,
-        name: "LaxMart",
-        description: "Admin Payout for COD Collections",
-        order_id: razorpayOrderId,
-        handler: async (response: any) => {
-          try {
-            const verifyRes = await verifyAdminPayout({
-              razorpayOrderId: razorpayOrderId,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-              amount: pendingAdminPayout,
-            });
-
-            if (verifyRes.success) {
-              showToast("Payment to admin successful", "success");
-              fetchWalletData();
-            } else {
-              showToast(
-                verifyRes.message || "Payment verification failed",
-                "error",
-              );
-            }
-          } catch (error: any) {
-            showToast(error.message || "Verification failed", "error");
-          }
-        },
-        prefill: {
-          name: "Delivery Boy",
-        },
-        theme: {
-          color: "#22c55e",
-        },
-      };
-
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
+      const { redirectUrl, merchantTransactionId } = orderRes.data;
+      if (redirectUrl) {
+         window.location.href = redirectUrl;
+      }
     } catch (error: any) {
       showToast(error.message || "Payment initiation failed", "error");
     } finally {

@@ -33,8 +33,8 @@ import GoogleMapsLocationPicker from "../../components/GoogleMapsLocationPicker"
 import { getProducts } from "../../services/api/customerProductService";
 import { addToWishlist } from "../../services/api/customerWishlistService";
 import { updateProfile } from "../../services/api/customerService";
+import { createPhonePeOrder } from "../../services/api/paymentService";
 import { calculateProductPrice } from "../../utils/priceUtils";
-import RazorpayCheckout from "../../components/RazorpayCheckout";
 
 // const STORAGE_KEY = 'saved_address'; // Removed
 
@@ -108,9 +108,8 @@ export default function Checkout() {
     "Online",
   );
 
-  // Razorpay Payment State
+  // Payment State
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
-  const [showRazorpayCheckout, setShowRazorpayCheckout] = useState(false);
 
   // Check if user has placeholder data (needs profile completion)
   const isPlaceholderUser =
@@ -467,9 +466,17 @@ export default function Checkout() {
           setShowOrderSuccess(true);
           showGlobalToast("Order placed successfully!", "success");
         } else {
-          // For Online, trigger Razorpay payment
-          setPendingOrderId(placedId);
-          setShowRazorpayCheckout(true);
+          try {
+             const result = await createPhonePeOrder(placedId, grandTotal);
+             if (result.success && result.data?.redirectUrl) {
+                 window.location.href = result.data.redirectUrl;
+             } else {
+                 showGlobalToast("Failed to initiate payment", "error");
+             }
+          } catch(error) {
+              console.error("PhonePe error", error);
+              showGlobalToast("Failed to initiate payment", "error");
+          }
         }
         // Note: For Online payment, the cart will be cleared and success shown only after successful payment
         // See the RazorpayCheckout onSuccess handler (lines 1840-1846)
@@ -2332,34 +2339,7 @@ export default function Checkout() {
         }
       `}</style>
 
-      {/* Razorpay Checkout Modal */}
-      {showRazorpayCheckout && pendingOrderId && user && (
-        <RazorpayCheckout
-          orderId={pendingOrderId}
-          amount={grandTotal}
-          customerDetails={{
-            name: user.name || "Customer",
-            email: user.email || "",
-            phone: user.phone || "",
-          }}
-          onSuccess={(paymentId) => {
-            setShowRazorpayCheckout(false);
-            setPlacedOrderId(pendingOrderId);
-            setPendingOrderId(null);
-            clearCart();
-            setShowOrderSuccess(true);
-            showGlobalToast("Payment successful!", "success");
-          }}
-          onFailure={(error) => {
-            setShowRazorpayCheckout(false);
-            setPendingOrderId(null);
-            showGlobalToast(
-              error || "Payment failed. Please try again.",
-              "error",
-            );
-          }}
-        />
-      )}
+
     </div>
   );
 }

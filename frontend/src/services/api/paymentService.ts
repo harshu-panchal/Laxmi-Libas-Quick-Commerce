@@ -1,32 +1,27 @@
 import api from './config';
 
 /**
- * Create Razorpay order for payment
+ * Create PhonePe order for payment
  */
-export const createRazorpayOrder = async (orderId: string, amount?: number) => {
+export const createPhonePeOrder = async (orderId: string, amount?: number) => {
     try {
-        const response = await api.post('/payment/create-order', { orderId, amount });
+        const response = await api.post('/payment/phonepe/create', { orderId, amount });
         return response.data;
     } catch (error: any) {
-        console.error('Error creating Razorpay order:', error);
+        console.error('Error creating PhonePe order:', error);
         throw error;
     }
 };
 
 /**
- * Verify payment after Razorpay checkout
+ * Get Payment Status
  */
-export const verifyPayment = async (paymentData: {
-    orderId: string;
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    razorpaySignature: string;
-}) => {
+export const checkPhonePePaymentStatus = async (merchantTransactionId: string) => {
     try {
-        const response = await api.post('/payment/verify', paymentData);
+        const response = await api.get(`/payment/phonepe/status/${merchantTransactionId}`);
         return response.data;
     } catch (error: any) {
-        console.error('Error verifying payment:', error);
+        console.error('Error getting PhonePe payment status:', error);
         throw error;
     }
 };

@@ -31,10 +31,11 @@ export interface PaymentMethods {
 }
 
 export interface PaymentGateways {
-  razorpay?: {
+  phonepe?: {
     enabled: boolean;
-    keyId?: string;
-    keySecret?: string;
+    merchantId?: string;
+    saltKey?: string;
+    saltIndex?: string;
   };
   stripe?: {
     enabled: boolean;

@@ -25,12 +25,12 @@ export default function AdminPaymentList() {
       type: 'cod',
     },
     {
-      _id: 'razorpay',
-      name: 'Razorpay',
-      description: 'Pay securely with Razorpay',
+      _id: 'phonepe',
+      name: 'PhonePe',
+      description: 'Pay securely with PhonePe',
       status: 'Active',
       hasApiKeys: false,
-      provider: 'razorpay',
+      provider: 'phonepe',
       type: 'gateway',
     },
   ];
@@ -200,9 +200,9 @@ export default function AdminPaymentList() {
                   />
                 </div>
 
-                {method.provider === "razorpay" && (
+                {method.provider === "phonepe" && (
                   <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    Razorpay credentials are read only from backend <code>.env</code> and are no longer stored in admin settings.
+                    PhonePe credentials are read only from backend <code>.env</code> and are no longer stored in admin settings.
                   </div>
                 )}
 

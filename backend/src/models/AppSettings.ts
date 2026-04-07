@@ -27,10 +27,11 @@ export interface IAppSettings extends Document {
     upi: boolean;
   };
   paymentGateways?: {
-    razorpay?: {
+    phonepe?: {
       enabled: boolean;
-      keyId?: string;
-      keySecret?: string;
+      merchantId?: string;
+      saltKey?: string;
+      saltIndex?: string;
     };
     stripe?: {
       enabled: boolean;
@@ -208,10 +209,11 @@ const AppSettingsSchema = new Schema<IAppSettings>(
       },
     },
     paymentGateways: {
-      razorpay: {
+      phonepe: {
         enabled: Boolean,
-        keyId: String,
-        keySecret: String,
+        merchantId: String,
+        saltKey: String,
+        saltIndex: String,
       },
       stripe: {
         enabled: Boolean,

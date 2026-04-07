@@ -14,7 +14,7 @@ async function checkDeliveryBoys() {
     console.log(`Total Delivery Boys: ${deliveryBoys.length}`);
     
     deliveryBoys.forEach(db => {
-      console.log(`- ${db.fullName} (ID: ${db._id}) Status: ${db.status} Online: ${db.isOnline}`);
+      console.log(`- ${db.name} (ID: ${db._id}) Status: ${db.status} Online: ${db.isOnline}`);
     });
 
     const onlineActive = deliveryBoys.filter(db => db.isOnline && db.status === 'Active');

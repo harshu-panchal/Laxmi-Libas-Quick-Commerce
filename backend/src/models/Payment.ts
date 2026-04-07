@@ -10,10 +10,9 @@ export interface IPayment extends Document {
   transactionId?: string;
   paymentId?: string;
 
-  // Razorpay Specific
-  razorpayOrderId?: string;
-  razorpayPaymentId?: string;
-  razorpaySignature?: string;
+  // PhonePe Specific
+  phonepeTransactionId?: string;
+  phonepeMerchantTransactionId?: string;
 
   // Amount
   amount: number;
@@ -85,16 +84,12 @@ const PaymentSchema = new Schema<IPayment>(
       trim: true,
     },
 
-    // Razorpay Specific
-    razorpayOrderId: {
+    // PhonePe Specific
+    phonepeTransactionId: {
       type: String,
       trim: true,
     },
-    razorpayPaymentId: {
-      type: String,
-      trim: true,
-    },
-    razorpaySignature: {
+    phonepeMerchantTransactionId: {
       type: String,
       trim: true,
     },

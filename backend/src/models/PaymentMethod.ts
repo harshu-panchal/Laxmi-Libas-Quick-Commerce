@@ -51,7 +51,7 @@ const PaymentMethodSchema = new Schema<IPaymentMethod>(
       select: false, // Don't return by default for security
     },
     provider: {
-      type: String, // e.g., 'stripe', 'razorpay'
+      type: String, // e.g., 'stripe', 'phonepe'
       trim: true,
     },
     order: {

@@ -97,10 +97,7 @@ export const createAdminPayoutOrder = async (amount: number) => {
  * Verify admin payout payment
  */
 export const verifyAdminPayout = async (paymentData: {
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  razorpaySignature: string;
-  amount: number;
+  merchantTransactionId: string;
 }) => {
   try {
     const response = await api.post(
