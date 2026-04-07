@@ -48,7 +48,7 @@ const MinutesStore = () => {
                 hideTopContent={false}
                 hideLocationBar={true}
                 hideSearchBar={true}
-                hideCategoryTabs={true}
+                hideCategoryTabs={false}
             />
 
             <div className="px-4 -mt-2 relative z-10">

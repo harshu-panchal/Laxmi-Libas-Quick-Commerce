@@ -137,16 +137,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
     }
   }, [isCategoriesActive, prevCategoriesActive]);
 
+  const isHomePage = location.pathname === '/' || location.pathname === '/user/home';
+  const isOrderAgainPage = location.pathname.toLowerCase().includes('order-again');
   const isProductDetailPage = location.pathname.startsWith('/product/');
   const isSearchPage = location.pathname === '/search';
   const isCheckoutPage = location.pathname === '/checkout' || location.pathname.startsWith('/checkout/');
   const isCartPage = location.pathname === '/cart';
-  const showHeader = isSearchPage && !isCheckoutPage && !isCartPage;
-  const showSearchBar = false; // Hidden as per request
+  const showHeader = (isHomePage || isSearchPage) && !isCheckoutPage && !isCartPage;
+  const showSearchBar = !isOrderAgainPage; // Restored search bar visibility
   const showFooter = !isCheckoutPage && !isProductDetailPage;
 
-  const isHomePage = location.pathname === '/' || location.pathname === '/user/home';
-  const isOrderAgainPage = location.pathname.toLowerCase().includes('order-again');
   const isAccountPage = location.pathname.startsWith('/account');
   const isCategoriesPage = location.pathname === '/categories' || location.pathname.startsWith('/category/');
   const shouldHideDeliveryInfo = isAccountPage || isCategoriesPage;
@@ -294,7 +294,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {showStickyHeader && (
             <header className={`sticky z-50 shadow-sm md:shadow-md ${isOrderAgainPage ? 'top-0 bg-yellow-50' : 'top-0 md:top-[60px] bg-white'}`}>
               {/* Delivery info line - removed as per request */}
-              {/* {!shouldHideDeliveryInfo && (
+              {/* Delivery info line - removed as per request */}
+              {/* {!shouldHideDeliveryInfo && !isOrderAgainPage && (
                 <div className="px-4 md:px-6 lg:px-8 py-1.5 bg-yellow-50 text-xs text-yellow-700 text-center relative">
                   Delivering in 10–15 mins
                 </div>
@@ -323,7 +324,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
               {/* Header Title & Notification Bell for Non-Search pages */}
               {/* Header line with Title & Bell - show for non-search pages, skip on order-again */}
-              {!isSearchPage && !isOrderAgainPage && location.pathname !== '/store/travel' && location.pathname !== '/store/minutes' && location.pathname !== '/categories' && (
+              {/* Header Title Row - Removed as per request */}
+              {/* {!isSearchPage && !isOrderAgainPage && location.pathname !== '/store/travel' && location.pathname !== '/store/minutes' && location.pathname !== '/categories' && (
                 <div className="px-4 py-2 flex items-center justify-between border-b border-neutral-100">
                   <button onClick={() => navigate(-1)} className="p-1">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -344,10 +346,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></div>
                   </button>
                 </div>
-              )}
+              )} */}
 
-              {/* Search bar - Hidden on Order Again page */}
-              {showSearchBar && (
+              {/* Search bar - Hidden on Order Again page - Removed as per request */}
+              {/* {showSearchBar && (
                 <div className="px-4 md:px-6 lg:px-8 pb-3">
                   <div className="relative max-w-2xl md:mx-auto">
                     <input
@@ -360,7 +362,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">🔍</span>
                   </div>
                 </div>
-              )}
+              )} */}
             </header>
           )}
 
@@ -418,308 +420,189 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {/* Fixed Bottom Navigation - Mobile Only, Hidden on checkout pages */}
           {showFooter && location.pathname !== '/' && (
             <nav
-              className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-yellow-100 shadow-[0_-2px_8px_rgba(0,0,0,0.08)] z-50 md:hidden pb-[22px]"
+              className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-neutral-100 shadow-[0_-1px_10px_rgba(0,0,0,0.02)] z-50 md:hidden pb-[env(safe-area-inset-bottom,20px)]"
             >
-              <div className="flex justify-around items-center h-[68px]">
+              <div className="grid grid-cols-5 h-[72px]">
                 {/* Home */}
                 <motion.div
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ duration: 0.1 }}
-                  className="flex-1 h-full"
+                  whileTap={{ scale: 0.9 }}
+                  className="h-full"
                 >
                   <Link
                     to="/user/home"
-                    className="flex flex-col items-center justify-center h-full relative gap-1"
+                    className="flex flex-col items-center justify-center h-full relative"
                   >
-                    <div
-                      className={`flex items-center justify-center rounded-full w-10 h-10 transition-colors ${isActive('/user/home') ? 'bg-yellow-300' : 'bg-transparent'
-                        }`}
-                    >
+                    <div className="relative mb-1">
                       <motion.svg
                         width="24"
                         height="24"
                         viewBox="0 0 24 24"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={isActive('/user/home') ? 'text-neutral-900' : 'text-neutral-500'}
-                        animate={isActive('/user/home') ? {
-                          scale: [1, 1.1, 1],
-                          y: [0, -2, 0]
-                        } : {}}
-                        transition={{
-                          duration: 0.4,
-                          ease: "easeInOut",
-                          repeat: isActive('/') ? Infinity : 0,
-                          repeatDelay: 2
-                        }}
+                        className={isActive('/user/home') ? 'text-indigo-600' : 'text-neutral-400'}
+                        animate={isActive('/user/home') ? { scale: 1.1 } : { scale: 1 }}
                       >
-                        {isActive('/') ? (
-                          <>
-                            {/* Roof */}
-                            <path d="M2 12L12 4L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" />
-                            {/* House body */}
-                            <rect x="4" y="12" width="16" height="8" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                            {/* Chimney */}
-                            <rect x="15" y="5" width="4" height="5" fill="currentColor" stroke="currentColor" strokeWidth="2" />
-                            {/* Door */}
-                            <rect x="8" y="15" width="4" height="5" fill="#ffffff" />
-                          </>
+                        {isActive('/user/home') ? (
+                          <path d="M12 2L2 12H5V20H19V12H22L12 2Z" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         ) : (
-                          <>
-                            {/* Roof */}
-                            <path d="M2 12L12 4L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                            {/* House body */}
-                            <rect x="4" y="12" width="16" height="8" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" fill="none" />
-                            {/* Chimney */}
-                            <rect x="15" y="5" width="4" height="5" stroke="currentColor" strokeWidth="2" fill="none" />
-                            {/* Door */}
-                            <rect x="8" y="15" width="4" height="5" stroke="currentColor" strokeWidth="2" fill="none" />
-                          </>
+                          <path d="M12 2L2 12H5V20H19V12H22L12 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                         )}
                       </motion.svg>
                     </div>
-                    <span className={`text-xs relative z-10 ${isActive('/user/home') ? 'font-semibold text-yellow-700' : 'font-medium text-neutral-900'}`}>
+                    <span className={`text-[10px] tracking-tight transition-all duration-300 ${isActive('/user/home') ? 'font-bold text-indigo-600' : 'font-medium text-neutral-500'}`}>
                       Home
                     </span>
+                    {isActive('/user/home') && (
+                      <motion.div 
+                        layoutId="nav-dot"
+                        className="absolute bottom-1 w-1 h-1 bg-indigo-600 rounded-full"
+                      />
+                    )}
                   </Link>
                 </motion.div>
 
                 {/* Order Again */}
                 <motion.div
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ duration: 0.1 }}
-                  className="flex-1 h-full"
+                  whileTap={{ scale: 0.9 }}
+                  className="h-full"
                 >
                   <Link
                     to="/order-again"
-                    className="flex flex-col items-center justify-center h-full relative gap-1"
+                    className="flex flex-col items-center justify-center h-full relative"
                   >
-                    <div
-                      className={`flex items-center justify-center rounded-full w-10 h-10 transition-colors ${isActive('/order-again') ? 'bg-yellow-300' : 'bg-transparent'
-                        }`}
-                    >
+                    <div className="relative mb-1">
                       <motion.svg
                         width="24"
                         height="24"
                         viewBox="0 0 24 24"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={isActive('/order-again') ? 'text-neutral-900' : 'text-neutral-500'}
-                        animate={isActive('/order-again') ? {
-                          scale: [1, 1.1, 1],
-                          y: [0, -2, 0]
-                        } : {}}
-                        transition={{
-                          duration: 0.4,
-                          ease: "easeInOut",
-                          repeat: isActive('/order-again') ? Infinity : 0,
-                          repeatDelay: 2
-                        }}
+                        className={isActive('/order-again') ? 'text-indigo-600' : 'text-neutral-400'}
+                        animate={isActive('/order-again') ? { scale: 1.1 } : { scale: 1 }}
                       >
-                        {isActive('/order-again') ? (
-                          <>
-                            {/* Shopping bag body */}
-                            <path d="M5 8V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V8H21C21.5523 8 22 8.44772 22 9V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V9C2 8.44772 2.44772 8 3 8H5Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                            {/* Handles */}
-                            <path d="M7 8V6C7 5.44772 7.44772 5 8 5H16C16.5523 5 17 5.44772 17 6V8" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" fill="none" />
-                          </>
-                        ) : (
-                          <>
-                            {/* Shopping bag body */}
-                            <path d="M5 8V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V8H21C21.5523 8 22 8.44772 22 9V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V9C2 8.44772 2.44772 8 3 8H5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" fill="none" />
-                            {/* Handles */}
-                            <path d="M7 8V6C7 5.44772 7.44772 5 8 5H16C16.5523 5 17 5.44772 17 6V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
-                          </>
-                        )}
-                        {/* Heart inside basket - grows when active, shrinks when inactive */}
-                        <AnimatePresence>
-                          {isActive('/order-again') && (
-                            <motion.path
-                              key="heart"
-                              d="M12 17C11.5 16.5 8 13.5 8 11.5C8 10 9 9 10.5 9C11.2 9 11.8 9.3 12 9.7C12.2 9.3 12.8 9 13.5 9C15 9 16 10 16 11.5C16 13.5 12.5 16.5 12 17Z"
-                              fill="#ffffff"
-                              initial={{ scale: 0, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              exit={{ scale: 0, opacity: 0 }}
-                              transition={{ duration: 0.3, ease: "easeOut" }}
-                            />
-                          )}
-                        </AnimatePresence>
+                        <path d="M5 8V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V8H21C21.5523 8 22 8.44772 22 9V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V9C2 8.44772 2.44772 8 3 8H5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill={isActive('/order-again') ? "currentColor" : "none"} />
+                        <path d="M7 8V6C7 5.44772 7.44772 5 8 5H16C16.5523 5 17 5.44772 17 6V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
                       </motion.svg>
                     </div>
-                    <span className={`text-xs relative z-10 ${isActive('/order-again') ? 'font-semibold text-yellow-700' : 'font-medium text-neutral-900'}`}>
+                    <span className={`text-[10px] tracking-tight transition-all duration-300 ${isActive('/order-again') ? 'font-bold text-indigo-600' : 'font-medium text-neutral-500'}`}>
                       Order Again
                     </span>
+                    {isActive('/order-again') && (
+                      <motion.div 
+                        layoutId="nav-dot"
+                        className="absolute bottom-1 w-1 h-1 bg-indigo-600 rounded-full"
+                      />
+                    )}
                   </Link>
                 </motion.div>
 
                 {/* Categories */}
                 <motion.div
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ duration: 0.1 }}
-                  className="flex-1 h-full"
+                  whileTap={{ scale: 0.9 }}
+                  className="h-full"
                 >
                   <Link
                     to="/categories"
-                    className="flex flex-col items-center justify-center h-full relative gap-1"
+                    className="flex flex-col items-center justify-center h-full relative"
                   >
-                    <div
-                      className={`flex items-center justify-center rounded-full w-10 h-10 transition-colors ${isActive('/categories') || location.pathname.startsWith('/category/') ? 'bg-yellow-300' : 'bg-transparent'
-                        }`}
-                    >
+                    <div className="relative mb-1">
                       <motion.svg
                         width="24"
                         height="24"
                         viewBox="0 0 24 24"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={(isActive('/categories') || location.pathname.startsWith('/category/')) ? 'text-neutral-900' : 'text-neutral-500'}
-                        animate={{
-                          rotate: categoriesRotation
-                        }}
-                        transition={{
-                          duration: 0.5,
-                          ease: "easeInOut"
-                        }}
-                        style={{ transformOrigin: 'center' }}
+                        className={isCategoriesActive ? 'text-indigo-600' : 'text-neutral-400'}
+                        animate={{ rotate: categoriesRotation, scale: isCategoriesActive ? 1.1 : 1 }}
                       >
-                        {(isActive('/categories') || location.pathname.startsWith('/category/')) ? (
-                          <>
-                            {/* Top-left and bottom-right are black when active */}
-                            <circle cx="7" cy="7" r="2.5" fill="currentColor" stroke="currentColor" strokeWidth="2" />
-                            <circle cx="17" cy="7" r="2.5" fill="currentColor" stroke="currentColor" strokeWidth="2" />
-                            <circle cx="7" cy="17" r="2.5" fill="currentColor" stroke="currentColor" strokeWidth="2" />
-                            <circle cx="17" cy="17" r="2.5" fill="currentColor" stroke="currentColor" strokeWidth="2" />
-                          </>
-                        ) : (
-                          <>
-                            <circle cx="7" cy="7" r="2.5" stroke="currentColor" strokeWidth="2" fill="none" />
-                            <circle cx="17" cy="7" r="2.5" stroke="currentColor" strokeWidth="2" fill="none" />
-                            <circle cx="7" cy="17" r="2.5" stroke="currentColor" strokeWidth="2" fill="none" />
-                            <circle cx="17" cy="17" r="2.5" stroke="currentColor" strokeWidth="2" fill="none" />
-                          </>
-                        )}
+                        <circle cx="7" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.5" fill={isCategoriesActive ? "currentColor" : "none"} />
+                        <circle cx="17" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.5" fill={isCategoriesActive ? "currentColor" : "none"} />
+                        <circle cx="7" cy="17" r="2.5" stroke="currentColor" strokeWidth="1.5" fill={isCategoriesActive ? "currentColor" : "none"} />
+                        <circle cx="17" cy="17" r="2.5" stroke="currentColor" strokeWidth="1.5" fill={isCategoriesActive ? "currentColor" : "none"} />
                       </motion.svg>
                     </div>
-                    <span className={`text-xs relative z-10 ${(isActive('/categories') || location.pathname.startsWith('/category/')) ? 'font-semibold text-yellow-700' : 'font-medium text-neutral-900'}`}>
+                    <span className={`text-[10px] tracking-tight transition-all duration-300 ${isCategoriesActive ? 'font-bold text-indigo-600' : 'font-medium text-neutral-500'}`}>
                       Categories
                     </span>
+                    {isCategoriesActive && (
+                      <motion.div 
+                        layoutId="nav-dot"
+                        className="absolute bottom-1 w-1 h-1 bg-indigo-600 rounded-full"
+                      />
+                    )}
                   </Link>
                 </motion.div>
 
                 {/* Cart navigation item */}
                 <motion.div
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ duration: 0.1 }}
-                  className="flex-1 h-full"
+                  whileTap={{ scale: 0.9 }}
+                  className="h-full"
                 >
                   <Link
                     to="/cart"
-                    className="flex flex-col items-center justify-center h-full relative gap-1"
+                    className="flex flex-col items-center justify-center h-full relative"
                   >
-                    <div
-                      className={`flex items-center justify-center rounded-full w-10 h-10 transition-colors ${isActive('/cart') ? 'bg-yellow-300' : 'bg-transparent'
-                        }`}
-                    >
-                      <div className="relative">
-                        <motion.svg
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          className={isActive('/cart') ? 'text-neutral-900' : 'text-neutral-500'}
-                          animate={isActive('/cart') ? {
-                            scale: [1, 1.1, 1],
-                            y: [0, -2, 0]
-                          } : {}}
-                          transition={{ duration: 0.4 }}
-                        >
-                          {isActive('/cart') ? (
-                            <path d="M3 3H5L5.4 5M5.4 5H21L17 13H7L5.4 5ZM7 13L4.707 15.293C4.077 15.923 4.523 17 5.414 17H19M17 17C15.895 17 15 17.895 15 19C15 20.105 15.895 21 17 21C18.105 21 19 20.105 19 19C19 17.895 18.105 17 17 17ZM9 17C7.895 17 7 17.895 7 19C7 20.105 7.895 21 9 21C10.105 21 11 20.105 11 19C11 17.895 10.105 17 9 17Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" />
-                          ) : (
-                            <path d="M3 3H5L5.4 5M5.4 5H21L17 13H7L5.4 5ZM7 13L4.707 15.293C4.077 15.923 4.523 17 5.414 17H19M17 17C15.895 17 15 17.895 15 19C15 20.105 15.895 21 17 21C18.105 21 19 20.105 19 19C19 17.895 18.105 17 17 17ZM9 17C7.895 17 7 17.895 7 19C7 20.105 7.895 21 9 21C10.105 21 11 20.105 11 19C11 17.895 10.105 17 9 17Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          )}
-                        </motion.svg>
-                        {/* Cart Badge */}
-                        <div className="absolute -top-2 -right-2 bg-red-600 text-white text-[9px] font-bold min-w-[15px] h-[15px] flex items-center justify-center rounded-full border border-white px-0.5">
-                          2
-                        </div>
-                      </div>
-                    </div>
-                    <span className={`text-xs relative z-10 ${isActive('/cart') ? 'font-semibold text-yellow-700' : 'font-medium text-neutral-900'}`}>
-                      Cart
-                    </span>
-                  </Link>
-                </motion.div>
-
-                {/* Profile */}
-                <motion.div
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ duration: 0.1 }}
-                  className="flex-1 h-full"
-                >
-                  <Link
-                    to="/account"
-                    className="flex flex-col items-center justify-center h-full relative gap-1"
-                  >
-                    <div
-                      className={`flex items-center justify-center rounded-full w-10 h-10 transition-colors ${isActive('/account') ? 'bg-yellow-300' : 'bg-transparent'
-                        }`}
-                    >
+                    <div className="relative mb-1">
                       <motion.svg
                         width="24"
                         height="24"
                         viewBox="0 0 24 24"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={isActive('/account') ? 'text-neutral-900' : 'text-neutral-500'}
-                        animate={isActive('/account') ? {
-                          scale: [1, 1.05, 1]
-                        } : {}}
-                        transition={{
-                          duration: 0.5,
-                          ease: "easeInOut",
-                          repeat: isActive('/account') ? Infinity : 0,
-                          repeatDelay: 1.5
-                        }}
+                        className={isActive('/cart') ? 'text-indigo-600' : 'text-neutral-400'}
+                        animate={isActive('/cart') ? { scale: 1.1 } : { scale: 1 }}
                       >
-                        {isActive('/account') ? (
-                          <>
-                            {/* Profile head */}
-                            <motion.circle
-                              cx="12"
-                              cy="8"
-                              r="4"
-                              fill="currentColor"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              animate={{
-                                scale: [1, 1.1, 1]
-                              }}
-                              transition={{
-                                duration: 0.6,
-                                ease: "easeInOut",
-                                repeat: Infinity,
-                                repeatDelay: 1.2
-                              }}
-                            />
-                            {/* Profile body */}
-                            <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="currentColor" />
-                          </>
-                        ) : (
-                          <>
-                            {/* Profile head */}
-                            <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" fill="none" />
-                            {/* Profile body */}
-                            <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
-                          </>
-                        )}
+                        <path d="M3 3H5L5.4 5M5.4 5H21L17 13H7L5.4 5ZM7 13L4.707 15.293C4.077 15.923 4.523 17 5.414 17H19M17 17C15.895 17 15 17.895 15 19C15 20.105 15.895 21 17 21C18.105 21 19 20.105 19 19C19 17.895 18.105 17 17 17ZM9 17C7.895 17 7 17.895 7 19C7 20.105 7.895 21 9 21C10.105 21 11 20.105 11 19C11 17.895 10.105 17 9 17Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill={isActive('/cart') ? "currentColor" : "none"} />
+                      </motion.svg>
+                      {/* Cart Badge */}
+                      <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-bold min-w-[14px] h-[14px] flex items-center justify-center rounded-full border border-white">
+                        2
+                      </div>
+                    </div>
+                    <span className={`text-[10px] tracking-tight transition-all duration-300 ${isActive('/cart') ? 'font-bold text-indigo-600' : 'font-medium text-neutral-500'}`}>
+                      Cart
+                    </span>
+                    {isActive('/cart') && (
+                      <motion.div 
+                        layoutId="nav-dot"
+                        className="absolute bottom-1 w-1 h-1 bg-indigo-600 rounded-full"
+                      />
+                    )}
+                  </Link>
+                </motion.div>
+
+                {/* Profile */}
+                <motion.div
+                  whileTap={{ scale: 0.9 }}
+                  className="h-full"
+                >
+                  <Link
+                    to="/account"
+                    className="flex flex-col items-center justify-center h-full relative"
+                  >
+                    <div className="relative mb-1">
+                      <motion.svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className={isActive('/account') ? 'text-indigo-600' : 'text-neutral-400'}
+                        animate={isActive('/account') ? { scale: 1.1 } : { scale: 1 }}
+                      >
+                        <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" fill={isActive('/account') ? "currentColor" : "none"} />
+                        <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill={isActive('/account') ? "currentColor" : "none"} />
                       </motion.svg>
                     </div>
-                    <span className={`text-xs relative z-10 ${isActive('/account') ? 'font-semibold text-yellow-700' : 'font-medium text-neutral-900'}`}>
+                    <span className={`text-[10px] tracking-tight transition-all duration-300 ${isActive('/account') ? 'font-bold text-indigo-600' : 'font-medium text-neutral-500'}`}>
                       Profile
                     </span>
+                    {isActive('/account') && (
+                      <motion.div 
+                        layoutId="nav-dot"
+                        className="absolute bottom-1 w-1 h-1 bg-indigo-600 rounded-full"
+                      />
+                    )}
                   </Link>
                 </motion.div>
               </div>

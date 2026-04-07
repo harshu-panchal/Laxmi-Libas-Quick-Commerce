@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import HomeHero from "./components/HomeHero";
 import HomeBannerCarousel from "./components/HomeBannerCarousel";
 import BannerSlider from "./components/BannerSlider";
-import LowestPricesEver from "./components/LowestPricesEver";
 import CategoryTileSection from "./components/CategoryTileSection";
 import FeaturedThisWeek from "./components/FeaturedThisWeek";
 import ProductCard from "./components/ProductCard";
@@ -278,10 +277,11 @@ export default function Home() {
       }}
     >
       {/* Hero Header with Gradient and Tabs */}
-      <HomeHero activeTab={activeTab} onTabChange={setActiveTab} hideSearchBar={true} />
+      <HomeHero activeTab={activeTab} onTabChange={setActiveTab} hideSearchBar={false} />
 
-      {/* Premium Home Banner Carousel */}
-      {/* <HomeBannerCarousel /> */}
+      {/* Premium Home Banner Carousel - Restored as per request */}
+      <HomeBannerCarousel />
+
 
       {/* Main content */}
       <div
@@ -385,53 +385,14 @@ export default function Home() {
                 const hasProducts = filteredProducts.length > 0;
 
                 if (isFashion && !hasProducts) {
-                  const filteredMockProducts = selectedMockSubCategory
-                    ? CLOTHING_MOCK_DATA.products.filter(p => p.subcategoryId === selectedMockSubCategory || p.category === selectedMockSubCategory)
-                    : [];
-
                   return (
-                    <div className="space-y-4">
-                      {selectedMockSubCategory && (
-                        <button
-                          onClick={() => setSelectedMockSubCategory(null)}
-                          className="flex items-center text-primary-dark font-semibold text-sm px-4 md:px-6 mb-2"
-                        >
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                          </svg>
-                          Back to {activeTab} categories
-                        </button>
-                      )}
-
-                      {selectedMockSubCategory ? (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-6">
-                          {filteredMockProducts.length > 0 ? (
-                            filteredMockProducts.map(product => (
-                              <ProductCard
-                                key={product.id}
-                                product={{ ...product, categoryId: product.category } as any}
-                                categoryStyle={true}
-                                showBadge={true}
-                                showPackBadge={false}
-                                showStockInfo={true}
-                              />
-                            ))
-                          ) : (
-                            <div className="col-span-full py-10 text-center text-neutral-500">
-                              No mock products found for this subcategory.
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <CategoryTileSection
-                          title=""
-                          tiles={CLOTHING_MOCK_DATA.subcategories as any}
-                          columns={4}
-                          showProductCount={false}
-                          onTileClick={(tile) => setSelectedMockSubCategory(tile.id)}
-                        />
-                      )}
-                    </div>
+                    <CategoryTileSection
+                      title=""
+                      tiles={CLOTHING_MOCK_DATA.subcategories as any}
+                      columns={6}
+                      showProductCount={false}
+                      onTileClick={(tile) => navigate(`/category/${tile.id}`)}
+                    />
                   );
                 }
 
@@ -467,7 +428,7 @@ export default function Home() {
         {/* Bestsellers Section - Hidden as per request */}
         {activeTab === "all" && (
           <>
-            {/* 
+            {/* Bestsellers Section - Restored as per request */}
             <div className="mt-2 md:mt-4">
               <CategoryTileSection
                 title="Bestsellers"
@@ -491,13 +452,13 @@ export default function Home() {
                 showProductCount={true}
               />
             </div>
-            */}
 
             {/* Featured this week Section - Hidden as per request */}
-            {/* <FeaturedThisWeek /> */}
+            {/* Featured this week Section - Restored as per request */}
+            <FeaturedThisWeek />
 
-            {/* Shop by Store Section - Hidden as per request */}
-            {/* <div className="mb-6 mt-6 md:mb-8 md:mt-8">
+            {/* Shop by Store Section - Restored as per request */}
+            <div className="mb-6 mt-6 md:mb-8 md:mt-8">
               <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight">
                 Shop by Store
               </h2>
@@ -551,7 +512,7 @@ export default function Home() {
                   })}
                 </div>
               </div>
-            </div> */}
+            </div>
           </>
         )}
       </div>
