@@ -25,11 +25,19 @@ import Home from "./modules/user/Home";
 import LaxmartEntry from "./modules/user/LaxmartEntry";
 import TravelStore from "./modules/user/TravelStore";
 import HotelBooking from "./modules/user/HotelBooking";
+import HotelList from "./modules/user/HotelList";
+import HotelDetail from "./modules/user/HotelDetail";
+import RoomSelection from './modules/user/RoomSelection';
+import TravelCart from './modules/user/TravelCart';
+import TravelCheckout from './modules/user/TravelCheckout';
+import TravelPayment from './modules/user/TravelPayment';
+import TravelConfirmation from './modules/user/TravelConfirmation';
 import MinutesStore from "./modules/user/MinutesStore";
 import Cart from "./modules/user/Cart";
 import Checkout from "./modules/user/Checkout";
 import CheckoutAddress from "./modules/user/CheckoutAddress";
 import ProductDetail from "./modules/user/ProductDetail";
+import PaymentVerify from "./modules/user/PaymentVerify";
 
 // Lazy load less critical routes for code splitting
 const Search = lazy(() => import("./modules/user/Search"));
@@ -116,6 +124,7 @@ const AdminManageSellerList = lazy(() => import("./modules/admin/pages/AdminMana
 const AdminCoupon = lazy(() => import("./modules/admin/pages/AdminCoupon"));
 const AdminNotification = lazy(() => import("./modules/admin/pages/AdminNotification"));
 const AdminSellerLocation = lazy(() => import("./modules/admin/pages/AdminSellerLocation"));
+const AdminPendingSellers = lazy(() => import("./modules/admin/pages/AdminPendingSellers"));
 
 const AdminManageDeliveryBoy = lazy(() => import("./modules/admin/pages/AdminManageDeliveryBoy"));
 const AdminFundTransfer = lazy(() => import("./modules/admin/pages/AdminFundTransfer"));
@@ -325,6 +334,7 @@ function App() {
                                       <Route path="product/list" element={<AdminStockManagement />} />
                                       <Route path="manage-seller/list" element={<AdminManageSellerList />} />
                                       <Route path="manage-seller/transaction" element={<AdminSellerTransaction />} />
+                                      <Route path="pending-sellers" element={<AdminPendingSellers />} />
                                       <Route path="delivery-boy/manage" element={<AdminManageDeliveryBoy />} />
                                       <Route path="delivery-boy/fund-transfer" element={<AdminFundTransfer />} />
                                       <Route path="delivery-boy/cash-collection" element={<AdminCashCollection />} />
@@ -382,6 +392,14 @@ function App() {
                                     <Route path="/user/home" element={<Home />} />
                                     <Route path="/store/travel" element={<TravelStore />} />
                                     <Route path="/store/travel/hotels" element={<HotelBooking />} />
+                                    <Route path="/store/travel/hotels/list" element={<HotelList />} />
+                <Route path="/store/travel/hotels/detail/:id" element={<HotelDetail />} />
+                <Route path="/store/travel/hotels/rooms/:id" element={<RoomSelection />} />
+                <Route path="/store/travel/cart" element={<TravelCart />} />
+                <Route path="/store/travel/checkout" element={<TravelCheckout />} />
+                <Route path="/store/travel/payment" element={<TravelPayment />} />
+                <Route path="/store/travel/confirmation" element={<TravelConfirmation />} />
+                                    <Route path="/payment/verify" element={<PaymentVerify />} />
                                     <Route path="/store/minutes" element={<MinutesStore />} />
                                     <Route path="/search" element={<Search />} />
                                     <Route path="/orders" element={<Orders />} />

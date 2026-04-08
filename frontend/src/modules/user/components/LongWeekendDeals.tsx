@@ -5,12 +5,6 @@ import { Plane, Building2, Bus, Calendar, ChevronRight } from 'lucide-react';
 const LongWeekendDeals: React.FC = () => {
     const deals = [
         {
-            title: 'Flights',
-            discount: 'Flat ₹1,000 Off*',
-            image: '/travel_flights.png',
-            bgColor: 'bg-white',
-        },
-        {
             title: 'Hotels',
             discount: 'Flat 30% Off*',
             image: '/travel_hotels.png',
@@ -74,18 +68,18 @@ const LongWeekendDeals: React.FC = () => {
             </div>
 
             {/* Deal Cards Section */}
-            <div className="px-4 -mt-10 relative z-10 grid grid-cols-3 gap-2 pb-4">
+            <div className="px-4 -mt-10 relative z-10 grid grid-cols-2 gap-3 pb-4">
                 {deals.map((deal, idx) => (
                     <motion.div
                         key={idx}
                         whileTap={{ scale: 0.95 }}
-                        className={`${deal.bgColor} rounded-2xl p-2 shadow-md border border-white flex flex-col items-center text-center`}
+                        className={`${deal.bgColor} rounded-2xl p-2.5 shadow-md border border-white flex flex-col items-center text-center`}
                     >
-                        <div className="w-full aspect-square bg-gray-50 rounded-xl mb-1.5 overflow-hidden flex items-center justify-center p-1">
-                            <img src={deal.image} alt={deal.title} className="w-full h-full object-contain" />
+                        <div className="w-full aspect-[4/3] bg-gray-50 rounded-xl mb-1.5 overflow-hidden flex items-center justify-center p-1">
+                            <img src={deal.image} alt={deal.title} className="w-[85%] h-full object-contain" />
                         </div>
-                        <span className="text-[10px] font-bold text-gray-900 leading-tight mb-0.5">{deal.discount}</span>
-                        <span className="text-[8px] font-medium text-gray-500 uppercase tracking-wider">{deal.title}</span>
+                        <span className="text-sm font-bold text-gray-900 leading-tight mb-0.5">{deal.discount}</span>
+                        <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{deal.title}</span>
                     </motion.div>
                 ))}
             </div>

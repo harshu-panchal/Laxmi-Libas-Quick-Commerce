@@ -178,10 +178,10 @@ export const getProductById = async (req: Request, res: Response) => {
       .populate("brand", "name")
       .populate(
         "seller",
-        "storeName mobile city fssaiLicNo address location serviceRadiusKm"
+        "storeName mobile city fssaiLicNo address location serviceRadiusKm status"
       );
 
-    if (!product) {
+    if (!product || (product.seller as any)?.status !== "Approved") {
       return res.status(404).json({
         success: false,
         message: "Product not found or unavailable",
@@ -229,17 +229,23 @@ export const getProductById = async (req: Request, res: Response) => {
     */
 
     // Find similar products (by category)
-    // Filter by location
     const similarProductsQuery: any = {
       _id: { $ne: product._id },
       status: "Active",
       publish: true,
-      // Exclude shop-by-store-only products from similar products
       $or: [
         { isShopByStoreOnly: { $ne: true } },
         { isShopByStoreOnly: { $exists: false } },
       ],
     };
+
+    // Filter similar products by approved sellers only
+    const approvedSellers = await Seller.find({ status: "Approved" }).select("_id");
+    if (approvedSellers.length > 0) {
+      similarProductsQuery.seller = { $in: approvedSellers.map((s) => s._id) };
+    } else {
+      similarProductsQuery.seller = { $in: [] };
+    }
 
     // Safely get category ID - handle both populated and unpopulated cases
     let categoryId: mongoose.Types.ObjectId | null = null;

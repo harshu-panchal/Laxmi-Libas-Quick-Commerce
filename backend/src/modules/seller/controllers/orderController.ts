@@ -227,9 +227,11 @@ export const updateOrderStatus = asyncHandler(
     }
 
     // Check if this seller has items in this order
+    console.log(`🔍 [Seller Order Update] Seller ${sellerId} attempting to update Order ${id} to ${status}`);
     const sellerItems = await OrderItem.findOne({ order: id, seller: sellerId });
 
     if (!sellerItems) {
+      console.warn(`❌ [Seller Order Update] Unauthorized: Seller ${sellerId} has no items in Order ${id}`);
       return res.status(404).json({
         success: false,
         message: "Order not found or you are not authorized to manage this order",
@@ -239,6 +241,7 @@ export const updateOrderStatus = asyncHandler(
     const order = await Order.findById(id);
 
     if (!order) {
+      console.warn(`❌ [Seller Order Update] Order Not Found: ${id}`);
       return res.status(404).json({
         success: false,
         message: "Order not found",
@@ -247,6 +250,7 @@ export const updateOrderStatus = asyncHandler(
 
     // Check if status is already the same
     if (order.status === status) {
+      console.log(`ℹ️ [Seller Order Update] Status already ${status} for Order ${id}`);
       return res.status(400).json({
         success: false,
         message: `Order is already ${status}`,

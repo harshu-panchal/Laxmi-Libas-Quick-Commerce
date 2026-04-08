@@ -32,6 +32,28 @@ export const createPhonePeOrder = async (
     amount: number
 ) => {
     try {
+        const clientId = process.env.PHONEPE_CLIENT_ID?.trim();
+        const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim();
+        const isMock = process.env.USE_MOCK_PAYMENT === 'true' || !clientId || !clientSecret;
+
+        // If in development and missing config, or if mock is explicitly set
+        if (isMock && process.env.NODE_ENV !== 'production') {
+            console.log('[PhonePe] 🧪 Generating MOCK payment order for development');
+            const merchantTransactionId = `MOCK_T${Date.now()}${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+            
+            return {
+                success: true,
+                message: 'Mock payment initiated',
+                data: {
+                    // Redirect to a frontend route that simulates payment success
+                    redirectUrl: `${process.env.FRONTEND_URL}/payment/verify?transactionId=${merchantTransactionId}&status=COMPLETED&amount=${amount}`,
+                    merchantTransactionId: merchantTransactionId,
+                    amount: amount,
+                    isMock: true
+                },
+            };
+        }
+
         const client = getPhonePeClient();
         const amountInPaise = Math.round(amount * 100);
 

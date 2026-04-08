@@ -15,8 +15,7 @@ import { findSellersWithinRange } from "../../../utils/locationHelper";
 
 // Helper function to fetch data for a home section based on its configuration
 async function fetchSectionData(
-  section: any,
-  nearbySellerIds?: mongoose.Types.ObjectId[]
+  section: any
 ): Promise<any[]> {
   try {
     const { categories, subCategories, displayType, limit } = section;
@@ -138,10 +137,12 @@ async function fetchSectionData(
 
       // We fetch these irrespective of location radius to show preview images on home page
       // Location validation still happens at cart/order level
-      if (nearbySellerIds && nearbySellerIds.length > 0) {
-        // If we have nearby sellers, we can still filter by them if we want to prioritize
-        // But the user requested to show them irrespective of location radius
-        // For now, let's keep it simple and show all active products for the section
+      // Filter by approved sellers only
+      const approvedSellers = await Seller.find({ status: "Approved" }).select("_id");
+      if (approvedSellers.length > 0) {
+        query.seller = { $in: approvedSellers.map((s) => s._id) };
+      } else {
+        return []; // No approved sellers means no products for this section
       }
 
       if (categories && categories.length > 0) {
@@ -300,6 +301,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
           category: categoryId,
           status: "Active",
           publish: true,
+          seller: { $in: nearbySellerIds }
         };
 
         const categoryProducts = await Product.find(productQuery)
@@ -356,6 +358,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
         match: {
           status: "Active",
           publish: true,
+          seller: { $in: nearbySellerIds }
         },
       })
       .sort({ order: 1 })
@@ -554,7 +557,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
 
     const dynamicSections = await Promise.all(
       homeSections.map(async (section: any) => {
-        const sectionData = await fetchSectionData(section, nearbySellerIds);
+        const sectionData = await fetchSectionData(section);
         return {
           id: section._id.toString(),
           title: section.title,
@@ -585,7 +588,14 @@ export const getHomeContent = async (req: Request, res: Response) => {
       isActive: true,
     })
       .populate("categoryCards.categoryId", "name slug image")
-      .populate("featuredProducts")
+      .populate({
+        path: "featuredProducts",
+        match: {
+          status: "Active",
+          publish: true,
+          seller: { $in: nearbySellerIds }
+        }
+      })
       .sort({ order: 1 })
       .lean();
 
@@ -740,14 +750,23 @@ export const getStoreProducts = async (req: Request, res: Response) => {
       console.log(`[getStoreProducts] Found ${nearbySellerIds.length} sellers within range`);
 
       if (nearbySellerIds.length > 0) {
-        // Filter products by sellers within range
-        query.seller = { $in: nearbySellerIds };
-        console.log(`[getStoreProducts] Added seller filter to query`);
+        // Filter products by sellers within range AND approved status
+        const approvedSellers = await Seller.find({ status: "Approved" }).select("_id");
+        const approvedIds = approvedSellers.map(s => s._id.toString());
+        
+        const validSellers = nearbySellerIds.filter(id => approvedIds.includes(id.toString()));
+        
+        if (validSellers.length > 0) {
+          query.seller = { $in: validSellers };
+        } else {
+          query.seller = { $in: [] };
+        }
       }
     } else {
-      // If no location provided, still show all products (don't filter by seller location)
-      console.log(`[getStoreProducts] No location provided, showing all matching products`);
-      // No seller filter added to query
+      // If no location provided, still show all products (but only from approved sellers)
+      console.log(`[getStoreProducts] No location provided, showing all matching products from approved sellers`);
+      const approvedSellers = await Seller.find({ status: "Approved" }).select("_id");
+      query.seller = { $in: approvedSellers.map(s => s._id) };
     }
 
     console.log(`[getStoreProducts] Final query:`, JSON.stringify(query, null, 2));

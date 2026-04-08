@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext";
 
 interface SubMenuItem {
   label: string;
@@ -152,7 +153,11 @@ const menuItems: MenuItem[] = [
 export default function SellerSidebar({ onClose }: SellerSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
+
+  const sellerStatus = user?.status || 'Pending';
+  const isApproved = sellerStatus === 'Approved';
 
   const isActive = (path: string) => {
     if (path === "/seller") {
@@ -231,10 +236,12 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
             const expanded = isExpanded(item.path);
             const active =
               isActive(item.path) || isSubmenuActive(item.submenuItems);
+            const isLocked = !isApproved && item.path !== "/seller";
 
             return (
               <li key={item.path}>
                 <button
+                  disabled={isLocked}
                   onClick={() => {
                     if (item.hasSubmenu && item.submenuItems) {
                       toggleMenu(item.path);
@@ -242,9 +249,11 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                       handleNavigation(item.path);
                     }
                   }}
-                  className={`w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-left transition-colors ${active
-                    ? "bg-teal-600 text-white"
-                    : "text-teal-100 hover:bg-teal-600/50 hover:text-white"
+                  className={`w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-left transition-all ${active
+                    ? "bg-teal-600 text-white shadow-md"
+                    : isLocked 
+                      ? "text-teal-300 opacity-60 cursor-not-allowed"
+                      : "text-teal-100 hover:bg-teal-600/50 hover:text-white"
                     }`}>
                   <div className="flex items-center gap-2">
                     {item.icon && (
@@ -253,8 +262,14 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                     <span className="text-xs sm:text-sm font-medium">
                       {item.label}
                     </span>
+                    {isLocked && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-teal-400">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                    )}
                   </div>
-                  {item.hasSubmenu && (
+                  {item.hasSubmenu && !isLocked && (
                     <svg
                       width="16"
                       height="16"
@@ -273,7 +288,7 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                     </svg>
                   )}
                 </button>
-                {item.hasSubmenu && item.submenuItems && expanded && (
+                {item.hasSubmenu && item.submenuItems && expanded && !isLocked && (
                   <ul className="mt-1 space-y-1 ml-4">
                     {item.submenuItems.map((subItem) => {
                       const subActive =

@@ -143,9 +143,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const isSearchPage = location.pathname === '/search';
   const isCheckoutPage = location.pathname === '/checkout' || location.pathname.startsWith('/checkout/');
   const isCartPage = location.pathname === '/cart';
-  const showHeader = (isHomePage || isSearchPage) && !isCheckoutPage && !isCartPage;
+  const isTravelPage = location.pathname.startsWith('/store/travel');
+  const showHeader = (isHomePage || isSearchPage) && !isCheckoutPage && !isCartPage && !isTravelPage;
   const showSearchBar = !isOrderAgainPage; // Restored search bar visibility
-  const showFooter = !isCheckoutPage && !isProductDetailPage;
+  const showFooter = !isCheckoutPage && !isProductDetailPage && !isTravelPage;
 
   const isAccountPage = location.pathname.startsWith('/account');
   const isCategoriesPage = location.pathname === '/categories' || location.pathname.startsWith('/category/');

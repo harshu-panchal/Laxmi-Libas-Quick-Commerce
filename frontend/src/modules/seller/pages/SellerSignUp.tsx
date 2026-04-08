@@ -35,7 +35,7 @@ export default function SellerSignUp() {
   const [idProofFile, setIdProofFile] = useState<File | null>(null);
   const [businessLicenseFile, setBusinessLicenseFile] = useState<File | null>(null);
   const [uploadingDocs, setUploadingDocs] = useState(false);
-  const [showOTP, setShowOTP] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [dbCategories, setDbCategories] = useState<Category[]>([]);
@@ -54,7 +54,6 @@ export default function SellerSignUp() {
     fetchCats();
   }, []);
 
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === 'mobile') {
@@ -63,12 +62,9 @@ export default function SellerSignUp() {
         [name]: value.replace(/\D/g, '').slice(0, 10),
       }));
     } else if (name === 'serviceRadiusKm') {
-      // Allow only numbers and a single decimal point
       const cleanedValue = value.replace(/[^0-9.]/g, '');
-      // Ensure only one decimal point
       const parts = cleanedValue.split('.');
       const finalValue = parts.length > 2 ? `${parts[0]}.${parts[1]}` : cleanedValue;
-
       setFormData(prev => ({
         ...prev,
         [name]: finalValue,
@@ -183,49 +179,14 @@ export default function SellerSignUp() {
       });
 
       if (response.success) {
-        // Clear token from registration (we'll get it after OTP verification)
+        // Clear any stale auth data
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
-        // Registration successful, now send OTP for verification
-        try {
-          await sendOTP(formData.mobile);
-          setShowOTP(true);
-        } catch (otpErr: any) {
-          setError(otpErr.response?.data?.message || 'Registration successful but failed to send OTP.');
-        }
+        // Show registration success screen — do NOT auto-login
+        setRegistrationSuccess(true);
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOTPComplete = async (otp: string) => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await verifyOTP(formData.mobile, otp);
-      if (response.success && response.data) {
-        // Update auth context with seller data
-        login(response.data.token, {
-          id: response.data.user.id,
-          name: response.data.user.sellerName,
-          email: response.data.user.email,
-          phone: response.data.user.mobile,
-          userType: 'Seller',
-          storeName: response.data.user.storeName,
-          status: response.data.user.status,
-          address: response.data.user.address,
-          city: response.data.user.city,
-          categories: response.data.user.categories,
-        });
-        // Navigate to seller dashboard
-        navigate('/seller', { replace: true });
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -266,7 +227,7 @@ export default function SellerSignUp() {
               display: none;
             }
           `}</style>
-          {!showOTP ? (
+          {!registrationSuccess ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Required Fields Section */}
               <div className="space-y-4">
@@ -646,51 +607,45 @@ export default function SellerSignUp() {
               </div>
             </form>
           ) : (
-            /* OTP Verification Form */
-            <div className="space-y-4">
-              <div className="text-center">
-                <p className="text-sm text-neutral-600 mb-2">
-                  Enter the 4-digit OTP sent to
-                </p>
-                <p className="text-sm font-semibold text-neutral-800">+91 {formData.mobile}</p>
+            /* Registration Success Screen */
+            <div className="py-8 px-4 text-center space-y-6">
+              <div className="flex justify-center">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-600 animate-bounce">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
               </div>
 
-              <OTPInput onComplete={handleOTPComplete} disabled={loading} />
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-neutral-800">Registration Successful!</h2>
+                <p className="text-neutral-600">Your seller account application has been submitted successfully.</p>
+              </div>
 
-              {error && (
-                <div className="text-sm text-red-600 bg-red-50 p-2 rounded text-center">
-                  {error}
-                </div>
-              )}
+              <div className="bg-teal-50 border border-teal-100 rounded-xl p-4 text-left">
+                <h3 className="text-teal-800 font-semibold text-sm mb-1 flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="16" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                  </svg>
+                  What Happens Next?
+                </h3>
+                <p className="text-teal-700 text-xs leading-relaxed">
+                  Our admin team will review your application within 24-48 hours. Once approved, you'll receive a notification and you can start listing your products.
+                </p>
+              </div>
 
-              <div className="flex gap-2">
+              <div className="pt-4">
                 <button
-                  onClick={() => {
-                    setShowOTP(false);
-                    setError('');
-                  }}
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-lg font-semibold text-sm bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-colors border border-neutral-300"
+                  onClick={() => navigate('/seller/login')}
+                  className="w-full bg-teal-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-teal-700 transition-all transform hover:scale-[1.02]"
                 >
-                  Back
+                  Go to Login
                 </button>
-                <button
-                  onClick={async () => {
-                    setLoading(true);
-                    setError('');
-                    try {
-                      await sendOTP(formData.mobile);
-                    } catch (err: any) {
-                      setError(err.response?.data?.message || 'Failed to resend OTP.');
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-lg font-semibold text-sm bg-teal-600 text-white hover:bg-teal-700 transition-colors"
-                >
-                  {loading ? 'Sending...' : 'Resend OTP'}
-                </button>
+                <p className="mt-4 text-xs text-neutral-500 italic">
+                  * You can login now to see your application status dashboard.
+                </p>
               </div>
             </div>
           )}

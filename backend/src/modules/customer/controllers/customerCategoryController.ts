@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
 import Product from "../../../models/Product";
+import Seller from "../../../models/Seller";
 import mongoose from "mongoose";
 import { cache } from "../../../utils/cache";
 
@@ -57,8 +58,15 @@ export const getCategoriesWithSubs = async (_req: Request, res: Response) => {
       .sort({ order: 1 })
       .lean();
 
+    const approvedSellers = await Seller.find({ status: "Approved" }).select("_id");
+    const approvedIds = approvedSellers.map(s => s._id);
+
     // Build product count maps to filter categories/subcategories that actually have products
-    const activeProductMatch = { status: "Active", publish: true };
+    const activeProductMatch = { 
+       status: "Active", 
+       publish: true,
+       seller: { $in: approvedIds }
+    };
 
     const [categoryCounts, subcategoryCounts] = await Promise.all([
       Product.aggregate([

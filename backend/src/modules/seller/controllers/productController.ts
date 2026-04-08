@@ -46,6 +46,14 @@ export const createProduct = asyncHandler(
     const seller = await Seller.findById(sellerId);
     const isSuperSeller = seller && seller.mobile === "9111966732";
 
+    // Status Check: Only approved sellers can create products
+    if (seller && seller.status !== "Approved") {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is pending admin approval. You cannot create products until your account is approved.",
+      });
+    }
+
     if (!isSuperSeller && newProductData.category && newProductData.category.toString() !== sellerCategoryId.toString()) {
       return res.status(403).json({
         success: false,
@@ -339,6 +347,14 @@ export const updateProduct = asyncHandler(
     const Seller = require("../../../models/Seller").default;
     const seller = await Seller.findById(sellerId);
     const isSuperSeller = seller && seller.mobile === "9111966732";
+
+    // Status Check: Only approved sellers can update products
+    if (seller && seller.status !== "Approved") {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is pending admin approval. You cannot update products until your account is approved.",
+      });
+    }
 
     if (!isSuperSeller && updateData.category && updateData.category.toString() !== sellerCategoryId.toString()) {
       return res.status(403).json({
