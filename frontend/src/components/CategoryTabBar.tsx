@@ -10,11 +10,21 @@ interface Category {
     navUrl?: string;
 }
 
-const CATEGORIES: Category[] = [
-    { id: '1', name: 'For You', icon: CategoryIcons.ForYou, slug: 'all' },
-    { id: '2', name: 'Clothing', icon: CategoryIcons.Fashion, slug: 'fashion' },
-    { id: '15', name: 'Contact Us', icon: CategoryIcons.Contact, slug: 'contact', navUrl: '/contact-us' },
-    { id: '16', name: 'Privacy Policy', icon: CategoryIcons.Privacy, slug: 'privacy', navUrl: '/privacy-policy' },
+const DEFAULT_CATEGORIES: Category[] = [
+    { id: 'all', name: 'For You', icon: CategoryIcons.ForYou, slug: 'all' },
+    { id: 'fashion', name: 'Fashion', icon: CategoryIcons.Fashion, slug: 'fashion' },
+    { id: 'mobiles', name: 'Mobiles', icon: CategoryIcons.Mobiles, slug: 'mobiles' },
+    { id: 'beauty', name: 'Beauty', icon: CategoryIcons.Beauty, slug: 'beauty' },
+    { id: 'electronics', name: 'Electronics', icon: CategoryIcons.Electronics, slug: 'electronics' },
+    { id: 'home', name: 'Home', icon: CategoryIcons.Home, slug: 'home' },
+    { id: 'appliances', name: 'Appliances', icon: CategoryIcons.Appliances, slug: 'appliances' },
+    { id: 'toysbaby', name: 'Toys, baby', icon: CategoryIcons.ToysBaby, slug: 'toysbaby' },
+    { id: 'foodhealth', name: 'Food & Health', icon: CategoryIcons.FoodHealth, slug: 'foodhealth' },
+    { id: 'auto', name: 'Auto Accessories', icon: CategoryIcons.AutoAccessories, slug: 'auto' },
+    { id: 'twowheelers', name: '2 Wheelers', icon: CategoryIcons.TwoWheelers, slug: 'twowheelers' },
+    { id: 'sports', name: 'Sports & more', icon: CategoryIcons.Sports, slug: 'sports' },
+    { id: 'books', name: 'Books & more', icon: CategoryIcons.Books, slug: 'books' },
+    { id: 'furniture', name: 'Furniture', icon: CategoryIcons.Furniture, slug: 'furniture' },
 ];
 
 interface CategoryTabBarProps {
@@ -22,9 +32,16 @@ interface CategoryTabBarProps {
     onCategoryChange?: (categorySlug: string) => void;
     onTabClick?: (tabId: string) => void;
     isLightMode?: boolean;
+    categories?: Category[];
 }
 
-export default function CategoryTabBar({ activeCategory = 'all', onCategoryChange, onTabClick, isLightMode = false }: CategoryTabBarProps) {
+export default function CategoryTabBar({ 
+    activeCategory = 'all', 
+    onCategoryChange, 
+    onTabClick, 
+    isLightMode = false,
+    categories = DEFAULT_CATEGORIES
+}: CategoryTabBarProps) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -58,7 +75,7 @@ export default function CategoryTabBar({ activeCategory = 'all', onCategoryChang
                     WebkitOverflowScrolling: 'touch',
                 }}
             >
-                {CATEGORIES.map((category) => {
+                {categories.map((category) => {
                     const isActive = activeCategory === category.slug;
                     const Icon = category.icon;
 
@@ -71,7 +88,11 @@ export default function CategoryTabBar({ activeCategory = 'all', onCategoryChang
                         >
                             {/* Icon Wrapper */}
                             <div className={`w-[42px] h-[42px] sm:w-[48px] sm:h-[48px] flex items-center justify-center rounded-full transition-all duration-300 ${isActive ? 'bg-[#eef8ff]/60 border border-[#eef8ff]' : 'bg-transparent'}`}>
-                                <Icon className={`w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] ${isActive ? 'text-gray-900' : 'text-gray-700'}`} />
+                                {typeof Icon === 'function' ? (
+                                    <Icon className={`w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] ${isActive ? 'text-gray-900' : 'text-gray-700'}`} />
+                                ) : (
+                                    <div className={`w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] ${isActive ? 'text-gray-900' : 'text-gray-700'}`}>{Icon}</div>
+                                )}
                             </div>
 
                             {/* Text and Underline Wrapper */}

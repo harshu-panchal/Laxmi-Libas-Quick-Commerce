@@ -78,15 +78,7 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Check seller status
-  if (seller.status === 'Pending') {
-    return res.status(403).json({
-      success: false,
-      message: "Your account is pending admin approval. Please wait for approval before logging in.",
-      status: 'pending',
-    });
-  }
-
+  // Block Rejected and Blocked sellers from logging in
   if (seller.status === 'Rejected') {
     return res.status(403).json({
       success: false,
@@ -106,6 +98,8 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
       status: 'blocked',
     });
   }
+
+  // Pending sellers CAN login but with limited access (frontend gates pages based on status)
 
   // Generate JWT token
   const token = generateToken(seller._id.toString(), "Seller", undefined, seller.category.toString());
@@ -178,8 +172,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // All sellers must be approved by admin by default
-  // Auto-approve during development/testing per user needs
-  const shouldAutoApprove = true;
+  const shouldAutoApprove = false;
 
   // Check if seller already exists
   const existingSeller = await Seller.findOne({
@@ -194,6 +187,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const { latitude, longitude } = req.body;
+
+  console.log(`📝 Registering new seller: ${storeName} (${email}), status set to: ${shouldAutoApprove ? "Approved" : "Pending"}`);
 
   const seller = await Seller.create({
     sellerName,
@@ -219,6 +214,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     balance: 0,
     categories: req.body.categories || [],
   });
+
+  console.log(`✅ Seller created successfully: ${seller.storeName} (ID: ${seller._id}), Final Status: ${seller.status}`);
 
   // Notify admin of new seller registration
   try {

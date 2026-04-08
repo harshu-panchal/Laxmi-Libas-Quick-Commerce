@@ -134,7 +134,7 @@ export default function Categories() {
                 {isActive && (
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-dark rounded-r-full" />
                 )}
-                <div className={`w-12 h-12 rounded-full mb-1.5 flex items-center justify-center overflow-hidden border-2 transition-all ${isActive ? 'border-primary-dark/20 scale-110' : 'border-transparent'
+                <div className={`w-12 h-12 rounded-xl mb-1.5 flex items-center justify-center overflow-hidden border-2 transition-all ${isActive ? 'border-primary-dark scale-110 shadow-sm' : 'border-neutral-200'
                   }`}>
                   <img
                     src={cat.image || "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png"}
@@ -185,7 +185,7 @@ export default function Categories() {
                           className="flex flex-col items-center gap-2 group"
                           onClick={() => navigate(item.type === 'category' ? `/category/${item.categoryId}` : '/')}
                         >
-                          <div className="w-16 h-16 rounded-full bg-neutral-50 border border-neutral-100 flex items-center justify-center overflow-hidden group-active:scale-95 transition-transform">
+                          <div className="w-16 h-16 rounded-2xl bg-neutral-50 border border-neutral-100 flex items-center justify-center overflow-hidden group-active:scale-95 transition-transform shadow-sm">
                             <img 
                               src={item.image || item.imageUrl || "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png"} 
                               alt={item.name} 

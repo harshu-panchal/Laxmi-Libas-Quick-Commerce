@@ -8,8 +8,6 @@ import { useLocation } from '../../../hooks/useLocation';
 import { appConfig } from '../../../services/configService';
 import { getCategories } from '../../../services/api/customerProductService';
 import { Category } from '../../../types/domain';
-import { getHeaderCategoriesPublic } from '../../../services/api/headerCategoryService';
-import { getIconByName } from '../../../utils/iconLibrary';
 import CategoryTabBar from '../../../components/CategoryTabBar';
 import { isClothingRelated } from '../../../utils/clothingUtils';
 
@@ -26,22 +24,6 @@ interface HomeHeroProps {
   hideCategoryTabs?: boolean;
 }
 
-interface Tab {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-}
-
-const ALL_TAB: Tab = {
-  id: 'all',
-  label: 'All',
-  icon: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M9 22V12H15V22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-};
 
 export default function HomeHero({
   activeTab = 'all',
@@ -49,29 +31,9 @@ export default function HomeHero({
   hideTopContent = false,
   activeStore = 'laxmart',
   hideLocationBar = false,
-  hideSearchBar = true,
+  hideSearchBar = false,
   hideCategoryTabs = false
 }: HomeHeroProps) {
-  const [tabs, setTabs] = useState<Tab[]>([ALL_TAB]);
-
-  useEffect(() => {
-    const fetchHeaderCategories = async () => {
-      try {
-        const cats = await getHeaderCategoriesPublic();
-        if (cats && cats.length > 0) {
-          const mapped = cats.map(c => ({
-            id: c.slug,
-            label: c.name,
-            icon: getIconByName(c.iconName)
-          }));
-          setTabs([ALL_TAB, ...mapped]);
-        }
-      } catch (error) {
-        console.error('Failed to fetch header categories', error);
-      }
-    };
-    fetchHeaderCategories();
-  }, []);
   const navigate = useNavigate();
   const { location: userLocation } = useLocation();
   const heroRef = useRef<HTMLDivElement>(null);
@@ -292,17 +254,68 @@ export default function HomeHero({
       {/* Top section with delivery info and buttons - NOT sticky */}
       {!hideTopContent && (
         <div className="pt-3 px-3">
-          {/* Row 1: App Icons / Service Tiles - Only Laxmart */}
-          <div className="flex justify-center pb-3 scrollbar-hide px-1">
-            <div className="flex flex-col items-center flex-shrink-0" onClick={() => navigate('/user/home')}>
-              <div className={`w-[72px] h-[54px] rounded-xl p-1 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center justify-between border ${activeStore === 'laxmart' ? 'bg-[#ffec00] border-yellow-300' : 'bg-white border-gray-100'
-                }`}>
-                <div className="flex-1 flex items-center justify-center">
-                  <img src="/laxmart_logo_flat_1774950312611.png" alt="Laxmart" className="w-[26px] h-[26px] object-contain" />
+          {/* Row 1: App Icons / Service Tiles - Restored 4 Tiles */}
+          <div className="flex justify-center gap-2 pb-3 scrollbar-hide px-1">
+            {[
+              { 
+                id: 'laxmart', 
+                name: 'Laxmart', 
+                icon: '/laxmart_logo_flat_1774950312611.png', 
+                path: '/user/home',
+                activeBg: 'bg-[#ffec00]',
+                activeBorder: 'border-yellow-300',
+                inactiveBg: 'bg-white',
+                inactiveBorder: 'border-gray-100'
+              },
+              { 
+                id: 'minutes', 
+                name: 'Minutes', 
+                icon: '/10mins_icon_pink_1774950068063.png', 
+                path: '/store/minutes',
+                activeBg: 'bg-[#ffebf5]',
+                activeBorder: 'border-[#fccde5]',
+                inactiveBg: 'bg-white',
+                inactiveBorder: 'border-gray-100'
+              },
+              { 
+                id: 'travel', 
+                name: 'Travel', 
+                icon: '/travel_airplane_red_flat_1774950352120.png', 
+                path: '/store/travel',
+                activeBg: 'bg-[#fff1f1]',
+                activeBorder: 'border-[#ffdada]',
+                inactiveBg: 'bg-white',
+                inactiveBorder: 'border-gray-100'
+              },
+              { 
+                id: 'grocery', 
+                name: 'Grocery', 
+                icon: '/grocery_saver_green_flat_1774950367400.png', 
+                path: '#grocery',
+                activeBg: 'bg-[#f0fff4]',
+                activeBorder: 'border-[#c6f6d5]',
+                inactiveBg: 'bg-white',
+                inactiveBorder: 'border-gray-100'
+              }
+            ].map((store) => (
+              <div 
+                key={store.id} 
+                className="flex flex-col items-center flex-shrink-0" 
+                onClick={() => {
+                  if (store.path.startsWith('/')) {
+                    navigate(store.path);
+                  }
+                }}
+              >
+                <div className={`w-[72px] h-[54px] rounded-xl p-1 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center justify-between border ${activeStore === store.id ? `${store.activeBg} ${store.activeBorder}` : `${store.inactiveBg} ${store.inactiveBorder}`
+                  }`}>
+                  <div className="flex-1 flex items-center justify-center">
+                    <img src={store.icon} alt={store.name} className="w-[26px] h-[26px] object-contain" />
+                  </div>
+                  <span className="text-[9px] font-[900] text-gray-900 pb-0.5 italic tracking-tight">{store.name}</span>
                 </div>
-                <span className="text-[9px] font-[900] text-gray-900 pb-0.5 italic tracking-tight">Laxmart</span>
               </div>
-            </div>
+            ))}
           </div>
 
           {/* Row 2: Location and Rewards Bar */}

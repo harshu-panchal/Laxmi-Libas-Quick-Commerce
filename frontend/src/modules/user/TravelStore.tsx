@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import HomeHero from './components/HomeHero';
 import { ChevronRight, Building2, Bus, Briefcase, Clock, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
+import LongWeekendDeals from './components/LongWeekendDeals';
 
 const TravelStore: React.FC = () => {
     const navigate = useNavigate();
@@ -74,23 +75,9 @@ const TravelStore: React.FC = () => {
                     </motion.div>
                 </div>
 
-                {/* My Trips */}
-                <motion.div 
-                    whileTap={{ scale: 0.98 }}
-                    className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-gray-100 mb-6 cursor-pointer"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="bg-orange-100 p-2 rounded-xl text-orange-600">
-                            <Briefcase size={20} />
-                        </div>
-                        <span className="font-bold text-gray-800 text-lg">My trips</span>
-                    </div>
-                    <ChevronRight className="text-gray-400" size={24} />
-                </motion.div>
-
                 {/* Vacation Sale Banner */}
-                <div className="rounded-2xl overflow-hidden mb-6 shadow-md border border-blue-50">
-                    <img src="/travel_banner.png" alt="Nation on Vacation Sale" className="w-full h-auto object-cover" />
+                <div className="rounded-2xl overflow-hidden mb-6 shadow-md border border-blue-50 h-[140px]">
+                    <img src="/travel_banner.png" alt="Nation on Vacation Sale" className="w-full h-full object-cover" />
                 </div>
 
                 {/* Bank Offer */}
@@ -107,6 +94,9 @@ const TravelStore: React.FC = () => {
                     </div>
                     <span className="text-[7px] text-gray-300 transform -rotate-90 origin-right whitespace-nowrap">*T&C Apply</span>
                 </div>
+
+                {/* Long Weekend Deals Section */}
+                <LongWeekendDeals />
 
                 {/* Flash Sale Section */}
                 <div className="bg-[#fff9e1] rounded-3xl p-5 mb-8 border border-yellow-200">

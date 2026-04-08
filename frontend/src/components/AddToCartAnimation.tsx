@@ -57,11 +57,13 @@ export default function AddToCartAnimation({
   const flyingThumbnailRef = useRef<HTMLDivElement>(null);
   const prevItemsRef = useRef(cart.items);
 
-  // Hide pill on checkout pages, order pages, and account page (if enabled)
+  // Hide pill on checkout pages, order pages, account page, and travel pages (if enabled)
   const isCheckoutPage = location.pathname === '/checkout' || location.pathname.startsWith('/checkout/');
   const isOrderPage = location.pathname.startsWith('/orders/');
   const isAccountPage = location.pathname === '/account';
-  const shouldHidePill = hideOnPages && (isCheckoutPage || isOrderPage || isAccountPage);
+  const isCartPage = location.pathname === '/cart';
+  const isTravelPage = location.pathname.startsWith('/store/travel');
+  const shouldHidePill = hideOnPages && (isCheckoutPage || isOrderPage || isAccountPage || isCartPage || isTravelPage);
 
   // Detect removed products and trigger bounce-out animation
   useEffect(() => {

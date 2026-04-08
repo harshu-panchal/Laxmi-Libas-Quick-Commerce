@@ -8,6 +8,7 @@ import {
 import { uploadDocument } from "../../../services/api/uploadService";
 import { validateDocumentFile } from "../../../utils/imageUpload";
 import OTPInput from "../../../components/OTPInput";
+import { useAuth } from "../../../context/AuthContext";
 
 export default function DeliverySignUp() {
   const navigate = useNavigate();
@@ -202,7 +203,7 @@ export default function DeliverySignUp() {
         accountNumber: formData.accountNumber || undefined,
         ifscCode: formData.ifscCode || undefined,
         bonusType: formData.bonusType || undefined,
-      });
+      } as any);
 
       if (response.success) {
         // Clear token from registration (we'll get it after OTP verification)
@@ -221,13 +222,17 @@ export default function DeliverySignUp() {
         }
       }
     } catch (err: any) {
-      setError(
-        err.message || "Registration failed. Please try again."
-      );
+      if (err.response?.status === 409) {
+        setError("This mobile or email is already registered. Please Login.");
+      } else {
+        setError(err.message || "Registration failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const { login } = useAuth();
 
   const handleOTPComplete = async (otp: string) => {
     setLoading(true);
@@ -235,7 +240,12 @@ export default function DeliverySignUp() {
 
     try {
       const response = await verifyOTP(formData.mobile, otp, sessionId);
-      if (response.success) {
+      if (response.success && response.data) {
+        // Update auth context before navigating
+        login(response.data.token, {
+          ...response.data.user,
+          userType: 'Delivery'
+        });
         navigate("/delivery");
       }
     } catch (err: any) {

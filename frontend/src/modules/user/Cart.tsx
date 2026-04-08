@@ -1,202 +1,255 @@
+import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
+import { getAddresses, Address } from '../../services/api/customerAddressService';
 import Button from '../../components/ui/button';
 import { appConfig } from '../../services/configService';
 import { calculateProductPrice } from '../../utils/priceUtils';
+import StarRating from '../../components/ui/StarRating';
+import { ChevronDown, Trash2, Bookmark, Zap, Info, ChevronRight } from 'lucide-react';
 
 export default function Cart() {
-  const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { cart, updateQuantity, removeFromCart } = useCart();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('flipkart');
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setLoadingAddresses(true);
+      getAddresses().then(res => {
+        if (res.success && Array.isArray(res.data)) {
+          setAddresses(res.data);
+        }
+      }).finally(() => setLoadingAddresses(false));
+    }
+  }, [isAuthenticated]);
 
   const deliveryFee = (cart.finalTotal || cart.total) >= appConfig.freeDeliveryThreshold ? 0 : appConfig.deliveryFee;
   const platformFee = appConfig.platformFee;
   const totalAmount = (cart.finalTotal || cart.total) + deliveryFee + platformFee;
 
-  const handleCheckout = () => {
-    navigate('/checkout');
+  const getButtonConfig = () => {
+    if (!isAuthenticated) {
+      return { text: 'LOGIN TO PROCEED', action: () => navigate(`/login?redirect=/cart`) };
+    }
+    if (!loadingAddresses && addresses.length === 0) {
+      return { text: 'ADD ADDRESS', action: () => navigate('/checkout/address') };
+    }
+    return { text: 'PROCEED TO CHECKOUT', action: () => navigate('/checkout') };
   };
+
+  const buttonConfig = getButtonConfig();
+
+  // Mock address data for display if logged in and has address
+  const activeAddress = addresses.length > 0 ? addresses[0] : null;
 
   if (cart.items.length === 0) {
     return (
-      <div className="px-4 py-8 md:py-16 text-center">
-        <div className="text-6xl md:text-8xl mb-4">🛒</div>
-        <h2 className="text-xl md:text-2xl font-bold text-neutral-900 mb-2">Your cart is empty</h2>
-        <p className="text-neutral-600 mb-6 md:mb-8 md:text-lg">Add some items to get started!</p>
+      <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center bg-white">
+        <div className="w-24 h-24 bg-neutral-50 rounded-full flex items-center justify-center mb-6">
+          <Trash2 size={48} className="text-neutral-300" />
+        </div>
+        <h2 className="text-xl font-bold text-neutral-900 mb-2">Your cart is empty</h2>
+        <p className="text-neutral-500 mb-8 max-w-[250px]">Add items to your cart to see them here and proceed to checkout.</p>
         <Link to="/">
-          <Button variant="default" size="lg" className="md:px-8 md:py-3 md:text-lg">
-            Start Shopping
+          <Button variant="default" size="lg" className="rounded-full px-10 bg-primary-dark hover:bg-yellow-700">
+            Shop Now
           </Button>
         </Link>
       </div>
     );
   }
 
+  const flipkartItemsCount = cart.items.length; // Simplified for this implementation
+
   return (
-    <div className="pb-4 md:pb-8">
-      {/* Header */}
-      <div className="px-4 md:px-6 lg:px-8 py-4 md:py-6 bg-white border-b border-neutral-200 mb-4 md:mb-6 sticky top-0 z-10">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-xl md:text-2xl font-bold text-neutral-900">Your Basket</h1>
-          {cart.items.length > 0 && (
-            <button
-              onClick={clearCart}
-              className="text-sm md:text-base text-red-600 font-medium hover:text-red-700 transition-colors"
-            >
-              Clear All
-            </button>
-          )}
+    <div className="flex flex-col min-h-screen bg-neutral-100 pb-36">
+      {/* 1. Header */}
+      <div className="bg-white sticky top-0 z-30 shadow-sm">
+        <div className="px-4 py-3 flex items-center justify-between border-b border-neutral-50">
+          <h1 className="text-lg font-semibold text-neutral-800">My Cart</h1>
         </div>
-        <p className="text-xs md:text-sm text-neutral-600">Secure Checkout & Fast Dispatch</p>
+        
+        {/* Tabs */}
+        <div className="flex border-b border-neutral-100">
+          <button 
+            onClick={() => setActiveTab('flipkart')}
+            className={`flex-1 py-3 text-sm font-bold tracking-tight transition-all relative ${
+              activeTab === 'flipkart' ? 'text-blue-600' : 'text-neutral-500'
+            }`}
+          >
+            Flipkart ({flipkartItemsCount})
+            {activeTab === 'flipkart' && (
+              <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-blue-600 rounded-t-full mx-4" />
+            )}
+          </button>
+          <button 
+            onClick={() => setActiveTab('minutes')}
+            className={`flex-1 py-3 text-sm font-bold tracking-tight transition-all relative ${
+              activeTab === 'minutes' ? 'text-blue-600' : 'text-neutral-500'
+            }`}
+          >
+            Minutes/Grocery
+            {activeTab === 'minutes' && (
+              <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-blue-600 rounded-t-full mx-4" />
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Cart Items */}
-      <div className="px-4 md:px-6 lg:px-8 space-y-4 md:space-y-6 mb-4 md:mb-6">
+      {/* 2. Delivery Address */}
+      {isAuthenticated && (
+        <div className="bg-white px-4 py-3 mb-2 flex items-center justify-between">
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-neutral-700 font-medium">Deliver to: <span className="font-bold">{activeAddress ? `${activeAddress.fullName.split(' ')[0]}... , ${activeAddress.pincode}` : 'Select Address'}</span></span>
+              {activeAddress && (
+                <span className="bg-neutral-100 text-[10px] text-neutral-500 font-bold px-1.5 py-0.5 rounded border border-neutral-200">
+                  {activeAddress.type.toUpperCase()}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-neutral-400 truncate max-w-[280px]">
+              {activeAddress ? activeAddress.address : 'Please add a delivery address to proceed'}
+            </p>
+          </div>
+          <Button 
+            onClick={() => navigate('/address-book')}
+            variant="outline" 
+            size="sm" 
+            className="bg-white text-blue-600 border-neutral-200 rounded px-4 py-1.5 h-auto text-xs font-bold hover:bg-neutral-50"
+          >
+            {activeAddress ? 'Change' : 'Add'}
+          </Button>
+        </div>
+      )}
+
+      {/* 3. Cart Items */}
+      <div className="space-y-2">
         {cart.items.map((item) => {
-          const { displayPrice, mrp, hasDiscount } = calculateProductPrice(item.product, item.variant);
-          const hasQuantityDiscount = (item.discountAmount || 0) > 0;
+          const { displayPrice, mrp, discount } = calculateProductPrice(item.product, item.variant);
+          const rating = (item.product.rating || 3.4);
+          const reviews = (item.product.reviews || 150);
 
           return (
-            <div
-              key={item.product.id}
-              className="bg-white rounded-lg border border-neutral-200 p-4 md:p-6 hover:shadow-md transition-shadow"
-            >
-              <div className="flex gap-4 md:gap-6">
-                {/* Product Image */}
-                <div className="w-20 h-20 md:w-24 md:h-24 bg-neutral-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  {item.product.imageUrl ? (
-                    <img
-                      src={item.product.imageUrl}
+            <div key={item.product.id} className="bg-white">
+              <div className="p-4 flex gap-4">
+                {/* Image & Qty */}
+                <div className="flex flex-col gap-3">
+                  <div className="w-20 h-20 bg-neutral-50 rounded border border-neutral-100 overflow-hidden flex items-center justify-center p-1">
+                    <img 
+                      src={item.product.imageUrl || item.product.mainImage} 
                       alt={item.product.name}
-                      className="w-full h-full object-cover rounded-lg"
+                      className="w-full h-full object-contain"
                     />
-                  ) : (
-                    <span className="text-2xl text-neutral-400">
-                      {item.product.name.charAt(0).toUpperCase()}
-                    </span>
-                  )}
+                  </div>
+                  <div className="relative">
+                    <select 
+                      className="w-full bg-white border border-neutral-200 rounded px-2 py-1 text-xs font-bold appearance-none pr-8 cursor-pointer text-neutral-800"
+                      value={item.quantity}
+                      onChange={(e) => updateQuantity(item.product.id, parseInt(e.target.value), item.variant)}
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                        <option key={n} value={n}>Qty: {n}</option>
+                      ) )}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none" />
+                  </div>
                 </div>
 
-                {/* Product Info */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-neutral-900 mb-1 md:mb-2 line-clamp-2 md:text-lg">
-                    {item.product.name}
-                  </h3>
-                  <p className="text-xs md:text-sm text-neutral-500 mb-2">{item.product.pack}</p>
-                  <div className="flex items-center gap-2 mb-3 md:mb-4">
-                    <span className="text-base md:text-lg font-bold text-neutral-900">
-                      ₹{displayPrice.toLocaleString('en-IN')}
-                    </span>
-                    {hasDiscount && (
-                      <span className="text-xs md:text-sm text-neutral-500 line-through">
-                        ₹{mrp.toLocaleString('en-IN')}
+                {/* Info */}
+                <div className="flex-1 flex flex-col pt-0.5 relative">
+                  <button 
+                    onClick={() => removeFromCart(item.product.id, item.variant)}
+                    className="absolute top-0 right-0 p-1 text-neutral-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                  <h3 className="text-sm font-medium text-neutral-900 pr-8 line-clamp-1 mb-1">
+                    {((item.product as any).brand || item.product.manufacturer) && (
+                      <span className="font-bold mr-1 uppercase text-neutral-500 text-[10px] tracking-wide">
+                        {(item.product as any).brand || item.product.manufacturer}
                       </span>
                     )}
+                    {item.product.name}
+                  </h3>
+                  <p className="text-xs text-neutral-500 mb-2">Size: {item.variant?.title || 'M'}</p>
+                  
+                  {/* Rating */}
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <StarRating rating={rating} reviewCount={reviews} size="sm" showCount={true} />
                   </div>
 
-                  {/* Quantity Controls */}
-                  <div className="flex items-center gap-3 md:gap-4">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.variant)}
-                      className="w-8 h-8 md:w-10 md:h-10 p-0 border-neutral-300 text-neutral-600 hover:border-primary-dark hover:text-primary-dark md:text-lg"
-                    >
-                      −
-                    </Button>
-                    <span className="text-base md:text-lg font-semibold text-neutral-900 min-w-[2rem] md:min-w-[2.5rem] text-center">
-                      {item.quantity}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variant)}
-                      className="w-8 h-8 md:w-10 md:h-10 p-0 border-neutral-300 text-neutral-600 hover:border-primary-dark hover:text-primary-dark md:text-lg"
-                    >
-                      +
-                    </Button>
-                    <div className="ml-auto text-right">
-                      <div className="text-sm md:text-base font-bold text-neutral-900">
-                        ₹{(displayPrice * item.quantity - (item.discountAmount || 0)).toFixed(0)}
-                      </div>
-                      {hasQuantityDiscount && (
-                        <div className="text-[10px] md:text-xs text-primary-dark font-medium">
-                          Saved ₹{(item.discountAmount || 0).toFixed(0)}
-                        </div>
-                      )}
+                  {/* Price */}
+                  <div className="flex items-center flex-wrap gap-2 mb-1.5">
+                    {discount > 0 && (
+                      <span className="text-green-600 text-sm font-bold flex items-center gap-0.5">
+                        <span className="text-[12px]">↓</span>{discount}%
+                      </span>
+                    )}
+                    <span className="text-sm text-neutral-400 line-through">₹{mrp.toLocaleString('en-IN')}</span>
+                    <span className="text-base font-black text-neutral-900">₹{displayPrice.toLocaleString('en-IN')}</span>
+                  </div>
+
+                  {/* Wow Offer */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="bg-blue-600 text-white text-[8px] font-black px-1 py-0.5 rounded italic">WOW!</span>
+                      <span className="text-[11px] font-bold text-blue-600">Buy at ₹{(displayPrice * 0.75).toFixed(0)}</span>
+                    </div>
+                    <div className="text-[10px] text-neutral-500">
+                      Or Pay ₹{(displayPrice * 0.9).toFixed(0)} + <span className="text-yellow-500 font-bold">12 🪙</span>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Remove Button */}
-                <button
-                  onClick={() => removeFromCart(item.product.id, item.variant)}
-                  className="text-neutral-400 hover:text-red-600 transition-colors self-start"
-                  aria-label="Remove item"
-                >
-                  ✕
-                </button>
+              {/* Delivery Info */}
+              <div className="px-4 pb-4 border-b border-neutral-100">
+                <p className="text-xs text-neutral-800">
+                  Delivery by <span className="font-bold">Apr 11, Sat</span>
+                </p>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Order Summary */}
-      <div className="px-4 md:px-6 lg:px-8 mb-24 md:mb-8">
-        <div className="bg-white rounded-xl border border-neutral-200 p-4 md:p-6 shadow-sm md:max-w-md md:ml-auto">
-          <h2 className="text-lg md:text-xl font-bold text-neutral-900 mb-4 md:mb-6">Order Summary</h2>
-          <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
-            <div className="flex justify-between text-neutral-700 md:text-base">
-              <span>Subtotal</span>
-              <span className="font-medium">₹{cart.total.toLocaleString('en-IN')}</span>
-            </div>
-
-            {(cart.totalDiscount || 0) > 0 && (
-              <div className="flex justify-between text-primary-dark md:text-base font-medium">
-                <span>Quantity Discount</span>
-                <span>- ₹{cart.totalDiscount?.toLocaleString('en-IN')}</span>
-              </div>
-            )}
-
-            <div className="flex justify-between text-neutral-700 md:text-base">
-              <span>Platform Fee</span>
-              <span className="font-medium">₹{platformFee.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between text-neutral-700 md:text-base">
-              <span>Delivery Charges</span>
-              <span className={`font-medium ${deliveryFee === 0 ? 'text-primary-dark' : ''}`}>
-                {deliveryFee === 0 ? 'Free' : `₹${deliveryFee.toLocaleString('en-IN')}`}
-              </span>
-            </div>
-
-            {(cart.totalDiscount || 0) > 0 && (
-              <div className="bg-yellow-50 text-yellow-700 px-3 py-2 rounded-lg text-xs md:text-sm font-medium border border-yellow-100">
-                🎉 You saved ₹{cart.totalDiscount?.toLocaleString('en-IN')} on this order!
-              </div>
-            )}
-
-            {(cart.finalTotal || cart.total) < appConfig.freeDeliveryThreshold && (
-              <div className="text-xs md:text-sm text-primary-dark bg-yellow-50 px-2 py-1 rounded">
-                Add ₹{(appConfig.freeDeliveryThreshold - (cart.finalTotal || cart.total)).toLocaleString('en-IN')} more for free delivery
-              </div>
-            )}
+      {/* 4. Bottom Sticky Section */}
+      <div className="fixed bottom-[90px] md:bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-100 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        {/* Savings Ribbon */}
+        <div className="bg-emerald-50 px-4 py-2 flex items-center gap-2 border-b border-emerald-100">
+          <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-[10px] font-bold">%</span>
           </div>
-          <div className="border-t border-neutral-200 pt-4 md:pt-6">
-            <div className="flex justify-between items-center mb-4 md:mb-6">
-              <span className="text-lg md:text-xl font-bold text-neutral-900">Total</span>
-              <span className="text-xl md:text-2xl font-bold text-neutral-900">
-                ₹{totalAmount.toLocaleString('en-IN')}
-              </span>
+          <span className="text-xs font-bold text-emerald-700">
+            You'll save ₹{cart.totalDiscount?.toLocaleString('en-IN') || '27,220'} on this order!
+          </span>
+        </div>
+
+        {/* Pricing Actions */}
+        <div className="px-4 py-3 flex items-center justify-between gap-4">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-neutral-400 line-through">₹{(totalAmount * 1.4).toLocaleString('en-IN')}</span>
+              <span className="text-lg font-black text-neutral-900">₹{totalAmount.toLocaleString('en-IN')}</span>
+              <Info size={14} className="text-neutral-300" />
             </div>
-            <Button
-              variant="default"
-              size="lg"
-              onClick={handleCheckout}
-              className="w-full md:py-3 md:text-lg"
-            >
-              Proceed to Checkout
-            </Button>
+            <button className="text-[10px] font-bold text-blue-600 flex items-center gap-0.5">
+              View price details <ChevronRight size={10} />
+            </button>
           </div>
+          <Button 
+            onClick={buttonConfig.action}
+            size="lg" 
+            className="flex-1 max-w-[200px] h-12 bg-[#fbbf24] hover:bg-[#d97706] text-neutral-900 text-[13px] font-black tracking-tight rounded uppercase shadow-md transition-all active:scale-95"
+          >
+            {buttonConfig.text}
+          </Button>
         </div>
       </div>
     </div>

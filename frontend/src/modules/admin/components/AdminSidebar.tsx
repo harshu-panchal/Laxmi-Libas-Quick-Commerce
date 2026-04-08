@@ -34,33 +34,6 @@ const menuSections: MenuSection[] = [
       {
         label: "Category",
         path: "/admin/category",
-        hasSubmenu: true,
-        submenuItems: [
-          {
-            label: "Category",
-            path: "/admin/category",
-            icon: (
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round">
-                <rect
-                  x="3"
-                  y="3"
-                  width="18"
-                  height="18"
-                  rx="2"
-                  strokeDasharray="4 2"></rect>
-                <path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01"></path>
-              </svg>
-            ),
-          },
-        ],
         icon: (
           <svg
             width="18"
@@ -79,6 +52,60 @@ const menuSections: MenuSection[] = [
               rx="2"
               strokeDasharray="4 2"></rect>
             <path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01"></path>
+          </svg>
+        ),
+      },
+      {
+        label: "Header Category",
+        path: "/admin/category/header",
+        icon: (
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round">
+            <path d="M3 3h18v18H3zM3 9h18M9 3v18"></path>
+          </svg>
+        ),
+      },
+      {
+        label: "Sub Category",
+        path: "/admin/subcategory",
+        icon: (
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round">
+            <path d="M4 4h16v16H4zM4 12h16M12 4v16"></path>
+          </svg>
+        ),
+      },
+      {
+        label: "SubCategory Order",
+        path: "/admin/subcategory-order",
+        icon: (
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round">
+            <path d="M3 12h18M3 6h18M3 18h18"></path>
+            <circle cx="7" cy="6" r="1"></circle>
+            <circle cx="7" cy="12" r="1"></circle>
+            <circle cx="7" cy="18" r="1"></circle>
           </svg>
         ),
       },

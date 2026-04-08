@@ -36,10 +36,10 @@ export default function CategoryPage() {
       setCategoryLoading(true);
       setError(null);
       
-      /* 
-      // Handle mock Men's Wear category
-      if (id === "mens-wear") {
-        setCategory({ _id: "mens-wear", id: "mens-wear", name: "Men's Wear" } as any);
+      // Handle mock Clothing-related categories
+      if (isClothingRelated(id)) {
+        const mockName = id?.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') || "Category";
+        setCategory({ _id: id, id: id, name: mockName } as any);
         setSubcategories([
           {
             _id: "all",
@@ -48,11 +48,11 @@ export default function CategoryPage() {
             icon: "📦",
             isActive: true,
           } as any,
+          ...CLOTHING_MOCK_DATA.subcategories.map(s => ({ ...s, _id: s.id } as any))
         ]);
         setCategoryLoading(false);
         return;
       }
-      */
 
       try {
         const response = await getCategoryById(id!);
@@ -160,12 +160,22 @@ export default function CategoryPage() {
 
           if (safeProducts.length === 0 && isClothingCat) {
             const activeId = category?._id || category?.id || id;
-            safeProducts = CLOTHING_MOCK_DATA.products.map(p => ({
-              ...p,
-              category: activeId,
-              categoryId: activeId,
-              subcategoryId: selectedSubcategory !== 'all' ? selectedSubcategory : p.subcategoryId
-            }));
+            safeProducts = CLOTHING_MOCK_DATA.products
+              .filter(p => {
+                const productCatId = (p.category as any)?._id || p.category || (p as any).categoryId;
+                const isMainCatMatch = productCatId?.toString() === activeId?.toString();
+                
+                if (selectedSubcategory !== 'all') {
+                  return isMainCatMatch && (p.subcategoryId === selectedSubcategory || p._id === selectedSubcategory);
+                }
+                return isMainCatMatch;
+              })
+              .map(p => ({
+                ...p,
+                category: activeId,
+                categoryId: activeId,
+                subcategoryId: selectedSubcategory !== 'all' ? selectedSubcategory : p.subcategoryId
+              }));
           }
           
           setProducts(safeProducts);

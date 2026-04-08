@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../../services/api/config';
 
 interface Seller {
     _id: string;
@@ -36,27 +37,20 @@ export default function AdminPendingSellers() {
     const fetchSellers = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('authToken');
             const endpoint = filterStatus === 'All'
-                ? '/api/v1/admin/sellers'
+                ? '/admin/sellers'
                 : filterStatus === 'Pending'
-                    ? '/api/v1/admin/sellers/pending'
-                    : `/api/v1/admin/sellers/status/${filterStatus}`;
+                    ? '/admin/sellers/pending'
+                    : `/admin/sellers/status/${filterStatus}`;
 
-            const response = await fetch(endpoint, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                setSellers(data.data || []);
+            const response = await api.get(endpoint);
+            if (response.data.success) {
+                setSellers(response.data.data || []);
             } else {
-                setError(data.message || 'Failed to fetch sellers');
+                setError(response.data.message || 'Failed to fetch sellers');
             }
         } catch (err: any) {
-            setError('Failed to fetch sellers');
+            setError(err.response?.data?.message || 'Failed to fetch sellers');
             console.error(err);
         } finally {
             setLoading(false);
@@ -66,25 +60,17 @@ export default function AdminPendingSellers() {
     const handleApprove = async (sellerId: string) => {
         try {
             setActionLoading(true);
-            const token = localStorage.getItem('authToken');
-            const response = await fetch(`/api/v1/admin/sellers/${sellerId}/approve`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
+            const response = await api.post(`/admin/sellers/${sellerId}/approve`);
 
-            const data = await response.json();
-            if (data.success) {
+            if (response.data.success) {
                 alert('Seller approved successfully!');
                 setShowModal(false);
                 fetchSellers();
             } else {
-                alert(data.message || 'Failed to approve seller');
+                alert(response.data.message || 'Failed to approve seller');
             }
-        } catch (err) {
-            alert('Failed to approve seller');
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to approve seller');
             console.error(err);
         } finally {
             setActionLoading(false);
@@ -99,27 +85,18 @@ export default function AdminPendingSellers() {
 
         try {
             setActionLoading(true);
-            const token = localStorage.getItem('authToken');
-            const response = await fetch(`/api/v1/admin/sellers/${sellerId}/reject`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ reason: rejectionReason }),
-            });
+            const response = await api.post(`/admin/sellers/${sellerId}/reject`, { reason: rejectionReason });
 
-            const data = await response.json();
-            if (data.success) {
+            if (response.data.success) {
                 alert('Seller rejected successfully');
                 setShowModal(false);
                 setRejectionReason('');
                 fetchSellers();
             } else {
-                alert(data.message || 'Failed to reject seller');
+                alert(response.data.message || 'Failed to reject seller');
             }
-        } catch (err) {
-            alert('Failed to reject seller');
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to reject seller');
             console.error(err);
         } finally {
             setActionLoading(false);
@@ -131,26 +108,17 @@ export default function AdminPendingSellers() {
 
         try {
             setActionLoading(true);
-            const token = localStorage.getItem('authToken');
-            const response = await fetch(`/api/v1/admin/sellers/${sellerId}/block`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ reason }),
-            });
+            const response = await api.post(`/admin/sellers/${sellerId}/block`, { reason });
 
-            const data = await response.json();
-            if (data.success) {
+            if (response.data.success) {
                 alert('Seller blocked successfully');
                 setShowModal(false);
                 fetchSellers();
             } else {
-                alert(data.message || 'Failed to block seller');
+                alert(response.data.message || 'Failed to block seller');
             }
-        } catch (err) {
-            alert('Failed to block seller');
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to block seller');
             console.error(err);
         } finally {
             setActionLoading(false);
@@ -165,13 +133,16 @@ export default function AdminPendingSellers() {
     const getStatusBadge = (status: string) => {
         const badges = {
             Pending: 'bg-yellow-100 text-yellow-700',
-            Approved: 'bg-yellow-100 text-yellow-700',
+            Approved: 'bg-teal-100 text-teal-700',
             Rejected: 'bg-red-100 text-red-700',
-            Blocked: 'bg-gray-100 text-gray-700',
-        };
+            Blocked: 'bg-neutral-800 text-white',
+        } as const;
+
+        const badgeClass = badges[status as keyof typeof badges] || 'bg-gray-100 text-gray-700';
+
         return (
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${badges[status as keyof typeof badges]}`}>
-                {status}
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${badgeClass}`}>
+                {status || 'Unknown'}
             </span>
         );
     };
@@ -246,7 +217,7 @@ export default function AdminPendingSellers() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="text-xs text-neutral-600">
-                                                {seller.categories.join(', ')}
+                                                {seller.categories?.join(', ') || 'N/A'}
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">
@@ -320,7 +291,7 @@ export default function AdminPendingSellers() {
 
                                 <div>
                                     <label className="text-xs font-medium text-neutral-600">Categories</label>
-                                    <p className="text-sm text-neutral-900">{selectedSeller.categories.join(', ')}</p>
+                                    <p className="text-sm text-neutral-900">{selectedSeller.categories?.join(', ') || 'N/A'}</p>
                                 </div>
 
                                 <div>
