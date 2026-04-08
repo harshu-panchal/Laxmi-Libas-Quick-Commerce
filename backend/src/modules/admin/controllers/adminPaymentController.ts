@@ -11,7 +11,7 @@ export const getPaymentMethods = asyncHandler(
         const { status } = req.query;
 
         const query: any = {
-            // Only show COD and Razorpay payment methods
+            // Only show COD and PhonePe payment methods
             $or: [
                 { type: "COD" },
                 { provider: { $regex: /phonepe/i } },

@@ -479,7 +479,7 @@ export default function Checkout() {
           }
         }
         // Note: For Online payment, the cart will be cleared and success shown only after successful payment
-        // See the RazorpayCheckout onSuccess handler (lines 1840-1846)
+        // See the PhonePe redirect process
       }
     } catch (error: any) {
       console.error("Order placement failed", error);

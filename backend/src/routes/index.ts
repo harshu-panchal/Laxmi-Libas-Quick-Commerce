@@ -162,7 +162,7 @@ router.use("/seller/wallet", walletRoutes);
 // Tax routes (protected, seller/admin)
 router.use("/seller/taxes", taxRoutes);
 
-// Payment routes (Razorpay integration)
+// Payment routes (PhonePe integration)
 router.use("/payment", paymentRoutes);
 
 // Seller wallet routes (protected, seller only)

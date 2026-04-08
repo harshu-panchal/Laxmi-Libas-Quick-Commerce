@@ -4,13 +4,17 @@ import { Request, Response } from 'express';
 import { createPhonePeOrder, handlePhonePeCallback, getPhonePePaymentStatus, processPhonePeRefund } from '../services/paymentService';
 import Order from '../models/Order';
 import Payment from '../models/Payment';
+import mongoose from 'mongoose';
 
 const router = Router();
 
 router.post('/phonepe/create', authenticate, requireUserType('Customer'), async (req: Request, res: Response) => {
     try {
         const { orderId } = req.body;
-        // requestedAmount was unused, removing it.
+        
+        if (!mongoose.Types.ObjectId.isValid(orderId)) {
+            return res.status(400).json({ success: false, message: 'Invalid Order ID format' });
+        }
 
         const order = await Order.findById(orderId);
         if (!order) {

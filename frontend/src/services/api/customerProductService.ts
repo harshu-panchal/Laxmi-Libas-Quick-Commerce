@@ -57,7 +57,8 @@ export interface CategoryListResponse {
  * Location (latitude/longitude) is required to filter products by seller's service radius
  */
 export const getProducts = async (params?: GetProductsParams): Promise<ProductListResponse> => {
-    // Handle mock Men's Wear category
+    /*
+    // Handle mock Men's Wear category - Disabled for live flow testing
     if (params?.category === 'mens-wear') {
         const { CLOTHING_MOCK_DATA } = await import('../../utils/clothingMockData');
         return {
@@ -66,6 +67,7 @@ export const getProducts = async (params?: GetProductsParams): Promise<ProductLi
             pagination: { page: 1, limit: 10, total: CLOTHING_MOCK_DATA.products.length, pages: 1 }
         };
     }
+    */
     const response = await api.get<ProductListResponse>('/customer/products', { params });
     
     if (response.data && response.data.success && Array.isArray(response.data.data)) {

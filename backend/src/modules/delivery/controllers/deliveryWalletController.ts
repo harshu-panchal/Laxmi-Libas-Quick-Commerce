@@ -47,7 +47,7 @@ export const getBalance = async (req: Request, res: Response) => {
 };
 
 /**
- * Create Razorpay order for paying admin
+ * Create PhonePe order for paying admin
  */
 export const createAdminPayoutOrder = async (req: Request, res: Response) => {
   try {
@@ -79,7 +79,10 @@ export const createAdminPayoutOrder = async (req: Request, res: Response) => {
     const clientId = process.env.PHONEPE_CLIENT_ID?.trim() || '';
     const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
     const clientVersion = Number(process.env.PHONEPE_CLIENT_VERSION?.trim()) || 1;
-    const env = process.env.NODE_ENV === 'production' ? Env.PRODUCTION : (Env as any).SANDBOX || (Env as any).UAT;
+    const phonepeEnv = process.env.PHONEPE_ENV?.trim().toUpperCase();
+    const env = (phonepeEnv === 'PRODUCTION' || process.env.NODE_ENV === 'production') 
+        ? Env.PRODUCTION 
+        : (Env as any).SANDBOX || (Env as any).UAT;
 
     const phonePeClient = StandardCheckoutClient.getInstance(
         clientId,
@@ -137,7 +140,10 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
     const clientId = process.env.PHONEPE_CLIENT_ID?.trim() || '';
     const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
     const clientVersion = Number(process.env.PHONEPE_CLIENT_VERSION?.trim()) || 1;
-    const env = process.env.NODE_ENV === 'production' ? Env.PRODUCTION : (Env as any).SANDBOX || (Env as any).UAT;
+    const phonepeEnv = process.env.PHONEPE_ENV?.trim().toUpperCase();
+    const env = (phonepeEnv === 'PRODUCTION' || process.env.NODE_ENV === 'production') 
+        ? Env.PRODUCTION 
+        : (Env as any).SANDBOX || (Env as any).UAT;
 
     const phonePeClient = StandardCheckoutClient.getInstance(
         clientId,

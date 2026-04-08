@@ -2,6 +2,7 @@ import { StandardCheckoutClient, Env, StandardCheckoutPayRequest } from '@phonep
 import Payment from '../models/Payment';
 import Order from '../models/Order';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 
 let phonePeClient: StandardCheckoutClient | null = null;
 
@@ -11,7 +12,11 @@ const getPhonePeClient = () => {
         const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
         const clientVersion = Number(process.env.PHONEPE_CLIENT_VERSION?.trim()) || 1;
         // PhonePe SDK usually uses SANDBOX for non-production
-        const env = process.env.NODE_ENV === 'production' ? Env.PRODUCTION : (Env as any).SANDBOX || (Env as any).UAT;
+        const phonepeEnv = process.env.PHONEPE_ENV?.trim().toUpperCase();
+        // Use PRODUCTION if explicitly set, otherwise fallback to SANDBOX/UAT
+        const env = (phonepeEnv === 'PRODUCTION' || process.env.NODE_ENV === 'production') 
+            ? Env.PRODUCTION 
+            : (Env as any).SANDBOX || (Env as any).UAT;
 
         if (!clientId || !clientSecret) {
             console.error('[PhonePe] Missing configuration');
@@ -180,6 +185,9 @@ export const processPhonePeRefund = async (
     reason?: string
 ) => {
     try {
+        if (!mongoose.Types.ObjectId.isValid(paymentId)) {
+            throw new Error('Invalid payment ID format');
+        }
         const payment = await Payment.findById(paymentId);
         if (!payment || !payment.phonepeTransactionId || !payment.phonepeMerchantTransactionId) {
             throw new Error('Valid PhonePe payment not found');

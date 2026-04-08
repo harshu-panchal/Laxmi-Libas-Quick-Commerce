@@ -79,7 +79,7 @@ export const getDeliveryCommissions = async () => {
 };
 
 /**
- * Create Razorpay order for admin payout
+ * Create PhonePe order for admin payout
  */
 export const createAdminPayoutOrder = async (amount: number) => {
   try {
