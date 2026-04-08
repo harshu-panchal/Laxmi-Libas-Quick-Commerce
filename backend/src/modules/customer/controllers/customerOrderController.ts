@@ -49,8 +49,12 @@ export const createOrder = async (req: Request, res: Response) => {
         // Validate Quantity-Based Discounts before proceeding
         try {
             const itemsForValidation = await Promise.all(items.map(async (item: any) => {
-                const product = await Product.findById(item.product.id || item.product._id).select('category seller price discPrice');
-                if (!product) throw new Error(`Product ${item.product.id} not found`);
+                const prodId = item.product.id || item.product._id;
+                if (!mongoose.Types.ObjectId.isValid(prodId)) {
+                    throw new Error(`Invalid Product ID: ${prodId}`);
+                }
+                const product = await Product.findById(prodId).select('category seller price discPrice');
+                if (!product) throw new Error(`Product ${prodId} not found`);
 
                 const itemPrice = (product.discPrice && product.discPrice > 0)
                     ? product.discPrice
