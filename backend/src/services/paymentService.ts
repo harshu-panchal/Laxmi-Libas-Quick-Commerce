@@ -4,8 +4,8 @@ import Payment from '../models/Payment';
 import Order from '../models/Order';
 import mongoose from 'mongoose';
 
-// PhonePe API Details
-const PHONEPE_MERCHANT_ID = process.env.PHONEPE_CLIENT_ID?.trim() || '';
+// PhonePe API Details - Using both Merchant ID and Client ID/Secret
+const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID?.trim() || process.env.PHONEPE_CLIENT_ID?.trim() || '';
 const PHONEPE_SALT_KEY = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
 const PHONEPE_SALT_INDEX = 1; 
 const PHONEPE_ENV = process.env.PHONEPE_ENV?.trim().toUpperCase() || 'SANDBOX';
@@ -25,6 +25,7 @@ export const createPhonePeOrder = async (
         const amountInPaise = Math.round(amount * 100);
         const merchantTransactionId = `T${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
 
+        // Standard PhonePe Request Payload
         const payload = {
             merchantId: PHONEPE_MERCHANT_ID,
             merchantTransactionId: merchantTransactionId,
@@ -32,7 +33,7 @@ export const createPhonePeOrder = async (
             amount: amountInPaise,
             redirectUrl: `${process.env.FRONTEND_URL}/payment/verify`,
             redirectMode: 'REDIRECT',
-            callbackUrl: `${process.env.BACKEND_URL || 'https://api.laxmart.store'}/api/v1/payment/phonepe/callback`,
+            callbackUrl: `https://api.laxmart.store/api/v1/payment/phonepe/callback`,
             paymentInstrument: {
                 type: 'PAY_PAGE'
             }
@@ -45,7 +46,7 @@ export const createPhonePeOrder = async (
 
         const url = `${getBaseUrl()}/pg/v1/pay`;
         
-        console.log(`[PhonePe Direct] Creating order in ${PHONEPE_ENV} mode...`);
+        console.log(`[PhonePe Direct] Initiating payment for ${PHONEPE_MERCHANT_ID} (${PHONEPE_ENV})`);
         
         const response = await axios.post(url, 
             { request: base64Payload },
@@ -68,13 +69,16 @@ export const createPhonePeOrder = async (
                 },
             };
         } else {
+            console.error('[PhonePe Response Error]', response.data);
             throw new Error(response.data?.message || 'PhonePe request failed');
         }
     } catch (error: any) {
-        console.error('[PhonePe] Order creation failed:', error.response?.data || error.message);
+        const errorData = error.response?.data;
+        console.error('[PhonePe] Order creation failed:', errorData || error.message);
+        
         return {
             success: false,
-            message: error.response?.data?.message || error.message || 'Failed to create PhonePe payment',
+            message: errorData?.message || error.message || 'Failed to create PhonePe payment',
         };
     }
 };
@@ -85,9 +89,6 @@ export const handlePhonePeCallback = async (body: any, xVerifyHeader?: string) =
             throw new Error('Invalid callback payload');
         }
 
-        // Optional: Manual validation of xVerifyHeader can be added here if needed
-        // For simplicity, we decode and trust the payload (ensure to add validation later)
-        
         const payload = JSON.parse(Buffer.from(body.response, 'base64').toString('utf8'));
         const { merchantTransactionId, transactionId, state } = payload.data;
 
@@ -173,7 +174,7 @@ export const processPhonePeRefund = async (paymentId: string, amount?: number, r
             merchantTransactionId: refundTransactionId,
             originalTransactionId: payment.phonepeMerchantTransactionId,
             amount: Math.round(refundAmount * 100),
-            callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/phonepe/callback`
+            callbackUrl: `https://api.laxmart.store/api/v1/payment/phonepe/callback`
         };
 
         const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
