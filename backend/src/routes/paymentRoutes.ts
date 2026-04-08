@@ -8,6 +8,31 @@ import mongoose from 'mongoose';
 
 const router = Router();
 
+router.get('/phonepe/debug-config', async (req: Request, res: Response) => {
+    try {
+        const clientId = process.env.PHONEPE_CLIENT_ID?.trim() || '';
+        const phonepeEnv = process.env.PHONEPE_ENV?.trim().toUpperCase();
+        const nodeEnv = process.env.NODE_ENV;
+        
+        const env = (phonepeEnv === 'PRODUCTION' || nodeEnv === 'production') 
+            ? 'PRODUCTION' 
+            : 'SANDBOX/UAT';
+
+        return res.status(200).json({
+            success: true,
+            running_config: {
+                PHONEPE_CLIENT_ID_START: clientId.substring(0, 5) + '...',
+                PHONEPE_ENV: phonepeEnv,
+                NODE_ENV: nodeEnv,
+                SELECTED_SDK_ENV: env,
+                IS_PROD_URL: process.env.API_BASE_URL?.includes('api.phonepe.com')
+            }
+        });
+    } catch (error: any) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 router.post('/phonepe/create', authenticate, requireUserType('Customer'), async (req: Request, res: Response) => {
     try {
         const { orderId } = req.body;
