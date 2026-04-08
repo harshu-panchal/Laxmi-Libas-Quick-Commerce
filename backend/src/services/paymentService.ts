@@ -4,18 +4,17 @@ import Order from '../models/Order';
 import crypto from 'crypto';
 
 /**
- * 🎯 CLEAN REBUILD: PhonePe Production Service
+ * 🎯 FINAL PRODUCTION: PhonePe Service
  */
 
 // Production Configuration
-const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID?.trim() || 'M23NFM3XGWEBP';
 const CLIENT_ID = process.env.PHONEPE_CLIENT_ID?.trim() || '';
 const CLIENT_SECRET = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
 const CLIENT_VERSION = Number(process.env.PHONEPE_CLIENT_VERSION?.trim()) || 1;
 const ENV_MODE = process.env.PHONEPE_ENV?.trim().toUpperCase() === 'PRODUCTION' ? Env.PRODUCTION : Env.SANDBOX;
 
 const FRONTEND_URL = process.env.FRONTEND_URL?.replace(/\/$/, '') || 'https://laxmart.store';
-const BACKEND_URL = 'https://api.laxmart.store';
+const BACKEND_URL = 'https://api.laxmart.store/';
 
 // Initialize SDK Client (Singleton)
 let phonePeClient: StandardCheckoutClient | null = null;
@@ -41,34 +40,12 @@ const getPhonePeClient = () => {
  */
 export const createPhonePeOrder = async (orderId: string) => {
     try {
-        const clientId = process.env.PHONEPE_CLIENT_ID?.trim();
-        const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim();
-        const isMock = process.env.USE_MOCK_PAYMENT === 'true' || !clientId || !clientSecret;
-
-        // If in development and missing config, or if mock is explicitly set
-        if (isMock && process.env.NODE_ENV !== 'production') {
-            console.log('[PhonePe] 🧪 Generating MOCK payment order for development');
-            const merchantTransactionId = `MOCK_T${Date.now()}${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-            
-            return {
-                success: true,
-                message: 'Mock payment initiated',
-                data: {
-                    // Redirect to a frontend route that simulates payment success
-                    redirectUrl: `${process.env.FRONTEND_URL}/payment/verify?transactionId=${merchantTransactionId}&status=COMPLETED&amount=${amount}`,
-                    merchantTransactionId: merchantTransactionId,
-                    amount: amount,
-                    isMock: true
-                },
-            };
-        }
-
         const client = getPhonePeClient();
-        
+
         // Fetch Order total from DB
         const order = await Order.findById(orderId);
         if (!order) throw new Error('Order not found in database');
-        
+
         const amountInPaise = Math.round(order.total * 100);
         // Generate a clean MTID
         const merchantTransactionId = `MT${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
@@ -106,7 +83,7 @@ export const createPhonePeOrder = async (orderId: string) => {
         };
 
     } catch (error: any) {
-        console.error('[PhonePe Rebuild] Creation Error:', error.message);
+        console.error('[PhonePe] Creation Error:', error.message);
         return { success: false, message: error.message || 'Payment initiation failed' };
     }
 };
@@ -131,10 +108,10 @@ export const getPhonePePaymentStatus = async (merchantTransactionId: string) => 
                 payment.status = 'Completed';
                 payment.paidAt = new Date();
                 await payment.save();
-                
-                await Order.findByIdAndUpdate(payment.order, { 
+
+                await Order.findByIdAndUpdate(payment.order, {
                     paymentStatus: 'Paid',
-                    status: 'Received' 
+                    status: 'Received'
                 });
             } else if (state === 'FAILED') {
                 payment.status = 'Failed';
@@ -150,7 +127,7 @@ export const getPhonePePaymentStatus = async (merchantTransactionId: string) => 
         };
 
     } catch (error: any) {
-        console.error('[PhonePe Rebuild] Status Check Error:', error.message);
+        console.error('[PhonePe] Status Check Error:', error.message);
         return { success: false, message: error.message };
     }
 };
@@ -161,7 +138,7 @@ export const getPhonePePaymentStatus = async (merchantTransactionId: string) => 
 export const handlePhonePeCallback = async (body: any, xVerifyHeader?: string) => {
     try {
         const client = getPhonePeClient();
-        
+
         // Decode the callback payload
         const responseData = typeof body === 'string' ? JSON.parse(body) : body;
         if (!responseData.response) throw new Error('Invalid callback payload format');
@@ -169,7 +146,7 @@ export const handlePhonePeCallback = async (body: any, xVerifyHeader?: string) =
         const decoded = JSON.parse(Buffer.from(responseData.response, 'base64').toString('utf-8'));
         const { merchantTransactionId, state, transactionId } = decoded.data;
 
-        console.log(`[PhonePe Webhook] Received update for ${merchantTransactionId} | State: ${state}`);
+        console.log(`[PhonePe Webhook] Update for ${merchantTransactionId} | State: ${state}`);
 
         const payment = await Payment.findOne({ phonepeMerchantTransactionId: merchantTransactionId });
         if (!payment || payment.status === 'Completed') return { success: true };
@@ -180,7 +157,7 @@ export const handlePhonePeCallback = async (body: any, xVerifyHeader?: string) =
             payment.paidAt = new Date();
             await payment.save();
 
-            await Order.findByIdAndUpdate(payment.order, { 
+            await Order.findByIdAndUpdate(payment.order, {
                 paymentStatus: 'Paid',
                 paymentId: transactionId,
                 status: 'Received'
@@ -193,13 +170,13 @@ export const handlePhonePeCallback = async (body: any, xVerifyHeader?: string) =
 
         return { success: true };
     } catch (error: any) {
-        console.error('[PhonePe Rebuild] Callback Error:', error.message);
+        console.error('[PhonePe] Callback Error:', error.message);
         return { success: false, message: error.message };
     }
 };
 
 /**
- * 4. Refund Process
+ * 4. Process Refund
  */
 export const processPhonePeRefund = async (paymentId: string, amount?: number) => {
     try {
@@ -216,16 +193,16 @@ export const processPhonePeRefund = async (paymentId: string, amount?: number) =
             amount: refundAmount
         } as any);
 
-        if (refundResponse.success) {
+        if (((refundResponse as any).success)) {
             payment.status = 'Refunded';
             payment.refundAmount = amount || payment.amount;
             payment.refundedAt = new Date();
             await payment.save();
             return { success: true, message: 'Refund successful' };
         }
-        return { success: false, message: refundResponse.message || 'Refund failed' };
+        return { success: false, message: (refundResponse as any).message || 'Refund failed' };
     } catch (error: any) {
-        console.error('[PhonePe Rebuild] Refund Error:', error.message);
+        console.error('[PhonePe] Refund Error:', error.message);
         return { success: false, message: error.message };
     }
 };
