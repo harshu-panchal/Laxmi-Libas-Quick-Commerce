@@ -14,7 +14,7 @@ const CLIENT_VERSION = Number(process.env.PHONEPE_CLIENT_VERSION?.trim()) || 1;
 const ENV_MODE = process.env.PHONEPE_ENV?.trim().toUpperCase() === 'PRODUCTION' ? Env.PRODUCTION : Env.SANDBOX;
 
 const FRONTEND_URL = process.env.FRONTEND_URL?.replace(/\/$/, '') || 'https://laxmart.store';
-const BACKEND_URL = 'https://api.laxmart.store/';
+// const BACKEND_URL = 'https://api.laxmart.store/'; // reserved for future use
 
 // Initialize SDK Client (Singleton)
 let phonePeClient: StandardCheckoutClient | null = null;
@@ -135,9 +135,9 @@ export const getPhonePePaymentStatus = async (merchantTransactionId: string) => 
 /**
  * 3. Handle Callback (Webhook)
  */
-export const handlePhonePeCallback = async (body: any, xVerifyHeader?: string) => {
+export const handlePhonePeCallback = async (body: any) => {
     try {
-        const client = getPhonePeClient();
+        // Decode the callback payload (no SDK client needed for base64 decode)
 
         // Decode the callback payload
         const responseData = typeof body === 'string' ? JSON.parse(body) : body;

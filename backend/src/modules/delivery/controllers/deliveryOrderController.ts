@@ -883,3 +883,49 @@ export const checkCustomerProximity = asyncHandler(
     });
   },
 );
+
+/**
+ * Accept an order (Pool-based assignment)
+ * Triggered by delivery boy clicking 'Accept' in the app
+ */
+export const acceptOrder = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const deliveryId = req.user?.userId;
+    const io = (req.app as any).get("io");
+
+    if (!deliveryId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
+    const { handleOrderAcceptance } = await import("../../../services/orderNotificationService");
+    const result = await handleOrderAcceptance(io, id, deliveryId);
+
+    if (result.success) {
+      return res.status(200).json(result);
+    } else {
+      return res.status(400).json(result);
+    }
+  }
+);
+
+/**
+ * Reject an order notification
+ * Marks the order as rejected by this specific delivery boy
+ */
+export const rejectOrder = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const deliveryId = req.user?.userId;
+    const io = (req.app as any).get("io");
+
+    if (!deliveryId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
+    const { handleOrderRejection } = await import("../../../services/orderNotificationService");
+    const result = await handleOrderRejection(io, id, deliveryId);
+
+    return res.status(200).json(result);
+  }
+);

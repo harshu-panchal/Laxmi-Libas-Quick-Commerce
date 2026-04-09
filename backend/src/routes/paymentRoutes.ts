@@ -74,8 +74,7 @@ router.get('/status/:merchantOrderId', authenticate, async (req: Request, res: R
  */
 router.post('/callback', async (req: Request, res: Response) => {
     try {
-        const xVerify = req.headers['x-verify'] as string;
-        await handlePhonePeCallback(req.body, xVerify);
+        await handlePhonePeCallback(req.body);
         
         // Return 200 OK to acknowledge receipt to PhonePe servers
         return res.status(200).send('OK');

@@ -34,6 +34,7 @@ import customerTrackingRoutes from "../modules/customer/routes/trackingRoutes";
 import deliveryTrackingRoutes from "../modules/delivery/routes/trackingRoutes";
 import fcmTokenRoutes from "./fcmTokenRoutes";
 import paymentRoutes from "./paymentRoutes";
+import phonePeRoutes from "./phonePeRoutes"; // NEW: /api/payments/phonepe/* routes
 import sellerWalletRoutes from "./sellerWalletRoutes";
 import deliveryWalletRoutes from "./deliveryWalletRoutes";
 import adminWithdrawalRoutes from "./adminWithdrawalRoutes";
@@ -162,8 +163,15 @@ router.use("/seller/wallet", walletRoutes);
 // Tax routes (protected, seller/admin)
 router.use("/seller/taxes", taxRoutes);
 
-// Payment routes (PhonePe integration)
+// Payment routes — legacy path (PhonePe integration)
 router.use("/payment", paymentRoutes);
+
+// Payment routes — NEW clean path: /api/payments/phonepe/*
+// POST /api/payments/phonepe/initiate  → initiate PhonePe session
+// GET  /api/payments/phonepe/status/:orderId → check payment status
+// POST /api/payments/phonepe/callback  → webhook from PhonePe (public)
+// POST /api/payments/phonepe/refund    → admin refund
+router.use("/payments", phonePeRoutes);
 
 // Seller wallet routes (protected, seller only)
 router.use("/seller/wallet-new", authenticate, requireUserType("Seller"), sellerWalletRoutes);
