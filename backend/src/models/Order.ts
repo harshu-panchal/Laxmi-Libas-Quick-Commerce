@@ -42,6 +42,10 @@ export interface IOrder extends Document {
   paymentStatus: "Pending" | "Paid" | "Failed" | "Refunded";
   paymentId?: string;
 
+  // PhonePe-specific payment fields
+  transactionId?: string;    // PhonePe's final transaction ID (set on success)
+  merchantOrderId?: string;   // Our generated merchantOrderId (MT...) for tracking
+
   // Order Status
   status:
   | "Received"
@@ -242,6 +246,18 @@ const OrderSchema = new Schema<IOrder>(
     paymentId: {
       type: String,
       trim: true,
+    },
+
+    // PhonePe-specific payment fields
+    transactionId: {
+      type: String,
+      trim: true,
+      // Set when PhonePe confirms payment (from callback or status poll)
+    },
+    merchantOrderId: {
+      type: String,
+      trim: true,
+      // Our generated MT... ID sent to PhonePe, used for status polling
     },
 
     // Order Status
