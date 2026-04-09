@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Calendar, Users, ChevronRight, Zap, Lock, Star, Clock, MapPin, ShieldCheck, Heart, X, ArrowLeft, Share2 } from 'lucide-react';
+import { Search, Calendar, Users, ChevronRight, Zap, Lock, Star, Clock, MapPin, ShieldCheck, Heart, X, ArrowLeft, Share2, Home, Plane, Hotel, Bus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const HotelBooking: React.FC = () => {

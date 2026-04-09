@@ -50,10 +50,13 @@ const TravelStore: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3 mb-6">
                     <motion.div 
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => navigate('/store/travel/hotels')}
-                        className="bg-[#fff9e6] cursor-pointer rounded-2xl p-2.5 flex flex-col items-center justify-center relative overflow-hidden h-[145px] border border-yellow-50"
+                        onClick={() => {
+                            console.log('Navigating to Hotels');
+                            navigate('/store/travel/hotels');
+                        }}
+                        className="bg-[#fff9e6] cursor-pointer rounded-2xl p-2.5 flex flex-col items-center justify-center relative overflow-hidden h-[145px] border border-yellow-50 shadow-sm hover:shadow-md transition-shadow"
                     >
-                        <div className="relative w-full h-full rounded-xl bg-white shadow-sm overflow-hidden flex flex-col items-center justify-center">
+                        <div className="relative w-full h-full rounded-xl bg-white shadow-sm overflow-hidden flex flex-col items-center justify-center pointer-events-none">
                             <div className="absolute top-2 left-2 z-10 flex flex-col">
                                 <span className="font-bold text-gray-900 text-base leading-tight">Hotels</span>
                                 <span className="text-[10px] font-bold text-gray-500">Up to 65% Off</span>
@@ -64,9 +67,13 @@ const TravelStore: React.FC = () => {
 
                     <motion.div 
                         whileTap={{ scale: 0.95 }}
-                        className="bg-[#f0fff4] rounded-2xl p-2.5 flex flex-col items-center justify-center relative overflow-hidden h-[145px] border border-green-50"
+                        onClick={() => {
+                            console.log('Navigating to Buses');
+                            navigate('/store/travel/buses');
+                        }}
+                        className="bg-[#f0fff4] cursor-pointer rounded-2xl p-2.5 flex flex-col items-center justify-center relative overflow-hidden h-[145px] border border-green-50 shadow-sm hover:shadow-md transition-shadow"
                     >
-                        <div className="relative w-full h-full rounded-xl bg-white shadow-sm overflow-hidden flex flex-col items-center justify-center">
+                        <div className="relative w-full h-full rounded-xl bg-white shadow-sm overflow-hidden flex flex-col items-center justify-center pointer-events-none">
                             <div className="absolute top-2 left-2 z-10">
                                 <span className="font-bold text-gray-900 text-base leading-tight">Buses</span>
                             </div>
