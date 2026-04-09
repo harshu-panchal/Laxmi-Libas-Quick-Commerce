@@ -7,7 +7,6 @@ const runProperTest = async () => {
     const clientId = process.env.PHONEPE_CLIENT_ID?.trim();
     const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim();
     const env = process.env.PHONEPE_ENV?.trim().toUpperCase() === 'PRODUCTION' ? Env.PRODUCTION : Env.SANDBOX;
-
     try {
         console.log('--- 🧪 PROPER END-TO-END TEST STARTING ---');
         console.log('Mode:', env === Env.PRODUCTION ? 'PRODUCTION (LIVE)' : 'SANDBOX');
@@ -33,7 +32,6 @@ const runProperTest = async () => {
         } else {
             console.log('❌ TEST FAILED: No redirect URL returned.');
         }
-
     } catch (error) {
         console.error('❌ TEST FAILED WITH ERROR:', error.message);
         if (error.response) {

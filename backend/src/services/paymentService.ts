@@ -2,6 +2,7 @@ import { StandardCheckoutClient, Env, StandardCheckoutPayRequest } from '@phonep
 import Payment from '../models/Payment';
 import Order from '../models/Order';
 import crypto from 'crypto';
+// import { Request, Response } from 'express'; // unused
 
 /**
  * 🎯 FINAL PRODUCTION: PhonePe Service
@@ -137,8 +138,6 @@ export const getPhonePePaymentStatus = async (merchantTransactionId: string) => 
  */
 export const handlePhonePeCallback = async (body: any) => {
     try {
-        // Decode the callback payload (no SDK client needed for base64 decode)
-
         // Decode the callback payload
         const responseData = typeof body === 'string' ? JSON.parse(body) : body;
         if (!responseData.response) throw new Error('Invalid callback payload format');

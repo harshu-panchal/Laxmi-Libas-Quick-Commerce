@@ -104,11 +104,14 @@ export const initiatePhonePePayment = async (orderId: string) => {
 
         console.log(`[PhonePeService] Initiating payment | Order: ${orderId} | MerchantOrderId: ${merchantOrderId} | Amount: ₹${order.total}`);
 
+        const callbackUrl = process.env.PHONEPE_CALLBACK_URL?.trim() || 'https://api.laxmart.store/api/v1/payments/phonepe/callback';
+
         // ── Build SDK pay request ───────────────────────────────────────────
         const request = StandardCheckoutPayRequest.builder()
             .merchantOrderId(merchantOrderId)
             .amount(amountInPaise)
             .redirectUrl(`${FRONTEND_URL}/payment/verify`)
+            .callbackUrl(callbackUrl)
             .build();
 
         // ── Call PhonePe API ────────────────────────────────────────────────
