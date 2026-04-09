@@ -2,11 +2,14 @@
  * @file paymentService.ts  (Frontend)
  * @description Frontend API service for PhonePe payment operations.
  *
- * Integrates with the backend payment module at:
- *   POST /api/payments/phonepe/initiate   → start PhonePe checkout
- *   GET  /api/payments/phonepe/status/:id → check payment status
+ * Uses the LEGACY routes that are already live on the production server:
+ *   POST /api/v1/payment/create              → start PhonePe checkout
+ *   GET  /api/v1/payment/status/:merchantId  → check payment status
  *
- * Legacy route /api/v1/payment/... is also preserved for backward compat.
+ * NOTE: When the production server is redeployed with new dist/ files,
+ * these can be switched to the new clean routes:
+ *   POST /api/v1/payments/phonepe/initiate
+ *   GET  /api/v1/payments/phonepe/status/:id
  */
 
 import api from './config';
@@ -16,20 +19,19 @@ import api from './config';
 /**
  * Initiates a PhonePe payment session for a given order.
  *
- * Called by Checkout.tsx after the order is successfully created in the DB
- * (with paymentStatus = Pending). On success, redirects the user to PhonePe
- * hosted checkout page.
+ * Called after createOrder() succeeds. On success, redirects the user
+ * to PhonePe's hosted checkout page.
  *
- * @param orderId   MongoDB Order _id (returned from createOrder)
- * @param amount    Optional: expected amount (informational, backend uses DB value)
- * @returns         { success, data: { redirectUrl, merchantOrderId } }
+ * @param orderId   MongoDB Order _id (returned by createOrder)
+ * @param amount    Optional (informational only; backend uses DB total)
+ * @returns         { success, data: { redirectUrl, merchantTransactionId } }
  */
 export const createPhonePeOrder = async (orderId: string, amount?: number) => {
     try {
-        // ── NEW: uses the clean /api/payments/phonepe/initiate endpoint ──────
-        const response = await api.post('/payments/phonepe/initiate', {
+        // Uses the legacy route that exists on production server
+        const response = await api.post('/payment/create', {
             orderId,
-            amount, // informational only; backend uses Order.total
+            amount, // informational only
         });
         return response.data;
     } catch (error: any) {
@@ -41,18 +43,17 @@ export const createPhonePeOrder = async (orderId: string, amount?: number) => {
 // ─── 2. Check Payment Status ─────────────────────────────────────────────────
 
 /**
- * Polls PhonePe for the current payment status of a merchantOrderId.
+ * Polls backend for confirmed payment status of a merchantOrderId / merchantTransactionId.
  *
  * Called by PaymentVerify.tsx after user returns from PhonePe.
- * Also used for manual status polling if needed.
  *
  * @param merchantOrderId   The MT... ID returned by createPhonePeOrder
  * @returns                 { success, status: 'success'|'failed'|'pending', data }
  */
 export const checkPhonePePaymentStatus = async (merchantOrderId: string) => {
     try {
-        // ── NEW: uses the clean /api/payments/phonepe/status/:id endpoint ───
-        const response = await api.get(`/payments/phonepe/status/${merchantOrderId}`);
+        // Uses the legacy status route that exists on production server
+        const response = await api.get(`/payment/status/${merchantOrderId}`);
         return response.data;
     } catch (error: any) {
         console.error('[PaymentService] checkPhonePePaymentStatus error:', error?.response?.data || error?.message);
@@ -64,7 +65,6 @@ export const checkPhonePePaymentStatus = async (merchantOrderId: string) => {
 
 /**
  * (Optional) Retrieve payment history for the current customer.
- * Useful for the Orders / Account pages.
  */
 export const getPaymentHistory = async () => {
     try {

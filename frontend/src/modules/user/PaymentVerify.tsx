@@ -36,8 +36,10 @@ const PaymentVerify: React.FC = () => {
     const [attempt, setAttempt] = useState(0);
 
     // ── Extract params PhonePe appends to the redirect URL ────────────────────
-    // PhonePe Standard Checkout V2 returns the merchantOrderId in the URL
+    // Old /payment/create returns merchantTransactionId; new returns merchantOrderId
+    // Accept both for backward compat
     const merchantOrderId = searchParams.get('merchantOrderId')
+        || searchParams.get('merchantTransactionId')
         || searchParams.get('transactionId')
         || searchParams.get('orderId');
 
