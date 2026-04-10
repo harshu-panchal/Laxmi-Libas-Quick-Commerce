@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth, User } from '../../../context/AuthContext';
 import DashboardCard from '../components/DashboardCard';
 import OrderChart from '../components/OrderChart';
 import AlertCard from '../components/AlertCard';
@@ -9,7 +9,7 @@ import { getSellerProfile, toggleShopStatus } from '../../../services/api/auth/s
 
 export default function SellerDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [newOrders, setNewOrders] = useState<NewOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,30 +24,61 @@ export default function SellerDashboard() {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      // Only fetch stats if approved
-      if (!isApproved) {
-        setLoading(false);
-        return;
-      }
       try {
         setLoading(true);
-        const [statsResponse, profileResponse] = await Promise.all([
-          getSellerDashboardStats(),
-          getSellerProfile()
-        ]);
+        setError(null);
 
-        if (statsResponse.success) {
-          setStats(statsResponse.data.stats);
-          setNewOrders(statsResponse.data.newOrders);
-        } else {
-          setError(statsResponse.message || 'Failed to fetch dashboard data');
-        }
-
+        // 1. Fetch seller profile first to check for status updates
+        const profileResponse = await getSellerProfile();
+        
         if (profileResponse.success) {
-          const shopStatus = profileResponse.data.isShopOpen ?? true;
+          const fetchedProfile = profileResponse.data;
+          const currentStatus = user?.status;
+          const newStatus = fetchedProfile.status;
+
+          // If status has changed to Approved, update AuthContext
+          if (newStatus === 'Approved' && currentStatus !== 'Approved') {
+            console.log('Seller status updated to Approved! Updating auth context...');
+            
+            // Construct updated user object with all fresh data from profile
+            const updatedUser: User = {
+              ...user,
+              id: fetchedProfile._id,
+              sellerName: fetchedProfile.sellerName,
+              mobile: fetchedProfile.mobile,
+              email: fetchedProfile.email,
+              storeName: fetchedProfile.storeName,
+              status: 'Approved',
+              logo: fetchedProfile.logo,
+              address: fetchedProfile.address,
+              city: fetchedProfile.city,
+              categories: fetchedProfile.categories,
+              category: fetchedProfile.category,
+            } as User;
+            
+            updateUser(updatedUser);
+            // The updateUser call will trigger a re-render of this component
+            // because AuthContext state changes, and isApproved will become true.
+            return; 
+          }
+
+          const shopStatus = fetchedProfile.isShopOpen ?? true;
           setIsShopOpen(shopStatus);
         }
+
+        // 2. If approved, fetch dashboard stats
+        if (isApproved) {
+          const statsResponse = await getSellerDashboardStats();
+
+          if (statsResponse.success) {
+            setStats(statsResponse.data.stats);
+            setNewOrders(statsResponse.data.newOrders);
+          } else {
+            setError(statsResponse.message || 'Failed to fetch dashboard data');
+          }
+        }
       } catch (err: any) {
+        console.error('Error loading dashboard data:', err);
         setError(err.response?.data?.message || 'Error loading dashboard data');
       } finally {
         setLoading(false);
@@ -55,7 +86,7 @@ export default function SellerDashboard() {
     };
 
     fetchDashboardData();
-  }, [isApproved]);
+  }, [isApproved, user?.status]); // Add user?.status as dependency to react to AuthContext updates
 
   const handleToggleShop = async () => {
     if (!isApproved) return;

@@ -462,11 +462,46 @@ function App() {
                 <Route path="/payment/verify" element={<PaymentVerify />} />
                 <Route path="/store/minutes" element={<MinutesStore />} />
                                     <Route path="/search" element={<Search />} />
-                                    <Route path="/orders" element={<Orders />} />
-                                    <Route path="/notifications" element={<Notifications />} />
-                                    <Route path="/orders/:id" element={<OrderDetail />} />
-                                    <Route path="/order-again" element={<OrderAgain />} />
-                                    <Route path="/account" element={<Account />} />
+                                    <Route
+                                      path="/orders"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <Orders />
+                                        </ProtectedRoute>
+                                      }
+                                    />
+                                    <Route
+                                      path="/notifications"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <Notifications />
+                                        </ProtectedRoute>
+                                      }
+                                    />
+                                    <Route
+                                      path="/orders/:id"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <OrderDetail />
+                                        </ProtectedRoute>
+                                      }
+                                    />
+                                    <Route
+                                      path="/order-again"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <OrderAgain />
+                                        </ProtectedRoute>
+                                      }
+                                    />
+                                    <Route
+                                      path="/account"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <Account />
+                                        </ProtectedRoute>
+                                      }
+                                    />
                                     <Route path="/about-us" element={<AboutUs />} />
                                     <Route path="/contact-us" element={<ContactUs />} />
                                     <Route path="/return-refund-policy" element={<ReturnAndRefundPolicy />} />
@@ -474,16 +509,44 @@ function App() {
                                     <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                                     <Route path="/shipping-policy" element={<ShippingPolicy />} />
                                     <Route path="/faq" element={<FAQ />} />
-                                    <Route path="/wishlist" element={<Wishlist />} />
+                                    <Route
+                                      path="/wishlist"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <Wishlist />
+                                        </ProtectedRoute>
+                                      }
+                                    />
                                     <Route path="/categories" element={<Categories />} />
                                     <Route path="/category/:id" element={<Category />} />
-                                    <Route path="/address-book" element={<AddressBook />} />
+                                    <Route
+                                      path="/address-book"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <AddressBook />
+                                        </ProtectedRoute>
+                                      }
+                                    />
                                     <Route path="/checkout" element={<Checkout />} />
                                     <Route path="/checkout/address" element={<CheckoutAddress />} />
                                     <Route path="/product/:id" element={<ProductDetail />} />
-                                    <Route path="/invoice/:id" element={<Invoice />} />
+                                    <Route
+                                      path="/invoice/:id"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <Invoice />
+                                        </ProtectedRoute>
+                                      }
+                                    />
                                     <Route path="/cart" element={<Cart />} />
-                                    <Route path="/addresses" element={<Addresses />} />
+                                    <Route
+                                      path="/addresses"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <Addresses />
+                                        </ProtectedRoute>
+                                      }
+                                    />
                                     <Route path="/store/spiritual" element={<SpiritualStore />} />
                                     <Route path="/store/pharma" element={<PharmaStore />} />
                                     <Route path="/store/e-gifts" element={<EGiftStore />} />
