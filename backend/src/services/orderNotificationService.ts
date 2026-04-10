@@ -229,13 +229,18 @@ export async function findDeliveryBoysNearSellerLocations(
         // Get unique seller IDs from order items
         const sellerIds = [...new Set(
             order.items
-                ?.map((item: any) => item.seller?.toString())
-                .filter((id: string) => id) || []
+                ?.map((item: any) => {
+                    if (item.seller && typeof item.seller === 'object' && item.seller._id) {
+                        return item.seller._id.toString();
+                    }
+                    return item.seller?.toString();
+                })
+                .filter((id: string) => id && id !== '[object Object]') || []
         )];
 
         if (sellerIds.length === 0) {
-            console.log('No sellers found in order, falling back to all available delivery boys');
-            return findAvailableDeliveryBoys();
+            console.log('No sellers found in order, cannot find nearby delivery boys (Strict 40km rule)');
+            return [];
         }
 
         // Get seller locations
@@ -244,8 +249,8 @@ export async function findDeliveryBoysNearSellerLocations(
         }).select('latitude longitude location serviceRadiusKm storeName');
 
         if (sellers.length === 0) {
-            console.log('No seller data found, falling back to all available delivery boys');
-            return findAvailableDeliveryBoys();
+            console.log('No seller data found, cannot find nearby delivery boys (Strict 40km rule)');
+            return [];
         }
 
         // Find delivery boys near each seller location
@@ -270,7 +275,7 @@ export async function findDeliveryBoysNearSellerLocations(
                 continue;
             }
 
-            const radius = Math.max(seller.serviceRadiusKm || 40, 40); // Standardized search radius to 40km
+            const radius = 40; // Strict 40km radius mandated
             const nearbyBoys = await findDeliveryBoysNearLocation(lat, lng, radius);
 
             for (const boy of nearbyBoys) {
@@ -283,8 +288,8 @@ export async function findDeliveryBoysNearSellerLocations(
         }
 
         if (nearbyDeliveryBoyMap.size === 0) {
-            console.log('No delivery boys found near seller locations, falling back to all available');
-            return findAvailableDeliveryBoys();
+            console.log('No delivery boys found near seller locations within 40km strict radius');
+            return [];
         }
 
         // Sort by distance and return IDs
@@ -296,7 +301,7 @@ export async function findDeliveryBoysNearSellerLocations(
         return sortedBoys;
     } catch (error) {
         console.error('Error finding delivery boys near seller locations:', error);
-        return findAvailableDeliveryBoys();
+        return [];
     }
 }
 
