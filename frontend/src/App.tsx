@@ -32,6 +32,9 @@ import TravelCart from './modules/user/TravelCart';
 import TravelCheckout from './modules/user/TravelCheckout';
 import TravelPayment from './modules/user/TravelPayment';
 import TravelConfirmation from './modules/user/TravelConfirmation';
+import BusSearch from './modules/user/BusSearch';
+import BusResults from './modules/user/BusResults';
+import BusSeatSelection from './modules/user/BusSeatSelection';
 import MinutesStore from "./modules/user/MinutesStore";
 import Cart from "./modules/user/Cart";
 import Checkout from "./modules/user/Checkout";
@@ -161,6 +164,23 @@ const AdminPayments = lazy(() => import("./modules/admin/pages/AdminPayments"));
 const AdminWallet = lazy(() => import("./modules/admin/pages/AdminWallet"));
 const AdminBillingSettings = lazy(() => import("./modules/admin/pages/AdminBillingSettings"));
 const AdminDiscountRules = lazy(() => import("./modules/admin/pages/AdminDiscountRules"));
+
+// Lazy load hotel partner routes
+const HotelLayout = lazy(() => import("./modules/hotelPartner/components/HotelLayout"));
+const HotelDashboard = lazy(() => import("./modules/hotelPartner/pages/HotelDashboard"));
+const AddHotel = lazy(() => import("./modules/hotelPartner/pages/AddHotel"));
+const RoomsManagement = lazy(() => import("./modules/hotelPartner/pages/RoomsManagement"));
+const HotelBookings = lazy(() => import("./modules/hotelPartner/pages/Bookings"));
+const HotelEarnings = lazy(() => import("./modules/hotelPartner/pages/Earnings"));
+
+// Lazy load transport partner routes
+const TransportLayout = lazy(() => import("./modules/transportPartner/components/TransportLayout"));
+const TransportDashboard = lazy(() => import("./modules/transportPartner/pages/TransportDashboard"));
+const AddBus = lazy(() => import("./modules/transportPartner/pages/AddBus"));
+const RouteManagement = lazy(() => import("./modules/transportPartner/pages/RouteManagement"));
+const SchedulePage = lazy(() => import("./modules/transportPartner/pages/SchedulePage"));
+const BookingsPage = lazy(() => import("./modules/transportPartner/pages/BookingsPage"));
+const EarningsPage = lazy(() => import("./modules/transportPartner/pages/EarningsPage"));
 
 function App() {
   // Initialize push notifications on app load
@@ -381,6 +401,43 @@ function App() {
                             }
                           />
 
+                          {/* Hotel Partner Routes */}
+                          <Route
+                            path="/hotel/*"
+                            element={
+                              <Suspense fallback={<IconLoader forceShow />}>
+                                <HotelLayout>
+                                  <Routes>
+                                    <Route path="" element={<HotelDashboard />} />
+                                    <Route path="add" element={<AddHotel />} />
+                                    <Route path="rooms" element={<RoomsManagement />} />
+                                    <Route path="bookings" element={<HotelBookings />} />
+                                    <Route path="earnings" element={<HotelEarnings />} />
+                                  </Routes>
+                                </HotelLayout>
+                              </Suspense>
+                            }
+                          />
+
+                          {/* Transport Partner Routes */}
+                          <Route
+                            path="/transport/*"
+                            element={
+                              <Suspense fallback={<IconLoader forceShow />}>
+                                <TransportLayout>
+                                  <Routes>
+                                    <Route path="" element={<TransportDashboard />} />
+                                    <Route path="add-bus" element={<AddBus />} />
+                                    <Route path="routes" element={<RouteManagement />} />
+                                    <Route path="schedule" element={<SchedulePage />} />
+                                    <Route path="bookings" element={<BookingsPage />} />
+                                    <Route path="earnings" element={<EarningsPage />} />
+                                  </Routes>
+                                </TransportLayout>
+                              </Suspense>
+                            }
+                          />
+
                           {/* Main App Routes */}
                           <Route
                             path="/*"
@@ -399,14 +456,52 @@ function App() {
                 <Route path="/store/travel/checkout" element={<TravelCheckout />} />
                 <Route path="/store/travel/payment" element={<TravelPayment />} />
                 <Route path="/store/travel/confirmation" element={<TravelConfirmation />} />
-                                    <Route path="/payment/verify" element={<PaymentVerify />} />
-                                    <Route path="/store/minutes" element={<MinutesStore />} />
+                <Route path="/store/travel/buses" element={<BusSearch />} />
+                <Route path="/store/travel/buses/results" element={<BusResults />} />
+                <Route path="/store/travel/buses/seats/:id" element={<BusSeatSelection />} />
+                <Route path="/payment/verify" element={<PaymentVerify />} />
+                <Route path="/store/minutes" element={<MinutesStore />} />
                                     <Route path="/search" element={<Search />} />
-                                    <Route path="/orders" element={<Orders />} />
-                                    <Route path="/notifications" element={<Notifications />} />
-                                    <Route path="/orders/:id" element={<OrderDetail />} />
-                                    <Route path="/order-again" element={<OrderAgain />} />
-                                    <Route path="/account" element={<Account />} />
+                                    <Route
+                                      path="/orders"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <Orders />
+                                        </ProtectedRoute>
+                                      }
+                                    />
+                                    <Route
+                                      path="/notifications"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <Notifications />
+                                        </ProtectedRoute>
+                                      }
+                                    />
+                                    <Route
+                                      path="/orders/:id"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <OrderDetail />
+                                        </ProtectedRoute>
+                                      }
+                                    />
+                                    <Route
+                                      path="/order-again"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <OrderAgain />
+                                        </ProtectedRoute>
+                                      }
+                                    />
+                                    <Route
+                                      path="/account"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <Account />
+                                        </ProtectedRoute>
+                                      }
+                                    />
                                     <Route path="/about-us" element={<AboutUs />} />
                                     <Route path="/contact-us" element={<ContactUs />} />
                                     <Route path="/return-refund-policy" element={<ReturnAndRefundPolicy />} />
@@ -414,16 +509,44 @@ function App() {
                                     <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                                     <Route path="/shipping-policy" element={<ShippingPolicy />} />
                                     <Route path="/faq" element={<FAQ />} />
-                                    <Route path="/wishlist" element={<Wishlist />} />
+                                    <Route
+                                      path="/wishlist"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <Wishlist />
+                                        </ProtectedRoute>
+                                      }
+                                    />
                                     <Route path="/categories" element={<Categories />} />
                                     <Route path="/category/:id" element={<Category />} />
-                                    <Route path="/address-book" element={<AddressBook />} />
+                                    <Route
+                                      path="/address-book"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <AddressBook />
+                                        </ProtectedRoute>
+                                      }
+                                    />
                                     <Route path="/checkout" element={<Checkout />} />
                                     <Route path="/checkout/address" element={<CheckoutAddress />} />
                                     <Route path="/product/:id" element={<ProductDetail />} />
-                                    <Route path="/invoice/:id" element={<Invoice />} />
+                                    <Route
+                                      path="/invoice/:id"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <Invoice />
+                                        </ProtectedRoute>
+                                      }
+                                    />
                                     <Route path="/cart" element={<Cart />} />
-                                    <Route path="/addresses" element={<Addresses />} />
+                                    <Route
+                                      path="/addresses"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <Addresses />
+                                        </ProtectedRoute>
+                                      }
+                                    />
                                     <Route path="/store/spiritual" element={<SpiritualStore />} />
                                     <Route path="/store/pharma" element={<PharmaStore />} />
                                     <Route path="/store/e-gifts" element={<EGiftStore />} />

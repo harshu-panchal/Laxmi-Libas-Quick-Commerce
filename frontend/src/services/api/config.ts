@@ -78,9 +78,8 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401) {
       const isAuthEndpoint = error.config?.url?.includes("/auth/");
-      const hadToken = error.config?.headers?.Authorization;
 
-      if (!isAuthEndpoint && hadToken) {
+      if (!isAuthEndpoint) {
         const currentPath = window.location.pathname;
 
         if (currentPath.includes("/login") || currentPath.includes("/signup")) {

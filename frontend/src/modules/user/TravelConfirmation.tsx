@@ -1,10 +1,20 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, Home, Calendar, MapPin, Download, Share2, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { CheckCircle, Home, Calendar, MapPin, Download, Share2, ArrowRight, Bus } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const TravelConfirmation: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    
+    const type = queryParams.get('type') || 'hotel';
+    const operator = queryParams.get('operator') || "Foxoso LA Beach Resort";
+    const from = queryParams.get('from') || "Morjim";
+    const to = queryParams.get('to') || "Goa";
+    const seats = queryParams.get('seats');
+    const total = queryParams.get('total') || "1,06,061";
+    const date = "08 Apr, 2026";
 
     return (
         <div className="min-h-screen bg-white font-['Inter'] flex flex-col">
@@ -27,7 +37,7 @@ const TravelConfirmation: React.FC = () => {
                 >
                     <h1 className="text-3xl font-[1000] text-gray-900 tracking-tight mb-2">Booking Confirmed!</h1>
                     <p className="text-sm font-bold text-gray-500 mb-8 max-w-xs mx-auto">
-                        Your stay at Foxoso LA Beach Resort is successfully booked. Confirmation details sent to your email.
+                        Your {type === 'bus' ? 'bus trip' : 'stay'} at {operator} is successfully booked. Confirmation details sent to your email.
                     </p>
                 </motion.div>
 
@@ -40,7 +50,7 @@ const TravelConfirmation: React.FC = () => {
                     <div className="flex justify-between items-center mb-6">
                         <div className="flex flex-col">
                             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Booking ID</span>
-                            <span className="text-sm font-[1000] text-gray-900">LAX-77492-TRV</span>
+                            <span className="text-sm font-[1000] text-gray-900">LAX-{Math.floor(Math.random() * 90000) + 10000}-TRV</span>
                         </div>
                         <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[9px] font-black uppercase tracking-wider">
                             Confirmed
@@ -49,26 +59,30 @@ const TravelConfirmation: React.FC = () => {
 
                     <div className="space-y-4">
                         <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
-                                <img src="/hotel_resort_2.png" alt="Hotel" className="w-full h-full object-cover" />
+                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0 flex items-center justify-center">
+                                {type === 'bus' ? (
+                                    <Bus size={24} className="text-blue-600" />
+                                ) : (
+                                    <img src="/hotel_resort_2.png" alt="Hotel" className="w-full h-full object-cover" />
+                                )}
                             </div>
                             <div className="flex flex-col justify-center">
-                                <h2 className="text-xs font-[1000] text-gray-900 leading-tight">Foxoso LA Beach Resort</h2>
+                                <h2 className="text-xs font-[1000] text-gray-900 leading-tight">{operator}</h2>
                                 <div className="flex items-center gap-1 text-gray-400 mt-1">
                                     <MapPin size={10} />
-                                    <span className="text-[9px] font-bold">Morjim, Goa</span>
+                                    <span className="text-[9px] font-bold">{from} to {to}</span>
                                 </div>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
                             <div className="flex flex-col gap-1">
-                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Check-In</span>
-                                <span className="text-[11px] font-[1000] text-gray-800">08 Apr, 2024</span>
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{type === 'bus' ? 'Journey Date' : 'Check-In'}</span>
+                                <span className="text-[11px] font-[1000] text-gray-800">{date}</span>
                             </div>
                             <div className="flex flex-col gap-1 text-right">
-                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Guests</span>
-                                <span className="text-[11px] font-[1000] text-gray-800">2 Adults, 1 Room</span>
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{type === 'bus' ? 'Seats' : 'Guests'}</span>
+                                <span className="text-[11px] font-[1000] text-gray-800">{seats || (type === 'bus' ? 'Selected' : '2 Adults, 1 Room')}</span>
                             </div>
                         </div>
                     </div>
@@ -85,34 +99,33 @@ const TravelConfirmation: React.FC = () => {
                     
                     <div className="space-y-3">
                         <div className="flex justify-between text-xs font-bold text-gray-600">
-                            <span>Room Charges (3 Rooms)</span>
-                            <span>₹94,016</span>
-                        </div>
-                        <div className="flex justify-between text-xs font-bold text-green-600">
-                            <span>Coupon (HOTEL45)</span>
-                            <span>-₹35,000</span>
+                            <span>Base Fare</span>
+                            <span>₹{Math.round(parseInt(total.replace(/,/g, '')) * 0.9)}</span>
                         </div>
                         <div className="flex justify-between text-xs font-bold text-gray-600">
                             <span>Taxes & Service Fees</span>
-                            <span>₹12,045</span>
+                            <span>₹{Math.round(parseInt(total.replace(/,/g, '')) * 0.1)}</span>
                         </div>
                         <div className="flex justify-between pt-3 border-t border-gray-100">
                             <span className="text-sm font-[1000] text-gray-900">Amount Paid</span>
-                            <span className="text-sm font-[1000] text-gray-900">₹1,06,061</span>
+                            <span className="text-sm font-[1000] text-gray-900">₹{total}</span>
                         </div>
                         <div className="flex justify-between text-[10px] font-bold text-gray-400 italic">
-                            <span>Paid via Net Banking</span>
-                            <span>08 Apr, 12:47 PM</span>
+                            <span>Paid via UPI</span>
+                            <span>{date}, {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                     </div>
                 </motion.section>
 
                 <div className="grid grid-cols-2 gap-4 w-full max-w-sm mt-8">
-                    <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-[24px] border border-gray-100 bg-white hover:bg-gray-50 active:scale-95 transition-all">
+                    <button 
+                        onClick={() => alert('Invoice downloading started...')}
+                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-[24px] border border-gray-100 bg-white hover:bg-gray-50 active:scale-95 transition-all outline-none"
+                    >
                         <Download size={20} className="text-blue-600" />
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Invoice</span>
                     </button>
-                    <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-[24px] border border-gray-100 bg-white hover:bg-gray-50 active:scale-95 transition-all">
+                    <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-[24px] border border-gray-100 bg-white hover:bg-gray-50 active:scale-95 transition-all outline-none">
                         <Share2 size={20} className="text-blue-600" />
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Share</span>
                     </button>

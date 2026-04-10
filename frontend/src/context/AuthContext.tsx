@@ -11,7 +11,7 @@ import {
   setAuthToken,
 } from "../services/api/config";
 
-interface User {
+export interface User {
   id: string;
   userType?: "Admin" | "Seller" | "Customer" | "Delivery";
   [key: string]: any;
