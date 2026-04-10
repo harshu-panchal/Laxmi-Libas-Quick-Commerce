@@ -834,7 +834,8 @@ export default function SellerAddProduct() {
                     name="headerCategory"
                     value={formData.headerCategory}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
+                    disabled={!!(user && (user.category || user.categoryId || (user.categories && user.categories.length > 0)))}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed">
                     <option value="">Select Header Category</option>
                     {headerCategories
                       .map((headerCat) => (
@@ -865,7 +866,8 @@ export default function SellerAddProduct() {
                         setCategoryName(selectedCat.name);
                       }
                     }}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
+                    disabled={!!(user && (user.category || user.categoryId || (user.categories && user.categories.length > 0)))}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed">
                     <option value="">Select Category</option>
                     {categories
                       .map((cat: any) => (
