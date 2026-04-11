@@ -110,10 +110,17 @@ export const getPhonePePaymentStatus = async (merchantTransactionId: string) => 
                 payment.paidAt = new Date();
                 await payment.save();
 
-                await Order.findByIdAndUpdate(payment.order, {
+                const updatedOrder = await Order.findByIdAndUpdate(payment.order, {
                     paymentStatus: 'Paid',
                     status: 'Received'
-                });
+                }, { new: true });
+                return {
+                    success: true,
+                    status: state,
+                    data: response,
+                    order: updatedOrder,
+                    justPaid: true
+                };
             } else if (state === 'FAILED') {
                 payment.status = 'Failed';
                 await payment.save();
@@ -156,11 +163,12 @@ export const handlePhonePeCallback = async (body: any) => {
             payment.paidAt = new Date();
             await payment.save();
 
-            await Order.findByIdAndUpdate(payment.order, {
+            const updatedOrder = await Order.findByIdAndUpdate(payment.order, {
                 paymentStatus: 'Paid',
                 paymentId: transactionId,
                 status: 'Received'
-            });
+            }, { new: true });
+            return { success: true, order: updatedOrder, justPaid: true };
         } else if (state === 'FAILED') {
             payment.status = 'Failed';
             await payment.save();

@@ -134,7 +134,7 @@ export const createOrder = async (req: Request, res: Response) => {
             },
             paymentMethod: paymentMethod || 'COD',
             paymentStatus: 'Pending',
-            status: 'Received',
+            status: (paymentMethod === 'COD' || paymentMethod === 'Wallet') ? 'Received' : 'Pending',
             subtotal: 0,
             tax: 0,
             shipping: fees?.deliveryFee || 0,
@@ -250,17 +250,19 @@ export const createOrder = async (req: Request, res: Response) => {
             await newOrder.save();
         }
 
-        // Socket notifications
-        try {
-            const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
-            if (io) {
-                const savedOrder = await Order.findById(newOrder._id).lean();
-                if (savedOrder) {
-                    await notifySellersOfOrderUpdate(io, savedOrder, 'NEW_ORDER');
+        // Socket notifications - only if order is active (e.g. COD or already paid)
+        if (newOrder.status === 'Received') {
+            try {
+                const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
+                if (io) {
+                    const savedOrder = await Order.findById(newOrder._id).lean();
+                    if (savedOrder) {
+                        await notifySellersOfOrderUpdate(io, savedOrder, 'NEW_ORDER');
+                    }
                 }
+            } catch (notificationError) {
+                console.error("Error notifying sellers:", notificationError);
             }
-        } catch (notificationError) {
-            console.error("Error notifying sellers:", notificationError);
         }
 
         return res.status(201).json({

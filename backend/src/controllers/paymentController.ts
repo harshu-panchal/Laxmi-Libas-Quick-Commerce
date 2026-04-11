@@ -20,6 +20,8 @@ import {
     handlePhonePeWebhook,
     initiatePhonePeRefund,
 } from '../services/phonepeService';
+import { notifySellersOfOrderUpdate } from '../services/sellerNotificationService';
+import { Server as SocketIOServer } from 'socket.io';
 
 // ─── 1. Initiate PhonePe Payment ─────────────────────────────────────────────
 
@@ -96,6 +98,17 @@ export const getPaymentStatus = async (req: Request, res: Response) => {
             return res.status(400).json(result);
         }
 
+        if (result.success && result.justPaid && result.order) {
+            try {
+                const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
+                if (io) {
+                    await notifySellersOfOrderUpdate(io, result.order, 'NEW_ORDER');
+                }
+            } catch (err) {
+                console.error('[PaymentController] Error notifying sellers on status check:', err);
+            }
+        }
+
         return res.status(200).json({
             success: true,
             status:  result.status, // 'success' | 'failed' | 'pending'
@@ -130,6 +143,15 @@ export const phonePeCallback = async (req: Request, res: Response) => {
         if (!result.success) {
             // Log but still 200 — prevents PhonePe from endless retries on bugs
             console.error('[PaymentController] Webhook processing error:', result.message);
+        } else if (result.justPaid && result.order) {
+            try {
+                const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
+                if (io) {
+                    await notifySellersOfOrderUpdate(io, result.order, 'NEW_ORDER');
+                }
+            } catch (err) {
+                console.error('[PaymentController] Error notifying sellers on webhook:', err);
+            }
         }
 
         return res.status(200).send('OK');

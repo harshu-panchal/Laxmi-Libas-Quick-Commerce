@@ -6,6 +6,21 @@ import DeliveryTracking from '../models/DeliveryTracking';
 import AppSettings from '../models/AppSettings';
 import mongoose from 'mongoose';
 import { notifySellersOfOrderUpdate } from './sellerNotificationService';
+import fs from 'fs';
+import path from 'path';
+
+// Debug logger to file
+const logFile = path.join(process.cwd(), 'notification_debug.log');
+function debugLog(message: string) {
+    const timestamp = new Date().toISOString();
+    const logMessage = `[${timestamp}] ${message}\n`;
+    try {
+        fs.appendFileSync(logFile, logMessage);
+    } catch (e) {
+        // Fallback if file system issue
+    }
+    console.log(message);
+}
 
 /**
  * Calculate estimated delivery boy earning for a new order
@@ -239,8 +254,8 @@ export async function findDeliveryBoysNearSellerLocations(
         )];
 
         if (sellerIds.length === 0) {
-            console.log('No sellers found in order, cannot find nearby delivery boys (Strict 40km rule)');
-            return [];
+            debugLog('No sellers found in order, falling back to all available delivery boys');
+            return findAvailableDeliveryBoys();
         }
 
         // Get seller locations
@@ -249,19 +264,21 @@ export async function findDeliveryBoysNearSellerLocations(
         }).select('latitude longitude location serviceRadiusKm storeName');
 
         if (sellers.length === 0) {
-            console.log('No seller data found, cannot find nearby delivery boys (Strict 40km rule)');
-            return [];
+            debugLog('No seller database records found, falling back to all available delivery boys');
+            return findAvailableDeliveryBoys();
         }
 
         // Find delivery boys near each seller location
         const nearbyDeliveryBoyMap = new Map<string, { distance: number }>();
+        let hasValidSellerLocation = false;
 
         for (const seller of sellers) {
             let lat: number | null = null;
             let lng: number | null = null;
 
             // Prioritize GeoJSON location field
-            if (seller.location && seller.location.coordinates) {
+            if (seller.location && seller.location.coordinates && 
+                seller.location.coordinates[0] !== 0 && seller.location.coordinates[1] !== 0) {
                 lng = seller.location.coordinates[0];
                 lat = seller.location.coordinates[1];
             } else {
@@ -271,10 +288,11 @@ export async function findDeliveryBoysNearSellerLocations(
             }
 
             if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-                console.log(`Seller ${seller.storeName} has no valid location, skipping`);
+                console.log(`Seller ${seller.storeName} has no valid location, skipping nearby search for this seller`);
                 continue;
             }
 
+            hasValidSellerLocation = true;
             const radius = 40; // Strict 40km radius mandated
             const nearbyBoys = await findDeliveryBoysNearLocation(lat, lng, radius);
 
@@ -287,9 +305,14 @@ export async function findDeliveryBoysNearSellerLocations(
             }
         }
 
+        // If no nearby boys found OR no valid seller locations found for any seller
         if (nearbyDeliveryBoyMap.size === 0) {
-            console.log('No delivery boys found near seller locations within 40km strict radius');
-            return [];
+            if (!hasValidSellerLocation) {
+                debugLog('⚠️ No sellers had valid locations. Notifying all available delivery boys as fallback.');
+            } else {
+                debugLog('⚠️ No delivery boys found within 40km radius of any seller. Notifying all available delivery boys as fallback.');
+            }
+            return findAvailableDeliveryBoys();
         }
 
         // Sort by distance and return IDs
@@ -297,13 +320,14 @@ export async function findDeliveryBoysNearSellerLocations(
             .sort((a, b) => a[1].distance - b[1].distance)
             .map(([id]) => new mongoose.Types.ObjectId(id));
 
-        console.log(`📍 Found ${sortedBoys.length} delivery boys near seller locations`);
+        debugLog(`📍 Found ${sortedBoys.length} delivery boys near seller locations`);
         return sortedBoys;
     } catch (error) {
-        console.error('Error finding delivery boys near seller locations:', error);
-        return [];
+        debugLog(`Error finding delivery boys near seller locations: ${error}`);
+        return findAvailableDeliveryBoys(); // Ultimate fallback on error
     }
 }
+
 
 /**
  * Emit new order notification to delivery boys near seller locations
@@ -314,12 +338,14 @@ export async function notifyDeliveryBoysOfNewOrder(
     order: any
 ): Promise<void> {
     try {
+        debugLog(`🔔 [Notification] New order ${order.orderNumber} (ID: ${order._id}) accepted by seller. Starting broadcast...`);
+        
         // Find delivery boys near seller locations (within service radius)
         let nearbyDeliveryBoyIds = await findDeliveryBoysNearSellerLocations(order);
         const originalNearbyIds = [...nearbyDeliveryBoyIds]; // Keep a copy for fallback
 
         if (nearbyDeliveryBoyIds.length === 0) {
-            console.log('No available delivery boys to notify (including fallback)');
+            debugLog('No available delivery boys to notify (even after fallback)');
             return;
         }
 
@@ -339,10 +365,10 @@ export async function notifyDeliveryBoysOfNewOrder(
             const originalCount = nearbyDeliveryBoyIds.length;
             nearbyDeliveryBoyIds = nearbyDeliveryBoyIds.filter(id => !busyIdsSet.has(id.toString()));
 
-            console.log(`ℹ️ Filtered out ${originalCount - nearbyDeliveryBoyIds.length} busy delivery boys. Active: ${nearbyDeliveryBoyIds.length}`);
+            debugLog(`ℹ️ Filtered out ${originalCount - nearbyDeliveryBoyIds.length} busy delivery boys. Active: ${nearbyDeliveryBoyIds.length}`);
 
             if (nearbyDeliveryBoyIds.length === 0) {
-                console.log('⚠️ All nearby delivery boys are currently busy with other orders. Notifying them anyway to allow queuing.');
+                debugLog('⚠️ All nearby delivery boys are currently busy with other orders. Notifying them anyway to allow queuing.');
                 // Proceed with original list if filtered list is empty
                 nearbyDeliveryBoyIds = originalNearbyIds;
             }
@@ -376,19 +402,21 @@ export async function notifyDeliveryBoysOfNewOrder(
         const notifiedIds = new Set<string>();
 
         // Notify all nearby delivery boys regardless of current room state
-        // (Socket.io handles empty rooms gracefully, and this avoids race conditions)
         for (const id of nearbyDeliveryBoyIds) {
             const idString = id.toString().trim();
             const roomName = `delivery-${idString}`;
             
             notifiedIds.add(idString);
             io.to(roomName).emit('new-order', orderData);
-            console.log(`📤 Emitted new-order to delivery boy room: ${roomName}`);
+            debugLog(`📤 Emitted new-order to delivery boy ID: ${idString} via room: ${roomName}`);
         }
 
+        // Broadast to the general delivery-notifications room as well for safety
+        io.to('delivery-notifications').emit('new-order', orderData);
+        debugLog('📢 Also broadcasted new-order to general delivery-notifications room');
+
         if (notifiedIds.size === 0) {
-            console.log('⚠️ No connected delivery boys found to notify');
-            // Don't emit to general room as it includes offline delivery boys
+            debugLog('⚠️ No target delivery boys identified to notify');
             return;
         }
 

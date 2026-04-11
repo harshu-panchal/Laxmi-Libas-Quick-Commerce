@@ -6,6 +6,8 @@ import {
     getPhonePePaymentStatus, 
     processPhonePeRefund 
 } from '../services/paymentService';
+import { notifySellersOfOrderUpdate } from '../services/sellerNotificationService';
+import { Server as SocketIOServer } from 'socket.io';
 import mongoose from 'mongoose';
 
 const router = Router();
@@ -54,6 +56,17 @@ router.get('/status/:merchantOrderId', authenticate, async (req: Request, res: R
             if (result.status === 'COMPLETED') statusLabel = 'success';
             if (result.status === 'FAILED') statusLabel = 'failed';
             
+            if (result.justPaid && result.order) {
+                try {
+                    const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
+                    if (io) {
+                        await notifySellersOfOrderUpdate(io, (result as any).order, 'NEW_ORDER');
+                    }
+                } catch (err) {
+                    console.error('[PaymentRoute] Error notifying sellers on status check:', err);
+                }
+            }
+
             return res.status(200).json({ 
                 success: true, 
                 status: statusLabel, 
@@ -74,8 +87,19 @@ router.get('/status/:merchantOrderId', authenticate, async (req: Request, res: R
  */
 router.post('/callback', async (req: Request, res: Response) => {
     try {
-        await handlePhonePeCallback(req.body);
+        const result = await handlePhonePeCallback(req.body);
         
+        if (result.success && (result as any).justPaid && (result as any).order) {
+            try {
+                const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
+                if (io) {
+                    await notifySellersOfOrderUpdate(io, (result as any).order, 'NEW_ORDER');
+                }
+            } catch (err) {
+                console.error('[PaymentRoute] Error notifying sellers on callback:', err);
+            }
+        }
+
         // Return 200 OK to acknowledge receipt to PhonePe servers
         return res.status(200).send('OK');
     } catch (error: any) {

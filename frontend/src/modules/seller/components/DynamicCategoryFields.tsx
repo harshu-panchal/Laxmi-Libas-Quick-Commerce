@@ -26,6 +26,36 @@ export default function DynamicCategoryFields({ categoryName, subcategoryName, f
 
     // Category Matching Logic
     
+    // Footwear
+    if (footwearKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Brand</label>
+                    <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Nike" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Size (e.g. 7, 8, 9, 10 or XL, M)</label>
+                    <input type="text" name="size" value={formData.size || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. 8, 9, 10" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Material</label>
+                    <input type="text" name="material" value={formData.material || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Leather" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Gender</label>
+                    <select name="gender" value={formData.gender || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                        <option value="">Select Gender</option>
+                        <option value="Men">Men</option>
+                        <option value="Women">Women</option>
+                        <option value="Unisex">Unisex</option>
+                        <option value="Kids">Kids</option>
+                    </select>
+                </div>
+            </div>
+        );
+    }
+
     // Clothing / Fashion
     if (clothingKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
         return (
@@ -35,17 +65,8 @@ export default function DynamicCategoryFields({ categoryName, subcategoryName, f
                     <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Zara, Local Brand" />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Size</label>
-                    <select name="size" value={formData.size || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500">
-                        <option value="">Select Size</option>
-                        <option value="S">S</option>
-                        <option value="M">M</option>
-                        <option value="L">L</option>
-                        <option value="XL">XL</option>
-                        <option value="XXL">XXL</option>
-                        <option value="XXXL">XXXL</option>
-                        <option value="Free Size">Free Size</option>
-                    </select>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Size (e.g. S, M, XL, 32, 34)</label>
+                    <input type="text" name="size" value={formData.size || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="Enter Size (e.g. XL, 38, Free Size)" />
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">Color</label>
@@ -70,35 +91,6 @@ export default function DynamicCategoryFields({ categoryName, subcategoryName, f
         );
     }
 
-    // Footwear
-    if (footwearKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Brand</label>
-                    <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Nike" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Size (UK/US)</label>
-                    <input type="text" name="size" value={formData.size || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. 8, 9, 10" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Material</label>
-                    <input type="text" name="material" value={formData.material || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Leather" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Gender</label>
-                    <select name="gender" value={formData.gender || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500">
-                        <option value="">Select Gender</option>
-                        <option value="Men">Men</option>
-                        <option value="Women">Women</option>
-                        <option value="Unisex">Unisex</option>
-                        <option value="Kids">Kids</option>
-                    </select>
-                </div>
-            </div>
-        );
-    }
 
     // Grocery / Produce
     if (groceryKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {

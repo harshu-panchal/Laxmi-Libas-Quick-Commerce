@@ -249,7 +249,8 @@ export const updateOrderStatus = asyncHandler(
     }
 
     // Check if status is already the same
-    if (order.status === status) {
+    // Check if status is already the same (Allow re-triggering Accepted status for notifications)
+    if (order.status === status && status !== 'Accepted') {
       console.log(`ℹ️ [Seller Order Update] Status already ${status} for Order ${id}`);
       return res.status(400).json({
         success: false,
@@ -262,7 +263,7 @@ export const updateOrderStatus = asyncHandler(
     await order.save();
 
     // Trigger delivery notification if seller accepts the order
-    if (status === 'Accepted' && previousStatus !== 'Accepted') {
+    if (status === 'Accepted') {
       try {
         const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
         if (io) {

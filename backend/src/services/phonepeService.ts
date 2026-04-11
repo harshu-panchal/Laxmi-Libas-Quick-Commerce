@@ -181,13 +181,14 @@ export const checkPhonePeStatus = async (merchantOrderId: string) => {
                 payment.paidAt  = new Date();
                 await payment.save();
 
-                await Order.findByIdAndUpdate(payment.order, {
+                const updatedOrder = await Order.findByIdAndUpdate(payment.order, {
                     paymentStatus:   'Paid',
                     status:          'Received',
                     merchantOrderId: merchantOrderId, // record the MT... ID
-                });
+                }, { new: true });
                 console.log(`[PhonePeService] Order ${payment.order} marked Paid`);
 
+                return { success: true, status: 'success', raw: response, order: updatedOrder, justPaid: true };
             } else if (state === 'FAILED') {
                 payment.status = 'Failed';
                 await payment.save();
@@ -258,15 +259,15 @@ export const handlePhonePeWebhook = async (body: any) => {
             payment.paidAt                = new Date();
             await payment.save();
 
-            await Order.findByIdAndUpdate(payment.order, {
+            const updatedOrder = await Order.findByIdAndUpdate(payment.order, {
                 paymentStatus:   'Paid',
                 paymentId:       transactionId,  // legacy field
                 transactionId:   transactionId,  // new dedicated field
                 merchantOrderId: merchantTransactionId,
                 status:          'Received',
-            });
+            }, { new: true });
             console.log(`[PhonePeService] Webhook: Order ${payment.order} marked Paid`);
-
+            return { success: true, order: updatedOrder, justPaid: true };
         } else if (state === 'FAILED') {
             payment.status = 'Failed';
             await payment.save();
