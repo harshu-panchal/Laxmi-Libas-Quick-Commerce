@@ -25,7 +25,22 @@ router.post('/create', authenticate, requireUserType('Customer'), async (req: Re
             return res.status(400).json({ success: false, message: 'Invalid format for Order ID' });
         }
 
-        const result = await createPhonePeOrder(orderId);
+        // Determine dynamic FRONTEND_URL based on request origin
+        let frontendUrl = process.env.FRONTEND_URL || 'https://laxmart.store';
+        
+        try {
+            const originHeader = req.headers.origin || req.headers.referer;
+            if (originHeader) {
+                const url = new URL(originHeader);
+                frontendUrl = url.origin;
+            }
+        } catch (err) {
+            console.warn('[LegacyPaymentRoute] Failed to parse origin header, falling back to ENV');
+        }
+        
+        frontendUrl = frontendUrl.replace(/\/$/, '');
+
+        const result = await createPhonePeOrder(orderId, frontendUrl);
 
         if (!result.success) {
             return res.status(400).json(result);
@@ -60,10 +75,14 @@ router.get('/status/:merchantOrderId', authenticate, async (req: Request, res: R
                 try {
                     const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
                     if (io) {
+                        console.log(`[LegacyPaymentRoute] 🚀 Payment SUCCESS for Order ${result.order.orderNumber}. Notifying sellers...`);
                         await notifySellersOfOrderUpdate(io, (result as any).order, 'NEW_ORDER');
+                        console.log(`[LegacyPaymentRoute] ✅ Seller notification sent for Order ${result.order.orderNumber}`);
+                    } else {
+                        console.error('[LegacyPaymentRoute] ❌ Socket.io (io) not found on req.app');
                     }
                 } catch (err) {
-                    console.error('[PaymentRoute] Error notifying sellers on status check:', err);
+                    console.error('[LegacyPaymentRoute] ❌ Error notifying sellers on status check:', err);
                 }
             }
 
@@ -93,10 +112,14 @@ router.post('/callback', async (req: Request, res: Response) => {
             try {
                 const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
                 if (io) {
+                    console.log(`[LegacyPaymentRoute] 🚀 Webhook SUCCESS for Order ${(result as any).order.orderNumber}. Notifying sellers...`);
                     await notifySellersOfOrderUpdate(io, (result as any).order, 'NEW_ORDER');
+                    console.log(`[LegacyPaymentRoute] ✅ Seller notification sent via Webhook for Order ${(result as any).order.orderNumber}`);
+                } else {
+                    console.error('[LegacyPaymentRoute] ❌ Socket.io (io) not found on req.app');
                 }
             } catch (err) {
-                console.error('[PaymentRoute] Error notifying sellers on callback:', err);
+                console.error('[LegacyPaymentRoute] ❌ Error notifying sellers on callback:', err);
             }
         }
 

@@ -469,6 +469,10 @@ export default function Checkout() {
           try {
              const result = await createPhonePeOrder(placedId, grandTotal);
              if (result.success && result.data?.redirectUrl) {
+                 // Persistence: Save ID to localStorage for fallback verification if URL params are stripped
+                 if (result.data.merchantTransactionId) {
+                     localStorage.setItem('laxmart_pending_payment_id', result.data.merchantTransactionId);
+                 }
                  window.location.href = result.data.redirectUrl;
              } else {
                  showGlobalToast("Failed to initiate payment", "error");

@@ -26,7 +26,12 @@ export async function notifySellersOfOrderUpdate(
             orderItems = await OrderItem.find({ order: order._id });
         }
 
-        const sellerIds = [...new Set(orderItems.map((item: any) => item.seller.toString()))];
+        const sellerIds = [...new Set(orderItems.map((item: any) => {
+            if (item.seller && typeof item.seller === 'object') {
+                return (item.seller._id || item.seller).toString();
+            }
+            return item.seller?.toString();
+        }).filter(id => !!id))];
 
         console.log(`🔔 Notifying ${sellerIds.length} sellers about ${type} for order ${order.orderNumber}`);
 

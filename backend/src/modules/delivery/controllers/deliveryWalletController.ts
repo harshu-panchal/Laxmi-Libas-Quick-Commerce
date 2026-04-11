@@ -76,6 +76,33 @@ export const createAdminPayoutOrder = async (req: Request, res: Response) => {
       });
     }
 
+    const isMock = process.env.USE_MOCK_PAYMENT === 'true';
+
+    // PhonePe has a 38 character limit for merchantOrderId. 
+    // OLD ID was ~51 chars: PAYOUT-ADMIN-69d934f937cf31b5561079fb-1775887213644
+    // NEW ID is ~20 chars: PA-1775887213644-ABCD
+    const shortRandom = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const merchantTransactionId = isMock 
+        ? `MOCK-${amount}-${Date.now()}` 
+        : `PA${Date.now()}${shortRandom}`;
+
+    const amountInPaise = Math.round(amount * 100);
+
+    const backendUrl = (process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+
+    if (isMock) {
+        console.log(`[PayToAdmin] MOCK MODE enabled. Redirecting back with success correlation.`);
+        return res.status(200).json({
+            success: true,
+            data: {
+                redirectUrl: `${frontendUrl}/delivery/wallet?merchantTransactionId=${merchantTransactionId}`,
+                merchantTransactionId,
+                amount
+            }
+        });
+    }
+
     const clientId = process.env.PHONEPE_CLIENT_ID?.trim() || '';
     const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
     const clientVersion = Number(process.env.PHONEPE_CLIENT_VERSION?.trim()) || 1;
@@ -92,17 +119,6 @@ export const createAdminPayoutOrder = async (req: Request, res: Response) => {
       clientVersion,
       env
     );
-
-    // PhonePe has a 38 character limit for merchantOrderId. 
-    // OLD ID was ~51 chars: PAYOUT-ADMIN-69d934f937cf31b5561079fb-1775887213644
-    // NEW ID is ~20 chars: PA-1775887213644-ABCD
-    const shortRandom = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const merchantTransactionId = `PA${Date.now()}${shortRandom}`;
-
-    const amountInPaise = Math.round(amount * 100);
-
-    const backendUrl = (process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
-    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
 
     // NOTE: Callback must match the route mounted in index.ts (/api/v1/payments/phonepe/callback)
     const callbackUrl = `${backendUrl}/api/v1/payments/phonepe/callback`;
@@ -151,33 +167,46 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
     const deliveryBoyId = req.user!.userId;
     const { merchantTransactionId } = req.body;
 
-    const clientId = process.env.PHONEPE_CLIENT_ID?.trim() || '';
-    const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
-    const clientVersion = Number(process.env.PHONEPE_CLIENT_VERSION?.trim()) || 1;
-    const phonepeEnv = process.env.PHONEPE_ENV?.trim().toUpperCase();
-    const env = (phonepeEnv === 'PRODUCTION')
-      ? Env.PRODUCTION
-      : Env.SANDBOX;
+    const isMock = process.env.USE_MOCK_PAYMENT === 'true' || merchantTransactionId?.startsWith('MOCK-');
+    let amount = 0;
 
-    const phonePeClient = StandardCheckoutClient.getInstance(
-      clientId,
-      clientSecret,
-      clientVersion,
-      env
-    );
+    if (isMock) {
+        console.log(`[PayToAdmin] Verifying MOCK payment: ${merchantTransactionId}`);
+        // Extract amount from MOCK-AMOUNT-TIMESTAMP
+        const parts = merchantTransactionId.split('-');
+        amount = parseFloat(parts[1]) || 0;
+        
+        if (amount <= 0) {
+            throw new Error("Invalid amount in mock payout ID");
+        }
+    } else {
+        const clientId = process.env.PHONEPE_CLIENT_ID?.trim() || '';
+        const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
+        const clientVersion = Number(process.env.PHONEPE_CLIENT_VERSION?.trim()) || 1;
+        const phonepeEnv = process.env.PHONEPE_ENV?.trim().toUpperCase();
+        const env = (phonepeEnv === 'PRODUCTION')
+          ? Env.PRODUCTION
+          : Env.SANDBOX;
 
-    const statusResponse = await phonePeClient.getOrderStatus(merchantTransactionId);
+        const phonePeClient = StandardCheckoutClient.getInstance(
+          clientId,
+          clientSecret,
+          clientVersion,
+          env
+        );
 
-    const state = (statusResponse as any).state || (statusResponse as any).data?.state;
+        const statusResponse = await phonePeClient.getOrderStatus(merchantTransactionId);
+        const state = (statusResponse as any).state || (statusResponse as any).data?.state;
 
-    if (state !== 'COMPLETED') {
-      return res.status(400).json({
-        success: false,
-        message: `Payment status is ${state}`,
-      });
+        if (state !== 'COMPLETED') {
+          return res.status(400).json({
+            success: false,
+            message: `Payment status is ${state}`,
+          });
+        }
+
+        amount = ((statusResponse as any).amount || (statusResponse as any).data?.amount) / 100;
     }
-
-    const amount = ((statusResponse as any).amount || (statusResponse as any).data?.amount) / 100;
 
     // Update delivery boy pendingAdminPayout
     const deliveryBoy = await Delivery.findById(deliveryBoyId).session(session);
@@ -224,22 +253,30 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
       platformWallet = walletArray[0];
     }
 
-    // Update platform wallet with the payment
-    platformWallet.totalPlatformEarning += amount; // Total money received
-    platformWallet.currentPlatformBalance += amount; // Current balance increases
-    platformWallet.pendingFromDeliveryBoy = Math.max(0, platformWallet.pendingFromDeliveryBoy - amount);
+    await PlatformWallet.updateOne(
+        { _id: platformWallet._id },
+        {
+          $inc: {
+            totalPlatformEarning: amount,
+            currentPlatformBalance: amount,
+            pendingFromDeliveryBoy: -amount
+          }
+        },
+        { session }
+    );
 
-    await platformWallet.save({ session });
+    console.log(`[PayToAdmin] Wallet updated for amount: ${amount}. Decreasing debt.`);
 
     // Distribute funds to sellers now that admin has received the money
-    // This will handle admin commissioned portion correctly per order
     const payoutResult = await processPendingCODPayouts(deliveryBoyId, amount, session);
 
-    // Update delivery boy after distributing (to be safe with intermediate states)
+    // Update delivery boy after distributing
     deliveryBoy.pendingAdminPayout = Math.max(0, currentPending - amount);
     await deliveryBoy.save({ session });
 
     await session.commitTransaction();
+
+    console.log(`[PayToAdmin] Transaction committed for delivery boy ${deliveryBoyId}. Paid: ${amount}`);
 
     console.log(`[Pay to Admin] Delivery boy ${deliveryBoyId} paid ${amount}:`, {
       newPending: deliveryBoy.pendingAdminPayout,

@@ -51,10 +51,27 @@ export const initiatePayment = async (req: Request, res: Response) => {
             });
         }
 
-        console.log(`[PaymentController] Initiate payment request for Order: ${orderId}`);
+        // Determine dynamic FRONTEND_URL based on request origin
+        // This ensures localhost redirects back to localhost, and live to live
+        let frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        
+        try {
+            const originHeader = req.headers.origin || req.headers.referer;
+            if (originHeader) {
+                const url = new URL(originHeader);
+                frontendUrl = url.origin;
+            }
+        } catch (err) {
+            console.warn('[PaymentController] Failed to parse origin header, falling back to ENV');
+        }
+        
+        // Remove trailing slash if any
+        frontendUrl = frontendUrl.replace(/\/$/, '');
+        
+        console.log(`[PaymentController] 🚀 Initiating payment for Order ${orderId}. Base Origin: ${frontendUrl}`);
 
         // ── Delegate to service ─────────────────────────────────────────────
-        const result = await initiatePhonePePayment(orderId);
+        const result = await initiatePhonePePayment(orderId, frontendUrl);
 
         if (!result.success) {
             return res.status(400).json(result);
@@ -102,10 +119,14 @@ export const getPaymentStatus = async (req: Request, res: Response) => {
             try {
                 const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
                 if (io) {
+                    console.log(`[PaymentController] 🚀 Payment SUCCESS for Order ${result.order.orderNumber}. Triggering seller notification...`);
                     await notifySellersOfOrderUpdate(io, result.order, 'NEW_ORDER');
+                    console.log(`[PaymentController] ✅ Seller notification sent for Order ${result.order.orderNumber}`);
+                } else {
+                    console.error('[PaymentController] ❌ Socket.io (io) not found on req.app');
                 }
             } catch (err) {
-                console.error('[PaymentController] Error notifying sellers on status check:', err);
+                console.error('[PaymentController] ❌ Error notifying sellers on status check:', err);
             }
         }
 
@@ -147,10 +168,14 @@ export const phonePeCallback = async (req: Request, res: Response) => {
             try {
                 const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
                 if (io) {
+                    console.log(`[PaymentController] 🚀 Webhook Payment SUCCESS for Order ${result.order.orderNumber}. Triggering seller notification...`);
                     await notifySellersOfOrderUpdate(io, result.order, 'NEW_ORDER');
+                    console.log(`[PaymentController] ✅ Seller notification sent via Webhook for Order ${result.order.orderNumber}`);
+                } else {
+                    console.error('[PaymentController] ❌ Socket.io (io) not found on req.app');
                 }
             } catch (err) {
-                console.error('[PaymentController] Error notifying sellers on webhook:', err);
+                console.error('[PaymentController] ❌ Error notifying sellers on webhook:', err);
             }
         }
 

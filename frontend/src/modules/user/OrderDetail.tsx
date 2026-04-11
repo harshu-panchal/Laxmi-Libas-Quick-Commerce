@@ -486,6 +486,7 @@ export default function OrderDetail() {
     error: trackingError,
     reconnectAttempts,
     reconnect,
+    deliveryOtp: socketOtp,
   } = useDeliveryTracking(id);
 
   // Seller locations for the order
@@ -940,7 +941,7 @@ export default function OrderDetail() {
       )}
 
       {/* Delivery Partner Card */}
-      {(order?.deliveryPartner || order?.deliveryOtp) && (
+      {(order?.deliveryPartner || order?.deliveryOtp || socketOtp) && (
         <DeliveryPartnerCard
           partner={{
             name: order?.deliveryPartner?.name || "Delivery Partner",
@@ -951,7 +952,7 @@ export default function OrderDetail() {
           eta={routeInfo ? Math.ceil(routeInfo.durationValue / 60) : eta}
           distance={routeInfo ? routeInfo.distanceValue : distance}
           isTracking={isConnected && !!deliveryLocation}
-          deliveryOtp={order?.deliveryOtp}
+          deliveryOtp={socketOtp || order?.deliveryOtp}
           onCall={() => {
             const phone = order?.deliveryPartner?.phone || "1234567890";
             window.location.href = `tel:${phone}`;

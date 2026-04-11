@@ -81,18 +81,20 @@ export default function CategoryTabBar({
         const forYou = DEFAULT_CATEGORIES[0];
         
         // Map any HeaderCategory from API to the internal Category format
-        const dynamicCategories = propCategories.map(cat => {
-            // If it's already in the internal format, return it
-            if (cat.id && cat.icon && !cat._id) return cat;
+        const dynamicCategories = propCategories
+            .filter(cat => cat.slug !== 'all' && cat.name?.toLowerCase() !== 'for you') // Prevent duplicates/collisions with system tab
+            .map(cat => {
+                // If it's already in the internal format, return it
+                if (cat.id && cat.icon && !cat._id) return cat;
 
-            // Otherwise map from HeaderCategory
-            return {
-                id: cat._id || cat.id,
-                name: cat.name,
-                slug: cat.slug,
-                icon: mapHeaderCategoryToIcon(cat.name, cat.slug, cat.iconName, cat.theme)
-            };
-        });
+                // Otherwise map from HeaderCategory
+                return {
+                    id: cat._id || cat.id || `temp-${Math.random()}`,
+                    name: cat.name || 'Category',
+                    slug: cat.slug || cat._id || 'all',
+                    icon: mapHeaderCategoryToIcon(cat.name, (cat.slug || 'all'), cat.iconName, cat.theme)
+                };
+            });
 
         return [forYou, ...dynamicCategories];
     }, [propCategories]);
@@ -101,10 +103,15 @@ export default function CategoryTabBar({
         if (activeCategory && scrollContainerRef.current) {
             const activeElement = scrollContainerRef.current.querySelector(`[data-category="${activeCategory}"]`);
             if (activeElement) {
-                activeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                // Short delay to ensure tabs are rendered
+                const timer = setTimeout(() => {
+                    activeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }, 100);
+                return () => clearTimeout(timer);
             }
         }
     }, [activeCategory]);
+
 
     const navigate = useNavigate();
 

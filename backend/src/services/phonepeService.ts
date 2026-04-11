@@ -39,7 +39,7 @@ const ENV_MODE =
         ? Env.PRODUCTION
         : Env.SANDBOX;
 
-const FRONTEND_URL  = (process.env.FRONTEND_URL?.trim() || 'https://laxmart.store').replace(/\/$/, '');
+const FRONTEND_URL  = (process.env.FRONTEND_URL?.trim() || 'http://localhost:5173').replace(/\/$/, '');
 
 // ─── SDK Singleton ────────────────────────────────────────────────────────────
 let _client: StandardCheckoutClient | null = null;
@@ -77,7 +77,7 @@ const getClient = (): StandardCheckoutClient => {
  * @param orderId   MongoDB Order _id (string)
  * @returns { success, data: { redirectUrl, merchantOrderId } }
  */
-export const initiatePhonePePayment = async (orderId: string) => {
+export const initiatePhonePePayment = async (orderId: string, customFrontendUrl?: string) => {
     try {
         const client = getClient();
 
@@ -104,14 +104,13 @@ export const initiatePhonePePayment = async (orderId: string) => {
 
         console.log(`[PhonePeService] Initiating payment | Order: ${orderId} | MerchantOrderId: ${merchantOrderId} | Amount: ₹${order.total}`);
 
-        const callbackUrl = process.env.PHONEPE_CALLBACK_URL?.trim() || 'https://api.laxmart.store/api/v1/payments/phonepe/callback';
-
         // ── Build SDK pay request ───────────────────────────────────────────
         // NOTE: In PhonePe SDK v2.0.5, callbackUrl is NOT supported on the builder.
+        const baseFrontendUrl = customFrontendUrl || FRONTEND_URL;
         const request = StandardCheckoutPayRequest.builder()
             .merchantOrderId(merchantOrderId)
             .amount(amountInPaise)
-            .redirectUrl(`${FRONTEND_URL}/payment/verify`)
+            .redirectUrl(`${baseFrontendUrl}/payment/verify?merchantOrderId=${merchantOrderId}`)
             .build();
 
         // ── Call PhonePe API ────────────────────────────────────────────────
@@ -185,8 +184,8 @@ export const checkPhonePeStatus = async (merchantOrderId: string) => {
                     paymentStatus:   'Paid',
                     status:          'Received',
                     merchantOrderId: merchantOrderId, // record the MT... ID
-                }, { new: true });
-                console.log(`[PhonePeService] Order ${payment.order} marked Paid`);
+                }, { new: true }).lean();
+                console.log(`[PhonePeService] Order ${payment.order} marked Paid and Received (Status Check)`);
 
                 return { success: true, status: 'success', raw: response, order: updatedOrder, justPaid: true };
             } else if (state === 'FAILED') {
@@ -265,8 +264,8 @@ export const handlePhonePeWebhook = async (body: any) => {
                 transactionId:   transactionId,  // new dedicated field
                 merchantOrderId: merchantTransactionId,
                 status:          'Received',
-            }, { new: true });
-            console.log(`[PhonePeService] Webhook: Order ${payment.order} marked Paid`);
+            }, { new: true }).lean();
+            console.log(`[PhonePeService] Webhook: Order ${payment.order} marked Paid and Received (Webhook)`);
             return { success: true, order: updatedOrder, justPaid: true };
         } else if (state === 'FAILED') {
             payment.status = 'Failed';

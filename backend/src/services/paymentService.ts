@@ -39,7 +39,7 @@ const getPhonePeClient = () => {
 /**
  * 1. Create Checkout Order
  */
-export const createPhonePeOrder = async (orderId: string) => {
+export const createPhonePeOrder = async (orderId: string, customFrontendUrl?: string) => {
     try {
         const client = getPhonePeClient();
 
@@ -52,10 +52,12 @@ export const createPhonePeOrder = async (orderId: string) => {
         const merchantTransactionId = `MT${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
 
         // SDK Pay Request
+        // Use provided customFrontendUrl or fallback to env
+        const baseFrontendUrl = customFrontendUrl || FRONTEND_URL;
         const request = StandardCheckoutPayRequest.builder()
             .merchantOrderId(merchantTransactionId)
             .amount(amountInPaise)
-            .redirectUrl(`${FRONTEND_URL}/payment/verify`)
+            .redirectUrl(`${baseFrontendUrl}/payment/verify?merchantOrderId=${merchantTransactionId}`)
             .build();
 
         console.log(`[PhonePe] Creating payment for Order: ${orderId} | Total: ${order.total} INR`);
@@ -113,7 +115,7 @@ export const getPhonePePaymentStatus = async (merchantTransactionId: string) => 
                 const updatedOrder = await Order.findByIdAndUpdate(payment.order, {
                     paymentStatus: 'Paid',
                     status: 'Received'
-                }, { new: true });
+                }, { new: true }).lean();
                 return {
                     success: true,
                     status: state,
@@ -167,7 +169,7 @@ export const handlePhonePeCallback = async (body: any) => {
                 paymentStatus: 'Paid',
                 paymentId: transactionId,
                 status: 'Received'
-            }, { new: true });
+            }, { new: true }).lean();
             return { success: true, order: updatedOrder, justPaid: true };
         } else if (state === 'FAILED') {
             payment.status = 'Failed';

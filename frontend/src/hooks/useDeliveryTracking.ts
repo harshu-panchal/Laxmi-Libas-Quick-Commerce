@@ -22,6 +22,7 @@ interface TrackingData {
     distance: number
     status: string
     orderStatus: string | null // The actual order status (Placed, Out for Delivery, Delivered, etc.)
+    deliveryOtp: string | null
     isConnected: boolean
     lastUpdate: Date | null
     error: string | null
@@ -38,6 +39,7 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
         distance: 0,
         status: 'idle',
         orderStatus: null,
+        deliveryOtp: null,
         isConnected: false,
         lastUpdate: null,
         error: null,
@@ -166,6 +168,15 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
             setTrackingData(prev => ({
                 ...prev,
                 orderStatus: 'Delivered',
+                lastUpdate: new Date(),
+            }))
+        })
+        
+        socket.on('otp-sent', (data: any) => {
+            console.log('🔑 Delivery OTP received via socket:', data.deliveryOtp)
+            setTrackingData(prev => ({
+                ...prev,
+                deliveryOtp: data.deliveryOtp,
                 lastUpdate: new Date(),
             }))
         })

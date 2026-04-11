@@ -468,16 +468,34 @@ export const sendDeliveryOtp = asyncHandler(
     }
 
     try {
+      // Find order and populate customer to get their permanent delivery OTP
+      const orderWithCustomer = await Order.findById(id).populate('customer');
+      if (!orderWithCustomer) throw new Error('Order not found');
+
       const result = await generateDeliveryOtp(id);
 
-      // Emit otp-sent event to delivery boy
+      // Emit otp-sent event to delivery boy and customer
       const io = (req.app as any).get("io");
       if (io) {
+        const customerData = orderWithCustomer.customer as any;
+        const otp = customerData?.deliveryOtp || "N/A";
+
+        // Notify delivery boy
         io.to(`delivery-${deliveryId}`).emit("otp-sent", {
           orderId: id,
           orderNumber: order.orderNumber,
           message: "Delivery OTP sent to customer",
         });
+
+        // Notify customer (this is the key fix for Task 3)
+        io.to(`order-${id}`).emit("otp-sent", {
+          orderId: id,
+          orderNumber: order.orderNumber,
+          deliveryOtp: otp,
+          message: "Delivery partner has reached and requested the verification code",
+        });
+        
+        console.log(`📡 [OTP] Emitted otp-sent to order-${id} room. OTP: ${otp}`);
       }
 
       return res.status(200).json({

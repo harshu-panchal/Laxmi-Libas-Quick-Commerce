@@ -638,12 +638,17 @@ export const processPendingCODPayouts = async (
 
           // Update platform wallet counters for this specifically processed order
           if (platformWallet) {
-            // How much admin actually earned from this order (Commission + platform fee + admin shipping)
-            const { calculateCODOrderBreakdown } = await import("./commissionService");
-            const breakdown = await calculateCODOrderBreakdown(order._id.toString());
+            try {
+              // How much admin actually earned from this order (Commission + platform fee + admin shipping)
+              const breakdown = await calculateCODOrderBreakdown(order._id.toString(), session);
 
-            platformWallet.totalAdminEarning += breakdown.totalAdminEarning;
-            platformWallet.sellerPendingPayouts = Math.max(0, platformWallet.sellerPendingPayouts + netEarning);
+              platformWallet.totalAdminEarning += breakdown.totalAdminEarning;
+              // Update seller pending payout liability
+              platformWallet.sellerPendingPayouts = Math.max(0, (platformWallet.sellerPendingPayouts || 0) + netEarning);
+            } catch (err) {
+              console.error(`[COD Payout] Error calculating breakdown for order ${order.orderNumber}:`, err);
+              // We still continue as the commission is marked Paid and seller is credited
+            }
           }
         }
 
@@ -834,7 +839,8 @@ export interface ICODOrderBreakdown {
  * - Delivery charge split (delivery boy commission vs admin commission)
  */
 export const calculateCODOrderBreakdown = async (
-  orderId: string
+  orderId: string,
+  session?: mongoose.ClientSession
 ): Promise<ICODOrderBreakdown> => {
   try {
     const order = await Order.findById(orderId).populate("items");
@@ -865,10 +871,10 @@ export const calculateCODOrderBreakdown = async (
 
     // 1. Calculate Product Commissions (Admin vs Seller)
     for (const itemId of order.items) {
-      const item = await OrderItem.findById(itemId);
+      const item = await OrderItem.findById(itemId).session(session || null);
       if (!item) continue;
 
-      const product = await Product.findById(item.product);
+      const product = await Product.findById(item.product).session(session || null);
       if (!product) continue;
 
       const commissionRate = item.commissionRate || await getOrderItemCommissionRate(
@@ -908,7 +914,7 @@ export const calculateCODOrderBreakdown = async (
       } else {
         // Fallback: If no distance-based config, use percentage of order subtotal (matches prepaid logic)
         // Get delivery boy commission rate (default 5%)
-        const deliveryBoy = await Delivery.findById(order.deliveryBoy);
+        const deliveryBoy = await Delivery.findById(order.deliveryBoy).session(session || null);
         const deliveryBoyRate = deliveryBoy?.commissionRate || 5;
 
         // Use subtotal instead of shipping charge to avoid zero commission on free delivery.

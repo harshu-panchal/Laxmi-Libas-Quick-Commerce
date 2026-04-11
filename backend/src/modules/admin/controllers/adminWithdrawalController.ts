@@ -69,15 +69,27 @@ export const approveWithdrawal = async (req: Request, res: Response) => {
             });
         }
 
-        request.status = 'Approved';
-        request.processedBy = new mongoose.Types.ObjectId(adminId);
-        request.processedAt = new Date();
-        await request.save();
+        const updatedRequest = await WithdrawRequest.findByIdAndUpdate(
+            id,
+            {
+                status: 'Approved',
+                processedBy: adminId,
+                processedAt: new Date()
+            },
+            { new: true, runValidators: false } // Avoid validation errors for broken/legacy records
+        );
+
+        if (!updatedRequest) {
+            return res.status(404).json({
+                success: false,
+                message: 'Withdrawal request not found',
+            });
+        }
 
         return res.status(200).json({
             success: true,
             message: 'Withdrawal request approved successfully',
-            data: request,
+            data: updatedRequest,
         });
     } catch (error: any) {
         console.error('Error approving withdrawal:', error);
@@ -112,16 +124,28 @@ export const rejectWithdrawal = async (req: Request, res: Response) => {
             });
         }
 
-        request.status = 'Rejected';
-        request.processedBy = new mongoose.Types.ObjectId(adminId);
-        request.processedAt = new Date();
-        if (remarks) request.remarks = remarks;
-        await request.save();
+        const updatedRequest = await WithdrawRequest.findByIdAndUpdate(
+            id,
+            {
+                status: 'Rejected',
+                processedBy: adminId,
+                processedAt: new Date(),
+                remarks: remarks || ''
+            },
+            { new: true, runValidators: false }
+        );
+
+        if (!updatedRequest) {
+            return res.status(404).json({
+                success: false,
+                message: 'Withdrawal request not found',
+            });
+        }
 
         return res.status(200).json({
             success: true,
             message: 'Withdrawal request rejected successfully',
-            data: request,
+            data: updatedRequest,
         });
     } catch (error: any) {
         console.error('Error rejecting withdrawal:', error);
@@ -168,6 +192,14 @@ export const completeWithdrawal = async (req: Request, res: Response) => {
             });
         }
 
+        if (!request.userId || !request.userType) {
+            await session.abortTransaction();
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot complete withdrawal: Missing User ID or User Type in record. This might be a broken legacy record.',
+            });
+        }
+
         // Debit from wallet
         const debitResult = await debitWallet(
             request.userId.toString(),
@@ -184,11 +216,16 @@ export const completeWithdrawal = async (req: Request, res: Response) => {
         }
 
         // Update request
-        request.status = 'Completed';
-        request.transactionReference = transactionReference;
-        request.processedBy = new mongoose.Types.ObjectId(adminId);
-        request.processedAt = new Date();
-        await request.save({ session });
+        const updatedRequest = await WithdrawRequest.findByIdAndUpdate(
+            id,
+            {
+                status: 'Completed',
+                transactionReference,
+                processedBy: adminId,
+                processedAt: new Date()
+            },
+            { new: true, runValidators: false, session }
+        );
 
         await session.commitTransaction();
 

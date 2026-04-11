@@ -21,7 +21,7 @@ import { checkPhonePePaymentStatus } from '../../services/api/paymentService';
 
 type VerifyStatus = 'verifying' | 'success' | 'failed';
 
-const MAX_POLL_ATTEMPTS = 5;
+const MAX_POLL_ATTEMPTS = 10;
 const POLL_INTERVAL_MS  = 3000;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -41,7 +41,8 @@ const PaymentVerify: React.FC = () => {
     const merchantOrderId = searchParams.get('merchantOrderId')
         || searchParams.get('merchantTransactionId')
         || searchParams.get('transactionId')
-        || searchParams.get('orderId');
+        || searchParams.get('orderId')
+        || localStorage.getItem('laxmart_pending_payment_id');
 
     const transactionId   = searchParams.get('transactionId');
     const amount          = searchParams.get('amount');
@@ -54,12 +55,12 @@ const PaymentVerify: React.FC = () => {
         const verifyPayment = async () => {
             // ── If no merchantOrderId, we cannot verify securely ────────────
             if (!merchantOrderId) {
-                console.warn('[PaymentVerify] No merchantOrderId in URL params');
-                await sleep(2000);
+                console.warn('[PaymentVerify] No merchantOrderId found in URL params or localStorage. SearchParams:', Object.fromEntries(searchParams.entries()));
+                
+                setMessage('Payment record not found. Redirecting to your orders...');
+                await sleep(4000);
                 if (!isCancelled) {
-                    setStatus('failed');
-                    setMessage('Payment reference not found. Please check your orders.');
-                    setTimeout(() => navigate('/orders'), 3000);
+                    navigate('/orders');
                 }
                 return;
             }
@@ -79,6 +80,7 @@ const PaymentVerify: React.FC = () => {
                             // ── SUCCESS ──────────────────────────────────────
                             if (!isCancelled) {
                                 clearCart();
+                                localStorage.removeItem('laxmart_pending_payment_id');
                                 setStatus('success');
                                 setMessage('Payment Successful! 🎉');
                                 setTimeout(() => navigate('/orders'), 2500);
@@ -89,6 +91,7 @@ const PaymentVerify: React.FC = () => {
                         if (result.status === 'failed') {
                             // ── FAILED ───────────────────────────────────────
                             if (!isCancelled) {
+                                localStorage.removeItem('laxmart_pending_payment_id');
                                 setStatus('failed');
                                 setMessage('Payment failed or was cancelled.');
                                 setTimeout(() => navigate('/checkout'), 3000);

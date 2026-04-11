@@ -120,6 +120,10 @@ export default function AdminHeaderCategory() {
     if (!selectedTheme) return alert('Please select a theme');
 
     try {
+      if (headerCategorySlug.toLowerCase() === 'all') {
+        return alert('The slug "all" is reserved for the "For You" system tab. Please use a different slug (e.g., "all-products" or "featured").');
+      }
+
       const payload = {
         name: headerCategoryName,
         iconLibrary: selectedIconLibrary,
