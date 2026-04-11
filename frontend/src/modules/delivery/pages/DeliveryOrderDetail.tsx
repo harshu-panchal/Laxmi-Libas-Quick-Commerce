@@ -596,7 +596,7 @@ export default function DeliveryOrderDetail() {
             )} */}
 
             {/* Google Maps View - Shared Component for Parity */}
-            {isMapVisible && (
+            {isMapVisible && publicConfig && (
                 <div className="relative">
                     <GoogleMapsTracking
                         apiKey={publicConfig?.googleMapsKey}

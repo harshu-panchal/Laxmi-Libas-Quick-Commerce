@@ -57,6 +57,7 @@ function generateOTP(length: number = 4): string {
  */
 function normalizeMobileNumber(mobile: string): string {
   let cleanMobile = mobile.replace(/^\+/, '').replace(/\D/g, '');
+  console.log(`[OTP] Normalizing ${mobile} -> ${cleanMobile}`);
 
   // If it's a 10-digit Indian number, always add 91 prefix
   // Even if it starts with 91, if length is 10, it's just a mobile number starting with 91

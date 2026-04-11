@@ -107,11 +107,11 @@ export const initiatePhonePePayment = async (orderId: string) => {
         const callbackUrl = process.env.PHONEPE_CALLBACK_URL?.trim() || 'https://api.laxmart.store/api/v1/payments/phonepe/callback';
 
         // ── Build SDK pay request ───────────────────────────────────────────
+        // NOTE: In PhonePe SDK v2.0.5, callbackUrl is NOT supported on the builder.
         const request = StandardCheckoutPayRequest.builder()
             .merchantOrderId(merchantOrderId)
             .amount(amountInPaise)
             .redirectUrl(`${FRONTEND_URL}/payment/verify`)
-            .callbackUrl(callbackUrl)
             .build();
 
         // ── Call PhonePe API ────────────────────────────────────────────────
