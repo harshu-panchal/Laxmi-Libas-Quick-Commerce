@@ -250,10 +250,10 @@ const SellerSchema = new Schema<ISeller>(
       default: 0,
       min: [0, 'Balance cannot be negative'],
     },
-    categories: {
-      type: [String],
-      default: [],
-    },
+    categories: [{
+      type: Schema.Types.ObjectId,
+      ref: "Category",
+    }],
     logo: {
       type: String,
       trim: true,

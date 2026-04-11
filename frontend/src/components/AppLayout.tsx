@@ -152,7 +152,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const isCategoriesPage = location.pathname === '/categories' || location.pathname.startsWith('/category/');
   const shouldHideDeliveryInfo = isAccountPage || isCategoriesPage;
 
-  const showStickyHeader = (showHeader || isSearchPage || !isHomePage) && !isOrderAgainPage;
+  const isHomePageDirect = location.pathname === '/' || location.pathname === '/user/home';
+  const showStickyHeader = (showHeader || isSearchPage || !isHomePage) && !isOrderAgainPage && !isHomePageDirect;
 
   return (
     <div className="flex flex-col min-h-screen w-full overflow-x-hidden">

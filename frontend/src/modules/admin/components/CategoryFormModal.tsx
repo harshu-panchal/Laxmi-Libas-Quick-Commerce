@@ -293,9 +293,9 @@ export default function CategoryFormModal({
                 ? null
                 : parentCategory.headerCategory._id
               : null);
-          if (!parentHeaderCategoryId) {
+          if (!parentHeaderCategoryId && !formData.headerCategoryId) {
             newErrors.headerCategoryId =
-              "Parent category does not have a header category assigned. Please assign a header category to the parent category first.";
+              "Header category is required. Since the parent category does not have one assigned, please select one manually below.";
           }
         } else {
           newErrors.headerCategoryId =
@@ -471,56 +471,27 @@ export default function CategoryFormModal({
             </label>
             {isSubcategoryMode ? (
               <div>
-                <input
-                  type="text"
-                  value={(() => {
-                    // First, try to get name from parentCategory.headerCategory (if populated as separate field)
-                    if (parentCategory?.headerCategory) {
-                      return typeof parentCategory.headerCategory === "string"
-                        ? parentCategory.headerCategory
-                        : parentCategory.headerCategory.name;
-                    }
-
-                    // Second, check if headerCategoryId is populated (object from backend)
-                    if (parentCategory?.headerCategoryId) {
-                      if (
-                        typeof parentCategory.headerCategoryId === "object" &&
-                        parentCategory.headerCategoryId !== null
-                      ) {
-                        // It's populated, get the name
-                        return (
-                          (parentCategory.headerCategoryId as { name?: string })
-                            .name || "Unknown"
-                        );
-                      }
-                    }
-
-                    // Third, try to find in loaded headerCategories using formData.headerCategoryId
-                    if (
-                      formData.headerCategoryId &&
-                      headerCategories.length > 0
-                    ) {
-                      const found = headerCategories.find(
-                        (hc) => hc._id === formData.headerCategoryId
-                      );
-                      if (found) return found.name;
-                    }
-
-                    // If still loading and we have an ID, show loading
-                    if (loadingHeaderCategories && formData.headerCategoryId) {
-                      return "Loading...";
-                    }
-
-                    // Otherwise, show not assigned
-                    return "Not assigned";
-                  })()}
-                  readOnly
-                  disabled
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-neutral-50 text-neutral-600 cursor-not-allowed"
-                />
-                <p className="mt-1 text-xs text-blue-600">
-                  Inherited from parent category
-                </p>
+                <select
+                  name="headerCategoryId"
+                  value={formData.headerCategoryId || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      headerCategoryId: e.target.value || null,
+                    }))
+                  }
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.headerCategoryId
+                    ? "border-red-300"
+                    : "border-neutral-300"
+                    }`}
+                  disabled={submitting}>
+                  <option value="">-- Select Header Category --</option>
+                  {headerCategories.map((headerCat) => (
+                    <option key={headerCat._id} value={headerCat._id}>
+                      {headerCat.name}
+                    </option>
+                  ))}
+                </select>
                 {errors.headerCategoryId && (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.headerCategoryId}

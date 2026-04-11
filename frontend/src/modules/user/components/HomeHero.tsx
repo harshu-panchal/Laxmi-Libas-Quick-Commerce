@@ -22,6 +22,7 @@ interface HomeHeroProps {
   hideLocationBar?: boolean;
   hideSearchBar?: boolean;
   hideCategoryTabs?: boolean;
+  headerCategories?: any[];
 }
 
 
@@ -32,7 +33,8 @@ export default function HomeHero({
   activeStore = 'laxmart',
   hideLocationBar = false,
   hideSearchBar = false,
-  hideCategoryTabs = false
+  hideCategoryTabs = false,
+  headerCategories = []
 }: HomeHeroProps) {
   const navigate = useNavigate();
   const { location: userLocation } = useLocation();
@@ -40,11 +42,8 @@ export default function HomeHero({
   const topSectionRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
-  const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
-  const [, setIsSticky] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
   // Format location display text - only show if user has provided location
   const locationDisplayText = useMemo(() => {
@@ -143,14 +142,12 @@ export default function HomeHero({
           // When the section has scrolled up past the viewport, transition to white
           const progress = Math.min(Math.max(1 - (sectionBottom / 200), 0), 1);
           setScrollProgress(progress);
-          setIsSticky(sectionBottom <= 100);
         } else {
           // Fallback to original logic if section not found
           const topSectionBottom = topSectionRef.current.getBoundingClientRect().bottom;
           const topSectionHeight = topSectionRef.current.offsetHeight;
           const progress = Math.min(Math.max(1 - (topSectionBottom / topSectionHeight), 0), 1);
           setScrollProgress(progress);
-          setIsSticky(topSectionBottom <= 0);
         }
       }
     };
@@ -161,80 +158,19 @@ export default function HomeHero({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Update sliding indicator position when activeTab changes and scroll to active tab
-  useEffect(() => {
-    const updateIndicator = (shouldScroll = true) => {
-      const activeTabButton = tabRefs.current.get(activeTab);
-      const container = tabsContainerRef.current;
 
-      if (activeTabButton && container) {
-        try {
-          // Use offsetLeft for position relative to container (not affected by scroll)
-          // This ensures the indicator stays aligned even when container scrolls
-          const left = activeTabButton.offsetLeft;
-          const width = activeTabButton.offsetWidth;
-
-          // Ensure valid values
-          if (width > 0) {
-            setIndicatorStyle({ left, width });
-          }
-
-          // Scroll the container to bring the active tab into view (only when tab changes)
-          if (shouldScroll) {
-            const containerScrollLeft = container.scrollLeft;
-            const containerWidth = container.offsetWidth;
-            const buttonLeft = left;
-            const buttonWidth = width;
-            const buttonRight = buttonLeft + buttonWidth;
-
-            // Calculate scroll position to center the button or keep it visible
-            const scrollPadding = 20; // Padding from edges
-            let targetScrollLeft = containerScrollLeft;
-
-            // If button is on the left side and partially or fully hidden
-            if (buttonLeft < containerScrollLeft + scrollPadding) {
-              targetScrollLeft = buttonLeft - scrollPadding;
-            }
-            // If button is on the right side and partially or fully hidden
-            else if (buttonRight > containerScrollLeft + containerWidth - scrollPadding) {
-              targetScrollLeft = buttonRight - containerWidth + scrollPadding;
-            }
-
-            // Smooth scroll to the target position
-            if (targetScrollLeft !== containerScrollLeft) {
-              container.scrollTo({
-                left: Math.max(0, targetScrollLeft),
-                behavior: 'smooth'
-              });
-            }
-          }
-        } catch (error) {
-          console.warn('Error updating indicator:', error);
-        }
-      }
-    };
-
-    // Update immediately with scroll
-    updateIndicator(true);
-
-    // Also update after delays to handle any layout shifts and ensure smooth animation
-    const timeout1 = setTimeout(() => updateIndicator(true), 50);
-    const timeout2 = setTimeout(() => updateIndicator(true), 150);
-    const timeout3 = setTimeout(() => updateIndicator(false), 300); // Last update without scroll to avoid conflicts
-
-    return () => {
-      clearTimeout(timeout1);
-      clearTimeout(timeout2);
-      clearTimeout(timeout3);
-    };
-  }, [activeTab]);
 
   const handleTabClick = (tabId: string) => {
     onTabChange?.(tabId);
     // Don't scroll - keep page at current position
   };
 
-  const theme = getTheme(activeTab || 'all');
+  const activeHeaderCategory = useMemo(() => {
+    return headerCategories.find(cat => cat.slug === activeTab);
+  }, [headerCategories, activeTab]);
+
+  const themeKey = activeHeaderCategory?.theme || activeHeaderCategory?.slug || activeTab || 'all';
+  const theme = getTheme(themeKey);
   const heroGradient = `linear-gradient(180deg, ${theme.primary[1]} 0%, ${theme.primary[2]} 55%, ${theme.primary[3]} 100%)`;
 
   // Helper to convert RGB to RGBA
@@ -403,6 +339,7 @@ export default function HomeHero({
                 onCategoryChange={onTabChange}
                 onTabClick={handleTabClick}
                 isLightMode={scrollProgress > 0.5}
+                categories={headerCategories}
               />
             </div>
           )}

@@ -38,10 +38,12 @@ export default function Home() {
     homeSections: [], // Dynamic sections created by admin
     shops: [],
     promoBanners: [],
+    promoCards: [], // Categories linked to the current header
     trending: [],
     cookingIdeas: [],
   });
   const [selectedMockSubCategory, setSelectedMockSubCategory] = useState<string | null>(null);
+  const [headerCategories, setHeaderCategories] = useState<any[]>([]);
 
   const [products, setProducts] = useState<any[]>([]);
 
@@ -111,6 +113,18 @@ export default function Home() {
     };
 
     fetchData();
+    
+    // Fetch Header Categories
+    const fetchHeaderCategories = async () => {
+      try {
+        const categories = await getHeaderCategoriesPublic(true);
+        setHeaderCategories(categories);
+      } catch (err) {
+        console.error("Failed to fetch header categories:", err);
+      }
+    };
+    fetchHeaderCategories();
+    
     setSelectedMockSubCategory(null); // Reset when tab changes
   }, [location?.latitude, location?.longitude, activeTab]);
 
@@ -240,8 +254,13 @@ export default function Home() {
     () => getFilteredProducts(activeTab),
     [activeTab, products]
   );
-
-  const theme = getTheme(activeTab);
+  
+  const activeHeaderCategory = useMemo(() => {
+    return headerCategories.find(cat => cat.slug === activeTab);
+  }, [headerCategories, activeTab]);
+  
+  const themeKey = activeHeaderCategory?.theme || activeHeaderCategory?.slug || activeTab || 'all';
+  const theme = getTheme(themeKey);
   const isDefaultTheme = activeTab === 'all';
 
   if (loading && !products.length) {
@@ -277,7 +296,12 @@ export default function Home() {
       }}
     >
       {/* Hero Header with Gradient and Tabs */}
-      <HomeHero activeTab={activeTab} onTabChange={setActiveTab} hideSearchBar={false} />
+      <HomeHero 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab} 
+        hideSearchBar={false} 
+        headerCategories={headerCategories}
+      />
 
       {/* Premium Home Banner Carousel - Restored as per request */}
       <HomeBannerCarousel />
@@ -352,19 +376,11 @@ export default function Home() {
                 );
               }
 
-              // Filter tiles for clothing related items only
-              const filteredTiles = (section.data || []).filter((tile: any) => 
-                isClothingRelated(tile.name) || isClothingRelated(tile.slug)
-              );
-
-              // If no tiles left after filtering, don't show the section
-              if (filteredTiles.length === 0) return null;
-
               return (
                 <CategoryTileSection
                   key={section.id}
                   title={section.title}
-                  tiles={filteredTiles}
+                  tiles={section.data || []}
                   columns={columnCount as 2 | 3 | 4 | 6 | 8}
                   showProductCount={false}
                 />
@@ -381,45 +397,64 @@ export default function Home() {
             </h2>
             <div className="px-4 md:px-6 lg:px-8">
               {(() => {
-                const isFashion = isClothingRelated(activeTab);
+                const hasSections = homeData.homeSections && homeData.homeSections.length > 0;
                 const hasProducts = filteredProducts.length > 0;
+                const hasPromoCards = homeData.promoCards && homeData.promoCards.length > 0;
 
-                if (isFashion && !hasProducts) {
-                  return (
+                // Priority 1: If we have promo cards (linked categories), show them as tiles
+                if (!hasSections && hasPromoCards) {
+                   return (
                     <CategoryTileSection
                       title=""
-                      tiles={CLOTHING_MOCK_DATA.subcategories as any}
-                      columns={6}
+                      tiles={homeData.promoCards.map((card: any) => ({
+                        id: card.categoryId,
+                        name: card.title,
+                        image: (card.subcategoryImages && card.subcategoryImages.length > 0) 
+                           ? card.subcategoryImages[0] 
+                           : "",
+                        slug: card.slug
+                      }))}
+                      columns={4}
                       showProductCount={false}
-                      onTileClick={(tile) => navigate(`/category/${tile.id}`)}
+                      onTileClick={(tile) => navigate(`/category/${tile.slug || tile.id}`)}
                     />
                   );
                 }
 
-                return hasProducts ? (
-                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4">
-                    {filteredProducts.map((product) => (
-                      <ProductCard
-                        key={product.id || product._id}
-                        product={product}
-                        categoryStyle={true}
-                        showBadge={true}
-                        showPackBadge={false}
-                        showStockInfo={true}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-20 px-4 bg-white rounded-2xl shadow-sm border border-neutral-100">
-                    <div className="w-16 h-16 bg-neutral-50 rounded-full flex items-center justify-center mb-4">
-                      <svg className="w-8 h-8 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                      </svg>
+                // Priority 2: If we have products, show them
+                if (hasProducts) {
+                  return (
+                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4">
+                      {filteredProducts.map((product) => (
+                        <ProductCard
+                          key={product.id || product._id}
+                          product={product}
+                          categoryStyle={true}
+                          showBadge={true}
+                          showPackBadge={false}
+                          showStockInfo={true}
+                        />
+                      ))}
                     </div>
-                    <h3 className="text-lg font-medium text-neutral-900">No products available</h3>
-                    <p className="text-sm text-neutral-500 mt-1">We're working on bringing more items to this category soon.</p>
-                  </div>
-                );
+                  );
+                }
+
+                // Priority 3: No sections, no promo cards, no products -> Empty State
+                if (!hasSections) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-20 px-4 bg-white rounded-2xl shadow-sm border border-neutral-100">
+                      <div className="w-16 h-16 bg-neutral-50 rounded-full flex items-center justify-center mb-4">
+                        <svg className="w-8 h-8 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-medium text-neutral-900">No products available</h3>
+                      <p className="text-sm text-neutral-500 mt-1">We're working on bringing more items to this category soon.</p>
+                    </div>
+                  );
+                }
+
+                return null;
               })()}
             </div>
           </div>
@@ -465,7 +500,6 @@ export default function Home() {
               <div className="px-4 md:px-6 lg:px-8">
                 <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-4">
                   {(homeData.shops || [])
-                    .filter((tile: any) => isClothingRelated(tile.name) || isClothingRelated(tile.slug))
                     .map((tile: any) => {
                     const hasImages =
                       tile.image ||

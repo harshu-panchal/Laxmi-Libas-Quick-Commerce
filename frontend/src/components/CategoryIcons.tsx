@@ -109,6 +109,16 @@ export const CategoryIcons = {
       <path d="M6 14h12V9a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v5Z" fill="#ffec00" stroke="currentColor" />
     </svg>
   ),
+  Grocery: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M4 8h16l-2 10H6L4 8Z" />
+      <path d="M9 8V4h6v4" />
+      <path d="M6 8l3 6M18 8l-3 6" />
+      <path d="M12 8v10" stroke="#ffec00" strokeWidth="2" />
+      <circle cx="8" cy="11" r="1" fill="#ffec00" stroke="none" />
+      <circle cx="16" cy="11" r="1" fill="#ffec00" stroke="none" />
+    </svg>
+  ),
   Contact: ({ className = "w-6 h-6" }: { className?: string }) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />

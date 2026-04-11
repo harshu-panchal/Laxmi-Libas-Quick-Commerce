@@ -32,38 +32,34 @@ export const createProduct = asyncHandler(
       productVideoUrl: productData.productVideoUrl, // Map productVideoUrl
     };
 
-    // Strict Category Validation: Ensure product category matches seller's assigned category
-    const sellerCategoryId = (req as any).user.categoryId;
-    if (!sellerCategoryId) {
-      return res.status(403).json({
-        success: false,
-        message: "You do not have a category assigned. Please contact admin.",
-      });
+    // Strict Category Validation: Ensure product category matches one of seller's assigned categories
+    const SellerModel = require("../../../models/Seller").default;
+    const seller = await SellerModel.findById(sellerId);
+    
+    if (!seller) {
+      return res.status(404).json({ success: false, message: "Seller profile not found" });
     }
 
-    // Check for Super Seller Bypass (Phone: 9111966732)
-    const Seller = require("../../../models/Seller").default;
-    const seller = await Seller.findById(sellerId);
-    const isSuperSeller = seller && seller.mobile === "9111966732";
-
-    // Status Check: Only approved sellers can create products
-    if (seller && seller.status !== "Approved") {
+    if (seller.status !== "Approved") {
       return res.status(403).json({
         success: false,
         message: "Your account is pending admin approval. You cannot create products until your account is approved.",
       });
     }
 
-    if (!isSuperSeller && newProductData.category && newProductData.category.toString() !== sellerCategoryId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "You can only upload products for your assigned category",
-      });
-    }
+    const isSuperSeller = seller.mobile === "9111966732";
+    const requestedCategoryId = newProductData.category;
 
-    // Force the category to be the one from the seller's JWT to prevent bypass, UNLESS it's the super seller
     if (!isSuperSeller) {
-      newProductData.category = sellerCategoryId;
+      const allowedCategories = seller.categories || (seller.category ? [seller.category] : []);
+      const isAllowed = allowedCategories.some((id: any) => id.toString() === requestedCategoryId?.toString());
+
+      if (!isAllowed) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only upload products for your assigned categories",
+        });
+      }
     }
 
     // Auto-populate headerCategoryId from Category if missing
@@ -341,38 +337,40 @@ export const updateProduct = asyncHandler(
     }
 
     // Strict Category Validation for updates
-    const sellerCategoryId = (req as any).user.categoryId;
+    const SellerModel = require("../../../models/Seller").default;
+    const seller = await SellerModel.findById(sellerId);
+    
+    if (!seller) {
+      return res.status(404).json({ success: false, message: "Seller profile not found" });
+    }
 
-    // Check for Super Seller Bypass (Phone: 9111966732)
-    const Seller = require("../../../models/Seller").default;
-    const seller = await Seller.findById(sellerId);
-    const isSuperSeller = seller && seller.mobile === "9111966732";
-
-    // Status Check: Only approved sellers can update products
-    if (seller && seller.status !== "Approved") {
+    if (seller.status !== "Approved") {
       return res.status(403).json({
         success: false,
         message: "Your account is pending admin approval. You cannot update products until your account is approved.",
       });
     }
 
-    if (!isSuperSeller && updateData.category && updateData.category.toString() !== sellerCategoryId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "You cannot change the product category to one outside your assignment",
-      });
-    }
+    const isSuperSeller = seller.mobile === "9111966732";
+    const requestedCategoryId = updateData.category;
 
-    // Force the category if it was attempted to be changed or just to be safe, UNLESS it's the super seller
-    if (updateData.category && !isSuperSeller) {
-      updateData.category = sellerCategoryId;
+    if (requestedCategoryId && !isSuperSeller) {
+      const allowedCategories = seller.categories || (seller.category ? [seller.category] : []);
+      const isAllowed = allowedCategories.some((id: any) => id.toString() === requestedCategoryId.toString());
+
+      if (!isAllowed) {
+        return res.status(403).json({
+          success: false,
+          message: "You cannot change the product category to one outside your assignment",
+        });
+      }
     }
 
     // Auto-populate headerCategoryId from Category if missing or empty
-    if (!updateData.headerCategoryId && (updateData.category || sellerCategoryId)) {
+    if (!updateData.headerCategoryId && (updateData.category || seller.category)) {
       try {
         const CategoryModel = require("../../../models/Category").default;
-        const targetCatId = updateData.category || sellerCategoryId;
+        const targetCatId = updateData.category || seller.category;
         const categoryDoc = await CategoryModel.findById(targetCatId).select("headerCategoryId");
         if (categoryDoc && categoryDoc.headerCategoryId) {
           updateData.headerCategoryId = categoryDoc.headerCategoryId;

@@ -18,7 +18,8 @@ export default function AdminHeaderCategory() {
   const [selectedIconLibrary, setSelectedIconLibrary] = useState('Custom'); // Default to Custom for SVG
   const [headerCategoryIcon, setHeaderCategoryIcon] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(''); // This maps to relatedCategory
-  const [selectedTheme, setSelectedTheme] = useState('all'); // This maps to slug
+  const [headerCategorySlug, setHeaderCategorySlug] = useState(''); // Unique identifier
+  const [selectedTheme, setSelectedTheme] = useState('all'); // Visual theme
   const [selectedStatus, setSelectedStatus] = useState<'Published' | 'Unpublished'>('Published');
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -52,11 +53,12 @@ export default function AdminHeaderCategory() {
   };
 
   // Smart Icon Suggestions
+  // Auto-generate slug from name
   useEffect(() => {
     if (headerCategoryName && !editingId) {
-      // Logic handled in useMemo
+      setHeaderCategorySlug(headerCategoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
     }
-  }, [headerCategoryName]);
+  }, [headerCategoryName, editingId]);
 
   const filteredIcons = useMemo(() => {
     const term = iconSearchTerm || headerCategoryName || '';
@@ -105,6 +107,7 @@ export default function AdminHeaderCategory() {
     setSelectedIconLibrary('Custom');
     setHeaderCategoryIcon('');
     setSelectedCategory('');
+    setHeaderCategorySlug('');
     setSelectedTheme('all');
     setSelectedStatus('Published');
     setEditingId(null);
@@ -121,7 +124,8 @@ export default function AdminHeaderCategory() {
         name: headerCategoryName,
         iconLibrary: selectedIconLibrary,
         iconName: headerCategoryIcon,
-        slug: selectedTheme, // Use theme as slug for color mapping
+        slug: headerCategorySlug || headerCategoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        theme: selectedTheme, 
         relatedCategory: selectedCategory,
         status: selectedStatus,
       };
@@ -148,7 +152,8 @@ export default function AdminHeaderCategory() {
     setSelectedIconLibrary(category.iconLibrary);
     setHeaderCategoryIcon(category.iconName);
     setSelectedCategory(category.relatedCategory || '');
-    setSelectedTheme(category.slug);
+    setHeaderCategorySlug(category.slug);
+    setSelectedTheme(category.theme || category.slug);
     setSelectedStatus(category.status);
     setIconSearchTerm('');
   };
@@ -202,6 +207,23 @@ export default function AdminHeaderCategory() {
                 placeholder="Enter Category Name (e.g. Dairy, Books)"
                 className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
               />
+            </div>
+ 
+            {/* Slug Info */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Identifier Slug (URL):
+              </label>
+              <input
+                type="text"
+                value={headerCategorySlug}
+                onChange={(e) => setHeaderCategorySlug(e.target.value)}
+                placeholder="Unique slug (e.g. food-items)"
+                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm bg-neutral-50 focus:outline-none focus:ring-1 focus:ring-teal-500"
+              />
+              <p className="mt-1 text-[10px] text-neutral-500">
+                This must be unique for each category (e.g. "grocery", "fashion").
+              </p>
             </div>
 
             {/* Select Icon Visual Grid */}
@@ -424,10 +446,11 @@ export default function AdminHeaderCategory() {
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-100 text-neutral-800 capitalize border border-neutral-200">
                           <div
                             className="w-2 h-2 rounded-full mr-1.5"
-                            style={{ background: themes[category.slug]?.primary[0] || '#ccc' }}
+                            style={{ background: themes[category.theme || category.slug]?.primary[0] || themes.all.primary[0] }}
                           />
-                          {category.slug}
+                          {category.theme || 'Default'}
                         </span>
+                        <div className="text-[10px] text-neutral-400 mt-0.5">Slug: {category.slug}</div>
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span

@@ -1,6 +1,17 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CategoryIcons } from './CategoryIcons';
+import { getIconByName } from '../utils/iconLibrary';
+
+interface HeaderCategory {
+    _id: string;
+    name: string;
+    iconLibrary: string;
+    iconName: string;
+    slug: string;
+    theme?: string;
+    status: 'Published' | 'Unpublished';
+}
 
 interface Category {
     id: string;
@@ -32,17 +43,59 @@ interface CategoryTabBarProps {
     onCategoryChange?: (categorySlug: string) => void;
     onTabClick?: (tabId: string) => void;
     isLightMode?: boolean;
-    categories?: Category[];
+    categories?: any[]; // Accept both internal Category and HeaderCategory from API
 }
 
+const mapHeaderCategoryToIcon = (name: string, slug: string, iconName: string, theme?: string) => {
+    // 1. Try to find a premium icon by exact slug, name, or theme
+    const premiumKeys = Object.keys(CategoryIcons);
+    const match = premiumKeys.find(key => 
+        key.toLowerCase() === (theme || '').toLowerCase() ||
+        key.toLowerCase() === slug.toLowerCase() || 
+        key.toLowerCase() === name.toLowerCase().replace(/\s+/g, '')
+    );
+
+    if (match) {
+        return (CategoryIcons as any)[match];
+    }
+
+    // 2. Fallback to generic icon library
+    return getIconByName(iconName);
+};
+
 export default function CategoryTabBar({ 
-    activeCategory = 'all', 
+    activeCategory, 
     onCategoryChange, 
     onTabClick, 
     isLightMode = false,
-    categories = DEFAULT_CATEGORIES
+    categories: propCategories
 }: CategoryTabBarProps) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Prepare categories list
+    const categories = useMemo(() => {
+        // If no categories provided, use default
+        if (!propCategories || propCategories.length === 0) return DEFAULT_CATEGORIES;
+
+        // If categories provided, always prepend "For You"
+        const forYou = DEFAULT_CATEGORIES[0];
+        
+        // Map any HeaderCategory from API to the internal Category format
+        const dynamicCategories = propCategories.map(cat => {
+            // If it's already in the internal format, return it
+            if (cat.id && cat.icon && !cat._id) return cat;
+
+            // Otherwise map from HeaderCategory
+            return {
+                id: cat._id || cat.id,
+                name: cat.name,
+                slug: cat.slug,
+                icon: mapHeaderCategoryToIcon(cat.name, cat.slug, cat.iconName, cat.theme)
+            };
+        });
+
+        return [forYou, ...dynamicCategories];
+    }, [propCategories]);
 
     useEffect(() => {
         if (activeCategory && scrollContainerRef.current) {
@@ -60,8 +113,13 @@ export default function CategoryTabBar({
             navigate(category.navUrl);
             return;
         }
-        if (onTabClick) onTabClick(category.slug);
-        if (onCategoryChange) onCategoryChange(category.slug);
+        
+        // Priority: use onCategoryChange if available, otherwise fallback to onTabClick
+        if (onCategoryChange) {
+            onCategoryChange(category.slug);
+        } else if (onTabClick) {
+            onTabClick(category.slug);
+        }
     };
 
     return (
@@ -75,13 +133,17 @@ export default function CategoryTabBar({
                     WebkitOverflowScrolling: 'touch',
                 }}
             >
-                {categories.map((category) => {
-                    const isActive = activeCategory === category.slug;
+                {categories.map((category, index) => {
+                    // Logic for active state:
+                    // 1. If activeCategory is 'all' or missing, only highlight index 0 (For You)
+                    // 2. Otherwise, match by slug exactly
+                    const activeSlug = activeCategory || 'all';
+                    const isActive = activeSlug === category.slug;
                     const Icon = category.icon;
 
                     return (
                         <button
-                            key={category.id}
+                            key={`${category.id}-${index}`}
                             data-category={category.slug}
                             onClick={() => handleCategoryChange(category)}
                             className="flex flex-col items-center justify-end min-w-[50px] group flex-shrink-0 outline-none"

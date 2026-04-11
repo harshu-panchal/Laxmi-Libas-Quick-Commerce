@@ -72,12 +72,7 @@ export default function CategoryPage() {
               icon: "📦",
               isActive: true,
             } as any,
-            ...(subs || []).filter((s: any) => {
-               const name = s.name?.toLowerCase() || "";
-               const slug = s.slug?.toLowerCase() || "";
-               return (name.includes('men') && !name.includes('women')) || 
-                      (slug.includes('men') && !slug.includes('women'));
-            }),
+            ...(subs || [])
           ]);
 
           // Check URL query params first, then API response
@@ -141,15 +136,7 @@ export default function CategoryPage() {
               ...p,
               tags: Array.isArray(p.tags) ? p.tags : [],
               nameParts: (p.productName || p.name || "").toLowerCase().split(" "),
-            }))
-            .filter((p: any) => {
-              const name = p.name?.toLowerCase() || "";
-              const catName = p.category?.name?.toLowerCase() || "";
-              const subName = p.subcategory?.name?.toLowerCase() || "";
-              return (name.includes('men') && !name.includes('women')) || 
-                     (catName.includes('men') && !catName.includes('women')) ||
-                     (subName.includes('men') && !subName.includes('women'));
-            });
+            }));
 
           // Fallback to mock data if empty and it's a clothing-related category
           const isClothingCat = 

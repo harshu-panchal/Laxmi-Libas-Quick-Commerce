@@ -140,12 +140,20 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   } = req.body;
 
   // Validation (password removed - sellers don't need password during signup)
-  if (!sellerName || !mobile || !email || !storeName || !category) {
+  if (!sellerName || !mobile || !email || !storeName || (!category && (!req.body.categories || req.body.categories.length === 0))) {
     return res.status(400).json({
       success: false,
       message:
-        "Required fields (Name, Mobile, Email, Store Name, Category) must be provided",
+        "Required fields (Name, Mobile, Email, Store Name, at least one Category) must be provided",
     });
+  }
+
+  // Handle multi-category input: if category is missing but categories is present, use first one as primary
+  let finalCategory = category;
+  const finalCategories = req.body.categories || (category ? [category] : []);
+  
+  if (!finalCategory && finalCategories.length > 0) {
+    finalCategory = finalCategories[0];
   }
 
   if (!/^[0-9]{10}$/.test(mobile)) {
@@ -155,19 +163,21 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Validate category is a valid ObjectId and exists
-  if (!mongoose.Types.ObjectId.isValid(category)) {
-    return res.status(400).json({
-      success: false,
-      message: "A valid Category ID is required",
-    });
+  // Validate categories exist
+  for (const catId of finalCategories) {
+    if (!mongoose.Types.ObjectId.isValid(catId)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid Category ID: ${catId}`,
+      });
+    }
   }
 
-  const categoryExists = await Category.findById(category);
-  if (!categoryExists) {
+  const existingCats = await Category.find({ _id: { $in: finalCategories } });
+  if (existingCats.length !== finalCategories.length) {
     return res.status(400).json({
       success: false,
-      message: "The selected category does not exist. Please select an existing category.",
+      message: "One or more selected categories do not exist.",
     });
   }
 
@@ -195,7 +205,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     mobile,
     email,
     storeName,
-    category,
+    category: finalCategory,
+    categories: finalCategories,
     address,
     city: req.body.city,
     latitude: latitude || "",

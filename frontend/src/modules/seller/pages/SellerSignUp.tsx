@@ -78,11 +78,18 @@ export default function SellerSignUp() {
   };
 
   const handleCategorySelect = (catId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      category: catId,
-      categories: [catId]
-    }));
+    setFormData(prev => {
+      const isSelected = prev.categories.includes(catId);
+      const newCategories = isSelected
+        ? prev.categories.filter(id => id !== catId)
+        : [...prev.categories, catId];
+
+      return {
+        ...prev,
+        category: newCategories[0] || '', // Maintain primary for compatibility
+        categories: newCategories
+      };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,8 +112,8 @@ export default function SellerSignUp() {
       setError('Please enter your store name');
       return;
     }
-    if (!formData.category) {
-      setError('Please select a category');
+    if (formData.categories.length === 0) {
+      setError('Please select at least one category');
       return;
     }
     if (!formData.address) {
@@ -168,8 +175,8 @@ export default function SellerSignUp() {
         mobile: formData.mobile,
         email: formData.email,
         storeName: formData.storeName,
-        category: formData.category,
-        categories: [formData.category],
+        category: formData.categories[0], // Primary
+        categories: formData.categories, // Full list
         address: formData.address,
         city: formData.city,
         idProof: idProofUrl,
@@ -314,22 +321,29 @@ export default function SellerSignUp() {
                   ) : (
                     <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto p-3 border border-neutral-200 rounded-lg bg-neutral-50 shadow-inner">
                       {dbCategories.map((cat) => {
-                        const isSelected = formData.category === cat._id;
+                        const isSelected = formData.categories.includes(cat._id);
                         return (
                           <button
                             key={cat._id}
                             type="button"
                             onClick={() => handleCategorySelect(cat._id)}
                             disabled={loading}
-                            className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all duration-200 text-center ${isSelected
-                              ? 'border-teal-500 bg-white shadow-md scale-[1.02]'
+                            className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all duration-200 text-center relative ${isSelected
+                              ? 'border-teal-500 bg-teal-50 shadow-md scale-[1.02]'
                               : 'border-neutral-200 bg-white hover:border-teal-200 hover:scale-[1.01]'
                               }`}
                           >
+                            {isSelected && (
+                              <div className="absolute top-1 right-1 w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center shadow-sm">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                              </div>
+                            )}
                             {cat.image && (
                               <img src={cat.image} alt={cat.name} className="w-10 h-10 object-contain mb-2" />
                             )}
-                            <span className={`text-xs font-semibold ${isSelected ? 'text-teal-700' : 'text-neutral-700'}`}>
+                            <span className={`text-xs font-semibold ${isSelected ? 'text-teal-800' : 'text-neutral-700'}`}>
                               {cat.name}
                             </span>
                           </button>
@@ -337,7 +351,7 @@ export default function SellerSignUp() {
                       })}
                     </div>
                   )}
-                  {!formData.category && dbCategories.length > 0 && (
+                  {formData.categories.length === 0 && dbCategories.length > 0 && (
                     <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <circle cx="12" cy="12" r="10" />
