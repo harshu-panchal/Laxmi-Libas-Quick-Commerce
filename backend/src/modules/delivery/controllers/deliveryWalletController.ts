@@ -11,12 +11,7 @@ import {
 } from "../../../services/commissionService";
 import Delivery from "../../../models/Delivery";
 import WalletTransaction from "../../../models/WalletTransaction";
-import { 
-    StandardCheckoutClient, 
-    Env,
-    StandardCheckoutPayRequest 
-} from '@phonepe-pg/pg-sdk-node';
-import crypto from 'crypto';
+import { StandardCheckoutClient, Env, StandardCheckoutPayRequest } from '@phonepe-pg/pg-sdk-node';
 
 /**
  * Get delivery boy wallet balance and pending admin payout
@@ -81,59 +76,66 @@ export const createAdminPayoutOrder = async (req: Request, res: Response) => {
       });
     }
 
-    const clientId = (process.env.PHONEPE_CLIENT_ID || '').trim();
-    const clientSecret = (process.env.PHONEPE_CLIENT_SECRET || '').trim();
-    const clientVersion = Number(process.env.PHONEPE_CLIENT_VERSION) || 1;
-    const phonepeEnv = (process.env.PHONEPE_ENV || '').trim().toUpperCase();
+    const clientId = process.env.PHONEPE_CLIENT_ID?.trim() || '';
+    const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
+    const clientVersion = Number(process.env.PHONEPE_CLIENT_VERSION?.trim()) || 1;
+    const phonepeEnv = process.env.PHONEPE_ENV?.trim().toUpperCase();
 
-    if (!clientId || !clientSecret) {
-        throw new Error("PhonePe credentials (ID/Secret) are missing in environment variables");
-    }
-
-    const env = (phonepeEnv === 'PRODUCTION' || process.env.NODE_ENV === 'production') 
-        ? Env.PRODUCTION 
-        : Env.SANDBOX;
+    // Use SANDBOX as default for safety, or PRODUCTION if explicitly set
+    const env = (phonepeEnv === 'PRODUCTION')
+      ? Env.PRODUCTION
+      : Env.SANDBOX;
 
     const phonePeClient = StandardCheckoutClient.getInstance(
-        clientId,
-        clientSecret,
-        clientVersion,
-        env
+      clientId,
+      clientSecret,
+      clientVersion,
+      env
     );
 
-    // Shorten ID to stay within 35-38 character limit
-    // Pattern: APA (Admin Payout) + 13-digit timestamp + 4-char hex
-    const merchantTransactionId = `APA${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+    // PhonePe has a 38 character limit for merchantOrderId. 
+    // OLD ID was ~51 chars: PAYOUT-ADMIN-69d934f937cf31b5561079fb-1775887213644
+    // NEW ID is ~20 chars: PA-1775887213644-ABCD
+    const shortRandom = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const merchantTransactionId = `PA${Date.now()}${shortRandom}`;
+
     const amountInPaise = Math.round(amount * 100);
 
-    const frontendUrl = (process.env.FRONTEND_URL || 'https://laxmart.store').replace(/\/$/, '');
-    const callbackUrl = process.env.PHONEPE_CALLBACK_URL?.trim() || 
-        `${process.env.BACKEND_URL || 'https://api.laxmart.store'}/api/v1/payments/phonepe/callback`;
+    const backendUrl = (process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
 
-    // Use builder for robust request structure
+    // NOTE: Callback must match the route mounted in index.ts (/api/v1/payments/phonepe/callback)
+    const callbackUrl = `${backendUrl}/api/v1/payments/phonepe/callback`;
+
+    console.log(`[PayToAdmin] Creating PhonePe session: ${merchantTransactionId} | Amount: ${amount} | Env: ${phonepeEnv}`);
+
+    // NOTE: In PhonePe SDK v2.0.5, callbackUrl is NOT supported on the builder.
+    // It must be configured in your PhonePe Merchant Dashboard.
     const payRequest = StandardCheckoutPayRequest.builder()
-        .merchantOrderId(merchantTransactionId)
-        .amount(amountInPaise)
-        .redirectUrl(`${frontendUrl}/delivery/wallet?merchantTransactionId=${merchantTransactionId}`)
-        .callbackUrl(callbackUrl)
-        .build();
+      .merchantOrderId(merchantTransactionId)
+      .amount(amountInPaise)
+      .redirectUrl(`${frontendUrl}/delivery/wallet?merchantTransactionId=${merchantTransactionId}`)
+      .build();
 
     const phonePeResponse = await phonePeClient.pay(payRequest);
 
     return res.status(200).json({
-        success: true,
-        data: {
-            redirectUrl: phonePeResponse.redirectUrl,
-            merchantTransactionId,
-            amount
-        }
+      success: true,
+      data: {
+        redirectUrl: phonePeResponse.redirectUrl,
+        merchantTransactionId,
+        amount
+      }
     });
   } catch (error: any) {
-    console.error("Error creating admin payout order:", error);
+    console.error("❌ [PayToAdmin] Error creating payout order:", error);
+    if (error.response) {
+      console.error("❌ [PayToAdmin] PhonePe Response Error:", error.response.data);
+    }
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to create payout order",
-      error: error // Include full error for debugging
+      error: error.response?.data || error.stack
     });
   }
 };
@@ -149,24 +151,19 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
     const deliveryBoyId = req.user!.userId;
     const { merchantTransactionId } = req.body;
 
-    const clientId = (process.env.PHONEPE_CLIENT_ID || '').trim();
-    const clientSecret = (process.env.PHONEPE_CLIENT_SECRET || '').trim();
-    const clientVersion = Number(process.env.PHONEPE_CLIENT_VERSION) || 1;
-    const phonepeEnv = (process.env.PHONEPE_ENV || '').trim().toUpperCase();
-
-    if (!clientId || !clientSecret) {
-        throw new Error("PhonePe credentials (ID/Secret) are missing in environment variables");
-    }
-
-    const env = (phonepeEnv === 'PRODUCTION' || process.env.NODE_ENV === 'production') 
-        ? Env.PRODUCTION 
-        : Env.SANDBOX;
+    const clientId = process.env.PHONEPE_CLIENT_ID?.trim() || '';
+    const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
+    const clientVersion = Number(process.env.PHONEPE_CLIENT_VERSION?.trim()) || 1;
+    const phonepeEnv = process.env.PHONEPE_ENV?.trim().toUpperCase();
+    const env = (phonepeEnv === 'PRODUCTION')
+      ? Env.PRODUCTION
+      : Env.SANDBOX;
 
     const phonePeClient = StandardCheckoutClient.getInstance(
-        clientId,
-        clientSecret,
-        clientVersion,
-        env
+      clientId,
+      clientSecret,
+      clientVersion,
+      env
     );
 
     const statusResponse = await phonePeClient.getOrderStatus(merchantTransactionId);
