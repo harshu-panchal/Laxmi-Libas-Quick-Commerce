@@ -11,7 +11,7 @@ import path from 'path';
 
 // Debug logger to file
 const logFile = path.join(process.cwd(), 'notification_debug.log');
-function debugLog(message: string) {
+export function debugLog(message: string) {
     const timestamp = new Date().toISOString();
     const logMessage = `[${timestamp}] ${message}\n`;
     try {
@@ -444,6 +444,7 @@ export async function handleOrderAcceptance(
     orderId: string,
     deliveryBoyId: string
 ): Promise<{ success: boolean; message: string }> {
+    debugLog(`🚀 [DEBUG_ACCEPT_START] orderId=${orderId}, deliveryBoyId=${deliveryBoyId}`);
     try {
         const state = notificationStates.get(orderId);
         const normalizedDeliveryBoyId = String(deliveryBoyId).trim();
@@ -455,10 +456,12 @@ export async function handleOrderAcceptance(
                 return { success: false, message: 'Order already accepted by another delivery boy' };
             }
 
-            // Check if this delivery boy was notified
+            // If this delivery boy was not in the initial notified list (e.g. they received it via general broadcast)
+            // we allow them to accept it anyway since they clearly received the notification.
+            // REGARDLESS of notified list, allow acceptance
             if (!state.notifiedDeliveryBoys.has(normalizedDeliveryBoyId)) {
-                console.warn(`⚠️ Delivery boy ${normalizedDeliveryBoyId} not in notified list for acceptance of order ${orderId}. Notified:`, Array.from(state.notifiedDeliveryBoys));
-                return { success: false, message: 'You were not notified about this order' };
+                debugLog(`🛡️ [DEBUG_BYPASS] Allowing non-notified boy: ${normalizedDeliveryBoyId}`);
+                state.notifiedDeliveryBoys.add(normalizedDeliveryBoyId);
             }
 
             // Check if this delivery boy already rejected
@@ -490,9 +493,10 @@ export async function handleOrderAcceptance(
         order.deliveryBoy = new mongoose.Types.ObjectId(normalizedDeliveryBoyId);
         order.deliveryBoyStatus = 'Assigned';
         order.assignedAt = new Date();
-        order.status = 'Processed'; // Mark as processed when assigned
+        order.status = 'Assigned'; // Use 'Assigned' instead of 'Processed' to match frontend filter
 
         await order.save();
+        debugLog(`✅ [handleOrderAcceptance] Order ${orderId} saved with deliveryBoy ${normalizedDeliveryBoyId}`);
 
         // Emit order-accepted event to stop notifications for all delivery boys
         io.to('delivery-notifications').emit('order-accepted', {
@@ -531,7 +535,7 @@ export async function handleOrderAcceptance(
         console.log(`✅ Order ${orderId} accepted by delivery boy ${normalizedDeliveryBoyId} ${state ? '(Memory)' : '(DB Fallback)'}`);
         return { success: true, message: 'Order accepted successfully' };
     } catch (error) {
-        console.error('Error handling order acceptance:', error);
+        debugLog(`❌ [handleOrderAcceptance] Error: ${error}`);
         return { success: false, message: 'Error accepting order' };
     }
 }
@@ -556,11 +560,13 @@ export async function handleOrderRejection(
             return { success: false, message: 'Order already accepted', allRejected: false };
         }
 
-        // Check if this delivery boy was notified
+        // If this delivery boy was not in the initial notified list (e.g. they received it via general broadcast)
+        // we allow them to reject it anyway.
         const normalizedDeliveryBoyId = String(deliveryBoyId).trim();
         if (!state.notifiedDeliveryBoys.has(normalizedDeliveryBoyId)) {
-            console.warn(`⚠️ Delivery boy ${normalizedDeliveryBoyId} not in notified list for order ${orderId}. Notified:`, Array.from(state.notifiedDeliveryBoys));
-            return { success: false, message: 'You were not notified about this order', allRejected: false };
+            console.log(`ℹ️ Delivery boy ${normalizedDeliveryBoyId} rejecting order ${orderId} via general broadcast (not in initial nearby list)`);
+            // Add them to notified list so the 'allRejected' logic counts them correctly
+            state.notifiedDeliveryBoys.add(normalizedDeliveryBoyId);
         }
 
         // Check if already rejected

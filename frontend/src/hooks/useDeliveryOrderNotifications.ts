@@ -256,11 +256,15 @@ export const useDeliveryOrderNotifications = () => {
 
     const handleAccept = useCallback(async (orderId: string, navigate?: (path: string) => void) => {
         if (!socketRef.current || !user?.id) {
+            console.warn('⚠️ [Frontend] Cannot accept order: No socket or user ID', { hasSocket: !!socketRef.current, userId: user?.id });
             return { success: false, message: 'Not connected or user not found' };
         }
 
+        console.log('🚀 [Frontend] Attempting to accept order:', orderId, 'Socket connected:', socketRef.current.connected);
+
         try {
             const result = await acceptOrder(socketRef.current, orderId, user.id);
+            console.log('✅ [Frontend] accept-order response:', result);
 
             if (result.success) {
                 // Clear current notification and show next from queue
