@@ -88,29 +88,55 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
           </button>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="hidden md:flex items-center gap-4 lg:gap-6">
+        {/* Navigation Cards */}
+        <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar py-1">
           <button
-            onClick={() => navigate('/admin/orders')}
-            className={`relative px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors ${isActive('/admin/orders') ? 'text-neutral-900' : 'text-neutral-600 hover:text-neutral-900'
+            onClick={() => navigate('/admin')}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all whitespace-nowrap border ${isActive('/admin')
+              ? 'bg-teal-50 border-teal-200 text-teal-700 shadow-sm ring-1 ring-teal-200'
+              : 'bg-white border-neutral-200 text-neutral-600 hover:border-teal-200 hover:bg-neutral-50'
               }`}
           >
-            Orders
+            <div className={`p-1.5 rounded-lg ${isActive('/admin') ? 'bg-teal-100' : 'bg-neutral-100'}`}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+            </div>
+            <span className="text-xs sm:text-sm font-bold">Product Sellers</span>
+          </button>
 
-          </button>
           <button
-            onClick={() => navigate('/admin/customers')}
-            className={`px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${isActive('/admin/customers') ? 'text-neutral-900' : 'text-neutral-600 hover:text-neutral-900'
+            onClick={() => navigate('/admin/hotel')}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all whitespace-nowrap border ${isActive('/admin/hotel')
+              ? 'bg-orange-50 border-orange-200 text-orange-700 shadow-sm ring-1 ring-orange-200'
+              : 'bg-white border-neutral-200 text-neutral-600 hover:border-orange-200 hover:bg-neutral-50'
               }`}
           >
-            Manage Customer
+            <div className={`p-1.5 rounded-lg ${isActive('/admin/hotel') ? 'bg-orange-100' : 'bg-neutral-100'}`}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 21h18M3 7h18M5 7v14M19 7v14M9 11h2M9 15h2M13 11h2M13 15h2M5 3l7 4 7-4" />
+              </svg>
+            </div>
+            <span className="text-xs sm:text-sm font-bold">Hotel Partners</span>
           </button>
+
           <button
-            onClick={() => navigate('/admin/collect-cash')}
-            className={`px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${isActive('/admin/collect-cash') ? 'text-neutral-900' : 'text-neutral-600 hover:text-neutral-900'
+            onClick={() => navigate('/admin/transport')}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all whitespace-nowrap border ${isActive('/admin/transport')
+              ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm ring-1 ring-blue-200'
+              : 'bg-white border-neutral-200 text-neutral-600 hover:border-blue-200 hover:bg-neutral-50'
               }`}
           >
-            Collect Cash
+            <div className={`p-1.5 rounded-lg ${isActive('/admin/transport') ? 'bg-blue-100' : 'bg-neutral-100'}`}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1" y="3" width="15" height="13" />
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                <circle cx="5.5" cy="18.5" r="2.5" />
+                <circle cx="18.5" cy="18.5" r="2.5" />
+              </svg>
+            </div>
+            <span className="text-xs sm:text-sm font-bold">Transport Partners</span>
           </button>
         </div>
 

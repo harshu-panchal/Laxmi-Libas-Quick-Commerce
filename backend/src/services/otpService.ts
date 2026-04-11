@@ -244,7 +244,12 @@ export async function sendSmsOtp(
   userType: 'Customer' | 'Delivery' = 'Delivery'
 ): Promise<OtpResponse> {
   try {
-    const otp = generateOTP(4);
+    let otp = generateOTP(4);
+    
+    // Hardcode OTP for Delivery as per request
+    if (userType === 'Delivery') {
+      otp = '1234';
+    }
 
     // Special number bypass
     if (isSpecialBypass(mobile)) {
@@ -353,7 +358,12 @@ export async function sendOTP(
   _isLogin: boolean = true
 ): Promise<OtpResponse> {
   try {
-    const otp = generateOTP(4);
+    let otp = generateOTP(4);
+
+    // Hardcode OTP for Seller/Delivery as per request
+    if (userType === 'Seller' || userType === 'Delivery') {
+      otp = '1234';
+    }
 
     // Special number bypass
     if (isSpecialBypass(mobile)) {
