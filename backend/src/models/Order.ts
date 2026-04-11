@@ -276,6 +276,7 @@ const OrderSchema = new Schema<IOrder>(
         "Delivered",
         "Cancelled",
         "Rejected",
+        "Assigned",
         "Returned",
       ],
       default: "Received",

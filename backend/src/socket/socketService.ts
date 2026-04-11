@@ -1,7 +1,7 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
-import { handleOrderAcceptance, handleOrderRejection } from '../services/orderNotificationService';
+import { handleOrderAcceptance, handleOrderRejection, debugLog } from '../services/orderNotificationService';
 import Order from '../models/Order';
 import DeliveryTracking from '../models/DeliveryTracking';
 import Delivery from '../models/Delivery';
@@ -137,6 +137,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
     });
 
     io.on('connection', (socket) => {
+        debugLog(`🔌 [Socket] New connection: ${socket.id}, User: ${(socket as any).user?.userId || 'Unknown'}`);
         console.log('✅ Socket connected:', socket.id, 'User:', (socket as any).user?.userId || 'Unauthenticated');
 
         // Customer subscribes to order tracking
@@ -206,6 +207,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
             socket.join('delivery-notifications');
             socket.join(`delivery-${normalizedDeliveryBoyId}`);
+            debugLog(`✅ [Socket] Delivery boy ${normalizedDeliveryBoyId} joined notification rooms`);
 
             console.log(`✅ Delivery boy ${normalizedDeliveryBoyId} joined rooms: delivery-notifications, delivery-${normalizedDeliveryBoyId}`);
 
@@ -220,11 +222,12 @@ export const initializeSocket = (httpServer: HttpServer) => {
         // Handle order acceptance
         socket.on('accept-order', async (data: { orderId: string; deliveryBoyId: string }) => {
             try {
-                console.log(`✅ Delivery boy ${data.deliveryBoyId} accepting order ${data.orderId}`);
+                debugLog(`🚩 [Socket] accept-order received: orderId=${data.orderId}, deliveryBoyId=${data.deliveryBoyId}`);
                 const result = await handleOrderAcceptance(io, data.orderId, String(data.deliveryBoyId).trim());
+                debugLog(`🚩 [Socket] accept-order result: ${JSON.stringify(result)}`);
                 socket.emit('accept-order-response', result);
             } catch (error) {
-                console.error('❌ Error in accept-order handler:', error);
+                debugLog(`❌ [Socket] accept-order error: ${error}`);
                 socket.emit('accept-order-response', { success: false, message: 'Internal server error' });
             }
         });

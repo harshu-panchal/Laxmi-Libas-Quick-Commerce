@@ -58,7 +58,9 @@ function generateOTP(length: number = 4): string {
 function normalizeMobileNumber(mobile: string): string {
   let cleanMobile = mobile.replace(/^\+/, '').replace(/\D/g, '');
 
-  if (!cleanMobile.startsWith('91')) {
+  // If it's a 10-digit Indian number, always add 91 prefix
+  // Even if it starts with 91, if length is 10, it's just a mobile number starting with 91
+  if (cleanMobile.length === 10) {
     cleanMobile = '91' + cleanMobile;
   }
 
@@ -223,9 +225,9 @@ function isDeveloperBypass(otp: string): boolean {
 
 export async function sendDeliveryOtpSms(mobile: string, otp: string): Promise<OtpResponse> {
   try {
-    if (isMockMode()) {
-      console.log(`[Mock SMS] Sending delivery OTP ${otp} to ${mobile}`);
-      return { success: true, message: 'Delivery OTP sent successfully (Mock)' };
+    if (isMockMode() || isSpecialBypass(mobile)) {
+      console.log(`[Mock/Bypass SMS] Sending delivery OTP ${otp} to ${mobile}`);
+      return { success: true, message: 'Delivery OTP sent successfully (Mock/Bypass)' };
     }
 
     const appName = process.env.APP_NAME || 'LaxMart';
