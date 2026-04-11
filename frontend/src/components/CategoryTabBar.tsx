@@ -134,11 +134,9 @@ export default function CategoryTabBar({
                 }}
             >
                 {categories.map((category, index) => {
-                    // Logic for active state:
-                    // 1. If activeCategory is 'all' or missing, only highlight index 0 (For You)
-                    // 2. Otherwise, match by slug exactly
                     const activeSlug = activeCategory || 'all';
-                    const isActive = activeSlug === category.slug;
+                    // Robust isActive logic: Only allow index 0 to match 'all' for highlighting
+                    const isActive = activeSlug === category.slug && (category.slug !== 'all' || index === 0);
                     const Icon = category.icon;
 
                     return (
