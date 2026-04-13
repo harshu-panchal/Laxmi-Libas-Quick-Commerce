@@ -31,7 +31,7 @@ const faqData: FAQItem[] = [
   {
     id: '5',
     question: 'What payment methods do you accept?',
-    answer: 'We accept various payment methods including credit/debit cards, UPI, net banking, and digital wallets. Cash on delivery (COD) is also available for select locations.',
+    answer: 'We accept various payment methods including credit/debit cards, UPI, net banking, and digital wallets. All payments are processed securely online.',
   },
   {
     id: '6',

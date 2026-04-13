@@ -1592,23 +1592,24 @@ export default function Checkout() {
       {/* Payment Method Selection */}
       <div className="px-4 md:px-6 lg:px-8 py-3 border-b border-neutral-200">
         <h2 className="text-sm font-bold text-neutral-900 mb-3">
-          Select Payment Method
+          Payment Method
         </h2>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => setPaymentMethod("Online")}
-            className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${paymentMethod === "Online"
-              ? "border-primary-dark bg-yellow-50 text-yellow-700"
-              : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
-              }`}>
-            <div
-              className={`w-8 h-8 rounded-full mb-2 flex items-center justify-center ${paymentMethod === "Online" ? "bg-primary-dark" : "bg-neutral-100"}`}>
+        <div className="flex flex-col gap-3">
+          <div
+            className="flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all border-primary-dark bg-yellow-50 text-yellow-700 w-full relative overflow-hidden group">
+            <div className="absolute top-2 right-2 flex items-center gap-1 bg-primary-dark text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+              Selected
+            </div>
+            <div className="w-10 h-10 rounded-full mb-2.5 flex items-center justify-center bg-primary-dark shadow-md">
               <svg
-                width="18"
-                height="18"
+                width="22"
+                height="22"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke={paymentMethod === "Online" ? "white" : "currentColor"}
+                stroke="white"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round">
@@ -1616,37 +1617,11 @@ export default function Checkout() {
                 <line x1="1" y1="10" x2="23" y2="10" />
               </svg>
             </div>
-            <span className="text-xs font-bold">Online Payment</span>
-            <p className="text-[8px] mt-0.5 opacity-70">
-              (Cards, UPI, NetBanking)
+            <span className="text-sm font-bold uppercase">Online Payment</span>
+            <p className="text-[10px] mt-1 font-medium opacity-80">
+              Cards, UPI, NetBanking, Wallets
             </p>
-          </button>
-
-          <button
-            onClick={() => setPaymentMethod("COD")}
-            className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${paymentMethod === "COD"
-              ? "border-primary-dark bg-yellow-50 text-yellow-700"
-              : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
-              }`}>
-            <div
-              className={`w-8 h-8 rounded-full mb-2 flex items-center justify-center ${paymentMethod === "COD" ? "bg-primary-dark" : "bg-neutral-100"}`}>
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke={paymentMethod === "COD" ? "white" : "currentColor"}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round">
-                <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-            </div>
-            <span className="text-xs font-bold">Cash on Delivery</span>
-            <p className="text-[8px] mt-0.5 opacity-70">
-              (Pay when you receive)
-            </p>
-          </button>
+          </div>
         </div>
       </div>
 

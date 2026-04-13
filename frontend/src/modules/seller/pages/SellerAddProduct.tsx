@@ -838,7 +838,7 @@ export default function SellerAddProduct() {
                     name="headerCategory"
                     value={formData.headerCategory}
                     onChange={handleChange}
-                    disabled={!!(user && (!user.categories || user.categories.length <= 1) && (user.category || user.categoryId))}
+                    disabled={!isSuperSeller && user?.userType !== "Admin" && !!(user && (!user.categories || user.categories.length <= 1) && (user.category || user.categoryId))}
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed">
                     <option value="">Select Header Category</option>
                     {headerCategories
@@ -881,7 +881,7 @@ export default function SellerAddProduct() {
                         setCategoryName(selectedCat.name);
                       }
                     }}
-                    disabled={!!(user && (!user.categories || user.categories.length <= 1) && (user.category || user.categoryId))}
+                    disabled={!isSuperSeller && user?.userType !== "Admin" && !!(user && (!user.categories || user.categories.length <= 1) && (user.category || user.categoryId))}
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed">
                     <option value="">Select Category</option>
                     {categories
