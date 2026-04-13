@@ -332,7 +332,9 @@ export default function SellerAddProduct() {
               setVideoPreview((product as any).productVideoUrl);
               setFormData(prev => ({ ...prev, productVideoUrl: (product as any).productVideoUrl }));
             }
-
+            if (product.variations) {
+              setVariations(product.variations);
+            }
           }
         } catch (err) {
           console.error("Error fetching product:", err);
@@ -535,6 +537,34 @@ export default function SellerAddProduct() {
     setFormData(prev => ({ ...prev, productVideoUrl: "" }));
   };
 
+  const addVariation = () => {
+    setVariations([
+      ...variations,
+      {
+        title: "",
+        price: parseFloat(formData.price) || 0,
+        discPrice: parseFloat(formData.discPrice) || 0,
+        stock: parseInt(formData.stock) || 0,
+        status: "Available",
+        sku: "",
+      },
+    ]);
+  };
+
+  const removeVariation = (index: number) => {
+    setVariations(variations.filter((_, i) => i !== index));
+  };
+
+  const handleVariationChange = (
+    index: number,
+    field: keyof ProductVariation,
+    value: any
+  ) => {
+    const updatedVariations = [...variations];
+    updatedVariations[index] = { ...updatedVariations[index], [field]: value };
+    setVariations(updatedVariations);
+  };
+
 
 
 
@@ -644,6 +674,7 @@ export default function SellerAddProduct() {
         shopId: formData.isShopByStoreOnly === "Yes" && formData.shopId ? formData.shopId : undefined,
         productVideoUrl: productVideoUrl || undefined,
         variations: variations,
+        variationType: formData.variationType || undefined,
 
         // Category Specific Fields
         brandName: formData.brandName || undefined,
@@ -1066,7 +1097,7 @@ export default function SellerAddProduct() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-neutral-50 rounded-lg">
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Selling Price (₹) *
+                      Base Price (₹) *
                     </label>
                     <input
                       type="number"
@@ -1080,7 +1111,7 @@ export default function SellerAddProduct() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Discounted Price (₹)
+                      Base Discounted Price (₹)
                     </label>
                     <input
                       type="number"
@@ -1093,7 +1124,7 @@ export default function SellerAddProduct() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Available Stock
+                      Base Stock
                     </label>
                     <input
                       type="number"
@@ -1103,6 +1134,128 @@ export default function SellerAddProduct() {
                       placeholder="50"
                       className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
+                  </div>
+                </div>
+
+                {/* Variations Section */}
+                <div className="mt-8 pt-6 border-t border-neutral-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-md font-semibold text-teal-700 flex items-center gap-2">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                      </svg>
+                      Product Variations
+                    </h3>
+                    <div className="text-xs text-neutral-500 italic">
+                      Add variations like Size, Color, or Weight
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Variation Type
+                    </label>
+                    <input
+                      type="text"
+                      name="variationType"
+                      value={formData.variationType}
+                      onChange={handleChange}
+                      placeholder="e.g., Size, Color, Pack Size, Weight"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    {variations.length > 0 ? (
+                      variations.map((variation, index) => (
+                        <div key={index} className="p-4 border border-neutral-200 rounded-xl bg-neutral-50/50 relative group hover:border-teal-200 transition-colors">
+                          <button
+                            type="button"
+                            onClick={() => removeVariation(index)}
+                            className="absolute -top-2 -right-2 bg-white text-red-500 hover:text-red-700 w-8 h-8 rounded-full border border-neutral-200 flex items-center justify-center shadow-sm hover:shadow transition-all z-10"
+                            title="Remove variation"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </button>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                            <div className="lg:col-span-1">
+                              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Variant Name</label>
+                              <input
+                                type="text"
+                                value={variation.title}
+                                onChange={(e) => handleVariationChange(index, "title", e.target.value)}
+                                placeholder="XL / Red / 1kg"
+                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-1 focus:ring-teal-500 outline-none text-sm bg-white"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Price (₹)</label>
+                              <input
+                                type="number"
+                                value={variation.price}
+                                onChange={(e) => handleVariationChange(index, "price", parseFloat(e.target.value))}
+                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-1 focus:ring-teal-500 outline-none text-sm bg-white"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Disc. Price (₹)</label>
+                              <input
+                                type="number"
+                                value={variation.discPrice}
+                                onChange={(e) => handleVariationChange(index, "discPrice", parseFloat(e.target.value))}
+                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-1 focus:ring-teal-500 outline-none text-sm bg-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Stock</label>
+                              <input
+                                type="number"
+                                value={variation.stock}
+                                onChange={(e) => handleVariationChange(index, "stock", parseInt(e.target.value))}
+                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-1 focus:ring-teal-500 outline-none text-sm bg-white"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">SKU</label>
+                              <input
+                                type="text"
+                                value={variation.sku}
+                                onChange={(e) => handleVariationChange(index, "sku", e.target.value)}
+                                placeholder="Optional"
+                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-1 focus:ring-teal-500 outline-none text-sm bg-white"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-6 border-2 border-dashed border-neutral-200 rounded-xl bg-neutral-50/30">
+                        <p className="text-sm text-neutral-500">No variations added yet.</p>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={addVariation}
+                      className="w-full py-3 mt-2 border-2 border-dashed border-teal-200 text-teal-600 rounded-xl hover:bg-teal-50 hover:border-teal-400 transition-all font-semibold flex items-center justify-center gap-2 group"
+                    >
+                      <div className="w-6 h-6 rounded-full bg-teal-100 flex items-center justify-center group-hover:bg-teal-200 transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="5" x2="12" y2="19"></line>
+                          <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                      </div>
+                      Add Product Variation
+                    </button>
                   </div>
                 </div>
               </div>

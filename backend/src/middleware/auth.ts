@@ -106,10 +106,22 @@ export const requireUserType = (...userTypes: AuthUserType[]) => {
       return;
     }
 
-    if (!userTypes.includes(req.user.userType)) {
+    // Case-insensitive check for better resilience
+    const normalizedUserType = String(req.user.userType || '').toLowerCase();
+    const isAllowed = userTypes.some(t => String(t).toLowerCase() === normalizedUserType);
+
+    if (!isAllowed) {
+      console.warn(`🚫 Access Denied: User type mismatch.`, {
+        expected: userTypes,
+        actual: req.user.userType,
+        userId: req.user.userId,
+        path: req.path,
+        fullUser: req.user
+      });
       res.status(403).json({
         success: false,
         message: 'Access denied. Required user type: ' + userTypes.join(' or '),
+        details: process.env.NODE_ENV === 'development' ? { actual: req.user.userType } : undefined
       });
       return;
     }
