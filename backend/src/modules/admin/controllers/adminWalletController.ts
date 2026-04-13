@@ -45,24 +45,31 @@ export const getFinancialDashboard = asyncHandler(
 
     if (platformWallet) {
       // Use platform wallet for overall earnings but real-time aggregates for payouts
+      // Ensure we round the values correctly
       return res.status(200).json({
         success: true,
         data: {
           // Platform Wallet Data (Earnings & Balance)
-          totalPlatformEarning: platformWallet.totalPlatformEarning,
-          currentPlatformBalance: platformWallet.currentPlatformBalance,
+          totalPlatformEarning: Math.round(platformWallet.totalPlatformEarning * 100) / 100,
+          currentPlatformBalance: Math.round(platformWallet.currentPlatformBalance * 100) / 100,
           totalAdminEarning: Math.round(platformWallet.totalAdminEarning * 100) / 100,
 
-          // Real-time aggregates of balances (Liabilities)
-          pendingFromDeliveryBoy: realTimePendingFromDeliveryBoy,
+          // Use counter if available, fallback to real-time aggregate if counter is zero but aggregate is not
+          // (This handles legacy data or unsynced counters)
+          pendingFromDeliveryBoy: platformWallet.pendingFromDeliveryBoy > 0 
+            ? platformWallet.pendingFromDeliveryBoy 
+            : realTimePendingFromDeliveryBoy,
+          
           sellerPendingPayouts: realTimeSellerPending,
           deliveryBoyPendingPayouts: realTimeDeliveryPendingPayouts,
 
           // Legacy fields for backward compatibility
-          totalGMV: platformWallet.totalPlatformEarning,
+          totalGMV: Math.round(platformWallet.totalPlatformEarning * 100) / 100,
           totalAdminEarnings: Math.round(platformWallet.totalAdminEarning * 100) / 100,
-          currentAccountBalance: platformWallet.currentPlatformBalance,
-          pendingAmountFromDeliveryBoy: realTimePendingFromDeliveryBoy,
+          currentAccountBalance: Math.round(platformWallet.currentPlatformBalance * 100) / 100,
+          pendingAmountFromDeliveryBoy: platformWallet.pendingFromDeliveryBoy > 0 
+            ? platformWallet.pendingFromDeliveryBoy 
+            : realTimePendingFromDeliveryBoy,
 
           // Additional stats
           pendingWithdrawalsCount: await WithdrawRequest.countDocuments({

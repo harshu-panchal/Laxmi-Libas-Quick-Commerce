@@ -208,7 +208,9 @@ export default function CheckoutAddress() {
         const fullAddress = `${address.flat}, ${address.street}, ${address.city}, ${address.state}, ${address.pincode}`;
         try {
           const geocoder = new google.maps.Geocoder();
-          const result = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
+          
+          // Use a timeout for geocoding so it doesn't block the UI forever
+          const geocodePromise = new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
             geocoder.geocode({ address: fullAddress }, (results, status) => {
               if (status === 'OK' && results && results.length > 0) {
                 resolve(results);
@@ -218,10 +220,16 @@ export default function CheckoutAddress() {
             });
           });
 
+          const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
+          
+          const result = await Promise.race([geocodePromise, timeoutPromise]);
+
           if (result && result[0] && result[0].geometry && result[0].geometry.location) {
             finalLat = result[0].geometry.location.lat();
             finalLng = result[0].geometry.location.lng();
             console.log("Geocoded address to:", finalLat, finalLng);
+          } else {
+            console.warn("Geocoding timed out or returned no results, proceeding with coordinates 0,0");
           }
         } catch (e) {
           console.warn("Geocoding failed, proceeding with 0,0", e);
@@ -252,11 +260,9 @@ export default function CheckoutAddress() {
         await addAddress(payload);
       }
 
-      // Show success feedback logic if needed or just navigate
-      setTimeout(() => {
-        setIsSaving(false);
-        navigate('/checkout', { replace: true });
-      }, 500);
+      // Show success feedback and navigate immediately
+      setIsSaving(false);
+      navigate('/checkout', { replace: true });
     } catch (error) {
       console.error('Error saving address:', error);
       setIsSaving(false);

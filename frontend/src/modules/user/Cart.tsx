@@ -13,7 +13,7 @@ export default function Cart() {
   const { cart, updateQuantity, removeFromCart } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('flipkart');
+  const [activeTab, setActiveTab] = useState('laxmart');
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
 
@@ -64,7 +64,7 @@ export default function Cart() {
     );
   }
 
-  const flipkartItemsCount = cart.items.length; // Simplified for this implementation
+  const laxmartItemsCount = cart.items.length; // Simplified for this implementation
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-100 pb-36">
@@ -77,13 +77,13 @@ export default function Cart() {
         {/* Tabs */}
         <div className="flex border-b border-neutral-100">
           <button 
-            onClick={() => setActiveTab('flipkart')}
+            onClick={() => setActiveTab('laxmart')}
             className={`flex-1 py-3 text-sm font-bold tracking-tight transition-all relative ${
-              activeTab === 'flipkart' ? 'text-blue-600' : 'text-neutral-500'
+              activeTab === 'laxmart' ? 'text-blue-600' : 'text-neutral-500'
             }`}
           >
-            Flipkart ({flipkartItemsCount})
-            {activeTab === 'flipkart' && (
+            Laxmart ({laxmartItemsCount})
+            {activeTab === 'laxmart' && (
               <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-blue-600 rounded-t-full mx-4" />
             )}
           </button>
@@ -177,7 +177,13 @@ export default function Cart() {
                     )}
                     {item.product.name}
                   </h3>
-                  <p className="text-xs text-neutral-500 mb-2">Size: {item.variant?.title || 'M'}</p>
+                  {item.variant?.title && (
+                    <p className="text-xs text-neutral-500 mb-2">
+                      {['S', 'M', 'L', 'XL', 'XXL', 'XS', 'XXXL'].includes(item.variant.title.toUpperCase()) 
+                        ? `Size: ${item.variant.title}` 
+                        : item.variant.title}
+                    </p>
+                  )}
                   
                   {/* Rating */}
                   <div className="flex items-center gap-1.5 mb-3">
@@ -220,7 +226,7 @@ export default function Cart() {
       </div>
 
       {/* 4. Bottom Sticky Section */}
-      <div className="fixed bottom-[90px] md:bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-100 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+      <div className="fixed bottom-[calc(72px+env(safe-area-inset-bottom,20px))] md:bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-100 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         {/* Savings Ribbon */}
         <div className="bg-emerald-50 px-4 py-2 flex items-center gap-2 border-b border-emerald-100">
           <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">

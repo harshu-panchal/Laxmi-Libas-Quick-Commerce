@@ -52,21 +52,25 @@ export const initiatePayment = async (req: Request, res: Response) => {
         }
 
         // Determine dynamic FRONTEND_URL based on request origin
-        // This ensures localhost redirects back to localhost, and live to live
-        let frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        // Default to .env value
+        let frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
         
         try {
             const originHeader = req.headers.origin || req.headers.referer;
             if (originHeader) {
                 const url = new URL(originHeader);
-                frontendUrl = url.origin;
+                const originBase = `${url.protocol}//${url.host}`;
+                
+                // Whitelist for safety: Allow localhost and the configured frontend URL
+                const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', frontendUrl];
+                if (allowedOrigins.some(o => originBase.toLowerCase().startsWith(o.toLowerCase()))) {
+                    frontendUrl = originBase;
+                    console.log(`[PaymentController] Detected allowed origin: ${frontendUrl}`);
+                }
             }
         } catch (err) {
             console.warn('[PaymentController] Failed to parse origin header, falling back to ENV');
         }
-        
-        // Remove trailing slash if any
-        frontendUrl = frontendUrl.replace(/\/$/, '');
         
         console.log(`[PaymentController] 🚀 Initiating payment for Order ${orderId}. Base Origin: ${frontendUrl}`);
 

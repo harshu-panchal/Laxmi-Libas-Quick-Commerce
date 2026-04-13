@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../../../utils/asyncHandler";
+import mongoose from "mongoose";
 import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
 import Brand from "../../../models/Brand";
@@ -7,6 +8,7 @@ import Product from "../../../models/Product";
 import Inventory from "../../../models/Inventory";
 import Seller from "../../../models/Seller";
 import HeaderCategory from "../../../models/HeaderCategory";
+import HomeSection from "../../../models/HomeSection";
 import { cache } from "../../../utils/cache";
 
 // ==================== Category Controllers ====================
@@ -336,43 +338,15 @@ export const updateCategory = asyncHandler(
 );
 
 /**
- * Delete category
+ * Delete category (Recursive)
  */
 export const deleteCategory = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    // Check if category has child categories (using parentId)
-    const childrenCount = await Category.countDocuments({ parentId: id });
-    if (childrenCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Cannot delete category with subcategories. Please delete or move subcategories first.",
-      });
-    }
+    console.log(`[CategoryDelete] Starting deletion for ID: ${id}`);
 
-    // Check if category has old-style subcategories (backward compatibility)
-    const subcategoryCount = await SubCategory.countDocuments({ category: id });
-    if (subcategoryCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Cannot delete category with subcategories. Please delete or move subcategories first.",
-      });
-    }
-
-    // Check if category has products
-    const productCount = await Product.countDocuments({ category: id });
-    if (productCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot delete category with products",
-      });
-    }
-
-    const category = await Category.findByIdAndDelete(id);
-
+    const category = await Category.findById(id);
     if (!category) {
       return res.status(404).json({
         success: false,
@@ -380,14 +354,79 @@ export const deleteCategory = asyncHandler(
       });
     }
 
-    // Invalidate category caches
+    // 1. Get all recursive children in the Category model
+    const childIds = await getAllChildIds(id);
+    const allAffectedCategoryIds = [new mongoose.Types.ObjectId(id), ...childIds];
+    
+    console.log(`[CategoryDelete] Found ${childIds.length} hierarchical children. Total affected categories: ${allAffectedCategoryIds.length}`);
+
+    // 2. Find any records in the legacy SubCategory model pointing to these categories
+    const legacySubcategories = await SubCategory.find({ 
+      category: { $in: allAffectedCategoryIds } 
+    });
+    const legacySubcategoryIds = legacySubcategories.map(s => s._id);
+    
+    if (legacySubcategoryIds.length > 0) {
+      console.log(`[CategoryDelete] Found ${legacySubcategoryIds.length} legacy subcategories for cleanup.`);
+    }
+
+    // 3. Check for products associated with ANY of these IDs (Current Category, Children, or Legacy Subcategories)
+    const productCount = await Product.countDocuments({
+      $or: [
+        { category: { $in: allAffectedCategoryIds } },
+        { subcategory: { $in: allAffectedCategoryIds } },
+        { subcategory: { $in: legacySubcategoryIds } }
+      ]
+    });
+
+    if (productCount > 0) {
+      console.log(`[CategoryDelete] Blocked: Found ${productCount} associated products.`);
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete category hierarchy. There are ${productCount} products associated with this category or its subcategories. Please move or delete the products first.`,
+        details: {
+          productCount,
+          affectedCategoryCount: allAffectedCategoryIds.length,
+          legacySubcategoryCount: legacySubcategoryIds.length
+        }
+      });
+    }
+
+    // 4. Check for Home Section associations
+    const sectionsUsingCategory = await HomeSection.find({
+      $or: [
+        { categories: { $in: allAffectedCategoryIds } },
+        { subCategories: { $in: legacySubcategoryIds } }
+      ]
+    });
+
+    if (sectionsUsingCategory.length > 0) {
+      console.log(`[CategoryDelete] Blocked: Found ${sectionsUsingCategory.length} home sections using this category.`);
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete category hierarchy. It is currently being used in ${sectionsUsingCategory.length} home section(s) ("${sectionsUsingCategory[0].title}"...). Please remove the category from home sections first.`,
+      });
+    }
+
+    // 5. Perform deletion
+    console.log(`[CategoryDelete] Proceeding with deletion of ${allAffectedCategoryIds.length} categories and ${legacySubcategoryIds.length} legacy subcategories.`);
+    
+    await Category.deleteMany({ _id: { $in: allAffectedCategoryIds } });
+    
+    if (legacySubcategoryIds.length > 0) {
+      await SubCategory.deleteMany({ _id: { $in: legacySubcategoryIds } });
+    }
+
+    // 6. Invalidate caches
     cache.delete("customer-categories-list");
     cache.delete("customer-categories-tree");
     cache.invalidatePattern(/^customer-category-/);
 
     return res.status(200).json({
       success: true,
-      message: "Category deleted successfully",
+      message: allAffectedCategoryIds.length > 1 
+        ? `Category "${category.name}" and its ${allAffectedCategoryIds.length - 1} subcategories deleted successfully`
+        : `Category "${category.name}" deleted successfully`,
     });
   }
 );
@@ -1290,3 +1329,19 @@ export const updateProductOrder = asyncHandler(
     });
   }
 );
+
+/**
+ * Helper to get all child category IDs recursively
+ */
+async function getAllChildIds(parentId: string): Promise<mongoose.Types.ObjectId[]> {
+  const children = await Category.find({ parentId });
+  let ids: mongoose.Types.ObjectId[] = children.map(c => c._id);
+  
+  for (const child of children) {
+    const grandchildIds = await getAllChildIds(child._id.toString());
+    ids = [...ids, ...grandchildIds];
+  }
+  
+  return ids;
+}
+

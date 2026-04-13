@@ -40,6 +40,7 @@ export default function AdminHomeSection() {
     const [headerCategories, setHeaderCategories] = useState<HeaderCategory[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
+    const [categorySearchQuery, setCategorySearchQuery] = useState("");
     const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
 
     // UI state
@@ -62,21 +63,34 @@ export default function AdminHomeSection() {
 
     // Filter categories by header category when header category or display type changes
     useEffect(() => {
+        if (!categories) return;
+
         if (displayType === "categories" && selectedHeaderCategory) {
-            const filtered = categories.filter((cat) => {
-                const headerId = typeof cat.headerCategoryId === 'string'
+            let filtered = categories.filter((cat) => {
+                const headerId = (typeof cat.headerCategoryId === 'string'
                     ? cat.headerCategoryId
-                    : cat.headerCategoryId?._id || cat.headerCategoryId;
-                return headerId === selectedHeaderCategory && !cat.parentId; // Only root categories
+                    : cat.headerCategoryId?._id || cat.headerCategoryId)?.toString()?.trim();
+                
+                const selectedId = selectedHeaderCategory.toString().trim();
+                
+                return headerId === selectedId && (!cat.parentId || cat.parentId === "" || cat.parentId === null);
             });
+
+            // Fallback: If no categories are linked to this specific header in the DB,
+            // show all root categories so the admin isn't blocked.
+            if (filtered.length === 0) {
+                filtered = categories.filter((cat) => !cat.parentId || cat.parentId === "" || cat.parentId === null);
+            }
+
             setFilteredCategories(filtered);
+            
             // Clear selected categories if they don't belong to the new header category
             setSelectedCategories((prev) =>
                 prev.filter((id) => filtered.some((cat) => cat._id === id))
             );
         } else {
             // For other display types, show all root categories
-            setFilteredCategories(categories.filter((cat) => !cat.parentId));
+            setFilteredCategories(categories.filter((cat) => !cat.parentId || cat.parentId === "" || cat.parentId === null));
         }
     }, [selectedHeaderCategory, displayType, categories]);
 
@@ -557,39 +571,57 @@ export default function AdminHomeSection() {
                                                 <span className="text-red-500 ml-1">*</span>
                                             )}
                                         </label>
+                                        
+                                        {/* Category Search Input */}
+                                        <div className="mb-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Search categories..."
+                                                value={categorySearchQuery}
+                                                onChange={(e) => setCategorySearchQuery(e.target.value)}
+                                                className="w-full px-3 py-1.5 text-xs border border-neutral-300 rounded focus:ring-1 focus:ring-teal-500 outline-none"
+                                            />
+                                        </div>
+
                                         <div className={`border border-neutral-300 rounded max-h-40 overflow-y-auto p-2 ${displayType === "categories" && !selectedHeaderCategory ? 'bg-gray-100' : 'bg-white'
                                             }`}>
                                             {displayType === "categories" && !selectedHeaderCategory ? (
                                                 <p className="text-sm text-neutral-400 p-2">Please select a header category first</p>
-                                            ) : filteredCategories.length === 0 ? (
-                                                <p className="text-sm text-neutral-400 p-2">
-                                                    {displayType === "categories"
-                                                        ? "No categories found for selected header category"
-                                                        : "Loading categories..."}
-                                                </p>
                                             ) : (
-                                                filteredCategories.map((cat) => (
-                                                    <label
-                                                        key={cat._id}
-                                                        className="flex items-center p-2 hover:bg-neutral-50 rounded cursor-pointer"
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedCategories.includes(cat._id)}
-                                                            onChange={(e) => {
-                                                                if (e.target.checked) {
-                                                                    setSelectedCategories([...selectedCategories, cat._id]);
-                                                                } else {
-                                                                    setSelectedCategories(
-                                                                        selectedCategories.filter((id) => id !== cat._id)
-                                                                    );
-                                                                }
-                                                            }}
-                                                            className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
-                                                        />
-                                                        <span className="ml-2 text-sm text-neutral-700">{cat.name}</span>
-                                                    </label>
-                                                ))
+                                                filteredCategories
+                                                    .filter(cat => cat.name.toLowerCase().includes(categorySearchQuery.toLowerCase()))
+                                                    .length === 0 ? (
+                                                    <p className="text-sm text-neutral-400 p-2">
+                                                        {displayType === "categories"
+                                                            ? "No categories found matching your filter/search"
+                                                            : "No categories available"}
+                                                    </p>
+                                                ) : (
+                                                    filteredCategories
+                                                        .filter(cat => cat.name.toLowerCase().includes(categorySearchQuery.toLowerCase()))
+                                                        .map((cat) => (
+                                                            <label
+                                                                key={cat._id}
+                                                                className="flex items-center p-2 hover:bg-neutral-50 rounded cursor-pointer"
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedCategories.includes(cat._id)}
+                                                                    onChange={(e) => {
+                                                                        if (e.target.checked) {
+                                                                            setSelectedCategories([...selectedCategories, cat._id]);
+                                                                        } else {
+                                                                            setSelectedCategories(
+                                                                                selectedCategories.filter((id) => id !== cat._id)
+                                                                            );
+                                                                        }
+                                                                    }}
+                                                                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                                                                />
+                                                                <span className="ml-2 text-sm text-neutral-700">{cat.name}</span>
+                                                            </label>
+                                                        ))
+                                                )
                                             )}
                                         </div>
                                     </div>

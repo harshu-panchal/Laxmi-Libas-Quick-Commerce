@@ -143,6 +143,39 @@ export default function SellerAddProduct() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [variations, setVariations] = useState<ProductVariation[]>([]);
 
+  // Separate useEffect to handle auto-fill when categories and user profile are ready
+  useEffect(() => {
+    if (id || !user || categories.length === 0) return;
+
+    if (sellerCatId || isSuperSeller) {
+      const allowedCatIds = (Array.isArray(user.categories) ? user.categories : [sellerCatId])
+        .map(c => typeof c === 'string' ? c : (c?._id || (c as any).id))
+        .filter(Boolean);
+      
+      // Filter available categories to only those allowed for this seller
+      const sellerAllowedCats = categories.filter((c: any) => 
+        allowedCatIds.includes(c._id || (c as any).id)
+      );
+
+      if (sellerAllowedCats.length > 0) {
+        // If only one category, auto-select it
+        if (sellerAllowedCats.length === 1 && !formData.category) {
+          const sellerCat = sellerAllowedCats[0];
+          setCategoryName(sellerCat.name);
+          const headerId = typeof sellerCat.headerCategoryId === 'string'
+            ? sellerCat.headerCategoryId
+            : (sellerCat.headerCategoryId?._id || sellerCat.headerCategoryId?.id);
+
+          setFormData(prev => ({
+            ...prev,
+            category: (sellerCat._id || sellerCat.id)?.toString() || '',
+            headerCategory: headerId?.toString() || prev.headerCategory || ''
+          }));
+        }
+      }
+    }
+  }, [user, categories, isSuperSeller, id, sellerCatId]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -159,39 +192,7 @@ export default function SellerAddProduct() {
         if (results[0].status === "fulfilled" && results[0].value.success) {
           const allCats = results[0].value.data;
           setCategories(allCats);
-
-          // Auto-fill category from seller profile if creating new product
-          if (!id && user) {
-            if (sellerCatId || isSuperSeller) {
-              const allowedCatIds = Array.isArray(user.categories) ? user.categories : [sellerCatId];
-              
-              // Filter available categories to only those allowed for this seller
-              const sellerAllowedCats = allCats.filter((c: any) => 
-                allowedCatIds.includes(c._id || c.id)
-              );
-
-              if (sellerAllowedCats.length > 0) {
-                // If only one category, auto-select it
-                if (sellerAllowedCats.length === 1) {
-                  const sellerCat = sellerAllowedCats[0];
-                  setCategoryName(sellerCat.name);
-                  const headerId = typeof sellerCat.headerCategoryId === 'string'
-                    ? sellerCat.headerCategoryId
-                    : sellerCat.headerCategoryId?._id;
-
-                  setFormData(prev => ({
-                    ...prev,
-                    category: sellerCat._id || (sellerCat as any).id,
-                    headerCategory: headerId || ''
-                  }));
-                }
-              } else {
-                console.warn("Seller categories found in profile but not in category list:", allowedCatIds);
-              }
-            } else {
-              console.warn("No category found in seller profile. user object:", user);
-            }
-          }
+          // Auto-fill logic moved to separate useEffect for better reactivity with user profile
         }
 
         // Handle taxes
@@ -206,7 +207,10 @@ export default function SellerAddProduct() {
 
         // Handle header categories
         if (results[3].status === "fulfilled") {
-          const headerCatRes = results[3].value;
+          const resultValue = results[3].value;
+          // Robust check for both direct array and wrapped API response
+          const headerCatRes = (resultValue as any).data || resultValue;
+          
           if (headerCatRes && Array.isArray(headerCatRes)) {
             // Filter only Published header categories
             const published = headerCatRes.filter(
@@ -221,7 +225,7 @@ export default function SellerAddProduct() {
           setShops(results[4].value.data);
         } else if (results[4].status === "rejected") {
           // Shops API failed - this is non-critical, log and continue
-          console.warn("Failed to fetch shops (Shop By Store feature may be unavailable):", results[4].reason?.message || "Unknown error");
+          console.warn("Failed to fetch shops (Shop By Store feature may be unavailable):", (results[4] as any).reason?.message || "Unknown error");
         }
       } catch (err) {
         console.error("Error fetching form data:", err);
@@ -838,21 +842,36 @@ export default function SellerAddProduct() {
                     name="headerCategory"
                     value={formData.headerCategory}
                     onChange={handleChange}
-                    disabled={!isSuperSeller && user?.userType !== "Admin" && !!(user && (!user.categories || user.categories.length <= 1) && (user.category || user.categoryId))}
+                    disabled={!isSuperSeller && user?.userType !== "Admin" && !!(user && (!user.categories || user.categories.length <= 1) && (user.category || user.categoryId) && formData.headerCategory)}
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed">
                     <option value="">Select Header Category</option>
-                    {headerCategories
-                      .filter(hc => {
-                        if (!user || isSuperSeller) return true;
-                        const allowedCatIds = Array.isArray(user.categories) ? user.categories : [user.category];
-                        // Only show headers that contain at least one of the seller's categories
-                        return categories.some(cat => 
-                          allowedCatIds.includes(cat._id || (cat as any).id) && 
-                          (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId === hc._id : cat.headerCategoryId?._id === hc._id)
+                    {(() => {
+                        if (!user || isSuperSeller || user?.userType === "Admin") return headerCategories;
+
+                        // 1. Get seller's allowed category IDs
+                        const allowedCatIds = (Array.isArray(user.categories) ? user.categories : [user.category || (user as any).categoryId])
+                          .map(c => typeof c === 'string' ? c : (c?._id || (c as any).id))
+                          .filter(Boolean);
+
+                        // 2. Find which header IDs are linked to these categories
+                        const linkedHeaderIds = new Set<string>();
+                        categories.forEach(cat => {
+                          const catId = (cat._id || (cat as any).id)?.toString();
+                          if (catId && allowedCatIds.some(id => id?.toString() === catId)) {
+                            const hid = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString();
+                            if (hid) linkedHeaderIds.add(hid);
+                          }
+                        });
+
+                        // 3. Filter the headers
+                        const filtered = headerCategories.filter(hc => 
+                          linkedHeaderIds.has((hc._id || (hc as any).id)?.toString() || "")
                         );
-                      })
-                      .map((headerCat) => (
-                        <option key={headerCat._id} value={headerCat._id}>
+
+                        // Fallback: If no match found (due to missing links in DB), show all to avoid blocking the user
+                        return filtered.length > 0 ? filtered : headerCategories;
+                      })().map((headerCat) => (
+                        <option key={headerCat._id || (headerCat as any).id} value={headerCat._id || (headerCat as any).id}>
                           {headerCat.name}
                         </option>
                       ))}
@@ -881,21 +900,45 @@ export default function SellerAddProduct() {
                         setCategoryName(selectedCat.name);
                       }
                     }}
-                    disabled={!isSuperSeller && user?.userType !== "Admin" && !!(user && (!user.categories || user.categories.length <= 1) && (user.category || user.categoryId))}
+                    disabled={!isSuperSeller && user?.userType !== "Admin" && !!(user && (!user.categories || user.categories.length <= 1) && (user.category || user.categoryId) && formData.category)}
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed">
                     <option value="">Select Category</option>
                     {categories
                       .filter(cat => {
-                        if (!user || isSuperSeller) return true;
-                        const allowedCatIds = Array.isArray(user.categories) ? user.categories : [user.category || user.categoryId];
-                        const isInCategoryList = allowedCatIds.includes(cat._id || (cat as any).id);
-                        
-                        // Also filter by selected header category if any
-                        if (formData.headerCategory) {
-                          const catHeaderId = typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id;
-                          return isInCategoryList && catHeaderId === formData.headerCategory;
+                        if (!user || isSuperSeller || user?.userType === "Admin") {
+                          if (formData.headerCategory) {
+                            const catHeaderId = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString();
+                            return catHeaderId === formData.headerCategory.toString();
+                          }
+                          return true;
                         }
-                        return isInCategoryList;
+                        
+                        // 1. Get seller's allowed category IDs
+                        const allowedCatIds = (Array.isArray(user.categories) ? user.categories : [user.category || user.categoryId])
+                          .map(c => typeof c === 'string' ? c : (c?._id || (c as any).id))
+                          .filter(Boolean)
+                          .map(id => id.toString().trim());
+                        
+                        const catId = (cat._id || (cat as any).id)?.toString().trim();
+                        const isInCategoryList = allowedCatIds.includes(catId || "");
+                        
+                        // If seller is not allowed to see this category at all, hide it.
+                        if (!isInCategoryList) return false;
+                        
+                        // 2. If allowed, filter by selected Header Category if any
+                        if (formData.headerCategory) {
+                          const catHeaderId = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString().trim();
+                          const selectedHeaderId = formData.headerCategory.toString().trim();
+                          
+                          if (catHeaderId === selectedHeaderId) return true;
+
+                          // Fail-safe: If seller has only one category, show it even if the header link in DB is inconsistent
+                          if (allowedCatIds.length <= 1) return true;
+
+                          return false;
+                        }
+                        
+                        return true;
                       })
                       .map((cat: any) => (
                         <option

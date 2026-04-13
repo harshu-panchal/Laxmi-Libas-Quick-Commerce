@@ -89,10 +89,30 @@ export const createAdminPayoutOrder = async (req: Request, res: Response) => {
     const amountInPaise = Math.round(amount * 100);
 
     const backendUrl = (process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
-    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+    
+    // Dynamic Origin Detection: Use origin/referer from request if it matches valid origins
+    // Default to .env value
+    let frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+    
+    try {
+        const requestOrigin = req.headers.origin || req.headers.referer;
+        if (requestOrigin) {
+            const url = new URL(requestOrigin);
+            const originBase = `${url.protocol}//${url.host}`;
+            
+            // Whitelist for safety: Allow localhost and the configured frontend URL
+            const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', frontendUrl];
+            if (allowedOrigins.some(o => originBase.toLowerCase().startsWith(o.toLowerCase()))) {
+                frontendUrl = originBase;
+                console.log(`[PayToAdmin] Detected allowed origin: ${frontendUrl}`);
+            }
+        }
+    } catch (err) {
+        console.warn('[PayToAdmin] Failed to parse origin header, falling back to ENV');
+    }
 
     if (isMock) {
-        console.log(`[PayToAdmin] MOCK MODE enabled. Redirecting back with success correlation.`);
+        console.log(`[PayToAdmin] MOCK MODE enabled. Redirecting back with success correlation to ${frontendUrl}`);
         return res.status(200).json({
             success: true,
             data: {
@@ -199,6 +219,7 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
         const state = (statusResponse as any).state || (statusResponse as any).data?.state;
 
         if (state !== 'COMPLETED') {
+          console.error(`[PayToAdmin] PhonePe state for ${merchantTransactionId} is ${state}`);
           return res.status(400).json({
             success: false,
             message: `Payment status is ${state}`,
@@ -208,17 +229,22 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
         amount = ((statusResponse as any).amount || (statusResponse as any).data?.amount) / 100;
     }
 
+    console.log(`[PayToAdmin] Amount to verify: ₹${amount}`);
+
     // Update delivery boy pendingAdminPayout
     const deliveryBoy = await Delivery.findById(deliveryBoyId).session(session);
     if (!deliveryBoy) {
+      console.error(`[PayToAdmin] Delivery boy ${deliveryBoyId} not found`);
       throw new Error("Delivery boy not found");
     }
 
     // Round pending payout for comparison
     const currentPending = Math.round((deliveryBoy.pendingAdminPayout || 0) * 100) / 100;
+    console.log(`[PayToAdmin] Current pending payout in DB: ₹${currentPending}`);
 
     // Validate amount doesn't significantly exceed pending (using a small epsilon)
-    if (amount > currentPending + 0.01) {
+    if (amount > currentPending + 0.1) {
+      console.error(`[PayToAdmin] Payment mismatch: Paid ₹${amount}, Pending ₹${currentPending}`);
       throw new Error(
         `Payment amount (₹${amount}) exceeds pending admin payout (₹${currentPending})`
       );
@@ -253,22 +279,22 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
       platformWallet = walletArray[0];
     }
 
-    await PlatformWallet.updateOne(
-        { _id: platformWallet._id },
-        {
-          $inc: {
-            totalPlatformEarning: amount,
-            currentPlatformBalance: amount,
-            pendingFromDeliveryBoy: -amount
-          }
-        },
-        { session }
-    );
-
-    console.log(`[PayToAdmin] Wallet updated for amount: ${amount}. Decreasing debt.`);
+    // Update Platform Wallet fields locally on the document
+    if (platformWallet) {
+        console.log(`[PayToAdmin] Updating platform wallet. Before: Earning=${platformWallet.totalPlatformEarning}, Balance=${platformWallet.currentPlatformBalance}, Pending=${platformWallet.pendingFromDeliveryBoy}`);
+        
+        platformWallet.totalPlatformEarning += amount;
+        platformWallet.currentPlatformBalance += amount;
+        platformWallet.pendingFromDeliveryBoy = Math.max(0, (platformWallet.pendingFromDeliveryBoy || 0) - amount);
+        
+        console.log(`[PayToAdmin] After update: Earning=${platformWallet.totalPlatformEarning}, Balance=${platformWallet.currentPlatformBalance}, Pending=${platformWallet.pendingFromDeliveryBoy}`);
+    }
 
     // Distribute funds to sellers now that admin has received the money
-    const payoutResult = await processPendingCODPayouts(deliveryBoyId, amount, session);
+    // Pass the wallet instance so it can be updated and saved atomically in one place
+    console.log(`[PayToAdmin] Processing pending COD commissions...`);
+    const payoutResult = await processPendingCODPayouts(deliveryBoyId, amount, session, platformWallet);
+    console.log(`[PayToAdmin] processPendingCODPayouts result:`, payoutResult);
 
     // Update delivery boy after distributing
     deliveryBoy.pendingAdminPayout = Math.max(0, currentPending - amount);
@@ -295,12 +321,14 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     if (session.inTransaction()) {
+      console.log(`[PayToAdmin] ABORTING transaction due to error.`);
       await session.abortTransaction();
     }
-    console.error("Error verifying admin payout:", error);
+    console.error("❌ [PayToAdmin] Error verifying admin payout:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to verify payout",
+      stack: error.stack
     });
   } finally {
     session.endSession();

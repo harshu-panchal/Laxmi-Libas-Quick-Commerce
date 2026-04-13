@@ -79,21 +79,6 @@ export async function verifyDeliveryOtp(orderId: string, otp: string): Promise<{
       throw new Error('Customer delivery OTP not found. Please contact support.');
     }
 
-    // Universal bypass for testing
-    if (otp === '9999' || otp === '1234') {
-      console.log(`🔑 [BYPASS] OTP ${otp} accepted for order ${orderId}`);
-      order.deliveryOtpVerified = true;
-      order.status = 'Delivered';
-      order.deliveredAt = new Date();
-      order.invoiceEnabled = true;
-      await order.save();
-
-      return {
-        success: true,
-        message: 'OTP verified successfully. Order marked as delivered. (Bypass)',
-      };
-    }
-
     // Verify OTP against customer's permanent OTP
     if (customerOtp !== otp) {
       throw new Error('Invalid OTP. Please check and try again.');

@@ -380,14 +380,25 @@ export const distributeCommissions = async (orderId: string) => {
     >();
 
     for (const comm of commissionsToProcess) {
-      // Update status to Paid
-      comm.status = "Paid";
-      comm.paidAt = new Date();
-      await comm.save({ session });
+      // Determine if we should mark this as Paid now (Prepaid) or stay Pending (COD)
+      const isCOD = order.paymentMethod && order.paymentMethod.toUpperCase() === "COD";
+      
+      if (!isCOD) {
+        // Only mark as Paid immediately for Online/Prepaid orders
+        comm.status = "Paid";
+        comm.paidAt = new Date();
+        await comm.save({ session });
+      } else {
+         // Ensure it's explicitly Pending for COD
+         comm.status = "Pending";
+         comm.paidAt = null;
+         await comm.save({ session });
+      }
+
       processedCommissions.push(comm);
 
-      // Group for wallet credit
-      if (comm.type === "SELLER" && comm.seller) {
+      // Group for wallet credit (only for non-COD, sellers get credited later for COD)
+      if (!isCOD && comm.type === "SELLER" && comm.seller) {
         const sellerId = comm.seller.toString();
         const netAmount = comm.orderAmount - comm.commissionAmount;
 
@@ -402,21 +413,7 @@ export const distributeCommissions = async (orderId: string) => {
 
     // Credit Seller Wallets
     for (const [sellerId, data] of sellerEarnings.entries()) {
-      // For COD orders, we don't credit the seller yet.
-      // The seller will be credited when the delivery boy pays the admin.
-      if (order.paymentMethod === "COD") {
-        console.log(
-          `[COD] Delaying seller credit for order ${order.orderNumber}. Will be credited when delivery boy pays admin.`,
-        );
-        // Mark these commissions as Pending instead of Paid
-        await Commission.updateMany(
-          { _id: { $in: data.commissionIds } },
-          { $set: { status: "Pending", paidAt: null } },
-          { session },
-        );
-        continue;
-      }
-
+      // (Seller earnings map only contains non-COD entries now due to the check above)
       await creditWallet(
         sellerId,
         "SELLER",
@@ -575,6 +572,7 @@ export const processPendingCODPayouts = async (
   deliveryBoyId: string,
   amountPaid: number,
   session?: mongoose.ClientSession,
+  platformWalletInstance?: any // Added to avoid multiple fetches/conflicts
 ) => {
   try {
     // Round amount paid for precision
@@ -599,7 +597,7 @@ export const processPendingCODPayouts = async (
 
     const processedOrders = new Set<string>();
     const PlatformWallet = (await import("../models/PlatformWallet")).default;
-    let platformWallet = await PlatformWallet.findOne().session(session || null);
+    let platformWallet = platformWalletInstance || await PlatformWallet.findOne().session(session || null);
 
     for (const comm of validCommissions) {
       if (remainingAmount <= 0.01) break; // Use small epsilon
@@ -843,7 +841,7 @@ export const calculateCODOrderBreakdown = async (
   session?: mongoose.ClientSession
 ): Promise<ICODOrderBreakdown> => {
   try {
-    const order = await Order.findById(orderId).populate("items");
+    const order = await Order.findById(orderId).session(session || null).populate("items");
     if (!order) {
       throw new Error("Order not found");
     }
