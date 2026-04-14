@@ -103,6 +103,7 @@ export interface Product {
   serviceName?: string;
   experience?: string;
   availability?: string;
+  colorGroupId?: string;
 }
 
 export interface CreateProductData {
