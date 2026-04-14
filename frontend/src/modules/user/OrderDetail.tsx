@@ -8,6 +8,8 @@ import GoogleMapsTracking from "../../components/GoogleMapsTracking";
 import { useDeliveryTracking } from "../../hooks/useDeliveryTracking";
 import DeliveryPartnerCard from "../../components/DeliveryPartnerCard";
 import { cancelOrder, updateOrderNotes, getSellerLocationsForOrder, refreshDeliveryOtp } from "../../services/api/customerOrderService";
+import { useShare } from "../../hooks/useShare";
+import ShareSheet from "../../components/ShareSheet";
 
 // Icon Components
 const ArrowLeftIcon = ({ className }: { className?: string }) => (
@@ -474,6 +476,15 @@ export default function OrderDetail() {
   const [selectedTip, setSelectedTip] = useState<number | "other" | null>(null);
   const [customTip, setCustomTip] = useState("");
 
+  // Sharing hook
+  const { 
+    share, 
+    isShareSheetOpen, 
+    shareData, 
+    closeShareSheet, 
+    copyToClipboard 
+  } = useShare();
+
   // Real-time delivery tracking via WebSocket
   const {
     deliveryLocation,
@@ -624,25 +635,12 @@ export default function OrderDetail() {
     }
   };
 
-  const handleShare = async () => {
-    const shareData = {
+  const handleShare = () => {
+    share({
       title: `Order #${order?.id?.split("-").slice(-1)[0]}`,
-      text: `Track my LaxMart order: Order #${order?.id?.split("-").slice(-1)[0]
-        }`,
+      text: `Track my LaxMart order: Order #${order?.id?.split("-").slice(-1)[0]}`,
       url: window.location.href,
-    };
-
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        // Fallback: copy link to clipboard
-        await navigator.clipboard.writeText(window.location.href);
-        alert("Link copied to clipboard!");
-      }
-    } catch (error) {
-      console.error("Error sharing:", error);
-    }
+    });
   };
 
   const handleCallStore = () => {
@@ -1396,6 +1394,13 @@ export default function OrderDetail() {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Bottom Share Sheet */}
+      <ShareSheet
+        isOpen={isShareSheetOpen}
+        onClose={closeShareSheet}
+        shareData={shareData}
+        onCopyPath={copyToClipboard}
+      />
     </div>
   );
 }

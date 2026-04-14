@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import laxmartLogo from '@assets/ChatGPT Image Feb 11, 2026, 01_01_14 PM.png';
+import laxmartLogo from '@assets/laxmartlogo-removebg-preview.png';
 import { useAuth } from '../../../context/AuthContext';
 
 interface SellerHeaderProps {

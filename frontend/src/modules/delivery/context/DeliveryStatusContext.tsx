@@ -18,6 +18,8 @@ interface DeliveryStatusContextType {
   sellersInRange: SellerInRange[];
   locationError: string | null;
   isLoadingSellers: boolean;
+  status: 'Approved' | 'Pending' | 'Rejected' | 'Blocked' | null;
+  isLoading: boolean;
 }
 
 const DeliveryStatusContext = createContext<DeliveryStatusContextType | undefined>(undefined);
@@ -29,6 +31,8 @@ export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
   const [sellersInRange, setSellersInRange] = useState<SellerInRange[]>([]);
   const [isLoadingSellers, setIsLoadingSellers] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [status, setStatus] = useState<'Approved' | 'Pending' | 'Rejected' | 'Blocked' | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
 
@@ -38,8 +42,11 @@ export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
       try {
         const profile = await getDeliveryProfile();
         setIsOnlineLocal(profile.isOnline || false);
+        setStatus(profile.status);
       } catch (error) {
         console.error("Failed to fetch initial status", error);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchStatus();
@@ -151,7 +158,9 @@ export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
       sellersInRangeCount,
       sellersInRange,
       locationError,
-      isLoadingSellers
+      isLoadingSellers,
+      status,
+      isLoading
     }}>
       {children}
     </DeliveryStatusContext.Provider>

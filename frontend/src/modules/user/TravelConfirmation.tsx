@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, Home, Calendar, MapPin, Download, Share2, ArrowRight, Bus } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useShare } from '../../hooks/useShare';
+import ShareSheet from '../../components/ShareSheet';
 
 const TravelConfirmation: React.FC = () => {
     const navigate = useNavigate();
@@ -15,6 +17,23 @@ const TravelConfirmation: React.FC = () => {
     const seats = queryParams.get('seats');
     const total = queryParams.get('total') || "1,06,061";
     const date = "08 Apr, 2026";
+
+    // Sharing hook
+    const { 
+        share, 
+        isShareSheetOpen, 
+        shareData, 
+        closeShareSheet, 
+        copyToClipboard 
+    } = useShare();
+
+    const handleShare = () => {
+        share({
+            title: `Booking at ${operator}`,
+            text: `My ${type === 'bus' ? 'bus trip' : 'stay'} at ${operator} is confirmed!`,
+            url: window.location.href,
+        });
+    };
 
     return (
         <div className="min-h-screen bg-white font-['Inter'] flex flex-col">
@@ -125,7 +144,10 @@ const TravelConfirmation: React.FC = () => {
                         <Download size={20} className="text-blue-600" />
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Invoice</span>
                     </button>
-                    <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-[24px] border border-gray-100 bg-white hover:bg-gray-50 active:scale-95 transition-all outline-none">
+                    <button 
+                        onClick={handleShare}
+                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-[24px] border border-gray-100 bg-white hover:bg-gray-50 active:scale-95 transition-all outline-none"
+                    >
                         <Share2 size={20} className="text-blue-600" />
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Share</span>
                     </button>
@@ -141,6 +163,12 @@ const TravelConfirmation: React.FC = () => {
                     <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </button>
             </footer>
+            <ShareSheet
+                isOpen={isShareSheetOpen}
+                onClose={closeShareSheet}
+                shareData={shareData}
+                onCopyPath={copyToClipboard}
+            />
         </div>
     );
 };

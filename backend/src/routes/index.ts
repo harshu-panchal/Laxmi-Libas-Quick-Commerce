@@ -131,6 +131,7 @@ router.use("/seller/dashboard", dashboardRoutes);
 router.use("/sellers", sellerRoutes);
 
 // Admin routes (protected, admin only)
+console.log("🔥 MOUNTING ADMIN ROUTES AT /admin");
 router.use("/admin", adminRoutes);
 
 // Admin discount routes

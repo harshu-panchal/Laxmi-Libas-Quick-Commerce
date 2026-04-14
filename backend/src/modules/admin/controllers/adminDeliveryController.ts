@@ -63,7 +63,7 @@ export const createDeliveryBoy = asyncHandler(
       accountNumber,
       ifscCode,
       bonusType,
-      status: "Inactive", // New delivery boys start as inactive
+      status: "Pending", // New delivery boys start as pending
     });
 
     return res.status(201).json({
@@ -240,10 +240,10 @@ export const updateDeliveryStatus = asyncHandler(
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!["Active", "Inactive"].includes(status)) {
+    if (!["Approved", "Pending", "Rejected", "Blocked"].includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Status must be Active or Inactive",
+        message: "Status must be Approved, Pending, Rejected, or Blocked",
       });
     }
 

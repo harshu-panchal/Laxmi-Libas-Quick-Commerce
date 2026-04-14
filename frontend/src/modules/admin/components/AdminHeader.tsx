@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import laxmartLogo from '@assets/ChatGPT Image Feb 11, 2026, 01_01_14 PM.png';
+import laxmartLogo from '@assets/laxmartlogo-removebg-preview.png';
 
 interface AdminHeaderProps {
   onMenuClick: () => void;

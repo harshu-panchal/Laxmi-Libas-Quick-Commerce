@@ -94,6 +94,27 @@ export const verifySmsOtp = asyncHandler(
       });
     }
 
+    // Block Rejected and Blocked delivery partners from logging in
+    if (delivery.status === "Rejected") {
+      return res.status(403).json({
+        success: false,
+        message: delivery.rejectionReason
+          ? `Your account application was rejected. Reason: ${delivery.rejectionReason}`
+          : "Your account application was rejected. Please contact support for more information.",
+        status: "rejected",
+      });
+    }
+
+    if (delivery.status === "Blocked") {
+      return res.status(403).json({
+        success: false,
+        message: delivery.rejectionReason
+          ? `Your account has been blocked. Reason: ${delivery.rejectionReason}`
+          : "Your account has been blocked. Please contact support for more information.",
+        status: "blocked",
+      });
+    }
+
     // Generate JWT token
     const token = generateToken(delivery._id.toString(), "Delivery");
 
@@ -165,7 +186,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // Create new delivery partner
-  await Delivery.create({
+  const delivery = await Delivery.create({
     name,
     mobile,
     email,
@@ -181,10 +202,25 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     accountNumber,
     ifscCode,
     bonusType,
-    status: "Inactive", // New delivery partners start as Inactive
+    status: "Pending", // New delivery partners start as Pending
     balance: 0,
     cashCollected: 0,
   } as any);
+
+  // Notify admin of new registration
+  try {
+    const io = (req.app as any).get("io");
+    if (io) {
+      io.to('admin').emit('new-delivery-registered', {
+        deliveryId: delivery._id,
+        name: delivery.name,
+        mobile: delivery.mobile,
+        message: `New delivery partner application from ${delivery.name}`
+      });
+    }
+  } catch (err) {
+    console.error("Socket error notifying admin on delivery registration:", err);
+  }
 
   // Generate token (Optional: usually registration doesn't login immediately if approval needed, but for seamless UX we can)
   // However, FE Flow: Register -> OTP -> Login. So we return success, then FE calls sendSmsOtp.

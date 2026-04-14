@@ -140,13 +140,13 @@ export default function Cart() {
               <div className="p-4 flex gap-4">
                 {/* Image & Qty */}
                 <div className="flex flex-col gap-3">
-                  <div className="w-20 h-20 bg-neutral-50 rounded border border-neutral-100 overflow-hidden flex items-center justify-center p-1">
+                  <Link to={`/product/${item.product.id}`} className="w-20 h-20 bg-neutral-50 rounded border border-neutral-100 overflow-hidden flex items-center justify-center p-1 flex-shrink-0">
                     <img 
                       src={item.product.imageUrl || item.product.mainImage} 
                       alt={item.product.name}
                       className="w-full h-full object-contain"
                     />
-                  </div>
+                  </Link>
                   <div className="relative">
                     <select 
                       className="w-full bg-white border border-neutral-200 rounded px-2 py-1 text-xs font-bold appearance-none pr-8 cursor-pointer text-neutral-800"
@@ -169,21 +169,40 @@ export default function Cart() {
                   >
                     <Trash2 size={18} />
                   </button>
-                  <h3 className="text-sm font-medium text-neutral-900 pr-8 line-clamp-1 mb-1">
-                    {((item.product as any).brand || item.product.manufacturer) && (
-                      <span className="font-bold mr-1 uppercase text-neutral-500 text-[10px] tracking-wide">
-                        {(item.product as any).brand || item.product.manufacturer}
-                      </span>
-                    )}
-                    {item.product.name}
-                  </h3>
-                  {item.variant?.title && (
-                    <p className="text-xs text-neutral-500 mb-2">
-                      {['S', 'M', 'L', 'XL', 'XXL', 'XS', 'XXXL'].includes(item.variant.title.toUpperCase()) 
-                        ? `Size: ${item.variant.title}` 
-                        : item.variant.title}
-                    </p>
-                  )}
+                  <Link to={`/product/${item.product.id}`} className="flex flex-col mb-1 group">
+                    <h3 className="text-sm font-medium text-neutral-900 pr-8 line-clamp-1 group-hover:text-blue-600 transition-colors">
+                      {((item.product as any).brand && !/^[0-9a-fA-F]{24}$/.test((item.product as any).brand)) && (
+                        <span className="font-bold mr-1 uppercase text-neutral-500 text-[10px] tracking-wide">
+                          {(item.product as any).brand}
+                        </span>
+                      )}
+                      {item.product.name}
+                    </h3>
+                  </Link>
+                  {(() => {
+                    // Find the actual variation object to get the human-readable title
+                    const selectedVar = item.product.variations?.find((v: any) => 
+                      (v._id === item.variant || v.id === item.variant || v.title === item.variant || v.value === item.variant)
+                    );
+                    
+                    // Get the label (Title like 'M' or 'XL', otherwise fallback to the raw variant string)
+                    const rawLabel = selectedVar?.title || selectedVar?.name || selectedVar?.value || item.variant;
+                    
+                    // VALIDATION: If the label looks like a Mongo ID (24 hex characters), don't show it 
+                    // unless we have nothing else. This prevents "69de1be7..." from showing in UI.
+                    const isMongoId = typeof rawLabel === 'string' && /^[0-9a-fA-F]{24}$/.test(rawLabel);
+                    const variantLabel = isMongoId ? (selectedVar?.title || '') : rawLabel;
+
+                    if (!variantLabel || variantLabel === '') return null;
+
+                    return (
+                      <p className="text-[12px] font-bold text-neutral-600 bg-neutral-100 w-fit px-2 py-0.5 rounded border border-neutral-200 mb-2">
+                        {['S', 'M', 'L', 'XL', 'XXL', 'XS', 'XXXL'].includes(String(variantLabel).toUpperCase()) 
+                          ? `Size: ${variantLabel}` 
+                          : variantLabel}
+                      </p>
+                    );
+                  })()}
                   
                   {/* Rating */}
                   <div className="flex items-center gap-1.5 mb-3">

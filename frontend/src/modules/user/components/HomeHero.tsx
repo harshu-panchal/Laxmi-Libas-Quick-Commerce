@@ -196,7 +196,7 @@ export default function HomeHero({
               { 
                 id: 'laxmart', 
                 name: 'Laxmart', 
-                icon: '/laxmart_logo_flat_1774950312611.png', 
+                icon: '/assets/laxmartlogo-removebg-preview.png', 
                 path: '/user/home',
                 activeBg: 'bg-[#ffec00]',
                 activeBorder: 'border-yellow-300',

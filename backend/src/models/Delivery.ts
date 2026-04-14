@@ -29,7 +29,10 @@ export interface IDelivery extends Document {
   // Commission & Payment
   bonusType?: string; // 'Fixed' | 'Salaried' | 'Commission Based'
   commissionRate?: number; // Individual commission rate (overrides global setting)
-  status: "Active" | "Inactive";
+  status: "Approved" | "Pending" | "Rejected" | "Blocked";
+  rejectionReason?: string;
+  approvedBy?: mongoose.Types.ObjectId;
+  approvedAt?: Date;
   isOnline: boolean; // Availability status
   location?: {
     type: "Point";
@@ -159,8 +162,19 @@ const DeliverySchema = new Schema<IDelivery>(
     },
     status: {
       type: String,
-      enum: ["Active", "Inactive"],
-      default: "Inactive", // New delivery partners start as Inactive until approved
+      enum: ["Approved", "Pending", "Rejected", "Blocked"],
+      default: "Pending", // New delivery partners start as Pending until approved
+    },
+    rejectionReason: {
+      type: String,
+      trim: true,
+    },
+    approvedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "Admin",
+    },
+    approvedAt: {
+      type: Date,
     },
     isOnline: {
       type: Boolean,

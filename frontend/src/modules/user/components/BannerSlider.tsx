@@ -2,16 +2,20 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getActiveBanners, Banner } from '../../../services/api/bannerService';
+import { useNavigate } from 'react-router-dom';
 
 export default function BannerSlider() {
     const [banners, setBanners] = useState<Banner[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchBanners = async () => {
             try {
-                const response = await getActiveBanners();
+                // Fetch banners specifically for Category/Inner sections if needed, 
+                // but default is Home Page which is fine for now.
+                const response = await getActiveBanners('Home Page');
                 if (response.success && response.data.length > 0) {
                     setBanners(response.data);
                 }
@@ -47,7 +51,11 @@ export default function BannerSlider() {
                         className="absolute inset-0 cursor-pointer"
                         onClick={() => {
                             if (banners[currentIndex].link) {
-                                window.location.href = banners[currentIndex].link!;
+                                if (banners[currentIndex].link!.startsWith('http')) {
+                                    window.open(banners[currentIndex].link!, '_blank');
+                                } else {
+                                    navigate(banners[currentIndex].link!);
+                                }
                             }
                         }}
                     >

@@ -38,10 +38,10 @@ export default function AdminPendingSellers() {
         try {
             setLoading(true);
             const endpoint = filterStatus === 'All'
-                ? '/admin/sellers'
+                ? 'admin/sellers'
                 : filterStatus === 'Pending'
-                    ? '/admin/sellers/pending'
-                    : `/admin/sellers/status/${filterStatus}`;
+                    ? 'admin/sellers/pending'
+                    : `admin/sellers/status/${filterStatus}`;
 
             const response = await api.get(endpoint);
             if (response.data.success) {
@@ -60,7 +60,7 @@ export default function AdminPendingSellers() {
     const handleApprove = async (sellerId: string) => {
         try {
             setActionLoading(true);
-            const response = await api.post(`/admin/sellers/${sellerId}/approve`);
+            const response = await api.post(`admin/sellers/${sellerId}/approve`);
 
             if (response.data.success) {
                 alert('Seller approved successfully!');
@@ -85,7 +85,7 @@ export default function AdminPendingSellers() {
 
         try {
             setActionLoading(true);
-            const response = await api.post(`/admin/sellers/${sellerId}/reject`, { reason: rejectionReason });
+            const response = await api.post(`admin/sellers/${sellerId}/reject`, { reason: rejectionReason });
 
             if (response.data.success) {
                 alert('Seller rejected successfully');
@@ -108,7 +108,7 @@ export default function AdminPendingSellers() {
 
         try {
             setActionLoading(true);
-            const response = await api.post(`/admin/sellers/${sellerId}/block`, { reason });
+            const response = await api.post(`admin/sellers/${sellerId}/block`, { reason });
 
             if (response.data.success) {
                 alert('Seller blocked successfully');
@@ -154,21 +154,7 @@ export default function AdminPendingSellers() {
                 <p className="text-sm text-neutral-600 mt-1">Review and manage seller applications</p>
             </div>
 
-            {/* Filter Tabs */}
-            <div className="flex gap-2 mb-6 overflow-x-auto">
-                {['Pending', 'Approved', 'Rejected', 'Blocked', 'All'].map((status) => (
-                    <button
-                        key={status}
-                        onClick={() => setFilterStatus(status as any)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filterStatus === status
-                            ? 'bg-teal-600 text-white'
-                            : 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50'
-                            }`}
-                    >
-                        {status}
-                    </button>
-                ))}
-            </div>
+
 
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
@@ -180,7 +166,7 @@ export default function AdminPendingSellers() {
                 <div className="flex justify-center items-center py-12">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
                 </div>
-            ) : sellers.length === 0 ? (
+            ) : !error && sellers.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-lg border border-neutral-200">
                     <p className="text-neutral-600">No {filterStatus.toLowerCase()} sellers found</p>
                 </div>

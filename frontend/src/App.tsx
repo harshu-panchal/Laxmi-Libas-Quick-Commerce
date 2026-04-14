@@ -130,6 +130,7 @@ const AdminSellerLocation = lazy(() => import("./modules/admin/pages/AdminSeller
 const AdminPendingSellers = lazy(() => import("./modules/admin/pages/AdminPendingSellers"));
 const AdminHotelManagement = lazy(() => import("./modules/admin/pages/AdminHotelManagement"));
 const AdminTransportManagement = lazy(() => import("./modules/admin/pages/AdminTransportManagement"));
+const AdminPendingDeliveries = lazy(() => import("./modules/admin/pages/AdminPendingDeliveries"));
 
 const AdminManageDeliveryBoy = lazy(() => import("./modules/admin/pages/AdminManageDeliveryBoy"));
 const AdminFundTransfer = lazy(() => import("./modules/admin/pages/AdminFundTransfer"));
@@ -357,6 +358,7 @@ function App() {
                                       <Route path="manage-seller/list" element={<AdminManageSellerList />} />
                                       <Route path="manage-seller/transaction" element={<AdminSellerTransaction />} />
                                       <Route path="pending-sellers" element={<AdminPendingSellers />} />
+                                      <Route path="pending-deliveries" element={<AdminPendingDeliveries />} />
                                       <Route path="delivery-boy/manage" element={<AdminManageDeliveryBoy />} />
                                       <Route path="delivery-boy/fund-transfer" element={<AdminFundTransfer />} />
                                       <Route path="delivery-boy/cash-collection" element={<AdminCashCollection />} />

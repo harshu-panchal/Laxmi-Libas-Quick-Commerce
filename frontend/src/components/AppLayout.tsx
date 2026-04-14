@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell } from 'lucide-react';
 import FloatingCartPill from './FloatingCartPill';
+import { useCart } from '../context/CartContext';
 import { useLocation as useLocationContext } from '../hooks/useLocation';
 import LocationPermissionRequest from './LocationPermissionRequest';
 import { useThemeContext } from '../context/ThemeContext';
@@ -15,6 +16,7 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { cart } = useCart();
   const [searchParams, setSearchParams] = useSearchParams();
   const mainRef = useRef<HTMLElement>(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -557,9 +559,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         <path d="M3 3H5L5.4 5M5.4 5H21L17 13H7L5.4 5ZM7 13L4.707 15.293C4.077 15.923 4.523 17 5.414 17H19M17 17C15.895 17 15 17.895 15 19C15 20.105 15.895 21 17 21C18.105 21 19 20.105 19 19C19 17.895 18.105 17 17 17ZM9 17C7.895 17 7 17.895 7 19C7 20.105 7.895 21 9 21C10.105 21 11 20.105 11 19C11 17.895 10.105 17 9 17Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill={isActive('/cart') ? "currentColor" : "none"} />
                       </motion.svg>
                       {/* Cart Badge */}
-                      <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-bold min-w-[14px] h-[14px] flex items-center justify-center rounded-full border border-white">
-                        2
-                      </div>
+                      {(cart?.itemCount || 0) > 0 && (
+                        <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-bold min-w-[14px] h-[14px] flex items-center justify-center rounded-full border border-white">
+                          {cart.itemCount}
+                        </div>
+                      )}
                     </div>
                     <span className={`text-[10px] tracking-tight transition-all duration-300 ${isActive('/cart') ? 'font-bold text-indigo-600' : 'font-medium text-neutral-500'}`}>
                       Cart

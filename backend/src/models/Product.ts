@@ -128,6 +128,7 @@ export interface IProduct extends Document {
     sku?: string;
   }[];
   variationType?: string;
+  colorGroupId?: string; // Links products that are part of the same color variation group
 
   createdAt: Date;
   updatedAt: Date;
@@ -394,6 +395,7 @@ const ProductSchema = new Schema<IProduct>(
       },
     ],
     variationType: { type: String, trim: true },
+    colorGroupId: { type: String, trim: true, index: true },
   },
   {
     timestamps: true,

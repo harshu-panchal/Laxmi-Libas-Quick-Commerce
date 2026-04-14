@@ -10,10 +10,10 @@ const getDefaultApiBaseUrl = (): string => {
   }
 
   const { origin, hostname } = window.location;
-  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168.") || hostname.startsWith("10.");
 
   if (isLocalhost) {
-    return "http://localhost:5000/api/v1";
+    return `http://${hostname}:5000/api/v1`;
   }
 
   return `${origin}/api/v1`;
@@ -34,6 +34,7 @@ export const getSocketBaseURL = (): string => {
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 15000, // 15 seconds timeout
   headers: {
     "Content-Type": "application/json",
   },

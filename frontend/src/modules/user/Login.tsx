@@ -253,7 +253,7 @@ export default function Login() {
               transition={{ duration: 0.5 }}
             >
               <img
-                src="/assets/ChatGPT Image Feb 11, 2026, 01_01_14 PM.png"
+                src="/assets/laxmartlogo-removebg-preview.png"
                 alt="LaxMart"
                 className="h-14 w-auto drop-shadow-lg"
               />

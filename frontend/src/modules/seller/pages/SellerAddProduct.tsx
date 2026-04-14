@@ -39,16 +39,7 @@ export default function SellerAddProduct() {
   const isSuperSeller = user?.mobile === "9111966732";
   const sellerCatId = user?.category || user?.categoryId || (user?.categories && user?.categories[0]);
   const [categoryName, setCategoryName] = useState<string>("");
-  // Categories that support video upload
-  const VIDEO_SUPPORTED_CATEGORIES = [
-    "clothing", "footwear", "electronics", "beauty", "toys",
-    "home", "furniture", "eyeglasses", "eyewear",
-    "home and furniture", "home & furniture",
-  ];
-  const isVideoCategory = (name: string) =>
-    VIDEO_SUPPORTED_CATEGORIES.some((cat) =>
-      name.toLowerCase().includes(cat)
-    );
+
 
   const [formData, setFormData] = useState({
     productName: "",
@@ -115,6 +106,7 @@ export default function SellerAddProduct() {
     serviceName: "",
     experience: "",
     availability: "",
+    colorGroupId: "",
   });
 
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
@@ -316,6 +308,7 @@ export default function SellerAddProduct() {
               experience: product.experience || "",
               availability: product.availability || "",
               productVideoUrl: (product as any).productVideoUrl || "",
+              colorGroupId: product.colorGroupId || "",
             });
             if (product.category) {
               setCategoryName((product.category as any).name || "");
@@ -708,6 +701,7 @@ export default function SellerAddProduct() {
         serviceName: formData.serviceName || undefined,
         experience: formData.experience || undefined,
         availability: formData.availability || undefined,
+        colorGroupId: formData.colorGroupId || undefined,
       };
 
       // Create or Update product via API
@@ -934,50 +928,88 @@ export default function SellerAddProduct() {
                     disabled={!isSuperSeller && user?.userType !== "Admin" && !!(user && (!user.categories || user.categories.length <= 1) && (user.category || user.categoryId) && formData.category)}
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed">
                     <option value="">Select Category</option>
-                    {categories
-                      .filter(cat => {
-                        if (!user || isSuperSeller || user?.userType === "Admin") {
-                          if (formData.headerCategory) {
-                            const catHeaderId = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString();
-                            return catHeaderId === formData.headerCategory.toString();
-                          }
-                          return true;
-                        }
-                        
-                        // 1. Get seller's allowed category IDs
-                        const allowedCatIds = (Array.isArray(user.categories) ? user.categories : [user.category || user.categoryId])
-                          .map(c => typeof c === 'string' ? c : (c?._id || (c as any).id))
-                          .filter(Boolean)
-                          .map(id => id.toString().trim());
-                        
-                        const catId = (cat._id || (cat as any).id)?.toString().trim();
-                        const isInCategoryList = allowedCatIds.includes(catId || "");
-                        
-                        // If seller is not allowed to see this category at all, hide it.
-                        if (!isInCategoryList) return false;
-                        
-                        // 2. If allowed, filter by selected Header Category if any
-                        if (formData.headerCategory) {
+                    {(() => {
+                      // DEBUG: Log all data to find the mismatch
+                      console.log('[CategoryDropdown] user:', user?.userType, 'isSuperSeller:', isSuperSeller);
+                      console.log('[CategoryDropdown] user.categories:', user?.categories);
+                      console.log('[CategoryDropdown] user.category:', user?.category, 'user.categoryId:', (user as any)?.categoryId);
+                      console.log('[CategoryDropdown] formData.headerCategory:', formData.headerCategory);
+                      console.log('[CategoryDropdown] Total categories from API:', categories.length);
+                      categories.forEach((cat: any) => {
+                        const hid = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString();
+                        console.log(`  [Cat] ${cat.name} | _id: ${cat._id} | headerCategoryId: ${hid}`);
+                      });
+
+                      // 1. Admin/SuperSeller — just filter by header
+                      if (!user || isSuperSeller || user?.userType === "Admin") {
+                        const result = categories.filter(cat => {
+                          if (!formData.headerCategory) return true;
                           const catHeaderId = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString().trim();
-                          const selectedHeaderId = formData.headerCategory.toString().trim();
-                          
-                          if (catHeaderId === selectedHeaderId) return true;
+                          return catHeaderId === formData.headerCategory.toString().trim();
+                        });
+                        console.log('[CategoryDropdown] Admin/Super path, result count:', result.length);
+                        return result;
+                      }
 
-                          // Fail-safe: If seller has only one category, show it even if the header link in DB is inconsistent
-                          if (allowedCatIds.length <= 1) return true;
+                      // 2. Seller path
+                      const rawCats = user.categories || [];
+                      const singleCat = user.category || (user as any).categoryId;
+                      const catSource = Array.isArray(rawCats) && rawCats.length > 0 ? rawCats : (singleCat ? [singleCat] : []);
+                      const allowedCatIds = catSource
+                        .map((c: any) => typeof c === 'string' ? c : (c?._id || c?.id))
+                        .filter(Boolean)
+                        .map((id: any) => id.toString().trim());
 
-                          return false;
-                        }
-                        
-                        return true;
-                      })
-                      .map((cat: any) => (
-                        <option
-                          key={cat._id || cat.id}
-                          value={cat._id || cat.id}>
-                          {cat.name === 'Room Rent' ? 'Rent' : cat.name}
-                        </option>
-                      ))}
+                      console.log('[CategoryDropdown] Seller allowedCatIds:', allowedCatIds);
+
+                      // If seller has NO category restrictions at all, show everything for the selected header
+                      if (allowedCatIds.length === 0) {
+                        console.log('[CategoryDropdown] No restrictions, showing all for header');
+                        if (!formData.headerCategory) return categories;
+                        const headerMatch = formData.headerCategory.toString().trim();
+                        return categories.filter(cat => {
+                          const catHeaderId = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString().trim();
+                          return catHeaderId === headerMatch;
+                        });
+                      }
+
+                      // Seller HAS restrictions — filter by allowed + header
+                      let filtered = categories.filter(cat => {
+                        const catId = (cat._id || (cat as any).id)?.toString().trim();
+                        if (!allowedCatIds.includes(catId)) return false;
+                        if (!formData.headerCategory) return true;
+                        const catHeaderId = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString().trim();
+                        return catHeaderId === formData.headerCategory.toString().trim();
+                      });
+
+                      // FAIL-SAFE: If strict filtering gives 0 results, just show seller's allowed categories (ignore header mismatch)
+                      if (filtered.length === 0 && allowedCatIds.length > 0) {
+                        console.warn('[CategoryDropdown] FAIL-SAFE: Strict filter gave 0, showing all allowed categories');
+                        filtered = categories.filter(cat => {
+                          const catId = (cat._id || (cat as any).id)?.toString().trim();
+                          return allowedCatIds.includes(catId);
+                        });
+                      }
+
+                      // ULTIMATE FAIL-SAFE: If STILL 0, show all categories for the selected header
+                      if (filtered.length === 0 && formData.headerCategory) {
+                        console.warn('[CategoryDropdown] ULTIMATE FAIL-SAFE: Showing ALL categories for header');
+                        const headerMatch = formData.headerCategory.toString().trim();
+                        filtered = categories.filter(cat => {
+                          const catHeaderId = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString().trim();
+                          return catHeaderId === headerMatch;
+                        });
+                      }
+
+                      console.log('[CategoryDropdown] Final result count:', filtered.length);
+                      return filtered;
+                    })().map((cat: any) => (
+                      <option
+                        key={cat._id || cat.id}
+                        value={cat._id || cat.id}>
+                        {cat.name === 'Room Rent' ? 'Rent' : cat.name}
+                      </option>
+                    ))}
                   </select>
                   <p className="text-[10px] text-teal-600 mt-1 italic font-medium">
                     {user?.categories?.length > 1 ? "Select from your assigned categories" : "Your assigned business category"}
@@ -1153,18 +1185,36 @@ export default function SellerAddProduct() {
                     </div>
                   </div>
 
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Variation Type
-                    </label>
-                    <input
-                      type="text"
-                      name="variationType"
-                      value={formData.variationType}
-                      onChange={handleChange}
-                      placeholder="e.g., Size, Color, Pack Size, Weight"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Variation Type
+                      </label>
+                      <input
+                        type="text"
+                        name="variationType"
+                        value={formData.variationType}
+                        onChange={handleChange}
+                        placeholder="e.g., Size, Color, Pack Size, Weight"
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Color Group ID <span className="text-xs text-teal-600 font-normal ml-1">(Link colors together)</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="colorGroupId"
+                        value={formData.colorGroupId}
+                        onChange={handleChange}
+                        placeholder="e.g., iPhone-15-Pro-Colors"
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                      <p className="text-[10px] text-neutral-500 mt-1">
+                        Use the same ID for different color products to show them in one selection.
+                      </p>
+                    </div>
                   </div>
 
                   <div className="space-y-4">
@@ -1526,9 +1576,8 @@ export default function SellerAddProduct() {
             </div>
           </div>
 
-          {/* Video Upload Section - Only for supported categories */}
-          {categoryName && isVideoCategory(categoryName) && (
-            <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+          {/* Video Upload Section - Enabled for all categories */}
+          <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
               <div className="bg-teal-600 text-white px-4 sm:px-6 py-3 flex items-center gap-2">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polygon points="23 7 16 12 23 17 23 7"></polygon>
@@ -1608,7 +1657,6 @@ export default function SellerAddProduct() {
                 )}
               </div>
             </div>
-          )}
 
           <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
             <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">

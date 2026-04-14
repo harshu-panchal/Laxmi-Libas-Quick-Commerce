@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Heart, Star, Share2, MapPin, ChevronRight, Check, Info, ShieldCheck, Clock, Ban, Cigarette, Dog, Map as MapIcon } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useShare } from '../../hooks/useShare';
+import ShareSheet from '../../components/ShareSheet';
 import { hotels } from './data/hotels';
 
 const HotelDetail: React.FC = () => {
@@ -10,6 +12,24 @@ const HotelDetail: React.FC = () => {
 
     // Find the specific hotel from the shared data
     const hotel = hotels.find(h => h.id === Number(id));
+
+    // Sharing hook
+    const { 
+        share, 
+        isShareSheetOpen, 
+        shareData, 
+        closeShareSheet, 
+        copyToClipboard 
+    } = useShare();
+
+    const handleShare = () => {
+        if (!hotel) return;
+        share({
+            title: hotel.name,
+            text: `Looking at this amazing property: ${hotel.name} in ${hotel.location}`,
+            url: window.location.href,
+        });
+    };
 
     if (!hotel) {
         return (
@@ -45,7 +65,10 @@ const HotelDetail: React.FC = () => {
                         <ArrowLeft size={20} className="text-gray-900" />
                     </button>
                     <div className="flex gap-2">
-                        <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+                        <button 
+                            onClick={handleShare}
+                            className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+                        >
                             <Share2 size={20} className="text-gray-900" />
                         </button>
                     </div>
@@ -266,6 +289,12 @@ const HotelDetail: React.FC = () => {
                     Select Room
                 </button>
             </div>
+            <ShareSheet
+                isOpen={isShareSheetOpen}
+                onClose={closeShareSheet}
+                shareData={shareData}
+                onCopyPath={copyToClipboard}
+            />
         </div>
     );
 };

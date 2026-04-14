@@ -15,6 +15,7 @@ import * as customerController from "../modules/admin/controllers/adminCustomerC
 
 // Delivery Controllers
 import * as deliveryController from "../modules/admin/controllers/adminDeliveryController";
+import * as deliveryApprovalController from "../modules/admin/controllers/adminDeliveryApprovalController";
 
 // Settings Controllers
 import * as settingsController from "../modules/admin/controllers/adminSettingsController";
@@ -81,6 +82,12 @@ const router = Router();
 router.use(authenticate);
 router.use(requireUserType("Admin"));
 
+// Debug middleware for admin routes
+router.use((req: Request, _res: Response, next) => {
+  console.log(`[AdminRouter] Incoming Request: ${req.method} ${req.path}`);
+  next();
+});
+
 // ==================== Profile Routes ====================
 router.get("/profile", profileController.getProfile);
 router.put("/profile", profileController.updateProfile);
@@ -99,6 +106,15 @@ router.get(
   "/dashboard/recent-orders",
   dashboardController.getRecentOrdersController
 );
+
+// ==================== Delivery Approval Routes ====================
+// These are moved up to avoid being shadowed by other delivery-related routes
+router.get("/delivery-approvals/pending", deliveryApprovalController.getPendingDeliveries);
+router.get("/delivery-approvals/status/:status", deliveryApprovalController.getDeliveriesByStatus);
+router.post("/delivery-approvals/:id/approve", deliveryApprovalController.approveDelivery);
+router.post("/delivery-approvals/:id/reject", deliveryApprovalController.rejectDelivery);
+router.post("/delivery-approvals/:id/block", deliveryApprovalController.blockDelivery);
+router.post("/delivery-approvals/:id/unblock", deliveryApprovalController.unblockDelivery);
 router.get(
   "/dashboard/sales-by-location",
   dashboardController.getSalesByLocationController

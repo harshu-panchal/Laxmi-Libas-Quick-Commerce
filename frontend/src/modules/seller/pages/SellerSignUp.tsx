@@ -215,16 +215,16 @@ export default function SellerSignUp() {
       {/* Sign Up Card */}
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Header Section */}
-        <div className="px-6 py-4 text-center border-b border-yellow-700" style={{ backgroundColor: 'rgb(21 178 74 / var(--tw-bg-opacity, 1))' }}>
-          <div className="mb-0 -mt-4">
+        <div className="px-6 py-8 text-center border-b border-yellow-700" style={{ backgroundColor: 'rgb(21 178 74 / var(--tw-bg-opacity, 1))' }}>
+          <div className="mb-4">
             <img
-              src="/assets/ChatGPT Image Feb 11, 2026, 01_01_14 PM.png"
+              src="/assets/laxmartlogo-removebg-preview.png"
               alt="LaxMart"
-              className="h-44 w-full max-w-xs mx-auto object-fill object-bottom"
+              className="h-20 w-auto mx-auto object-contain drop-shadow-md"
             />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-1 -mt-12">Seller Sign Up</h1>
-          <p className="text-yellow-50 text-sm -mt-2">Create your seller account</p>
+          <h1 className="text-2xl font-bold text-white mb-1">Seller Sign Up</h1>
+          <p className="text-yellow-50 text-sm">Create your seller account</p>
         </div>
 
         {/* Sign Up Form */}

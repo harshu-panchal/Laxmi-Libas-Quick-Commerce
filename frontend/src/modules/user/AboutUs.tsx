@@ -27,10 +27,12 @@ export default function AboutUs() {
             <div className="px-4 py-6 max-w-2xl mx-auto space-y-6">
                 {/* Logo/Brand Section */}
                 <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-neutral-100">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 mb-4 shadow-lg shadow-teal-500/20">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">
-                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" />
-                        </svg>
+                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white mb-4 shadow-lg shadow-neutral-100 p-2 overflow-hidden">
+                        <img 
+                            src="/assets/laxmartlogo-removebg-preview.png" 
+                            alt="LaxMart" 
+                            className="w-full h-full object-contain"
+                        />
                     </div>
                     <h2 className="text-2xl font-black text-neutral-900 tracking-tight mb-1">LaxMart</h2>
                     <p className="text-xs font-medium text-teal-600 uppercase tracking-widest">Your Trusted Delivery Partner</p>

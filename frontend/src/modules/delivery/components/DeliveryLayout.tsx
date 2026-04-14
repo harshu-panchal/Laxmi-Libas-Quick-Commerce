@@ -7,6 +7,8 @@ import { getDeliveryProfile } from '../../../services/api/delivery/deliveryServi
 import { useDeliveryOrderNotifications } from '../../../hooks/useDeliveryOrderNotifications';
 import OrderNotificationCard from './OrderNotificationCard';
 import { AnimatePresence } from 'framer-motion';
+import AwaitingApproval from '../pages/AwaitingApproval';
+import IconLoader from '../../../components/loaders/IconLoader';
 
 interface DeliveryLayoutContentProps {
   children: ReactNode;
@@ -14,7 +16,7 @@ interface DeliveryLayoutContentProps {
 
 function DeliveryLayoutContent({ children }: DeliveryLayoutContentProps) {
   const navigate = useNavigate();
-  const { isOnline } = useDeliveryStatus();
+  const { isOnline, status, isLoading } = useDeliveryStatus();
   const { setUserName } = useDeliveryUser();
   const {
     currentNotification,
@@ -36,6 +38,14 @@ function DeliveryLayoutContent({ children }: DeliveryLayoutContentProps) {
 
     fetchProfile();
   }, [setUserName]);
+
+  if (isLoading) {
+    return <IconLoader forceShow />;
+  }
+
+  if (status === 'Pending') {
+    return <AwaitingApproval />;
+  }
 
   return (
     <div className={`flex flex-col min-h-screen bg-neutral-100 transition-all duration-300 ${!isOnline ? 'grayscale' : ''}`}>

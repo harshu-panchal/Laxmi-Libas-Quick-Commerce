@@ -39,9 +39,15 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    // In development, allow localhost
+    // In development, allow localhost and local network IPs
     if (process.env.NODE_ENV !== "production") {
-      if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+      if (
+        origin.startsWith("http://localhost:") || 
+        origin.startsWith("http://127.0.1:") ||
+        origin.startsWith("http://192.168.") ||
+        origin.startsWith("http://10.") ||
+        origin.startsWith("http://172.")
+      ) {
         return callback(null, true);
       }
     }

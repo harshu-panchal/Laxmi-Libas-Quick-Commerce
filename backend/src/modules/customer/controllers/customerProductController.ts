@@ -289,11 +289,23 @@ export const getProductById = async (req: Request, res: Response) => {
         "productName price mrp mainImage pack discount _id rating reviewsCount"
       );
 
+    // Fetch Color Variations if colorGroupId exists
+    let colorVariations: any[] = [];
+    if (product.colorGroupId) {
+      colorVariations = await Product.find({
+        colorGroupId: product.colorGroupId,
+        _id: { $ne: product._id },
+        status: "Active",
+        publish: true,
+      }).select("productName mainImage color _id");
+    }
+
     return res.status(200).json({
       success: true,
       data: {
         ...product.toObject(),
         similarProducts,
+        colorVariations, // Include color variations for the thumbnails UI
         isAvailableAtLocation, // Add availability flag to response
       },
     });

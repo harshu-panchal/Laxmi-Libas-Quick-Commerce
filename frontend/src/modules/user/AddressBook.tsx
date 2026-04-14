@@ -6,6 +6,8 @@ import {
   getAddresses,
   updateAddress,
 } from "../../services/api/customerAddressService";
+import { useShare } from "../../hooks/useShare";
+import ShareSheet from "../../components/ShareSheet";
 
 const iconStyle = "w-5 h-5 text-amber-600 flex-shrink-0";
 
@@ -26,6 +28,15 @@ export default function AddressBook() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Sharing hook
+  const { 
+    share, 
+    isShareSheetOpen, 
+    shareData, 
+    closeShareSheet, 
+    copyToClipboard 
+  } = useShare();
 
   const loadAddresses = async () => {
     try {
@@ -52,20 +63,12 @@ export default function AddressBook() {
     loadAddresses();
   }, []);
 
-  const handleShare = async (address: Address) => {
+  const handleShare = (address: Address) => {
     const text = `${address.fullName || "Address"}\n${buildAddressLine(
       address
     )}\nPhone: ${address.phone}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Saved address", text });
-      } catch {
-        // user cancelled; no-op
-      }
-    } else if (navigator.clipboard) {
-      await navigator.clipboard.writeText(text);
-      alert("Address copied to clipboard");
-    }
+    
+    share({ title: "Saved address", text });
   };
 
   const handleDelete = async (id?: string) => {
@@ -283,6 +286,13 @@ export default function AddressBook() {
           </div>
         )}
       </div>
+      {/* Bottom Share Sheet */}
+      <ShareSheet
+        isOpen={isShareSheetOpen}
+        onClose={closeShareSheet}
+        shareData={shareData}
+        onCopyPath={copyToClipboard}
+      />
     </div>
   );
 }
