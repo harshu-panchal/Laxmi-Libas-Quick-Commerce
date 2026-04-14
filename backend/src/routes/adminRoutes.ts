@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { authenticate, requireUserType } from "../middleware/auth";
 
 // Dashboard Controllers
@@ -84,7 +84,7 @@ router.use(requireUserType("Admin"));
 
 // Debug middleware for admin routes
 router.use((req: Request, _res: Response, next) => {
-  console.log(`[AdminRouter] Incoming Request: ${req.method} ${req.path}`);
+  console.log(`[AdminRouter] Incoming Request: ${req.method} ${(req as any).path || req.url}`);
   next();
 });
 

@@ -216,7 +216,7 @@ export const completeWithdrawal = async (req: Request, res: Response) => {
         }
 
         // Update request
-        const updatedRequest = await WithdrawRequest.findByIdAndUpdate(
+        await WithdrawRequest.findByIdAndUpdate(
             id,
             {
                 status: 'Completed',

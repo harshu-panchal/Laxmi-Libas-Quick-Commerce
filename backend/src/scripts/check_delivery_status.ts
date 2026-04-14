@@ -15,13 +15,13 @@ async function checkDeliveryStatus() {
     const onlineBoys = await Delivery.find({ isOnline: true });
 
     console.log(`Found ${onlineBoys.length} online delivery boys:`);
-    onlineBoys.forEach(boy => {
+    onlineBoys.forEach((boy: any) => {
       console.log(`ID: ${boy._id}, Name: ${boy.name}, Mobile: ${boy.mobile}, Status: ${boy.status}`);
     });
 
     const activeBoys = await Delivery.find({ status: 'Active' });
     console.log(`\nFound ${activeBoys.length} Active delivery boys:`);
-    activeBoys.forEach(boy => {
+    activeBoys.forEach((boy: any) => {
       console.log(`ID: ${boy._id}, Name: ${boy.name}, Mobile: ${boy.mobile}, isOnline: ${boy.isOnline}`);
     });
 

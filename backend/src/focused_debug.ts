@@ -15,7 +15,7 @@ async function debug() {
     const OrderItem = mongoose.model('OrderItem', new mongoose.Schema({}, { strict: false }));
 
     const mobile = '8770620342';
-    const partner = await Delivery.findOne({ mobile });
+    const partner = await Delivery.findOne({ mobile }) as any;
     
     if (partner) {
       console.log('PARTNER_INFO');
@@ -28,15 +28,15 @@ async function debug() {
         deliveryBoyStatus: { $in: ['Assigned', 'Picked Up', 'In Transit'] },
         status: { $nin: ['Delivered', 'Cancelled', 'Rejected', 'Returned'] }
       });
-      console.log(`ActiveOrder: ${activeOrder ? activeOrder.orderNumber : 'None'}`);
+      console.log(`ActiveOrder: ${activeOrder ? (activeOrder as any).orderNumber : 'None'}`);
     }
 
     console.log('RECENT_ORDERS');
     const orders = await Order.find().sort({ createdAt: -1 }).limit(3);
-    for (const o of orders) {
+    for (const o of orders as any[]) {
       console.log(`Order: ${o.orderNumber} Status: ${o.status}`);
       const items = await OrderItem.find({ order: o._id });
-      for (const i of items) {
+      for (const i of items as any[]) {
         console.log(`  Item: ${i.productName}`);
       }
     }

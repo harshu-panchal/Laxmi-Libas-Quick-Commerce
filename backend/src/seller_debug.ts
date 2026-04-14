@@ -19,8 +19,8 @@ async function debug() {
         process.exit(1);
     }
 
-    const item = await OrderItem.findOne({ order: order._id });
-    const seller = await Seller.findById(item.seller);
+    const item = await OrderItem.findOne({ order: order._id }) as any;
+    const seller = await Seller.findById(item?.seller) as any;
     
     if (seller) {
         console.log('SELLER_INFO');

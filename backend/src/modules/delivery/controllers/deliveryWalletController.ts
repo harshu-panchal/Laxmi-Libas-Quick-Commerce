@@ -88,8 +88,6 @@ export const createAdminPayoutOrder = async (req: Request, res: Response) => {
 
     const amountInPaise = Math.round(amount * 100);
 
-    const backendUrl = (process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
-    
     // Dynamic Origin Detection: Use origin/referer from request if it matches valid origins
     // Default to .env value
     let frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
@@ -141,7 +139,6 @@ export const createAdminPayoutOrder = async (req: Request, res: Response) => {
     );
 
     // NOTE: Callback must match the route mounted in index.ts (/api/v1/payments/phonepe/callback)
-    const callbackUrl = `${backendUrl}/api/v1/payments/phonepe/callback`;
 
     console.log(`[PayToAdmin] Creating PhonePe session: ${merchantTransactionId} | Amount: ${amount} | Env: ${phonepeEnv}`);
 

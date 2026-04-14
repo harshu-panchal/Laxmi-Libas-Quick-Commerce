@@ -17,7 +17,7 @@ async function checkDeliveryBoys() {
       console.log(`- ${db.name} (ID: ${db._id}) Status: ${db.status} Online: ${db.isOnline}`);
     });
 
-    const onlineActive = deliveryBoys.filter(db => db.isOnline && db.status === 'Active');
+    const onlineActive = deliveryBoys.filter(db => db.isOnline && db.status === 'Approved');
     console.log(`\nOnline & Active Delivery Boys: ${onlineActive.length}`);
 
     process.exit(0);

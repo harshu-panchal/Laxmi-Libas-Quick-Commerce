@@ -31,7 +31,7 @@ export async function notifySellersOfOrderUpdate(
                 return (item.seller._id || item.seller).toString();
             }
             return item.seller?.toString();
-        }).filter(id => !!id))];
+        }).filter((idStr: string) => !!idStr))];
 
         console.log(`🔔 Notifying ${sellerIds.length} sellers about ${type} for order ${order.orderNumber}`);
 

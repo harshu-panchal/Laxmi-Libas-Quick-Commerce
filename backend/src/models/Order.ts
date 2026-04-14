@@ -60,6 +60,8 @@ export interface IOrder extends Document {
   | "Delivered"
   | "Cancelled"
   | "Rejected"
+  | "Ready for pickup"
+  | "Assigned"
   | "Returned";
 
   // Delivery Assignment

@@ -223,7 +223,6 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     viewCustomerDetails: false,
     commission: 0,
     balance: 0,
-    categories: req.body.categories || [],
   });
 
   console.log(`✅ Seller created successfully: ${seller.storeName} (ID: ${seller._id}), Final Status: ${seller.status}`);

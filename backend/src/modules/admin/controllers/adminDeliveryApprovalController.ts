@@ -6,7 +6,7 @@ import { asyncHandler } from '../../../utils/asyncHandler';
 /**
  * Get all pending delivery partners
  */
-export const getPendingDeliveries = asyncHandler(async (req: Request, res: Response) => {
+export const getPendingDeliveries = asyncHandler(async (_req: Request, res: Response) => {
     const deliveries = await Delivery.find({ status: 'Pending' })
         .select('-password')
         .sort({ createdAt: -1 });

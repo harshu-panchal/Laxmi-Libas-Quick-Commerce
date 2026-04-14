@@ -160,7 +160,7 @@ export default function SellerAddProduct() {
 
           setFormData(prev => ({
             ...prev,
-            category: (sellerCat._id || sellerCat.id)?.toString() || '',
+            category: (sellerCat._id || (sellerCat as any).id)?.toString() || '',
             headerCategory: headerId?.toString() || prev.headerCategory || ''
           }));
         }
@@ -784,6 +784,7 @@ export default function SellerAddProduct() {
               serviceName: "",
               experience: "",
               availability: "",
+              colorGroupId: "",
             });
             setVariations([]);
             setMainImageFile(null);

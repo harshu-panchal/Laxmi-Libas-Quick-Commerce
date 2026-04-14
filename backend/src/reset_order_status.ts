@@ -2,9 +2,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
-import { Server } from 'socket.io';
-import { createServer } from 'http';
-
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 async function notify() {

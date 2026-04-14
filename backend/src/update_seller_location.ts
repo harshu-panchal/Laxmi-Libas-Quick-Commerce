@@ -28,7 +28,7 @@ async function update() {
         serviceRadiusKm: 40 // Also ensuring radius is sufficient
       },
       { new: true }
-    );
+    ) as any;
 
     if (result) {
       console.log('UPDATE_SUCCESS');

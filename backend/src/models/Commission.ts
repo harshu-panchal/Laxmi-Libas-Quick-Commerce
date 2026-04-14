@@ -18,7 +18,7 @@ export interface ICommission extends Document {
   status: "Pending" | "Paid" | "Cancelled";
 
   // Payment
-  paidAt?: Date;
+  paidAt?: Date | null;
   paymentReference?: string;
 
   createdAt: Date;
