@@ -506,16 +506,17 @@ export const getHomeContent = async (req: Request, res: Response) => {
     let homeSectionQuery: any = { isActive: true };
     let fallbackCategoryProducts: any[] = [];
     let isRegularCategory = false;
+    let headerCategoryFound: any = null;
 
     if (headerCategorySlug && headerCategorySlug !== "all") {
-      const headerCategoryForSection = await HeaderCategory.findOne({
+      headerCategoryFound = await HeaderCategory.findOne({
         slug: (headerCategorySlug as string).toLowerCase().trim(),
         status: "Published",
-      }).select("_id");
+      }).select("_id name");
 
-      if (headerCategoryForSection) {
+      if (headerCategoryFound) {
         homeSectionQuery.pageLocation = "Header Category Page";
-        homeSectionQuery.targetHeaderCategory = headerCategoryForSection._id;
+        homeSectionQuery.targetHeaderCategory = headerCategoryFound._id;
       } else {
         const regularCategory = await Category.findOne({
           slug: (headerCategorySlug as string).toLowerCase().trim(),
@@ -569,6 +570,54 @@ export const getHomeContent = async (req: Request, res: Response) => {
         };
       })
     );
+
+    // Dynamic fallback for Header Category if no sections found
+    if (headerCategoryFound && dynamicSections.length === 0) {
+      console.log(`[getHomeContent] No sections for headerCategory: ${headerCategorySlug}, fetching products directly.`);
+      
+      // Find all categories linked to this header category
+      const categoriesInHeader = await Category.find({ 
+        headerCategoryId: headerCategoryFound._id,
+        status: "Active" 
+      }).select("_id");
+      
+      const categoryIds = categoriesInHeader.map(c => c._id);
+      
+      const prodQuery: any = { 
+        $or: [
+          { headerCategoryId: headerCategoryFound._id },
+          { category: { $in: categoryIds } }
+        ],
+        status: "Active", 
+        publish: true 
+      };
+      
+      const rawProducts = await Product.find(prodQuery).sort({ createdAt: -1 }).limit(40).lean();
+      
+      if (rawProducts.length > 0) {
+        dynamicSections.push({
+          id: "header-category-products",
+          title: `Discover ${headerCategoryFound.name}`,
+          slug: "header-category-products",
+          displayType: "products",
+          bannerData: undefined,
+          columns: 4,
+          data: rawProducts.map((p: any) => ({
+            id: p._id.toString(),
+            productId: p._id.toString(),
+            name: p.productName,
+            productName: p.productName,
+            image: p.mainImage,
+            mainImage: p.mainImage,
+            price: p.price,
+            discount: p.discount || (p.mrp && p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0),
+            rating: p.rating || 0,
+            isAvailable: true,
+            seller: p.seller,
+          })),
+        });
+      }
+    }
 
     if (isRegularCategory && fallbackCategoryProducts.length > 0) {
       dynamicSections.push({

@@ -66,10 +66,27 @@ export const createProduct = asyncHandler(
     if (!newProductData.headerCategoryId && newProductData.category) {
       try {
         const CategoryModel = require("../../../models/Category").default;
-        const categoryDoc = await CategoryModel.findById(newProductData.category).select("headerCategoryId");
-        if (categoryDoc && categoryDoc.headerCategoryId) {
-          newProductData.headerCategoryId = categoryDoc.headerCategoryId;
-          console.log(`[createProduct] Auto-assigned headerCategoryId: ${categoryDoc.headerCategoryId} from category: ${newProductData.category}`);
+        const HeaderCategoryModel = require("../../../models/HeaderCategory").default;
+        
+        const categoryDoc = await CategoryModel.findById(newProductData.category).select("headerCategoryId name slug");
+        if (categoryDoc) {
+          if (categoryDoc.headerCategoryId) {
+            newProductData.headerCategoryId = categoryDoc.headerCategoryId;
+            console.log(`[createProduct] Auto-assigned headerCategoryId: ${categoryDoc.headerCategoryId} from category: ${newProductData.category}`);
+          } else {
+            // Try to match header category by name or slug of the category
+            const headerMatch = await HeaderCategoryModel.findOne({
+              $or: [
+                { name: { $regex: new RegExp(`^${categoryDoc.name}$`, "i") } },
+                { slug: categoryDoc.slug }
+              ]
+            }).select("_id");
+            
+            if (headerMatch) {
+              newProductData.headerCategoryId = headerMatch._id;
+              console.log(`[createProduct] Matched headerCategoryId: ${headerMatch._id} by name/slug for category: ${categoryDoc.name}`);
+            }
+          }
         }
       } catch (err) {
         console.error("[createProduct] Error fetching category for headerCategoryId:", err);
@@ -370,11 +387,29 @@ export const updateProduct = asyncHandler(
     if (!updateData.headerCategoryId && (updateData.category || seller.category)) {
       try {
         const CategoryModel = require("../../../models/Category").default;
+        const HeaderCategoryModel = require("../../../models/HeaderCategory").default;
+
         const targetCatId = updateData.category || seller.category;
-        const categoryDoc = await CategoryModel.findById(targetCatId).select("headerCategoryId");
-        if (categoryDoc && categoryDoc.headerCategoryId) {
-          updateData.headerCategoryId = categoryDoc.headerCategoryId;
-          console.log(`[updateProduct] Auto-assigned headerCategoryId: ${categoryDoc.headerCategoryId} from category: ${targetCatId}`);
+        const categoryDoc = await CategoryModel.findById(targetCatId).select("headerCategoryId name slug");
+        
+        if (categoryDoc) {
+          if (categoryDoc.headerCategoryId) {
+            updateData.headerCategoryId = categoryDoc.headerCategoryId;
+            console.log(`[updateProduct] Auto-assigned headerCategoryId: ${categoryDoc.headerCategoryId} from category: ${targetCatId}`);
+          } else {
+             // Try to match header category by name or slug of the category
+             const headerMatch = await HeaderCategoryModel.findOne({
+              $or: [
+                { name: { $regex: new RegExp(`^${categoryDoc.name}$`, "i") } },
+                { slug: categoryDoc.slug }
+              ]
+            }).select("_id");
+            
+            if (headerMatch) {
+              updateData.headerCategoryId = headerMatch._id;
+              console.log(`[updateProduct] Matched headerCategoryId: ${headerMatch._id} by name/slug for category: ${categoryDoc.name}`);
+            }
+          }
         }
       } catch (err) {
         console.error("[updateProduct] Error fetching category for headerCategoryId:", err);
