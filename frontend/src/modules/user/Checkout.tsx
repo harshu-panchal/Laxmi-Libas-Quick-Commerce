@@ -40,7 +40,66 @@ import { calculateProductPrice } from "../../utils/priceUtils";
 
 // Similar products helper removed - using API
 
+import { useSearchParams } from "react-router-dom";
+import { Zap, Truck, CheckCircle, ChevronRight, Minus, Plus } from "lucide-react";
+
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <h3 className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider mb-2 ml-1">{children}</h3>
+);
+
+const CartItemRow = ({ item, updateQuantity, handleMoveToWishlist }: any) => {
+  const { displayPrice, mrp, hasDiscount } = calculateProductPrice(item.product, item.variant);
+  return (
+    <div className="flex gap-3">
+      <div className="w-14 h-14 bg-neutral-100 rounded-xl overflow-hidden flex-shrink-0 border border-neutral-100">
+        <img src={item.product?.imageUrl} alt={item.product?.name} className="w-full h-full object-contain" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="text-xs font-bold text-neutral-900 truncate">{item.product?.name}</h4>
+        <p className="text-[10px] text-neutral-500 mb-1">{item.product?.pack} • {item.quantity} Unit</p>
+        <div className="flex items-center justify-between">
+           <div className="flex items-center gap-2 bg-neutral-50 rounded-lg p-0.5 border border-neutral-200">
+             <button onClick={() => updateQuantity(item.product?.id, item.quantity - 1, item.variant)} className="w-5 h-5 flex items-center justify-center text-neutral-600 hover:text-primary-dark"><Minus size={12} /></button>
+             <span className="text-[11px] font-bold min-w-[12px] text-center">{item.quantity}</span>
+             <button onClick={() => updateQuantity(item.product?.id, item.quantity + 1, item.variant)} className="w-5 h-5 flex items-center justify-center text-neutral-600 hover:text-primary-dark"><Plus size={12} /></button>
+           </div>
+           <div className="text-right">
+             {hasDiscount && <p className="text-[9px] text-neutral-400 line-through">₹{mrp}</p>}
+             <p className="text-xs font-bold text-neutral-900">₹{displayPrice}</p>
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ShipmentSection = ({ items, title, eta, bgColor, icon }: any) => {
+  if (items.length === 0) return null;
+  return (
+    <div className={`${bgColor} border border-neutral-200 rounded-2xl overflow-hidden mb-4`}>
+      <div className="px-4 py-2.5 border-b border-neutral-200/50 flex items-center justify-between bg-white/50 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-white rounded-full shadow-sm flex items-center justify-center">
+            {icon}
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-neutral-900 leading-none mb-0.5">{title}</h4>
+            <p className="text-[9px] font-medium text-neutral-500 uppercase tracking-tight">ETA: {eta}</p>
+          </div>
+        </div>
+      </div>
+      <div className="p-4 space-y-4">
+        {items.map((item: any) => (
+          <CartItemRow key={item.product?.id || item.product?._id} item={item} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function Checkout() {
+  const [searchParams] = useSearchParams();
+  const checkoutFlow = searchParams.get("flow") || 'quick'; // default to quick for safety
   const {
     cart,
     updateQuantity,
@@ -110,6 +169,9 @@ export default function Checkout() {
 
   // Payment State
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+
+  // Delivery Instructions State
+  const [deliveryInstructions, setDeliveryInstructions] = useState("");
 
   // Check if user has placeholder data (needs profile completion)
   const isPlaceholderUser =
@@ -246,17 +308,38 @@ export default function Checkout() {
     );
   }
 
-  const displayItems = (cart?.items || []).filter(
+  const allDisplayItems = (cart?.items || []).filter(
     (item) => item && item.product,
   );
-  const displayCart = {
-    ...cart,
-    items: displayItems,
-    itemCount: cart.itemCount || 0,
-    total: cart.total || 0,
-    totalDiscount: cart.totalDiscount || 0,
-    finalTotal: cart.finalTotal || cart.total || 0,
-  };
+
+  // Split items into delivery groups
+  const quickDeliveryItems = useMemo(() => 
+    allDisplayItems.filter(item => (item.product?.type === 'quick' || item.product?.type === 'both' || !item.product?.type) && item.selectedDeliveryType === 'quick'),
+    [allDisplayItems]
+  );
+
+  const ecommerceShippingItems = useMemo(() => 
+    allDisplayItems.filter(item => (item.product?.type === 'ecommerce' || item.product?.type === 'both') && item.selectedDeliveryType === 'ecommerce'),
+    [allDisplayItems]
+  );
+
+  const isSplitOrder = quickDeliveryItems.length > 0 && ecommerceShippingItems.length > 0;
+
+  const displayCart = useMemo(() => {
+    const total = allDisplayItems.reduce((sum, item) => {
+        const { displayPrice } = calculateProductPrice(item.product, item.variant);
+        return sum + displayPrice * (item.quantity || 0);
+    }, 0);
+
+    return {
+      ...cart,
+      items: allDisplayItems,
+      itemCount: allDisplayItems.reduce((sum, item) => sum + (item.quantity || 0), 0),
+      total: total,
+      totalDiscount: 0,
+      finalTotal: total,
+    };
+  }, [allDisplayItems, cart]);
 
   const freeDeliveryThreshold =
     cart.freeDeliveryThreshold ?? appConfig.freeDeliveryThreshold;
@@ -264,12 +347,11 @@ export default function Checkout() {
     0,
     freeDeliveryThreshold - (displayCart.finalTotal || 0),
   );
-  const cartItem = displayItems[0];
 
   /* DEBUG: Display Backend Configuration */
   const dbgConfig = (cart as any).debug_config;
 
-  const itemsTotal = displayItems.reduce((sum, item) => {
+  const itemsTotal = allDisplayItems.reduce((sum, item) => {
     if (!item?.product) return sum;
     const { mrp } = calculateProductPrice(item.product, item.variant);
     return sum + mrp * (item.quantity || 0);
@@ -287,11 +369,11 @@ export default function Checkout() {
         ? 0
         : appConfig.deliveryFee;
 
-  // Recalculate or use validated discount
-  // If we have a selected coupon, we should re-validate if cart total changes,
-  // but for simplicity, we'll re-calculate locally if possible or trust the previous validation if acceptable (better to re-validate)
+  // Ecom shipping usually has its own fee if far away, adding placeholder for now
+  const ecomShippingCharge = ecommerceShippingItems.length > 0 ? 40 : 0; 
+
   const subtotalBeforeCoupon =
-    discountedTotal + handlingCharge + deliveryCharge;
+    discountedTotal + handlingCharge + deliveryCharge + ecomShippingCharge;
 
   // Local calculation for immediate feedback, relying on backend validation on Apply
   let currentCouponDiscount = 0;
@@ -327,6 +409,7 @@ export default function Checkout() {
     discountedTotal +
     handlingCharge +
     deliveryCharge +
+    ecomShippingCharge +
     finalTipAmount +
     giftPackagingFee -
     currentCouponDiscount,
@@ -433,57 +516,58 @@ export default function Checkout() {
       longitude: finalLongitude,
     };
 
-    const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-
-    const order: Order = {
-      id: orderId,
-      items: cart.items,
-      totalItems: cart.itemCount || 0,
-      subtotal: discountedTotal,
+    const orderData = {
+      items: allDisplayItems,
+      address: addressWithLocation,
+      paymentMethod: paymentMethod,
       fees: {
         platformFee: handlingCharge,
         deliveryFee: deliveryCharge,
+        ecomShippingFee: ecomShippingCharge
       },
-      totalAmount: grandTotal,
-      address: addressWithLocation,
-      paymentMethod: paymentMethod,
-      status: paymentMethod === "COD" ? "Received" : "Pending", // COD orders start as 'Received'
-      createdAt: new Date().toISOString(),
-      tipAmount: finalTipAmount,
-
       couponCode: selectedCoupon?.code || undefined,
-      giftPackaging: giftPackaging,
+      deliveryInstructions: deliveryInstructions || undefined,
     };
 
     try {
-      // Create the order
-      const placedId = await addOrder(order);
-      if (placedId) {
+      // Use internal service that calls POST /api/orders
+      // Since addOrder in useOrders might be specific to single orders, we'll try to reach the new endpoint
+       const response = await fetch(`${appConfig.apiUrl}/customer/orders`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(orderData)
+       });
+       const result = await response.json();
+
+       if (result.success) {
+        const { parentOrderId, orders, primaryOrderId } = result.data;
+        
         if (paymentMethod === "COD") {
-          // For COD, proceed directly to success
-          setPlacedOrderId(placedId);
+          setPlacedOrderId(primaryOrderId);
           clearCart();
           setShowOrderSuccess(true);
           showGlobalToast("Order placed successfully!", "success");
         } else {
           try {
-             const result = await createPhonePeOrder(placedId, grandTotal);
-             if (result.success && result.data?.redirectUrl) {
-                 // Persistence: Save ID to localStorage for fallback verification if URL params are stripped
-                 if (result.data.merchantTransactionId) {
-                     localStorage.setItem('laxmart_pending_payment_id', result.data.merchantTransactionId);
+             // For PhonePe, we pass the first order ID or parent linkage if supported
+             const payResult = await createPhonePeOrder(primaryOrderId, grandTotal);
+             if (payResult.success && payResult.data?.redirectUrl) {
+                 if (payResult.data.merchantTransactionId) {
+                     localStorage.setItem('laxmart_pending_payment_id', payResult.data.merchantTransactionId);
                  }
-                 window.location.href = result.data.redirectUrl;
+                 window.location.href = payResult.data.redirectUrl;
              } else {
                  showGlobalToast("Failed to initiate payment", "error");
              }
           } catch(error) {
-              console.error("PhonePe error", error);
               showGlobalToast("Failed to initiate payment", "error");
           }
         }
-        // Note: For Online payment, the cart will be cleared and success shown only after successful payment
-        // See the PhonePe redirect process
+      } else {
+          throw new Error(result.message);
       }
     } catch (error: any) {
       console.error("Order placement failed", error);
@@ -606,7 +690,7 @@ export default function Checkout() {
   return (
     <div
       className="bg-white min-h-screen flex flex-col opacity-100"
-      style={{ opacity: 1, height: "1250px" }}>
+      style={{ opacity: 1, minHeight: '100vh', paddingBottom: '100px' }}>
       {/* Party Popper Animation */}
       <PartyPopper
         show={showPartyPopper}
@@ -1826,6 +1910,27 @@ export default function Checkout() {
       </div>
 
 
+
+      {/* Delivery instructions */}
+      <div className="px-4 py-2 border-b border-neutral-200">
+        <h3 className="text-sm font-bold text-neutral-900 mb-0.5">
+          Delivery instructions
+        </h3>
+        <p className="text-xs text-neutral-600 mb-2">
+          Add specific instructions for our delivery partner.
+        </p>
+        <div className="relative">
+          <textarea
+            value={deliveryInstructions}
+            onChange={(e) => setDeliveryInstructions(e.target.value)}
+            placeholder="e.g. Please don't ring the bell, Leave it at the gate..."
+            className="w-full h-20 px-3 py-2 bg-neutral-50 border-2 border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-primary-dark transition-all resize-none"
+          />
+          <div className="absolute bottom-2 right-2 flex items-center gap-1.5 opacity-40">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          </div>
+        </div>
+      </div>
 
       {/* Tip your delivery partner */}
       <div className="px-4 py-2 border-b border-neutral-200">

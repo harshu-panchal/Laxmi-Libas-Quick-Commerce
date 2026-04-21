@@ -18,6 +18,7 @@ export default function SellerOrders() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [activeTab, setActiveTab] = useState<'quick' | 'ecommerce'>('quick');
 
   // Fetch orders from API
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function SellerOrders() {
           limit: parseInt(entriesPerPage),
           sortBy: sortField || 'orderDate',
           sortOrder: sortDirection,
+          orderType: activeTab,
         };
 
         // Parse date range
@@ -65,7 +67,7 @@ export default function SellerOrders() {
     };
 
     fetchOrders();
-  }, [dateRange, status, entriesPerPage, searchQuery, currentPage, sortField, sortDirection]);
+  }, [dateRange, status, entriesPerPage, searchQuery, currentPage, sortField, sortDirection, activeTab]);
 
   const handleClearDate = () => {
     setDateRange('');
@@ -103,12 +105,13 @@ export default function SellerOrders() {
     document.body.removeChild(link);
   };
 
-  // Pagination (client-side for now, can be moved to backend later)
+  // Pagination (client-side info for showing entries)
   const entriesPerPageNum = parseInt(entriesPerPage);
-  const totalPages = Math.ceil(orders.length / entriesPerPageNum);
+  const totalPages = Math.ceil(orders.length / entriesPerPageNum); // Note: totalPages should ideally come from backend pagination, but we use this for now as per existing logic
   const startIndex = (currentPage - 1) * entriesPerPageNum;
   const endIndex = startIndex + entriesPerPageNum;
-  const paginatedOrders = orders.slice(startIndex, endIndex);
+  // Use all orders from state because we filtered at backend
+  const paginatedOrders = orders; 
 
   const handlePreviousPage = () => {
     setCurrentPage(prev => Math.max(1, prev - 1));
@@ -126,8 +129,14 @@ export default function SellerOrders() {
         return 'bg-blue-100 text-blue-800';
       case 'On the way':
         return 'bg-purple-100 text-purple-800';
+      case 'Out For Delivery':
+        return 'bg-blue-600 text-white';
       case 'Delivered':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-green-100 text-green-800';
+      case 'Packed':
+        return 'bg-teal-100 text-teal-800';
+      case 'Shipped':
+        return 'bg-indigo-100 text-indigo-800';
       case 'Cancelled':
         return 'bg-red-100 text-red-800';
       default:
@@ -159,8 +168,22 @@ export default function SellerOrders() {
         {/* White Card Container */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
           {/* Green Banner */}
-          <div className="bg-primary-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-t-lg">
+          <div className="bg-primary-dark text-white px-4 sm:px-6 py-2 sm:py-3 rounded-t-lg flex items-center justify-between">
             <h2 className="text-base sm:text-lg font-semibold">View Order List</h2>
+            <div className="flex bg-white/10 p-1 rounded-lg">
+              <button 
+                onClick={() => { setActiveTab('quick'); setCurrentPage(1); }}
+                className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${activeTab === 'quick' ? 'bg-white text-primary-dark shadow-sm' : 'text-white/80 hover:text-white'}`}
+              >
+                Quick Orders
+              </button>
+              <button 
+                onClick={() => { setActiveTab('ecommerce'); setCurrentPage(1); }}
+                className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${activeTab === 'ecommerce' ? 'bg-white text-primary-dark shadow-sm' : 'text-white/80 hover:text-white'}`}
+              >
+                Ecommerce Orders
+              </button>
+            </div>
           </div>
 
           {/* Filter and Action Bar */}
@@ -225,7 +248,7 @@ export default function SellerOrders() {
                   <option>All Status</option>
                   <option>Pending</option>
                   <option>Accepted</option>
-                  <option>On the way</option>
+                  <option>Out For Delivery</option>
                   <option>Delivered</option>
                   <option>Cancelled</option>
                 </select>
@@ -523,7 +546,7 @@ export default function SellerOrders() {
           {/* Pagination */}
           <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
             <div className="text-xs sm:text-sm text-neutral-700">
-              Showing {orders.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, orders.length)} of {orders.length} entries
+              Showing {orders.length === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + orders.length, 1000)} of ... entries
             </div>
             <div className="flex items-center gap-2">
               <button

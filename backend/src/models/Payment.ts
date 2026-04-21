@@ -1,31 +1,24 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IPayment extends Document {
-  order: mongoose.Types.ObjectId;
-  customer: mongoose.Types.ObjectId;
+  orderId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
 
   // Payment Info
   paymentMethod: string;
   paymentGateway?: string;
-  transactionId?: string;
-  paymentId?: string;
+  transactionId?: string; // PhonePe final transaction ID
+  phonePeOrderId?: string; // PhonePe merchant transaction ID
 
-  // PhonePe Specific
-  phonepeTransactionId?: string;
-  phonepeMerchantTransactionId?: string;
+  // Type
+  paymentType: "quick" | "ecommerce" | "hotel" | "bus";
 
   // Amount
   amount: number;
   currency: string;
 
   // Status
-  status:
-  | "Pending"
-  | "Processing"
-  | "Completed"
-  | "Failed"
-  | "Refunded"
-  | "Cancelled";
+  status: "PENDING" | "SUCCESS" | "FAILED";
 
   // Payment Details
   paymentDate?: Date;
@@ -52,15 +45,15 @@ export interface IPayment extends Document {
 
 const PaymentSchema = new Schema<IPayment>(
   {
-    order: {
+    orderId: {
       type: Schema.Types.ObjectId,
       ref: "Order",
-      required: [true, "Order is required"],
+      required: [true, "Order ID is required"],
     },
-    customer: {
+    userId: {
       type: Schema.Types.ObjectId,
       ref: "Customer",
-      required: [true, "Customer is required"],
+      required: [true, "User ID is required"],
     },
 
     // Payment Info
@@ -79,19 +72,16 @@ const PaymentSchema = new Schema<IPayment>(
       unique: true,
       sparse: true,
     },
-    paymentId: {
+    phonePeOrderId: {
       type: String,
       trim: true,
     },
 
-    // PhonePe Specific
-    phonepeTransactionId: {
+    // Type
+    paymentType: {
       type: String,
-      trim: true,
-    },
-    phonepeMerchantTransactionId: {
-      type: String,
-      trim: true,
+      enum: ["quick", "ecommerce", "hotel", "bus"],
+      required: true,
     },
 
     // Amount
@@ -109,15 +99,8 @@ const PaymentSchema = new Schema<IPayment>(
     // Status
     status: {
       type: String,
-      enum: [
-        "Pending",
-        "Processing",
-        "Completed",
-        "Failed",
-        "Refunded",
-        "Cancelled",
-      ],
-      default: "Pending",
+      enum: ["PENDING", "SUCCESS", "FAILED"],
+      default: "PENDING",
     },
 
     // Payment Details
@@ -162,7 +145,7 @@ const PaymentSchema = new Schema<IPayment>(
 
 // Indexes for faster queries
 
-PaymentSchema.index({ customer: 1 });
+PaymentSchema.index({ userId: 1 });
 PaymentSchema.index({ status: 1 });
 PaymentSchema.index({ paymentDate: -1 });
 

@@ -3,6 +3,11 @@ import {
   getOrders,
   getOrderById,
   updateOrderStatus,
+  shipOrder,
+  markAsPacked,
+  readyForPickup,
+  printInvoice,
+  printLabel,
 } from "../modules/seller/controllers/orderController";
 import { authenticate, requireUserType } from "../middleware/auth";
 
@@ -20,5 +25,14 @@ router.get("/:id", getOrderById);
 
 // Update order status
 router.patch("/:id/status", updateOrderStatus);
+
+// Shipment Actions
+router.patch("/:id/pack", markAsPacked);
+router.patch("/:id/ready-pickup", readyForPickup);
+router.get("/:id/invoice", printInvoice);
+router.get("/:id/shipping-label", printLabel);
+
+// Ship order
+router.post("/:id/ship", shipOrder);
 
 export default router;

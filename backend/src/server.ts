@@ -11,6 +11,11 @@ import { seedHeaderCategories } from "./utils/seedHeaderCategories";
 import { initializeSocket } from "./socket/socketService";
 import { initializeFirebaseAdmin } from "./services/firebaseAdmin";
 import { logStartupEnvChecks } from "./utils/startupEnvChecks";
+import unifiedPaymentRoutes from "./routes/unifiedPaymentRoutes";
+import { InventoryService } from "./services/inventoryService";
+import Order from "./models/Order";
+import HotelBooking from "./models/HotelBooking";
+import BusBooking from "./models/BusBooking";
 
 
 import path from "path";
@@ -100,8 +105,10 @@ app.use((req: Request, _res: Response, next) => {
   next();
 });
 
+
 // API Routes
 app.use("/api/v1", routes);
+app.use("/api/payment", unifiedPaymentRoutes);
 
 // Error handling middleware (must be last)
 app.use(notFound);
@@ -150,3 +157,76 @@ startServer().catch((err) => {
   process.exit(1);
 });
 
+// ─── Cron: Cleanup Expired Locks & Abandoned Orders (every 5 min) ─────────────
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;       // 5 minutes
+const PAYMENT_TIMEOUT_MS  = 30 * 60 * 1000;      // 30 minutes
+
+setInterval(async () => {
+  try {
+    // 1. Release all expired product stock locks
+    await InventoryService.cleanupExpiredLocks();
+    console.log('[Cron] ✅ Expired inventory locks cleaned up');
+
+    // 2. Cancel product orders stuck in Pending payment > 30 min
+    const paymentCutoff = new Date(Date.now() - PAYMENT_TIMEOUT_MS);
+    const staleOrders = await Order.find({
+      paymentStatus: 'Pending',
+      paymentMethod: { $ne: 'COD' }, // Only affect online payment orders
+      createdAt: { $lt: paymentCutoff },
+      status: 'Pending',
+    }).select('_id customer orderNumber');
+
+    for (const order of staleOrders) {
+      try {
+        await Order.findByIdAndUpdate(order._id, {
+          paymentStatus: 'Failed',
+          status: 'Cancelled',
+          cancellationReason: 'Payment timeout — auto cancelled after 30 minutes',
+          cancelledAt: new Date(),
+        });
+        // Release any remaining locks for this customer
+        await InventoryService.releaseProductLocks(order.customer.toString());
+        console.log(`[Cron] ⏰ Auto-cancelled stale order ${order.orderNumber}`);
+      } catch (orderErr) {
+        console.error(`[Cron] Error cancelling order ${order._id}:`, orderErr);
+      }
+    }
+
+    if (staleOrders.length > 0) {
+      console.log(`[Cron] ⏰ Auto-cancelled ${staleOrders.length} stale payment order(s)`);
+    }
+
+    // 3. Release expired hotel booking locks
+    const staleHotelBookings = await HotelBooking.find({
+      bookingStatus: 'LOCKED',
+      expiresAt: { $lt: new Date() },
+    });
+    for (const booking of staleHotelBookings) {
+      await HotelBooking.findByIdAndUpdate(booking._id, {
+        bookingStatus: 'Cancelled',
+        paymentStatus: 'Failed',
+      });
+    }
+    if (staleHotelBookings.length > 0) {
+      console.log(`[Cron] 🏨 Released ${staleHotelBookings.length} expired hotel lock(s)`);
+    }
+
+    // 4. Release expired bus seat locks
+    const staleBusBookings = await BusBooking.find({
+      status: 'LOCKED',
+      expiresAt: { $lt: new Date() },
+    });
+    for (const booking of staleBusBookings) {
+      await BusBooking.findByIdAndUpdate(booking._id, {
+        status: 'cancelled',
+        paymentStatus: 'Failed',
+      });
+    }
+    if (staleBusBookings.length > 0) {
+      console.log(`[Cron] 🚌 Released ${staleBusBookings.length} expired bus seat lock(s)`);
+    }
+
+  } catch (cronErr) {
+    console.error('[Cron] Cleanup job error:', cronErr);
+  }
+}, CLEANUP_INTERVAL_MS);

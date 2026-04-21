@@ -6,6 +6,7 @@ interface SubMenuItem {
   label: string;
   path: string;
   icon: JSX.Element;
+  businessType?: "commerce" | "hotel" | "bus";
 }
 
 interface MenuItem {
@@ -14,6 +15,7 @@ interface MenuItem {
   hasSubmenu?: boolean;
   submenuItems?: SubMenuItem[];
   icon?: JSX.Element;
+  businessType?: "commerce" | "hotel" | "bus";
 }
 
 interface SellerSidebarProps {
@@ -22,12 +24,13 @@ interface SellerSidebarProps {
 
 const menuItems: MenuItem[] = [
   { label: "Dashboard", path: "/seller" },
-  { label: "Orders", path: "/seller/orders" },
-  { label: "Category", path: "/seller/category" },
-  { label: "SubCategory", path: "/seller/subcategory" },
+  { label: "Orders", path: "/seller/orders", businessType: "commerce" },
+  { label: "Category", path: "/seller/category", businessType: "commerce" },
+  { label: "SubCategory", path: "/seller/subcategory", businessType: "commerce" },
   {
     label: "Product",
     path: "/seller/product",
+    businessType: "commerce",
     hasSubmenu: true,
     submenuItems: [
       {
@@ -124,6 +127,7 @@ const menuItems: MenuItem[] = [
   {
     label: "Reports",
     path: "/seller/reports",
+    businessType: "commerce",
     hasSubmenu: true,
     submenuItems: [
       {
@@ -147,7 +151,31 @@ const menuItems: MenuItem[] = [
       },
     ],
   },
-  { label: "Return", path: "/seller/return" },
+  { label: "Return", path: "/seller/return", businessType: "commerce" },
+  {
+    label: "Hotel Management",
+    path: "/hotel",
+    businessType: "hotel",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 21h18M3 7h18M5 7v14M19 7v14M9 11h2M9 15h2M13 11h2M13 15h2M5 3l7 4 7-4" />
+      </svg>
+    ),
+  },
+  {
+    label: "Bus Management",
+    path: "/transport",
+    businessType: "bus",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+        <path d="M17 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+        <path d="M5 17h2m10 0h2m-4 0h-6m-3-1h13l-1-7H7l-1 7Z" />
+        <path d="m9 6 3-3 3 3" />
+        <path d="M12 3v14" />
+      </svg>
+    ),
+  },
 ];
 
 export default function SellerSidebar({ onClose }: SellerSidebarProps) {
@@ -232,7 +260,10 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
       </div>
       <nav className="flex-1 py-4 sm:py-6 overflow-y-auto">
         <ul className="space-y-1 px-2 sm:px-4">
-          {menuItems.map((item) => {
+          {menuItems.filter(item => {
+            if (!item.businessType) return true;
+            return user?.businessTypes?.includes(item.businessType);
+          }).map((item) => {
             const expanded = isExpanded(item.path);
             const active =
               isActive(item.path) || isSubmenuActive(item.submenuItems);

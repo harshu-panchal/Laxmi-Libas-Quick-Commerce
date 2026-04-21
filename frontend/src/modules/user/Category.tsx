@@ -183,17 +183,17 @@ export default function CategoryPage() {
   }, [id, selectedSubcategory, category?._id]);
 
   // Client-side filtering removed in favor of backend subcategory filtering
-  // Client-side filtering as a safety net
-  const categoryProducts = useMemo(() => {
+  // Categorize products into Quick and Ecommerce
+  const { quickProducts, ecommerceProducts } = useMemo(() => {
     const activeId = category?._id || category?.id || id;
-    if (!activeId) return products;
-    
-    return products.filter((p) => {
-      const prodCatId = p.category?._id || p.category || p.categoryId;
-      // If we are showing 'all' subcategories, any product from the main category is fine
-      // If a specific subcategory is selected, we should further filter (but backend does this already)
-      return prodCatId?.toString() === activeId?.toString();
-    });
+    const baseProducts = activeId 
+      ? products.filter(p => (p.category?._id || p.category || p.categoryId)?.toString() === activeId?.toString())
+      : products;
+
+    return {
+      quickProducts: baseProducts.filter(p => p.type === 'quick' || !p.type || p.type === 'both'),
+      ecommerceProducts: baseProducts.filter(p => p.type === 'ecommerce' || p.type === 'both')
+    };
   }, [products, category, id]);
 
   if ((categoryLoading || loading) && !products.length && !category) {
@@ -533,14 +533,22 @@ export default function CategoryPage() {
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide bg-white">
-          {/* Products Grid */}
-          {categoryProducts.length > 0 ? (
-            <div className="px-3 md:px-6 lg:px-8 py-4 md:py-6">
+        <div className="flex-1 overflow-y-auto scrollbar-hide bg-white pb-10">
+          {/* Quick Commerce Section */}
+          <div className="px-4 md:px-6 lg:px-8 pt-4 md:pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xl">⚡</span>
+              <h2 className="text-lg font-bold text-neutral-900">Nearby Delivery</h2>
+              <span className="text-xs font-medium text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full">
+                {quickProducts.length} items
+              </span>
+            </div>
+            
+            {quickProducts.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-4">
-                {categoryProducts.map((product) => (
+                {quickProducts.map((product) => (
                   <ProductCard
-                    key={product.id}
+                    key={product.id || product._id}
                     product={product}
                     showHeartIcon={false}
                     showStockInfo={false}
@@ -550,14 +558,45 @@ export default function CategoryPage() {
                   />
                 ))}
               </div>
+            ) : (
+              <div className="py-10 text-center bg-neutral-50 rounded-2xl border border-dashed border-neutral-200">
+                <p className="text-neutral-400 text-sm">No quick delivery products available nearby.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="h-4 bg-neutral-50 my-6"></div>
+
+          {/* National Ecommerce Section */}
+          <div className="px-4 md:px-6 lg:px-8">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xl">📦</span>
+              <h2 className="text-lg font-bold text-neutral-900">Ships to your location</h2>
+              <span className="text-xs font-medium text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full">
+                {ecommerceProducts.length} items
+              </span>
             </div>
-          ) : (
-            <div className="px-4 md:px-6 lg:px-8 py-8 md:py-12 text-center">
-              <p className="text-neutral-500 md:text-lg">
-                No products found in this category.
-              </p>
-            </div>
-          )}
+            
+            {ecommerceProducts.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-4">
+                {ecommerceProducts.map((product) => (
+                  <ProductCard
+                    key={product.id || product._id}
+                    product={product}
+                    showHeartIcon={false}
+                    showStockInfo={false}
+                    showBadge={true}
+                    showOptionsText={true}
+                    categoryStyle={true}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="py-10 text-center bg-neutral-50 rounded-2xl border border-dashed border-neutral-200">
+                <p className="text-neutral-400 text-sm">No products available for shipping to your location.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

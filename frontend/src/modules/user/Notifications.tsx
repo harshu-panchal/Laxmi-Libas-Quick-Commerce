@@ -1,198 +1,174 @@
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    Bell,
-    ArrowLeft,
-    CheckCheck,
-    Info,
-    Package,
-    CreditCard,
-    AlertTriangle,
-    CheckCircle2,
-    XCircle,
-    Settings
-} from 'lucide-react';
-import { getNotifications, markAsRead, markAllAsRead, INotification } from '../../services/api/customerNotificationService';
-import AppLayout from '../../components/AppLayout';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Bell, Check, Trash2, ChevronLeft, ShoppingBag, CreditCard, Info, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { getNotifications, markAsRead, markAllAsRead, Notification } from '../../services/api/customerNotificationService';
+import Button from '../../components/ui/button';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function Notifications() {
-    const navigate = useNavigate();
-    const [notifications, setNotifications] = useState<INotification[]>([]);
-    const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchNotifications();
-    }, []);
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
 
-    const fetchNotifications = async () => {
-        try {
-            setLoading(true);
-            const response = await getNotifications();
-            if (response.success) {
-                setNotifications(response.data);
-            }
-        } catch (error) {
-            console.error("Failed to fetch notifications", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const fetchNotifications = async () => {
+    setLoading(true);
+    try {
+      const res = await getNotifications();
+      if (res.success) {
+        setNotifications(res.data);
+        setUnreadCount(res.data.filter((n: Notification) => !n.isRead).length);
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleMarkAsRead = async (id: string) => {
-        try {
-            const response = await markAsRead(id);
-            if (response.success) {
-                setNotifications(prev =>
-                    prev.map(n => n._id === id ? { ...n, isRead: true } : n)
-                );
-            }
-        } catch (error) {
-            console.error("Failed to mark notification as read", error);
-        }
-    };
+  const handleMarkRead = async (id: string, link?: string) => {
+    try {
+      await markAsRead(id);
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      
+      if (link) {
+        navigate(link);
+      }
+    } catch (err) {
+      console.error('Failed to mark as read', err);
+    }
+  };
 
-    const handleMarkAllRead = async () => {
-        try {
-            const response = await markAllAsRead();
-            if (response.success) {
-                setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-            }
-        } catch (error) {
-            console.error("Failed to mark all as read", error);
-        }
-    };
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('Failed to mark all as read', err);
+    }
+  };
 
-    const getIcon = (type: string, isRead: boolean) => {
-        const size = 20;
-        const color = isRead ? "text-neutral-400" : "text-brand-600";
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'Order': return <ShoppingBag size={18} className="text-blue-500" />;
+      case 'Payment': return <CreditCard size={18} className="text-emerald-500" />;
+      case 'Success': return <CheckCircle size={18} className="text-emerald-500" />;
+      case 'Error': return <AlertTriangle size={18} className="text-red-500" />;
+      case 'Warning': return <AlertTriangle size={18} className="text-amber-500" />;
+      default: return <Info size={18} className="text-blue-500" />;
+    }
+  };
 
-        switch (type) {
-            case 'Order':
-                return <Package size={size} className={isRead ? "text-neutral-400" : "text-blue-600"} />;
-            case 'Payment':
-                return <CreditCard size={size} className={isRead ? "text-neutral-400" : "text-green-600"} />;
-            case 'Success':
-                return <CheckCircle2 size={size} className={isRead ? "text-neutral-400" : "text-green-600"} />;
-            case 'Error':
-                return <XCircle size={size} className={isRead ? "text-neutral-400" : "text-red-600"} />;
-            case 'Warning':
-                return <AlertTriangle size={size} className={isRead ? "text-neutral-400" : "text-orange-600"} />;
-            case 'System':
-                return <Settings size={size} className={isRead ? "text-neutral-400" : "text-purple-600"} />;
-            default:
-                return <Info size={size} className={color} />;
-        }
-    };
-
-    const formatTime = (dateString: string) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
-
-        if (diffInMinutes < 1) return 'Just now';
-        if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-        if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-        return `${Math.floor(diffInMinutes / 1440)}d ago`;
-    };
-
-    return (
-        <div className="min-h-screen bg-neutral-50 pb-20">
-            {/* Header */}
-            <header className="sticky top-0 z-50 bg-white border-b border-neutral-100 px-4 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
-                    >
-                        <ArrowLeft size={24} className="text-neutral-800" />
-                    </button>
-                    <h1 className="text-xl font-bold text-neutral-900">Notifications</h1>
-                </div>
-                {notifications.some(n => !n.isRead) && (
-                    <button
-                        onClick={handleMarkAllRead}
-                        className="text-brand-600 text-sm font-semibold flex items-center gap-1 hover:text-brand-700"
-                    >
-                        <CheckCheck size={16} />
-                        Mark all read
-                    </button>
-                )}
-            </header>
-
-            <main className="max-w-2xl mx-auto p-4">
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center py-20 gap-4">
-                        <div className="w-10 h-10 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin"></div>
-                        <p className="text-neutral-500 font-medium tracking-tight">Fetching updates...</p>
-                    </div>
-                ) : notifications.length > 0 ? (
-                    <div className="space-y-3">
-                        {notifications.map((notification) => (
-                            <div
-                                key={notification._id}
-                                onClick={() => !notification.isRead && handleMarkAsRead(notification._id)}
-                                className={`group relative bg-white rounded-2xl p-4 shadow-sm border transition-all duration-300 hover:shadow-md cursor-pointer ${notification.isRead
-                                        ? 'border-neutral-100 opacity-80'
-                                        : 'border-brand-100 bg-brand-50/30'
-                                    }`}
-                            >
-                                <div className="flex gap-4">
-                                    <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${notification.isRead ? 'bg-neutral-50' : 'bg-brand-50'
-                                        }`}>
-                                        {getIcon(notification.type, notification.isRead)}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <h3 className={`text-sm font-bold truncate pr-6 ${notification.isRead ? 'text-neutral-700' : 'text-neutral-900'
-                                                }`}>
-                                                {notification.title}
-                                            </h3>
-                                            <span className="text-[10px] font-medium text-neutral-400 whitespace-nowrap">
-                                                {formatTime(notification.createdAt)}
-                                            </span>
-                                        </div>
-                                        <p className={`text-xs leading-relaxed line-clamp-2 ${notification.isRead ? 'text-neutral-500' : 'text-neutral-600'
-                                            }`}>
-                                            {notification.message}
-                                        </p>
-
-                                        {notification.link && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    navigate(notification.link!);
-                                                }}
-                                                className="mt-3 text-brand-600 text-xs font-bold hover:underline"
-                                            >
-                                                {notification.actionLabel || 'View Details'} →
-                                            </button>
-                                        )}
-                                    </div>
-                                    {!notification.isRead && (
-                                        <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-brand-600 animate-pulse"></div>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className="w-20 h-20 bg-neutral-100 rounded-full flex items-center justify-center mb-6">
-                            <Bell size={40} className="text-neutral-400" />
-                        </div>
-                        <h2 className="text-xl font-bold text-neutral-900 mb-2">No notifications yet</h2>
-                        <p className="text-neutral-500 max-w-xs mx-auto text-sm leading-relaxed">
-                            Treat yourself to something special! We'll notify you here when your order is on the way.
-                        </p>
-                        <button
-                            onClick={() => navigate('/')}
-                            className="mt-8 bg-neutral-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-neutral-800 transition-colors shadow-lg shadow-neutral-200"
-                        >
-                            Start Shopping
-                        </button>
-                    </div>
-                )}
-            </main>
+  return (
+    <div className="flex flex-col min-h-screen bg-neutral-100 pb-20">
+      {/* Header */}
+      <div className="bg-white sticky top-0 z-40 px-4 py-4 flex items-center justify-between border-b border-neutral-100">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="p-1 -ml-1 text-neutral-600">
+            <ChevronLeft size={24} />
+          </button>
+          <h1 className="text-lg font-bold text-neutral-900">Notifications</h1>
+          {unreadCount > 0 && (
+            <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1">
+              {unreadCount}
+            </span>
+          )}
         </div>
-    );
+        
+        {unreadCount > 0 && (
+          <button 
+            onClick={handleMarkAllRead}
+            className="text-xs font-bold text-blue-600 hover:text-blue-700"
+          >
+            Mark all as read
+          </button>
+        )}
+      </div>
+
+      {/* List */}
+      <div className="flex-1">
+        {loading ? (
+          <div className="p-4 space-y-4">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="bg-white rounded-xl p-4 animate-pulse">
+                <div className="flex gap-4">
+                  <div className="w-10 h-10 bg-neutral-100 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-neutral-100 rounded w-1/3" />
+                    <div className="h-3 bg-neutral-50 rounded w-full" />
+                    <div className="h-2 bg-neutral-50 rounded w-1/4" />
+                  </div>
+                </div>
+              </div>
+            ) )}
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-32 px-6 text-center">
+            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm">
+              <Bell size={36} className="text-neutral-200" />
+            </div>
+            <h2 className="text-xl font-bold text-neutral-900 mb-2">No notifications yet</h2>
+            <p className="text-neutral-500 text-sm max-w-[250px]">
+              Check back here for updates on your orders and special offers.
+            </p>
+          </div>
+        ) : (
+          <div className="p-2 space-y-1">
+            <AnimatePresence>
+              {notifications.map((notification) => (
+                <motion.div
+                  key={notification._id}
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`relative group bg-white rounded-xl p-4 transition-all ${
+                    !notification.isRead ? 'border-l-4 border-blue-600' : 'opacity-80'
+                  }`}
+                  onClick={() => handleMarkRead(notification._id, notification.link)}
+                >
+                  <div className="flex gap-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                      !notification.isRead ? 'bg-blue-50' : 'bg-neutral-50'
+                    }`}>
+                      {getIcon(notification.type)}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-0.5">
+                        <h3 className={`text-sm tracking-tight line-clamp-1 ${
+                          !notification.isRead ? 'font-bold text-neutral-900' : 'font-medium text-neutral-600'
+                        }`}>
+                          {notification.title}
+                        </h3>
+                        <span className="text-[10px] text-neutral-400 font-medium shrink-0 ml-2">
+                          {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                        </span>
+                      </div>
+                      
+                      <p className={`text-xs pr-4 line-clamp-2 leading-relaxed ${
+                        !notification.isRead ? 'text-neutral-700 font-medium' : 'text-neutral-500'
+                      }`}>
+                        {notification.message}
+                      </p>
+                    </div>
+
+                    {!notification.isRead && (
+                      <div className="absolute top-1/2 -translate-y-1/2 right-4 w-2 h-2 bg-blue-600 rounded-full" />
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

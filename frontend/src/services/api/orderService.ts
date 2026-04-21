@@ -16,6 +16,7 @@ export interface Order {
   customerName?: string;
   customerPhone?: string;
   deliveryBoyName?: string;
+  orderType: 'quick' | 'ecommerce';
 }
 
 export interface OrderItem {
@@ -50,6 +51,8 @@ export interface OrderDetail {
   timeSlot: string;
   status:
     | 'Accepted'
+    | 'Packed'
+    | 'Shipped'
     | 'On the way'
     | 'Out For Delivery'
     | 'Received'
@@ -57,6 +60,10 @@ export interface OrderDetail {
     | 'Delivered'
     | 'Cancelled'
     | 'Rejected';
+  orderType: 'quick' | 'ecommerce';
+  deliveryFlow: 'auto' | 'courier';
+  courierPartner?: string;
+  trackingId?: string;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -72,7 +79,7 @@ export interface OrderDetail {
 }
 
 export interface UpdateOrderStatusData {
-  status: 'Accepted' | 'On the way' | 'Delivered' | 'Cancelled' | 'Rejected';
+  status: 'Accepted' | 'Packed' | 'Shipped' | 'On the way' | 'Delivered' | 'Cancelled' | 'Rejected' | 'Ready for pickup';
 }
 
 export interface GetOrdersParams {
@@ -84,6 +91,7 @@ export interface GetOrdersParams {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  orderType?: 'quick' | 'ecommerce';
 }
 
 export interface PaginatedResponse<T> {
@@ -117,5 +125,29 @@ export const getOrderById = async (id: string): Promise<ApiResponse<OrderDetail>
  */
 export const updateOrderStatus = async (id: string, data: UpdateOrderStatusData): Promise<ApiResponse<{ id: string; status: string }>> => {
   const response = await api.patch<ApiResponse<{ id: string; status: string }>>(`/orders/${id}/status`, data);
+  return response.data;
+};
+
+/**
+ * Ship order (For Ecommerce flow)
+ */
+export const shipOrder = async (id: string, courierPartner?: string): Promise<ApiResponse<{ id: string; status: string; trackingId: string; courierPartner: string }>> => {
+  const response = await api.post<ApiResponse<{ id: string; status: string; trackingId: string; courierPartner: string }>>(`/orders/${id}/ship`, { courierPartner });
+  return response.data;
+};
+
+/**
+ * Mark order as Packed (Ecommerce)
+ */
+export const markAsPacked = async (id: string): Promise<ApiResponse<{ status: string }>> => {
+  const response = await api.patch<ApiResponse<{ status: string }>>(`/orders/${id}/pack`);
+  return response.data;
+};
+
+/**
+ * Mark order as Ready for Pickup (Ecommerce)
+ */
+export const readyForPickup = async (id: string): Promise<ApiResponse<{ status: string }>> => {
+  const response = await api.patch<ApiResponse<{ status: string }>>(`/orders/${id}/ready-pickup`);
   return response.data;
 };

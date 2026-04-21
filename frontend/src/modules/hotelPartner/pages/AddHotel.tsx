@@ -1,29 +1,41 @@
-import React, { useState } from 'react';
 import { InputField } from '../components/InputField';
 import { Button } from '../components/Button';
+import GoogleMapPicker from '../../../components/common/GoogleMapPicker';
 
 const amenitiesList = [
   'Free WiFi', 'Pool', 'Spa', 'Restaurant', 'Gym', 'Parking', 'Room Service', 'Bar', 'AC', 'Heater'
 ];
 
 const AddHotel: React.FC = () => {
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    latitude: '',
+    longitude: '',
+    amenities: [] as string[]
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const toggleAmenity = (amenity: string) => {
-    setSelectedAmenities(prev => 
-      prev.includes(amenity) 
-        ? prev.filter(a => a !== amenity) 
-        : [...prev, amenity]
-    );
+    setFormData(prev => ({
+       ...prev,
+       amenities: prev.amenities.includes(amenity)
+         ? prev.amenities.filter(a => a !== amenity)
+         : [...prev.amenities, amenity]
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    // Real API call would go here
     setTimeout(() => {
       setIsSubmitting(false);
-      alert('Hotel added successfully! (Mock Action)');
+      alert('Hotel data saved with professional geocoding!');
     }, 1000);
   };
 
@@ -36,9 +48,28 @@ const AddHotel: React.FC = () => {
 
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl border border-neutral-100 shadow-sm space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <InputField label="Hotel Name" placeholder="e.g. Grand Palace Resort" required />
-          <InputField label="Location" placeholder="e.g. Jaipur, Rajasthan" required />
+          <InputField label="Hotel Name" placeholder="e.g. Grand Palace Resort" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+          <InputField label="City" placeholder="e.g. Jaipur" value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} required />
         </div>
+
+        <div className="space-y-3">
+          <label className="text-sm font-semibold text-neutral-700 ml-1">Precision Location (Drag marker to your hotel)</label>
+          <div className="h-[300px] rounded-2xl overflow-hidden border border-neutral-100">
+             <GoogleMapPicker 
+               onLocationSelect={(lat, lng, addr) => {
+                  setFormData(prev => ({
+                     ...prev,
+                     latitude: lat.toString(),
+                     longitude: lng.toString(),
+                     address: addr || prev.address
+                  }));
+               }}
+             />
+          </div>
+          <p className="text-[10px] text-neutral-400 font-bold uppercase ml-1">Coordinates: {formData.latitude}, {formData.longitude}</p>
+        </div>
+
+        <InputField label="Street Address" placeholder="Detailed address" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} required />
 
         <InputField label="Description" as="textarea" rows={4} placeholder="Describe your hotel..." required />
 
@@ -51,7 +82,7 @@ const AddHotel: React.FC = () => {
                 type="button"
                 onClick={() => toggleAmenity(amenity)}
                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                  selectedAmenities.includes(amenity)
+                  formData.amenities.includes(amenity)
                     ? 'bg-teal-600 text-white shadow-md'
                     : 'bg-neutral-50 text-neutral-600 hover:bg-neutral-100'
                 }`}

@@ -12,11 +12,14 @@ export interface IDiscountRule extends Document {
 }
 
 const DiscountRuleSchema = new Schema<IDiscountRule>({
-    minQty: { type: Number, required: true },
-    discountPercent: { type: Number, required: true },
+    minQty: { type: Number, required: true, min: 1 },
+    discountPercent: { type: Number, required: true, min: 0, max: 100 },
     categoryId: { type: Schema.Types.ObjectId, ref: 'Category', default: null },
     sellerId: { type: Schema.Types.ObjectId, ref: 'Seller', default: null },
     productId: { type: Schema.Types.ObjectId, ref: 'Product', default: null },
+    startDate: { type: Date, default: Date.now },
+    expiryDate: { type: Date },
+    usageLimit: { type: Number, default: 0 }, // 0 means unlimited
     isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 

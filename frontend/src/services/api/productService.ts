@@ -104,6 +104,11 @@ export interface Product {
   experience?: string;
   availability?: string;
   colorGroupId?: string;
+  type?: "quick" | "ecommerce" | "both";
+  availablePincodes?: string[];
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
 }
 
 export interface CreateProductData {
@@ -172,6 +177,12 @@ export interface CreateProductData {
   serviceName?: string;
   experience?: string;
   availability?: string;
+  colorGroupId?: string;
+  type?: "quick" | "ecommerce" | "both";
+  availablePincodes?: string[];
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
 }
 
 export interface Shop {
@@ -300,5 +311,20 @@ export const updateProductStatus = async (
  */
 export const getShops = async (): Promise<ApiResponse<Shop[]>> => {
   const response = await api.get<ApiResponse<Shop[]>>("/products/shops");
+  return response.data;
+};
+
+export interface InventoryInsights {
+  availableStock: number;
+  lockedStock: number;
+  soldStock: number;
+  productCount: number;
+}
+
+/**
+ * Get Inventory Insights (Available, Locked, Sold)
+ */
+export const getInventoryInsights = async (): Promise<ApiResponse<InventoryInsights>> => {
+  const response = await api.get<ApiResponse<InventoryInsights>>("/products/inventory-insights");
   return response.data;
 };

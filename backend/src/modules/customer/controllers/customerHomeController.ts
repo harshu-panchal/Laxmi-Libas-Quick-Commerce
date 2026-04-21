@@ -418,6 +418,15 @@ export const getHomeContent = async (req: Request, res: Response) => {
             .lean();
           productImages = shopProducts.map((p: any) => p.mainImage).filter(Boolean);
         }
+
+        // Check if shop is open
+        let isOpen = true;
+        if (shop.openingTime && shop.closingTime) {
+          const now = new Date();
+          const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+          isOpen = currentTime >= shop.openingTime && currentTime <= shop.closingTime;
+        }
+
         return {
           id: shop.storeId || shop._id.toString(),
           name: shop.name,
@@ -427,6 +436,9 @@ export const getHomeContent = async (req: Request, res: Response) => {
           category: shop.category,
           productIds: shop.products?.map((p: any) => p.toString()) || [],
           bgColor: shop.bgColor || "bg-neutral-50",
+          isOpen,
+          openingTime: shop.openingTime,
+          closingTime: shop.closingTime
         };
       })
     );

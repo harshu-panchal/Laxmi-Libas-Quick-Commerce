@@ -105,7 +105,8 @@ export const createProduct = asyncHandler(
       "productVideoUrl", "taxId", "isShopByStoreOnly", "shopId", "publish", "popular",
       "dealOfDay", "status", "manufacturer", "madeIn", "requiresApproval", "tags",
       "sellerId", "seller", "headerCategoryId", "category", "subcategory", "brand",
-      "mainImage", "galleryImages", "variations", "variationType"
+      "mainImage", "galleryImages", "variations", "variationType", "type",
+      "availablePincodes", "courierAvailable", "latitude", "longitude"
     ];
 
     const attributes: any = {};
@@ -423,7 +424,8 @@ export const updateProduct = asyncHandler(
       "productVideoUrl", "taxId", "isShopByStoreOnly", "shopId", "publish", "popular",
       "dealOfDay", "status", "manufacturer", "madeIn", "requiresApproval", "tags",
       "sellerId", "seller", "headerCategoryId", "category", "subcategory", "brand",
-      "mainImage", "galleryImages", "variations", "variationType"
+      "mainImage", "galleryImages", "variations", "variationType", "type",
+      "availablePincodes", "courierAvailable", "latitude", "longitude"
     ];
 
     const attributes: any = {};
@@ -656,5 +658,54 @@ export const getShops = asyncHandler(async (_req: Request, res: Response) => {
     success: true,
     message: "Shops fetched successfully",
     data: shops || [],
+  });
+});
+
+/**
+ * Get Inventory Insights (Available, Locked, Sold)
+ */
+export const getInventoryInsights = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+
+  // 1. Get all products for this seller
+  const products = await Product.find({ seller: sellerId });
+
+  // 2. Calculate totals
+  let totalAvailableStock = 0;
+  let totalLockedStock = 0;
+  
+  products.forEach(p => {
+    totalAvailableStock += p.stock || 0;
+    
+    // Calculate locked stock from stockLocks array
+    if (p.stockLocks && p.stockLocks.length > 0) {
+      const activeLocks = p.stockLocks.reduce((sum, lock) => {
+        // Only count locks that haven't expired
+        if (new Date(lock.expiresAt) > new Date()) {
+          return sum + lock.quantity;
+        }
+        return sum;
+      }, 0);
+      totalLockedStock += activeLocks;
+    }
+  });
+
+  // 3. Get total sold stock from OrderItems
+  const OrderItem = require("../../../models/OrderItem").default;
+  const soldItems = await OrderItem.find({ 
+    seller: sellerId,
+    status: { $in: ["Delivered", "Shipped"] }
+  });
+  
+  const totalSoldStock = soldItems.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      availableStock: totalAvailableStock,
+      lockedStock: totalLockedStock,
+      soldStock: totalSoldStock,
+      productCount: products.length
+    }
   });
 });

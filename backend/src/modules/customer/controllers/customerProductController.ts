@@ -6,153 +6,110 @@ import Seller from "../../../models/Seller";
 import mongoose from "mongoose";
 // import { findSellersWithinRange } from "../../../utils/locationHelper";
 
-// Get products with filtering options (public)
+// Get products with hybrid filtering (Smart Decision Engine)
 export const getProducts = async (req: Request, res: Response) => {
   try {
     const {
-      category,
-      subcategory,
-      search,
-      page = 1,
+      lat,
+      lng,
+      pincode,
+      categoryId,
       limit = 20,
-      sort,
-      minPrice,
-      maxPrice,
-      brand,
-      minDiscount,
+      page = 1
     } = req.query;
 
-    console.log(`[getProducts] Incoming Request - Category: ${category}, Search: ${search}`);
+    const limitNum = Number(limit);
+    const skip = (Number(page) - 1) * limitNum;
+    const userLat = lat ? Number(lat) : null;
+    const userLng = lng ? Number(lng) : null;
+    const userPincode = pincode ? String(pincode).trim() : null;
 
-    // REQUIRE category or search - strict rule
-    /* Category requirement relaxed for home page sections */
-    /*
-    if (!category && !search) {
-      console.warn("[getProducts] Missing category or search parameter");
-      return res.status(400).json({
-        success: false,
-        message: "Category is required for listing products",
-      });
-    }
-    */
-
-    const query: any = {
-      status: "Active",
-      publish: true,
-      $or: [
-        { isShopByStoreOnly: { $ne: true } },
-        { isShopByStoreOnly: { $exists: false } },
-      ],
-    };
-
-    // Filter by approved sellers
-    const approvedSellers = await Seller.find({ status: "Approved" }).select("_id");
-    if (approvedSellers.length > 0) {
-      query.seller = { $in: approvedSellers.map((s) => s._id) };
-    } else {
-      return res.status(200).json({
-        success: true,
-        data: [],
-        pagination: { page: Number(page), limit: Number(limit), total: 0, pages: 0 },
-      });
+    // ── Base query for active, published, approved-seller products ──────────
+    const baseQuery: any = { status: 'Active', publish: true };
+    if (categoryId && mongoose.Types.ObjectId.isValid(categoryId as string)) {
+      baseQuery.category = new mongoose.Types.ObjectId(categoryId as string);
     }
 
-    // Helper to resolve category ID from slug/name strictly
-    const resolveId = async (model: any, value: string, modelName: string) => {
-      if (mongoose.Types.ObjectId.isValid(value)) return value;
-
-      const normalizedValue = value.toLowerCase().trim();
-      const baseQuery: any = modelName === "Category" ? { status: "Active" } : {};
-
-      // Try exact slug
-      let item = await model.findOne({ ...baseQuery, slug: normalizedValue }).select("_id").lean();
-      if (item) return item._id;
-
-      // Try name match (case-insensitive)
-      const namePattern = normalizedValue.replace(/[-_]/g, " ");
-      item = await model.findOne({
+    // ── Fetch Quick (location-based) products ───────────────────────────────
+    let quickProducts: any[] = [];
+    if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
+      // Use MongoDB $nearSphere with the 2dsphere index (max 40km default)
+      const maxRadiusMeters = 40 * 1000; // 40 km
+      const quickQuery = {
         ...baseQuery,
-        name: { $regex: new RegExp(`^${namePattern}$`, "i") }
-      }).select("_id").lean();
-      
-      return item ? item._id : null;
-    };
-
-    if (category) {
-      // 1. Try to resolve as a regular Category
-      let catId = await resolveId(Category, category as string, "Category");
-      
-      if (catId) {
-        query.category = catId;
-        console.log(`[getProducts] Filter Applied - CategoryId: ${catId}`);
-      } else {
-        // 2. Fallback: Try to resolve as a HeaderCategory if no Category matched
-        const HeaderCategoryModel = require("../../../models/HeaderCategory").default;
-        const headerId = await resolveId(HeaderCategoryModel, category as string, "HeaderCategory");
-        
-        if (headerId) {
-          query.headerCategoryId = headerId;
-          console.log(`[getProducts] Filter Applied - HeaderCategoryId: ${headerId}`);
-        } else {
-          console.warn(`[getProducts] Category/HeaderCategory NOT FOUND for: ${category}`);
-          return res.status(200).json({
-            success: true,
-            data: [],
-            pagination: { page: Number(page), limit: Number(limit), total: 0, pages: 0 },
-          });
-        }
-      }
+        type: { $in: ['quick', 'both'] },
+        location: {
+          $nearSphere: {
+            $geometry: { type: 'Point', coordinates: [userLng, userLat] },
+            $maxDistance: maxRadiusMeters,
+          },
+        },
+      };
+      quickProducts = await Product.find(quickQuery)
+        .populate('category', 'name')
+        .populate('seller', 'storeName location serviceRadiusKm')
+        .limit(limitNum)
+        .skip(skip)
+        .lean();
     }
 
-    if (subcategory) {
-      const subId = await resolveId(Category, subcategory as string, "Category") || 
-                   await resolveId(SubCategory, subcategory as string, "SubCategory");
-      if (subId) query.subcategory = subId;
+    // ── Fetch Ecommerce (pincode-based) products ────────────────────────────
+    let ecommerceProducts: any[] = [];
+    if (userPincode) {
+      const ecomQuery = {
+        ...baseQuery,
+        type: { $in: ['ecommerce', 'both'] },
+        availablePincodes: userPincode,  // direct array includes match
+      };
+      ecommerceProducts = await Product.find(ecomQuery)
+        .populate('category', 'name')
+        .populate('seller', 'storeName location serviceRadiusKm')
+        .limit(limitNum)
+        .skip(skip)
+        .lean();
     }
 
-    if (brand) query.brand = brand;
-    if (minPrice || maxPrice) {
-      query.price = {};
-      if (minPrice) query.price.$gte = Number(minPrice);
-      if (maxPrice) query.price.$lte = Number(maxPrice);
+    // ── If no location/pincode given, fall back to all active products ───────
+    let fallbackProducts: any[] = [];
+    if (!userLat && !userPincode) {
+      fallbackProducts = await Product.find(baseQuery)
+        .populate('category', 'name')
+        .populate('seller', 'storeName')
+        .limit(limitNum)
+        .skip(skip)
+        .lean();
     }
-    if (minDiscount) query.discount = { $gte: Number(minDiscount) };
-    if (search) query.$text = { $search: search as string };
 
-    const skip = (Number(page) - 1) * Number(limit);
-    let sortOptions: any = { createdAt: -1 };
-    if (sort === "price_asc") sortOptions = { price: 1 };
-    if (sort === "price_desc") sortOptions = { price: -1 };
-    if (sort === "discount") sortOptions = { discount: -1 };
+    // ── Merge and deduplicate by _id ─────────────────────────────────────────
+    const allRaw = [...quickProducts, ...ecommerceProducts, ...fallbackProducts];
+    const seen = new Set<string>();
+    const hybridProducts = allRaw
+      .filter((p: any) => {
+        const id = p._id.toString();
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      })
+      .map((product: any) => {
+        const nearbyAvailable  = quickProducts.some((q: any) => q._id.toString() === product._id.toString());
+        const ecommerceAvailable = ecommerceProducts.some((e: any) => e._id.toString() === product._id.toString());
+        return {
+          productId: product._id,
+          ...product,
+          nearbyAvailable,
+          ecommerceAvailable,
+          quickPrice: product.discPrice || product.price,
+          ecommercePrice: product.discPrice || product.price,
+          deliveryTimeQuick: '30-45 min',
+          deliveryTimeEcommerce: '3-5 days',
+        };
+      });
 
-    const products = await Product.find(query)
-      .populate("category", "name slug")
-      .populate("subcategory", "name")
-      .populate("seller", "storeName")
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(Number(limit));
+    return res.status(200).json({ success: true, data: hybridProducts });
 
-    const total = await Product.countDocuments(query);
-    console.log(`[getProducts] Returned ${products.length} products for query:`, JSON.stringify(query));
-
-    return res.status(200).json({
-      success: true,
-      data: products,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        pages: Math.ceil(total / Number(limit)),
-      },
-    });
   } catch (error: any) {
-    console.error("[getProducts] ERROR:", error.message);
-    return res.status(500).json({
-      success: false,
-      message: "Error fetching products",
-      error: error.message,
-    });
+    console.error('[getProducts] Decision Engine ERROR:', error.message);
+    return res.status(500).json({ success: false, message: 'Error fetching products', error: error.message });
   }
 };
 

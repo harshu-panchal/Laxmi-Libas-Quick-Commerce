@@ -41,7 +41,6 @@ export const getOrders = asyncHandler(
         query.orderDate.$lte = new Date(dateTo as string);
       }
     }
-
     // Status filter
     if (status && status !== 'All Status') {
       // Map frontend status to backend status
@@ -49,13 +48,18 @@ export const getOrders = asyncHandler(
         'Pending': 'Pending',
         'Accepted': 'Accepted',
         'On the way': 'On the way',
+        'Out For Delivery': 'Out for Delivery',
         'Delivered': 'Delivered',
         'Cancelled': 'Cancelled',
         'Rejected': 'Rejected',
       };
       query.status = statusMapping[status as string] || status;
     }
-
+    // Tab Filter (Backend filtering for orderType)
+    const { orderType } = req.query;
+    if (orderType && ['quick', 'ecommerce'].includes(orderType as string)) {
+      query.orderType = orderType;
+    }
     // Search filter
     if (search) {
       query.$or = [
@@ -95,11 +99,12 @@ export const getOrders = asyncHandler(
         ? order.estimatedDeliveryDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
         : order.orderDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
       orderDate: order.orderDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-      status: order.status === 'On the way' ? 'On the way' : order.status,
+      status: order.status === 'On the way' ? 'Out for Delivery' : order.status,
       amount: order.total,
       customerName: (order.customer as any)?.name || order.customerName || '',
       customerPhone: (order.customer as any)?.phone || order.customerPhone || '',
       deliveryBoyName: (order.deliveryBoy as any)?.name || '',
+      orderType: order.orderType || 'quick',
     }));
 
     return res.status(200).json({
@@ -185,7 +190,7 @@ export const getOrderById = asyncHandler(
       orderDate: order.orderDate ? order.orderDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       deliveryDate: order.estimatedDeliveryDate ? order.estimatedDeliveryDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       timeSlot: order.timeSlot || 'N/A',
-      status: order.status === 'On the way' ? 'Out For Delivery' : order.status,
+      status: order.status === 'On the way' ? 'Out for Delivery' : order.status,
       customerName: (order.customer as any)?.name || order.customerName || '',
       customerEmail: (order.customer as any)?.email || order.customerEmail || '',
       customerPhone: (order.customer as any)?.phone || order.customerPhone || '',
@@ -195,6 +200,10 @@ export const getOrderById = asyncHandler(
       subtotal: sellerSubtotal,
       tax: sellerTaxTotal,
       grandTotal: Number((sellerSubtotal + sellerTaxTotal).toFixed(2)),
+      orderType: order.orderType || 'quick',
+      deliveryFlow: order.deliveryFlow || 'auto',
+      courierPartner: order.courierPartner || '',
+      trackingId: order.trackingId || '',
       paymentMethod: order.paymentMethod || 'N/A',
       paymentStatus: order.paymentStatus || 'Pending',
       deliveryAddress: order.deliveryAddress || {},
@@ -218,7 +227,7 @@ export const updateOrderStatus = asyncHandler(
     const { status } = req.body;
 
     // Validate allowed status updates for seller
-    const allowedStatuses = ['Accepted', 'On the way', 'Delivered', 'Cancelled', 'Rejected'];
+    const allowedStatuses = ['Accepted', 'Packed', 'Shipped', 'On the way', 'Delivered', 'Cancelled', 'Rejected'];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -263,7 +272,8 @@ export const updateOrderStatus = asyncHandler(
     await order.save();
 
     // Trigger delivery notification if seller accepts the order
-    if (status === 'Accepted') {
+    // Trigger delivery notification if seller accepts a QUICK order
+    if (status === 'Accepted' && order.orderType !== 'ecommerce') {
       try {
         const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
         if (io) {
@@ -322,6 +332,188 @@ export const updateOrderStatus = asyncHandler(
         id: order._id,
         status: order.status,
       },
+    });
+  }
+);
+
+/**
+ * Ship order (For Ecommerce flow)
+ * Generates tracking ID and sets status to Shipped
+ */
+export const shipOrder = asyncHandler(
+  async (req: Request, res: Response) => {
+    const sellerId = (req as any).user.userId;
+    const { id } = req.params;
+    const { courierPartner } = req.body;
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    // Authorization check
+    const sellerItem = await OrderItem.findOne({ order: id, seller: sellerId });
+    if (!sellerItem) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (order.status !== 'Packed' && order.status !== 'Accepted') {
+      return res.status(400).json({
+        success: false,
+        message: "Order must be in Packed or Accepted state to ship"
+      });
+    }
+
+    // Generation of dummy tracking ID
+    const trackingId = `TRK${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
+    order.status = 'Shipped';
+    order.trackingId = trackingId;
+    order.courierPartner = courierPartner || 'Standard Courier';
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Order marked as shipped",
+      data: {
+        id: order._id,
+        status: order.status,
+        trackingId: order.trackingId,
+        courierPartner: order.courierPartner
+      }
+    });
+  }
+);
+
+/**
+ * Mark order as Packed
+ */
+export const markAsPacked = asyncHandler(
+  async (req: Request, res: Response) => {
+    const sellerId = (req as any).user.userId;
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+
+    // Auth check
+    const sellerItem = await OrderItem.findOne({ order: id, seller: sellerId });
+    if (!sellerItem) return res.status(403).json({ success: false, message: "Unauthorized" });
+
+    if (order.status !== 'Accepted') {
+      return res.status(400).json({ success: false, message: "Only Accepted orders can be marked as Packed" });
+    }
+
+    order.status = 'Packed';
+    await order.save();
+
+    return res.status(200).json({ success: true, message: "Order marked as Packed", data: { status: order.status } });
+  }
+);
+
+/**
+ * Mark order as Ready for Pickup
+ */
+export const readyForPickup = asyncHandler(
+  async (req: Request, res: Response) => {
+    const sellerId = (req as any).user.userId;
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+
+    // Auth check
+    const sellerItem = await OrderItem.findOne({ order: id, seller: sellerId });
+    if (!sellerItem) return res.status(403).json({ success: false, message: "Unauthorized" });
+
+    // For quick commerce, status might go from Received -> Accepted -> Ready for Pickup
+    // For ecommerce, status might go from Packed -> Ready for Pickup
+    const allowed = ['Packed', 'Accepted'];
+    if (!allowed.includes(order.status)) {
+      return res.status(400).json({ success: false, message: "Order must be Packed or Accepted to be Ready for Pickup" });
+    }
+
+    order.status = 'Ready for pickup';
+    await order.save();
+
+    return res.status(200).json({ success: true, message: "Order marked as Ready for Pickup", data: { status: order.status } });
+  }
+);
+
+/**
+ * Get Invoice Data
+ */
+export const printInvoice = asyncHandler(
+  async (req: Request, res: Response) => {
+    const sellerId = (req as any).user.userId;
+    const { id } = req.params;
+
+    const order = await Order.findById(id).populate('customer').populate({
+      path: 'items',
+      match: { seller: sellerId },
+      populate: { path: 'product' }
+    });
+
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+
+    const seller = await Seller.findById(sellerId);
+
+    // Return structured data for the frontend to render the invoice
+    return res.status(200).json({
+      success: true,
+      data: {
+        invoiceNumber: order.invoiceNumber || `INV-${order.orderNumber}`,
+        orderDate: order.orderDate,
+        customer: {
+          name: order.customerName,
+          address: order.deliveryAddress,
+          phone: order.customerPhone,
+        },
+        seller: {
+          storeName: seller?.storeName,
+          address: seller?.address,
+          gstin: (seller as any)?.gstin || 'N/A',
+        },
+        items: order.items,
+        subtotal: order.subtotal,
+        tax: order.tax,
+        total: order.total
+      }
+    });
+  }
+);
+
+/**
+ * Get Shipping Label Data
+ */
+export const printLabel = asyncHandler(
+  async (req: Request, res: Response) => {
+    const sellerId = (req as any).user.userId;
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+
+    const seller = await Seller.findById(sellerId);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        orderId: order.orderNumber,
+        trackingId: order.trackingId || 'PENDING',
+        courier: order.courierPartner || 'TBA',
+        recipient: {
+          name: order.customerName,
+          address: order.deliveryAddress,
+          phone: order.customerPhone,
+        },
+        sender: {
+          name: seller?.storeName,
+          address: seller?.address,
+        },
+        orderType: order.orderType,
+        weight: '1kg' // Placeholder
+      }
     });
   }
 );

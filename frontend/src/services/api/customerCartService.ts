@@ -47,7 +47,14 @@ export const getCart = async (params?: CartLocationParams): Promise<CartResponse
 /**
  * Add item to cart
  */
-export const addToCart = async (productId: string, quantity: number = 1, variation?: string, latitude?: number, longitude?: number): Promise<CartResponse> => {
+export const addToCart = async (
+    productId: string, 
+    quantity: number = 1, 
+    variation?: string, 
+    selectedDeliveryType: "quick" | "ecommerce" = "quick",
+    latitude?: number, 
+    longitude?: number
+): Promise<CartResponse> => {
     const params: any = {};
     if (latitude !== undefined && longitude !== undefined) {
         params.latitude = latitude;
@@ -56,7 +63,8 @@ export const addToCart = async (productId: string, quantity: number = 1, variati
     const response = await api.post<CartResponse>('/customer/cart/add', {
         productId,
         quantity,
-        variation
+        variation,
+        selectedDeliveryType
     }, { params });
     return response.data;
 };

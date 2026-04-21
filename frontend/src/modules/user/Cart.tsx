@@ -32,20 +32,26 @@ export default function Cart() {
   const platformFee = appConfig.platformFee;
   const totalAmount = (cart.finalTotal || cart.total) + deliveryFee + platformFee;
 
-  const getButtonConfig = () => {
+  const buttonConfig = useMemo(() => {
     if (!isAuthenticated) {
       return { text: 'LOGIN TO PROCEED', action: () => navigate(`/login?redirect=/cart`) };
     }
     if (!loadingAddresses && addresses.length === 0) {
       return { text: 'ADD ADDRESS', action: () => navigate('/checkout/address') };
     }
-    return { text: 'PROCEED TO CHECKOUT', action: () => navigate('/checkout') };
-  };
-
-  const buttonConfig = getButtonConfig();
+    const flowType = activeTab === 'minutes' ? 'quick' : 'ecommerce';
+    return { text: 'PROCEED TO CHECKOUT', action: () => navigate(`/checkout?flow=${flowType}`) };
+  }, [isAuthenticated, loadingAddresses, addresses, activeTab]);
 
   // Mock address data for display if logged in and has address
   const activeAddress = addresses.length > 0 ? addresses[0] : null;
+
+  const quickItems = cart.items.filter(item => item.product.type === 'quick' || !item.product.type || item.product.type === 'both');
+  const ecommerceItems = cart.items.filter(item => item.product.type === 'ecommerce' || item.product.type === 'both');
+
+  const visibleItems = activeTab === 'minutes' ? quickItems : ecommerceItems;
+  const laxmartItemsCount = ecommerceItems.length;
+  const minutesItemsCount = quickItems.length;
 
   if (cart.items.length === 0) {
     return (
@@ -64,8 +70,6 @@ export default function Cart() {
     );
   }
 
-  const laxmartItemsCount = cart.items.length; // Simplified for this implementation
-
   return (
     <div className="flex flex-col min-h-screen bg-neutral-100 pb-36">
       {/* 1. Header */}
@@ -74,7 +78,6 @@ export default function Cart() {
           <h1 className="text-lg font-semibold text-neutral-800">My Cart</h1>
         </div>
         
-        {/* Tabs */}
         <div className="flex border-b border-neutral-100">
           <button 
             onClick={() => setActiveTab('laxmart')}
@@ -93,7 +96,7 @@ export default function Cart() {
               activeTab === 'minutes' ? 'text-blue-600' : 'text-neutral-500'
             }`}
           >
-            Minutes/Grocery
+            Minutes ({minutesItemsCount})
             {activeTab === 'minutes' && (
               <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-blue-600 rounded-t-full mx-4" />
             )}
@@ -130,7 +133,13 @@ export default function Cart() {
 
       {/* 3. Cart Items */}
       <div className="space-y-2">
-        {cart.items.map((item) => {
+        {visibleItems.length === 0 ? (
+          <div className="bg-white py-20 flex flex-col items-center justify-center text-center">
+            <Trash2 size={40} className="text-neutral-200 mb-4" />
+            <p className="text-neutral-400 text-sm">No items in this section</p>
+          </div>
+        ) : (
+          visibleItems.map((item) => {
           const { displayPrice, mrp, discount } = calculateProductPrice(item.product, item.variant);
           const rating = (item.product.rating || 3.4);
           const reviews = (item.product.reviews || 150);
@@ -241,7 +250,7 @@ export default function Cart() {
               </div>
             </div>
           );
-        })}
+        }))}
       </div>
 
       {/* 4. Bottom Sticky Section */}

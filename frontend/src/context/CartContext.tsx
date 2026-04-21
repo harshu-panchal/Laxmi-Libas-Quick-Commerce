@@ -24,7 +24,7 @@ interface AddToCartEvent {
 
 interface CartContextType {
   cart: Cart;
-  addToCart: (product: Product, sourceElement?: HTMLElement | null) => Promise<void>;
+  addToCart: (product: Product, sourceElement?: HTMLElement | null, selectedDeliveryType?: 'quick' | 'ecommerce') => Promise<void>;
   removeFromCart: (productId: string, variantId?: string, variantTitle?: string) => Promise<void>;
   updateQuantity: (productId: string, quantity: number, variantId?: string, variantTitle?: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -97,10 +97,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
           categoryId: item.product.category || '',
           description: item.product.description,
           variantId: item.variation, // Preserving variation ID/value
-          sellerId: item.product.sellerId || item.product.seller
+          sellerId: item.product.sellerId || item.product.seller,
+          type: item.product.type || 'quick',
         },
         quantity: item.quantity,
-        variant: item.variation // Also preserve it here for order placement
+        variant: item.variation, // Also preserve it here for order placement
+        selectedDeliveryType: item.selectedDeliveryType || item.product?.type || 'quick'
       }));
   };
 
@@ -224,7 +226,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
   }, [items, estimatedFee, platformFee, freeDeliveryThreshold, activeRules]);
 
-  const addToCart = async (product: Product, sourceElement?: HTMLElement | null) => {
+  const addToCart = async (product: Product, sourceElement?: HTMLElement | null, selectedDeliveryType: 'quick' | 'ecommerce' = 'quick') => {
     // Get consistent product ID - MongoDB returns _id, frontend expects id
     const productId = product._id || product.id;
 
@@ -240,6 +242,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       id: productId,
       name: product.name || product.productName || 'Product',
       imageUrl: product.imageUrl || product.mainImage,
+      type: selectedDeliveryType // Use the selected type instead of product base type
     };
 
     // Optimistic Update
@@ -255,13 +258,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setLastAddEvent({ product: normalizedProduct, sourcePosition });
     setTimeout(() => setLastAddEvent(null), 800);
 
+    // Filter out null products and find existing item
+    const validItems = items.filter(item => item?.product);
+
     // Optimistically update state
     const previousItems = [...items];
     setItems((prevItems) => {
-      // Filter out null products and find existing item
-      const validItems = prevItems.filter(item => item?.product);
-
-      // Check for variant ID or variant title if product has variations
+      // Re-filter for safety in atomic update
+      const currentValidItems = prevItems.filter(item => item?.product);
+      
       let variantId = (product as any).variantId || (product as any).selectedVariant?._id;
       let variantTitle = (product as any).variantTitle || (product as any).pack;
 
@@ -272,11 +277,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         variantTitle = (firstVar as any).title || (firstVar as any).value || variantTitle;
       }
 
-      // Find existing item - match by product ID and variant (if variant exists)
-      const existingItem = validItems.find((item) => {
+      // Find existing item - match by product ID, variant AND delivery type
+      const existingItem = currentValidItems.find((item) => {
         const itemProductId = item.product.id || item.product._id;
         const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
         const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
+        const itemDeliveryType = (item as any).selectedDeliveryType || item.product.type;
+
+        if (itemDeliveryType !== selectedDeliveryType) return false;
 
         // If both have variants, match by variant ID or title
         if (variantId || (itemVariantId && itemVariantId !== itemProductId)) {
@@ -292,10 +300,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
 
       if (existingItem) {
-        return validItems.map((item) => {
+        return currentValidItems.map((item) => {
           const itemProductId = item.product.id || item.product._id;
           const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
           const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
+          const itemDeliveryType = (item as any).selectedDeliveryType || item.product.type;
+
+          if (itemDeliveryType !== selectedDeliveryType) return item;
 
           // Match by product ID and variant
           const isMatch = (variantId || (itemVariantId && itemVariantId !== itemProductId))
@@ -307,15 +318,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : item;
         });
       }
-      return [...validItems, { product: normalizedProduct, quantity: 1 }];
+      return [...currentValidItems, { product: normalizedProduct, quantity: 1, selectedDeliveryType } as any];
     });
 
     // Only sync to API if user is authenticated and NOT a mock product
     if (isAuthenticated && user?.userType === 'Customer' && !productId.toString().startsWith('mock-')) {
       try {
         // Pass variation info to API if available
-        // If product has variations but no variantId/selectedVariant is provided (e.g. from Home page),
-        // use the ID of the first variation to ensure consistency with ProductDetail page
         let variation = (product as any).variantId || (product as any).selectedVariant?._id || (product as any).variantTitle;
 
         if (!variation && product.variations && product.variations.length > 0) {
@@ -331,7 +340,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const response = await apiAddToCart(
           productId,
           1,
-          variation
+          variation,
+          selectedDeliveryType,
+          location?.latitude,
+          location?.longitude
         );
         if (response && response.data && response.data.items) {
           // Atomic update from server response
@@ -351,8 +363,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         pendingOperationsRef.current.delete(productId);
       }
     } else {
-      // For unregistered users, the optimistic update is already saved to localStorage
-      // Remove from pending operations immediately
+      // For unregistered users, remove from pending operations immediately
       pendingOperationsRef.current.delete(productId);
     }
   };

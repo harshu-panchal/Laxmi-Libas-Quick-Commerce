@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Order from "../../../models/Order";
 import Product from "../../../models/Product";
 import OrderItem from "../../../models/OrderItem";
+import { sendNotification } from "../../../services/notificationService";
 import Customer from "../../../models/Customer";
 import Seller from "../../../models/Seller";
 import mongoose from "mongoose";
@@ -13,6 +14,7 @@ import { generateDeliveryOtp } from "../../../services/deliveryOtpService";
 import { Server as SocketIOServer } from "socket.io";
 import { getOrderItemCommissionRate } from "../../../services/commissionService";
 import { DiscountService } from "../../../services/discountService";
+import { InventoryService } from "../../../services/inventoryService";
 
 // Create a new order
 export const createOrder = async (req: Request, res: Response) => {
@@ -27,7 +29,7 @@ export const createOrder = async (req: Request, res: Response) => {
             session = null;
         }
 
-        const { items, address, paymentMethod, fees } = req.body;
+        const { items, address, paymentMethod, fees, deliveryInstructions, tip } = req.body;
         const userId = req.user!.userId;
 
         // Log incoming request for debugging
@@ -40,9 +42,25 @@ export const createOrder = async (req: Request, res: Response) => {
 
         if (!items || items.length === 0) {
             if (session) await session.abortTransaction();
-            return res.status(400).json({
+            return res.status(400).json({ success: false, message: "Order must have at least one item" });
+        }
+
+        // ── Duplicate Order Guard (prevent double-tapping Place Order) ────────
+        const tenSecondsAgo = new Date(Date.now() - 10000);
+        const recentProductIds = items.map((i: any) => i.product.id || i.product._id).filter(Boolean);
+        const duplicateCheck = await Order.findOne({
+            customer: new mongoose.Types.ObjectId(userId),
+            status: { $in: ['Pending', 'Received'] },
+            paymentMethod: paymentMethod || 'COD',
+            createdAt: { $gte: tenSecondsAgo },
+        }).lean();
+
+        if (duplicateCheck) {
+            if (session) await session.abortTransaction();
+            return res.status(409).json({
                 success: false,
-                message: "Order must have at least one item",
+                message: "Duplicate order detected. Your previous order was just placed.",
+                existingOrderId: duplicateCheck._id,
             });
         }
 
@@ -117,158 +135,165 @@ export const createOrder = async (req: Request, res: Response) => {
         const deliveryLat = address.latitude != null ? Number(address.latitude) : 0;
         const deliveryLng = address.longitude != null ? Number(address.longitude) : 0;
 
-        // Initialize Order
-        const newOrder = new Order({
-            customer: new mongoose.Types.ObjectId(userId),
-            customerName: customer.name,
-            customerEmail: customer.email,
-            customerPhone: customer.phone,
-            deliveryAddress: {
-                address: address.address || address.street || 'N/A',
-                city: address.city || 'N/A',
-                state: address.state || '',
-                pincode: address.pincode || '000000',
-                landmark: address.landmark || '',
-                latitude: deliveryLat,
-                longitude: deliveryLng,
-            },
-            paymentMethod: paymentMethod || 'COD',
-            paymentStatus: 'Pending',
-            status: (paymentMethod === 'COD' || paymentMethod === 'Wallet') ? 'Received' : 'Pending',
-            subtotal: 0,
-            tax: 0,
-            shipping: fees?.deliveryFee || 0,
-            platformFee: fees?.platformFee || 0,
-            discount: 0,
-            total: 0,
-            items: []
-        });
+        // Determing split groups
+        const quickItems: any[] = [];
+        const ecommerceItems: any[] = [];
 
-        let calculatedSubtotal = 0;
-        let totalQuantityDiscount = 0;
-        const orderItemIds: mongoose.Types.ObjectId[] = [];
-        const sellerIds = new Set<string>();
+        // Check for inventory before processing
+        const productIds = items.map((i: any) => i.product.id || i.product._id);
+        const productsMap = new Map((await Product.find({ _id: { $in: productIds } })).map(p => [p._id.toString(), p]));
 
         for (const item of items) {
-            const qty = Number(item.quantity) || 0;
-            if (qty <= 0) throw new Error("Invalid item quantity");
+            const prodId = item.product.id || item.product._id;
+            const product = productsMap.get(prodId.toString());
+            if (!product) throw new Error(`Product ${prodId} not found`);
 
-            const product = await Product.findOneAndUpdate(
-                { _id: item.product.id || item.product._id, stock: { $gte: qty } },
-                { $inc: { stock: -qty } },
-                { session, new: true }
-            );
+            const deliveryType = item.selectedDeliveryType || (product.type === 'ecommerce' ? 'ecommerce' : 'quick');
+            if (deliveryType === 'quick') quickItems.push(item);
+            else ecommerceItems.push(item);
+        }
 
-            if (!product) {
-                throw new Error(`Insufficient stock or product not found: ${item.product.name || 'ID: ' + item.product.id}`);
-            }
+        const parentOrderId = `PARENT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-            if (product.seller) {
-                sellerIds.add(product.seller.toString());
-            }
+        // Implementation Step 2: Lock Inventory
+        await InventoryService.lockProductStock(userId, items);
 
-            const itemPrice = (product.discPrice && product.discPrice > 0)
-                ? product.discPrice
-                : (product.price || 0);
+        const createdOrders: any[] = [];
+        const splitConfigs = [
+            { type: 'quick', items: quickItems, flow: 'auto' },
+            { type: 'ecommerce', items: ecommerceItems, flow: 'courier' }
+        ].filter(config => config.items.length > 0);
 
-            // Calculate Quantity-Based Discount
-            let itemDiscountPercent = 0;
-            let itemDiscountAmount = 0;
-            let appliedRuleId = null;
+        for (const config of splitConfigs) {
+            const newOrder = new Order({
+                customer: new mongoose.Types.ObjectId(userId),
+                customerName: customer.name,
+                customerEmail: customer.email,
+                customerPhone: customer.phone,
+                deliveryAddress: {
+                    address: address.address || address.street || 'N/A',
+                    city: address.city || 'N/A',
+                    state: address.state || '',
+                    pincode: address.pincode || '000000',
+                    landmark: address.landmark || '',
+                    latitude: deliveryLat,
+                    longitude: deliveryLng,
+                },
+                paymentMethod: paymentMethod || 'COD',
+                paymentStatus: 'Pending',
+                status: 'Pending',
+                subtotal: 0,
+                tax: 0,
+                shipping: config.type === 'quick' ? (fees?.deliveryFee || 0) : (fees?.ecomShippingFee || 40),
+                platformFee: config.type === 'quick' ? (fees?.platformFee || 0) : 0,
+                discount: 0,
+                total: 0,
+                items: [],
+                parentOrderId: parentOrderId,
+                orderType: config.type,
+                deliveryFlow: config.flow,
+                type: 'product',
+                deliveryInstructions: deliveryInstructions || '',
+            });
 
-            try {
-                const calculation = await DiscountService.calculateDiscount({
-                    productId: product._id.toString(),
-                    categoryId: product.category?.toString(),
-                    sellerId: product.seller?.toString(),
+            let calculatedSubtotal = 0;
+            let totalQuantityDiscount = 0;
+            const orderItemIds: mongoose.Types.ObjectId[] = [];
+
+            for (const item of config.items) {
+                const qty = Number(item.quantity) || 0;
+                const product = productsMap.get((item.product.id || item.product._id).toString());
+                if (!product) continue;
+
+                const itemPrice = (product.discPrice && product.discPrice > 0) ? product.discPrice : product.price;
+
+                // Calculate Discount
+                let itemDiscountPercent = 0;
+                let itemDiscountAmount = 0;
+                let appliedRuleId = null;
+
+                try {
+                    const calculation = await DiscountService.calculateDiscount({
+                        productId: product._id.toString(),
+                        categoryId: product.category?.toString(),
+                        sellerId: product.seller?.toString(),
+                        quantity: qty,
+                        price: itemPrice
+                    });
+                    itemDiscountPercent = calculation.discountPercent;
+                    itemDiscountAmount = calculation.discountAmount;
+                    appliedRuleId = calculation.appliedRuleId;
+                } catch (err) { }
+
+                const itemTotal = itemPrice * qty;
+                calculatedSubtotal += itemTotal;
+                totalQuantityDiscount += itemDiscountAmount;
+
+                const commRate = await getOrderItemCommissionRate(product._id.toString(), product.seller.toString());
+                const commAmount = (itemTotal * commRate) / 100;
+
+                const newOrderItem = new OrderItem({
+                    order: newOrder._id,
+                    product: product._id,
+                    seller: product.seller,
+                    productName: product.productName,
+                    productImage: product.mainImage,
+                    sku: product.sku,
+                    unitPrice: itemPrice,
                     quantity: qty,
-                    price: itemPrice
+                    total: itemTotal - itemDiscountAmount,
+                    discountPercent: itemDiscountPercent,
+                    discountAmount: itemDiscountAmount,
+                    appliedDiscountRuleId: appliedRuleId,
+                    commissionRate: commRate,
+                    commissionAmount: commAmount,
+                    variation: item.variant || item.variation || null,
+                    deliveryType: config.type,
+                    status: 'Pending'
                 });
-                itemDiscountPercent = calculation.discountPercent;
-                itemDiscountAmount = calculation.discountAmount;
-                appliedRuleId = calculation.appliedRuleId;
-            } catch (err) {
-                console.error("Discount calculation error", err);
+
+                if (session) await newOrderItem.save({ session });
+                else await newOrderItem.save();
+                
+                orderItemIds.push(newOrderItem._id as mongoose.Types.ObjectId);
             }
 
-            const itemTotal = itemPrice * qty;
-            calculatedSubtotal += itemTotal;
-            totalQuantityDiscount += itemDiscountAmount;
+            const finalTotal = calculatedSubtotal + newOrder.shipping + newOrder.platformFee - totalQuantityDiscount;
+            newOrder.subtotal = Number(calculatedSubtotal.toFixed(2));
+            newOrder.discount = Number(totalQuantityDiscount.toFixed(2));
+            newOrder.total = Number(finalTotal.toFixed(2));
+            newOrder.items = orderItemIds;
 
-            const commRate = await getOrderItemCommissionRate(product._id.toString(), product.seller.toString());
-            const commAmount = (itemTotal * commRate) / 100;
+            if (session) await newOrder.save({ session });
+            else await newOrder.save();
 
-            const newOrderItem = new OrderItem({
-                order: newOrder._id,
-                product: product._id,
-                seller: product.seller,
-                productName: product.productName,
-                productImage: product.mainImage,
-                sku: product.sku,
-                unitPrice: itemPrice,
-                quantity: qty,
-                total: itemTotal - itemDiscountAmount,
-                discountPercent: itemDiscountPercent,
-                discountAmount: itemDiscountAmount,
-                appliedDiscountRuleId: appliedRuleId,
-                commissionRate: commRate,
-                commissionAmount: commAmount,
-                variation: item.variant || item.variation || null,
-                status: 'Pending'
-            });
-
-            if (session) await newOrderItem.save({ session });
-            else await newOrderItem.save();
-            
-            orderItemIds.push(newOrderItem._id as mongoose.Types.ObjectId);
+            createdOrders.push(newOrder);
         }
 
-        // Validate Sellers
-        if (sellerIds.size > 0) {
-            const uniqueSellerIds = Array.from(sellerIds).map(id => new mongoose.Types.ObjectId(id));
-            const sellersCount = await Seller.countDocuments({
-                _id: { $in: uniqueSellerIds },
-                status: "Approved"
-            });
-            
-            if (sellersCount < uniqueSellerIds.length) {
-                throw new Error("One or more sellers in your order are currently inactive or not approved.");
-            }
-        }
+        if (session) await session.commitTransaction();
 
-        // Finalize order totals
-        const finalTotal = calculatedSubtotal + newOrder.shipping + newOrder.platformFee - totalQuantityDiscount;
-        newOrder.subtotal = Number(calculatedSubtotal.toFixed(2));
-        newOrder.discount = Number(totalQuantityDiscount.toFixed(2));
-        newOrder.total = Number(finalTotal.toFixed(2));
-        newOrder.items = orderItemIds;
-
-        if (session) {
-            await newOrder.save({ session });
-            await session.commitTransaction();
-        } else {
-            await newOrder.save();
-        }
-
-        // Socket notifications - only if order is active (e.g. COD or already paid)
-        if (newOrder.status === 'Received') {
-            try {
-                const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
-                if (io) {
-                    const savedOrder = await Order.findById(newOrder._id).lean();
-                    if (savedOrder) {
-                        await notifySellersOfOrderUpdate(io, savedOrder, 'NEW_ORDER');
+        // Trigger notifications for the first order if it's COD
+        if (paymentMethod === 'COD') {
+            for (const order of createdOrders) {
+                try {
+                    const io = req.app.get("io");
+                    if (io) {
+                        const savedOrder = await Order.findById(order._id).lean();
+                        if (savedOrder) await notifySellersOfOrderUpdate(io, savedOrder, 'NEW_ORDER');
                     }
-                }
-            } catch (notificationError) {
-                console.error("Error notifying sellers:", notificationError);
+                    await sendNotification('Customer', userId, 'Order Placed!', `Your ${order.orderType} order ${order.orderNumber} is placed.`, { type: 'Order', link: `/orders/${order._id}` });
+                } catch (e) { }
             }
         }
 
         return res.status(201).json({
             success: true,
-            message: "Order placed successfully",
-            data: newOrder,
+            message: createdOrders.length > 1 ? "Your items will be delivered in multiple shipments" : "Order placed successfully",
+            data: {
+                parentOrderId: parentOrderId,
+                orders: createdOrders,
+                primaryOrderId: createdOrders[0]._id // For backward compatibility with PhonePe trigger
+            },
         });
 
     } catch (error: any) {

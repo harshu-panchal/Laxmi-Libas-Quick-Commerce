@@ -163,12 +163,33 @@ export default function Account() {
             <div className="text-[10px] md:text-xs font-semibold text-neutral-900">Your orders</div>
           </button>
           <button
-            onClick={() => navigate('/faq')}
+            onClick={() => navigate('/help-center')}
             className="bg-white rounded-lg border border-neutral-200 p-3 md:p-4 hover:shadow-md transition-shadow text-center outline-none"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1.5 md:mb-2 text-neutral-700 md:w-6 md:h-6"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            <div className="text-[10px] md:text-xs font-semibold text-neutral-900">Need help?</div>
+            <div className="text-[10px] md:text-xs font-semibold text-neutral-900">Help Center</div>
           </button>
+        </div>
+      </div>
+
+      <div className="px-4 py-2.5">
+        <h2 className="text-xs font-bold text-neutral-900 mb-3 md:mb-4 uppercase tracking-wider flex items-center gap-2">
+          Earn & Rewards
+          <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[8px] animate-pulse">NEW</span>
+        </h2>
+        <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden shadow-sm shadow-black/5">
+           <button onClick={() => navigate('/refer-earn')} className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50/50 to-white hover:bg-yellow-50 transition-all group">
+             <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center text-yellow-600 group-hover:scale-110 transition-transform">
+                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                </div>
+                <div className="text-left">
+                   <div className="text-sm font-black text-neutral-800 tracking-tight">Refer & Earn</div>
+                   <div className="text-[10px] font-bold text-yellow-600 uppercase tracking-widest">Get ₹100 per friend</div>
+                </div>
+             </div>
+             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-neutral-400 border border-neutral-100 group-hover:translate-x-1 transition-all">›</div>
+           </button>
         </div>
       </div>
 

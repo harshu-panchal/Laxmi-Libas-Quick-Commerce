@@ -25,16 +25,44 @@ export const getOrderTracking = asyncHandler(
       });
     }
 
-    // Get latest tracking information
+    // For Ecommerce orders, return static tracking info from order model
+    if (order.orderType === 'ecommerce') {
+      return res.status(200).json({
+        success: true,
+        data: {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          status: order.status,
+          orderType: 'ecommerce',
+          tracking: {
+            courierPartner: order.courierPartner || 'N/A',
+            trackingId: order.trackingId || 'N/A',
+            estimatedDeliveryDate: order.estimatedDeliveryDate,
+            status: order.status // For ecommerce, order status reflects tracking status mostly
+          },
+          deliveryAddress: order.deliveryAddress,
+        },
+      });
+    }
+
+    // Get latest tracking information (for Quick commerce)
     const tracking = await DeliveryTracking.findOne({ order: orderId })
       .sort({ updatedAt: -1 })
       .populate("deliveryBoy", "name phone profileImage")
       .lean();
 
     if (!tracking) {
-      return res.status(404).json({
-        success: false,
-        message: "Tracking information not available yet",
+      return res.status(200).json({
+        success: true,
+        data: {
+           orderId: order._id,
+           orderNumber: order.orderNumber,
+           status: order.status,
+           orderType: 'quick',
+           tracking: null,
+           message: "Tracking information not available yet (Wait for delivery partner assignment)",
+           deliveryAddress: order.deliveryAddress
+        }
       });
     }
 
@@ -47,6 +75,7 @@ export const getOrderTracking = asyncHandler(
         orderId: order._id,
         orderNumber: order.orderNumber,
         status: order.status,
+        orderType: 'quick',
         tracking: {
           deliveryBoy: tracking.deliveryBoy,
           currentLocation: tracking.currentLocation,

@@ -202,7 +202,7 @@ export const getCart = async (req: Request, res: Response) => {
 export const addToCart = async (req: Request, res: Response) => {
     try {
         const userId = req.user?.userId;
-        const { productId, quantity = 1, variation } = req.body;
+        const { productId, quantity = 1, variation, selectedDeliveryType = "quick" } = req.body;
         const { latitude, longitude } = req.query;
 
         if (!productId) {
@@ -234,11 +234,12 @@ export const addToCart = async (req: Request, res: Response) => {
             cart = await Cart.create({ customer: userId, items: [], total: 0 });
         }
 
-        // Check if item already exists in cart
+        // Check if item already exists in cart with SAME delivery type
         let cartItem = await CartItem.findOne({
             cart: cart._id,
             product: productId,
-            variation: variation || null
+            variation: variation || null,
+            selectedDeliveryType
         });
 
         if (cartItem) {
@@ -251,7 +252,8 @@ export const addToCart = async (req: Request, res: Response) => {
                 cart: cart._id,
                 product: productId,
                 quantity,
-                variation
+                variation,
+                selectedDeliveryType
             });
             cart.items.push(cartItem._id as any);
         }

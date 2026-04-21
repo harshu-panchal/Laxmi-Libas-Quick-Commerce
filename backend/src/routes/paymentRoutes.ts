@@ -19,17 +19,21 @@ const router = Router();
  */
 router.post('/create', authenticate, requireUserType('Customer'), async (req: Request, res: Response) => {
     try {
-        const { orderId } = req.body;
+        const { orderId, paymentType = 'quick' } = req.body;
         
         if (!mongoose.Types.ObjectId.isValid(orderId)) {
-            return res.status(400).json({ success: false, message: 'Invalid format for Order ID' });
+            return res.status(400).json({ success: false, message: 'Invalid format for Order/Booking ID' });
+        }
+
+        if (!['quick', 'ecommerce', 'hotel', 'bus'].includes(paymentType)) {
+            return res.status(400).json({ success: false, message: 'Invalid payment type' });
         }
 
         // Determine dynamic FRONTEND_URL based on request origin
         let frontendUrl = process.env.FRONTEND_URL || 'https://laxmart.store';
         
         try {
-            const originHeader = req.headers.origin || req.headers.referer;
+            const originHeader = (req.headers.origin as string) || (req.headers.referer as string);
             if (originHeader) {
                 const url = new URL(originHeader);
                 frontendUrl = url.origin;
@@ -40,7 +44,7 @@ router.post('/create', authenticate, requireUserType('Customer'), async (req: Re
         
         frontendUrl = frontendUrl.replace(/\/$/, '');
 
-        const result = await createPhonePeOrder(orderId, frontendUrl);
+        const result = await createPhonePeOrder(orderId, frontendUrl, paymentType);
 
         if (!result.success) {
             return res.status(400).json(result);

@@ -881,6 +881,20 @@ export default function OrderDetail() {
               <RefreshCwIcon className="w-4 h-4" />
             </motion.button>
           </motion.div>
+
+          {/* Delivery OTP - Header Display */}
+          {(orderStatus === "On the way" || orderStatus === "Out for Delivery") && (order?.deliveryOtp || socketOtp) && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 mx-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1">Your Delivery OTP</p>
+              <p className="text-3xl font-black tracking-[0.2em] text-white">
+                {socketOtp || order?.deliveryOtp}
+              </p>
+              <p className="text-[10px] text-white/60 mt-2">Share this with the partner at delivery</p>
+            </motion.div>
+          )}
         </div>
       </motion.div>
 

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, TokenPayload } from '../services/jwtService';
+import Seller from '../models/Seller';
 
 export type AuthUserType = 'Admin' | 'Seller' | 'Customer' | 'Delivery';
 
@@ -127,6 +128,93 @@ export const requireUserType = (...userTypes: AuthUserType[]) => {
     }
 
     next();
+  };
+};
+
+/**
+ * Check if the authenticated seller has access to a specific business module
+ */
+export const checkSellerAccess = (businessType: 'commerce' | 'hotel' | 'bus') => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Authentication required' });
+      return;
+    }
+
+    if (req.user.userType !== 'Seller') {
+      res.status(403).json({ success: false, message: 'Only sellers can access this module' });
+      return;
+    }
+
+    try {
+      const seller = await Seller.findById(req.user.userId);
+      if (!seller) {
+        res.status(404).json({ success: false, message: 'Seller not found' });
+        return;
+      }
+
+      // Default to ['commerce'] for backward compatibility
+      const businessTypes = seller.businessTypes || ['commerce'];
+
+      if (!businessTypes.includes(businessType)) {
+        res.status(403).json({
+          success: false,
+          message: `Your account does not have access to the ${businessType} module.`
+        });
+        return;
+      }
+
+      next();
+    } catch (error: any) {
+      console.error('CheckSellerAccess Error:', error);
+      res.status(500).json({ success: false, message: 'Internal server error while checking access' });
+    }
+  };
+};
+
+/**
+ * Check if the authenticated admin has permission for a specific module
+ */
+export const checkPermission = (module: 'commerce' | 'orders' | 'users' | 'sellers' | 'hotel' | 'bus' | 'delivery') => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Authentication required' });
+      return;
+    }
+
+    if (req.user.userType !== 'Admin') {
+      res.status(403).json({ success: false, message: 'Only admins can access this module' });
+      return;
+    }
+
+    // Super Admin has all permissions
+    if (req.user.role === 'Super Admin') {
+      return next();
+    }
+
+    try {
+      // Lazy import to avoid circular dependency if Admin model uses middleare (though it shouldn't)
+      const Admin = (await import('../models/Admin')).default;
+      const admin = await Admin.findById(req.user.userId);
+      
+      if (!admin) {
+        res.status(404).json({ success: false, message: 'Admin not found' });
+        return;
+      }
+
+      if (!admin.permissions || !admin.permissions.includes(module)) {
+        res.status(403).json({
+          success: false,
+          message: `Access denied. You don't have permission to manage the ${module} module.`
+        });
+        return;
+      }
+
+      next();
+    } catch (error: any) {
+      console.error('CheckPermission Error:', error);
+      res.status(500).json({ success: false, message: 'Internal server error while checking permissions' });
+    }
   };
 };
 

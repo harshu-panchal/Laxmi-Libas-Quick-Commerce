@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useRef, useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell } from 'lucide-react';
+import { NotificationBell } from './NotificationBell';
 import FloatingCartPill from './FloatingCartPill';
 import { useCart } from '../context/CartContext';
 import { useLocation as useLocationContext } from '../hooks/useLocation';
@@ -287,7 +288,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   color: isActive('/notifications') ? currentTheme.accentColor : currentTheme.headerTextColor
                 }}
               >
-                <Bell size={20} />
+                <NotificationBell size={20} />
                 <span className="font-medium text-sm">Notifications</span>
               </Link>
             </nav>
@@ -326,47 +327,30 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </div>
               )}
 
-              {/* Header Title & Notification Bell for Non-Search pages */}
-              {/* Header line with Title & Bell - show for non-search pages, skip on order-again */}
-              {/* Header Title Row - Removed as per request */}
-              {/* {!isSearchPage && !isOrderAgainPage && location.pathname !== '/store/travel' && location.pathname !== '/store/minutes' && location.pathname !== '/categories' && (
-                <div className="px-4 py-2 flex items-center justify-between border-b border-neutral-100">
-                  <button onClick={() => navigate(-1)} className="p-1">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                  <h2 className="text-sm font-bold text-neutral-900">
-                    {location.pathname === '/account' ? 'My Account' :
-                      location.pathname === '/orders' ? 'My Orders' :
-                        location.pathname === '/categories' ? 'All Categories' :
-                          location.pathname === '/wishlist' ? 'My Wishlist' : 'LaxMart'}
-                  </h2>
+              {/* Header Title Row - Restored with Notification Bell */}
+              {!isSearchPage && !isOrderAgainPage && location.pathname !== '/store/travel' && location.pathname !== '/store/minutes' && location.pathname !== '/categories' && (
+                <div className="px-4 py-3 flex items-center justify-between border-b border-neutral-100 bg-white md:hidden">
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => navigate(-1)} className="p-1">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                    <h2 className="text-sm font-bold text-neutral-900 uppercase tracking-widest">
+                      {location.pathname === '/account' ? 'My Account' :
+                        location.pathname === '/orders' ? 'My Orders' :
+                        location.pathname === '/notifications' ? 'Notifications' :
+                        location.pathname === '/wishlist' ? 'My Wishlist' : 'LaxMart'}
+                    </h2>
+                  </div>
                   <button
                     onClick={() => navigate('/notifications')}
-                    className="p-1 relative"
+                    className="p-1"
                   >
-                    <Bell size={24} className="text-neutral-950" />
-                    <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></div>
+                    <NotificationBell size={22} className="text-neutral-900" />
                   </button>
                 </div>
-              )} */}
-
-              {/* Search bar - Hidden on Order Again page - Removed as per request */}
-              {/* {showSearchBar && (
-                <div className="px-4 md:px-6 lg:px-8 pb-3">
-                  <div className="relative max-w-2xl md:mx-auto">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => handleSearchChange(e.target.value)}
-                      placeholder="Search for products..."
-                      className="w-full px-4 py-4.5 pl-10 bg-neutral-50 border border-neutral-200 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent md:py-5"
-                    />
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">🔍</span>
-                  </div>
-                </div>
-              )} */}
+              )}
             </header>
           )}
 

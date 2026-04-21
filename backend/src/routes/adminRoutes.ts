@@ -75,6 +75,9 @@ import * as lowestPricesController from "../modules/admin/controllers/adminLowes
 
 // PromoStrip Controllers
 import * as promoStripController from "../modules/admin/controllers/adminPromoStripController";
+import * as hotelController from "../modules/admin/controllers/adminHotelController";
+import * as busController from "../modules/admin/controllers/adminBusController";
+import { checkPermission } from "../middleware/auth";
 
 const router = Router();
 
@@ -129,13 +132,13 @@ router.get(
 );
 
 // ==================== Category Routes ====================
-router.post("/categories", productController.createCategory);
+router.post("/categories", checkPermission('commerce'), productController.createCategory);
 router.get("/categories", productController.getCategories);
-router.put("/categories/:id", productController.updateCategory);
-router.delete("/categories/:id", productController.deleteCategory);
-router.patch("/categories/:id/status", productController.toggleCategoryStatus);
-router.post("/categories/bulk-delete", productController.bulkDeleteCategories);
-router.put("/categories/reorder", productController.updateCategoryOrder);
+router.put("/categories/:id", checkPermission('commerce'), productController.updateCategory);
+router.delete("/categories/:id", checkPermission('commerce'), productController.deleteCategory);
+router.patch("/categories/:id/status", checkPermission('commerce'), productController.toggleCategoryStatus);
+router.post("/categories/bulk-delete", checkPermission('commerce'), productController.bulkDeleteCategories);
+router.put("/categories/reorder", checkPermission('commerce'), productController.updateCategoryOrder);
 
 // ==================== SubCategory Routes ====================
 router.post("/subcategories", productController.createSubCategory);
@@ -156,20 +159,21 @@ router.get("/products", productController.getProducts);
 // Product order functionality removed
 // router.put("/products/order", productController.updateProductOrder);
 router.get("/products/:id", productController.getProductById);
-router.put("/products/:id", productController.updateProduct);
-router.delete("/products/:id", productController.deleteProduct);
+router.put("/products/:id", checkPermission('commerce'), productController.updateProduct);
+router.delete("/products/:id", checkPermission('commerce'), productController.deleteProduct);
 // Product approval no longer needed - products show directly in list
 // router.patch("/products/:id/approve", productController.approveProductRequest);
-router.post("/products/bulk-import", productController.bulkImportProducts);
-router.put("/products/bulk-update", productController.bulkUpdateProducts);
+router.post("/products/bulk-import", checkPermission('commerce'), productController.bulkImportProducts);
+router.put("/products/bulk-update", checkPermission('commerce'), productController.bulkUpdateProducts);
 
 // ==================== Order Routes ====================
-router.get("/orders", orderController.getAllOrders);
-router.get("/orders/status/:status", orderController.getOrdersByStatus);
-router.get("/orders/:id", orderController.getOrderById);
-router.patch("/orders/:id/status", orderController.updateOrderStatus);
-router.patch("/orders/:id/assign-delivery", orderController.assignDeliveryBoy);
-router.get("/orders/export/csv", orderController.exportOrders);
+router.get("/orders", checkPermission('orders'), orderController.getAllOrders);
+router.get("/orders/status/:status", checkPermission('orders'), orderController.getOrdersByStatus);
+router.get("/orders/:id", checkPermission('orders'), orderController.getOrderById);
+router.patch("/orders/:id/status", checkPermission('orders'), orderController.updateOrderStatus);
+router.patch("/orders/:id/assign-delivery", checkPermission('delivery'), orderController.assignDeliveryBoy);
+router.get("/orders/export/csv", checkPermission('orders'), orderController.exportOrders);
+router.patch("/orders/:id/tracking", checkPermission('orders'), orderController.updateOrderTracking);
 
 // ==================== Return Request Routes ====================
 router.get("/return-requests", orderController.getReturnRequests);
@@ -179,22 +183,23 @@ router.put("/return-requests/:id", orderController.processReturnRequest);
 router.patch("/returns/:id/process", orderController.processReturnRequest);
 
 // ==================== Customer Routes ====================
-router.get("/customers", customerController.getAllCustomers);
-router.get("/customers/:id", customerController.getCustomerById);
-router.patch("/customers/:id/status", customerController.updateCustomerStatus);
-router.get("/customers/:id/orders", customerController.getCustomerOrders);
+router.get("/customers", checkPermission('users'), customerController.getAllCustomers);
+router.get("/customers/:id", checkPermission('users'), customerController.getCustomerById);
+router.patch("/customers/:id/status", checkPermission('users'), customerController.updateCustomerStatus);
+router.get("/customers/:id/orders", checkPermission('users'), customerController.getCustomerOrders);
 
 // ==================== Delivery Routes ====================
-router.post("/delivery", deliveryController.createDeliveryBoy);
-router.get("/delivery", deliveryController.getAllDeliveryBoys);
-router.get("/delivery/:id", deliveryController.getDeliveryBoyById);
-router.put("/delivery/:id", deliveryController.updateDeliveryBoy);
-router.patch("/delivery/:id/status", deliveryController.updateDeliveryStatus);
+router.post("/delivery", checkPermission('delivery'), deliveryController.createDeliveryBoy);
+router.get("/delivery", checkPermission('delivery'), deliveryController.getAllDeliveryBoys);
+router.get("/delivery/:id", checkPermission('delivery'), deliveryController.getDeliveryBoyById);
+router.put("/delivery/:id", checkPermission('delivery'), deliveryController.updateDeliveryBoy);
+router.patch("/delivery/:id/status", checkPermission('delivery'), deliveryController.updateDeliveryStatus);
 router.patch(
   "/delivery/:id/availability",
+  checkPermission('delivery'),
   deliveryController.updateDeliveryBoyAvailability
 );
-router.delete("/delivery/:id", deliveryController.deleteDeliveryBoy);
+router.delete("/delivery/:id", checkPermission('delivery'), deliveryController.deleteDeliveryBoy);
 router.get(
   "/delivery/:id/assignments",
   deliveryController.getDeliveryAssignments
@@ -320,12 +325,22 @@ router.get("/sellers", sellerController.getAllSellers);
 
 // ==================== Seller Approval Routes ====================
 router.get("/sellers/pending", sellerApprovalController.getPendingSellers);
-router.get("/sellers/status/:status", sellerApprovalController.getSellersByStatus);
-router.get("/sellers/:id/details", sellerApprovalController.getSellerDetails);
-router.post("/sellers/:id/approve", sellerApprovalController.approveSeller);
-router.post("/sellers/:id/reject", sellerApprovalController.rejectSeller);
-router.post("/sellers/:id/block", sellerApprovalController.blockSeller);
-router.post("/sellers/:id/unblock", sellerApprovalController.unblockSeller);
+router.get("/sellers/status/:status", checkPermission('sellers'), sellerApprovalController.getSellersByStatus);
+router.get("/sellers/:id/details", checkPermission('sellers'), sellerApprovalController.getSellerDetails);
+router.post("/sellers/:id/approve", checkPermission('sellers'), sellerApprovalController.approveSeller);
+router.post("/sellers/:id/reject", checkPermission('sellers'), sellerApprovalController.rejectSeller);
+router.post("/sellers/:id/block", checkPermission('sellers'), sellerApprovalController.blockSeller);
+router.post("/sellers/:id/unblock", checkPermission('sellers'), sellerApprovalController.unblockSeller);
+router.post("/sellers/:id/business-types", checkPermission('sellers'), sellerApprovalController.updateSellerBusinessTypes);
+
+// ==================== Hotel & Bus Management ====================
+router.get("/hotels", checkPermission('hotel'), hotelController.getAllHotels);
+router.patch("/hotels/:id/status", checkPermission('hotel'), hotelController.updateHotelStatus);
+router.get("/hotels/bookings", checkPermission('hotel'), hotelController.getHotelBookings);
+
+router.get("/buses", checkPermission('bus'), busController.getAllBuses);
+router.patch("/buses/:id/status", checkPermission('bus'), busController.updateBusStatus);
+router.get("/buses/bookings", checkPermission('bus'), busController.getBusBookings);
 
 // ==================== Shop Management ====================
 // Legacy routes (keep for backward compatibility)

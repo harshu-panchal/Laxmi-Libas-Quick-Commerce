@@ -130,6 +130,23 @@ export interface IProduct extends Document {
   variationType?: string;
   colorGroupId?: string; // Links products that are part of the same color variation group
 
+  type: "quick" | "ecommerce" | "both";
+  availablePincodes?: string[];
+  courierAvailable?: boolean;
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
+  location?: {
+    type: string;
+    coordinates: number[];
+  };
+  shopAddress?: string;
+  stockLocks: {
+    userId: mongoose.Types.ObjectId;
+    quantity: number;
+    expiresAt: Date;
+    variationId?: string;
+  }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -395,7 +412,54 @@ const ProductSchema = new Schema<IProduct>(
       },
     ],
     variationType: { type: String, trim: true },
-    colorGroupId: { type: String, trim: true, index: true },
+    // Hybrid Commerce Flow
+    type: {
+      type: String,
+      enum: ["quick", "ecommerce", "both"],
+      default: "quick",
+      required: true,
+    },
+    availablePincodes: {
+      type: [String],
+      default: [],
+    },
+    courierAvailable: {
+      type: Boolean,
+      default: false,
+    },
+    latitude: {
+      type: Number,
+    },
+    longitude: {
+      type: Number,
+    },
+    radius: {
+      type: Number,
+      default: 40, // Default 40km as per previous requirements
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+        default: [0, 0],
+      },
+    },
+    shopAddress: {
+      type: String,
+      trim: true,
+    },
+    stockLocks: [
+      {
+        userId: { type: Schema.Types.ObjectId, ref: "Customer" },
+        quantity: { type: Number, required: true },
+        expiresAt: { type: Date, required: true },
+        variationId: { type: String },
+      },
+    ],
   },
   {
     timestamps: true,
@@ -412,6 +476,33 @@ ProductSchema.virtual("mrp").get(function () {
 // Calculate discount before saving
 ProductSchema.pre("save", function (next) {
   const doc = this as any;
+
+  // Validation Logic based on Type
+  if (doc.type === "quick") {
+    if (!doc.latitude || !doc.longitude) {
+      return next(new Error("Location (latitude and longitude) is required for Quick Commerce products"));
+    }
+  } else if (doc.type === "ecommerce") {
+    if (!doc.availablePincodes || doc.availablePincodes.length === 0) {
+      return next(new Error("At least one available pincode is required for Ecommerce products"));
+    }
+  } else if (doc.type === "both") {
+    if (!doc.latitude || !doc.longitude) {
+      return next(new Error("Location is required for Hybrid products (both)"));
+    }
+    if (!doc.availablePincodes || doc.availablePincodes.length === 0) {
+      return next(new Error("Pincodes are required for Hybrid products (both)"));
+    }
+  }
+
+  // Sync location coordinates if latitude and longitude are provided
+  if (doc.latitude !== undefined && doc.longitude !== undefined) {
+    doc.location = {
+      type: "Point",
+      coordinates: [Number(doc.longitude), Number(doc.latitude)],
+    };
+  }
+
   // Calculate discount
   if (doc.compareAtPrice && doc.compareAtPrice > doc.price) {
     doc.discount = Math.round(
@@ -441,6 +532,10 @@ ProductSchema.index({
   tags: "text",
   pack: "text",
   attributes: "text",
+});
+
+ProductSchema.index({
+  location: "2dsphere",
 });
 
 const Product = (mongoose.models.Product as mongoose.Model<IProduct>) || mongoose.model<IProduct>("Product", ProductSchema);

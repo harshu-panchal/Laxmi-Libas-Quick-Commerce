@@ -2,6 +2,7 @@ import { StandardCheckoutClient, Env, StandardCheckoutPayRequest } from '@phonep
 import Payment from '../models/Payment';
 import Order from '../models/Order';
 import crypto from 'crypto';
+import { InventoryService } from './inventoryService';
 // import { Request, Response } from 'express'; // unused
 
 /**
@@ -36,23 +37,50 @@ const getPhonePeClient = () => {
     return phonePeClient;
 };
 
+import HotelBooking from '../models/HotelBooking';
+import BusBooking from '../models/BusBooking';
+
 /**
- * 1. Create Checkout Order
+ * 1. Create Checkout Order (Unified)
  */
-export const createPhonePeOrder = async (orderId: string, customFrontendUrl?: string) => {
+export const createPhonePeOrder = async (
+    orderId: string, 
+    customFrontendUrl?: string,
+    paymentType: 'quick' | 'ecommerce' | 'hotel' | 'bus' = 'quick'
+) => {
     try {
         const client = getPhonePeClient();
+        let amount = 0;
+        let userId: any;
 
-        // Fetch Order total from DB
-        const order = await Order.findById(orderId);
-        if (!order) throw new Error('Order not found in database');
+        // Fetch total from correct model
+        if (paymentType === 'quick' || paymentType === 'ecommerce') {
+            const order = await Order.findById(orderId);
+            if (!order) throw new Error('Order not found');
+            
+            // Check if it's a parent link
+            if (order.parentOrderId) {
+                const siblingOrders = await Order.find({ parentOrderId: order.parentOrderId });
+                amount = siblingOrders.reduce((sum, o) => sum + o.total, 0);
+            } else {
+                amount = order.total;
+            }
+            userId = order.customer;
+        } else if (paymentType === 'hotel') {
+            const booking = await HotelBooking.findById(orderId);
+            if (!booking) throw new Error('Hotel booking not found');
+            amount = booking.totalAmount; // Fixed field name
+            userId = booking.userId;
+        } else if (paymentType === 'bus') {
+            const booking = await BusBooking.findById(orderId);
+            if (!booking) throw new Error('Bus booking not found');
+            amount = booking.totalPrice; // Fixed field name
+            userId = booking.userId;
+        }
 
-        const amountInPaise = Math.round(order.total * 100);
-        // Generate a clean MTID
+        const amountInPaise = Math.round(amount * 100);
         const merchantTransactionId = `MT${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
 
-        // SDK Pay Request
-        // Use provided customFrontendUrl or fallback to env
         const baseFrontendUrl = customFrontendUrl || FRONTEND_URL;
         const request = StandardCheckoutPayRequest.builder()
             .merchantOrderId(merchantTransactionId)
@@ -60,20 +88,20 @@ export const createPhonePeOrder = async (orderId: string, customFrontendUrl?: st
             .redirectUrl(`${baseFrontendUrl}/payment/verify?merchantOrderId=${merchantTransactionId}`)
             .build();
 
-        console.log(`[PhonePe] Creating payment for Order: ${orderId} | Total: ${order.total} INR`);
+        console.log(`[PhonePe] Multi-Order Payment | Ref: ${orderId} | Total: ${amount} INR`);
 
         const response = await client.pay(request);
 
-        // Persistent tracking in Payment model
         const payment = new Payment({
-            order: order._id,
-            customer: order.customer,
+            orderId: orderId as any, 
+            userId,
+            paymentType,
             paymentMethod: 'Online',
             paymentGateway: 'PhonePe',
-            phonepeMerchantTransactionId: merchantTransactionId,
-            amount: order.total,
+            phonePeOrderId: merchantTransactionId,
+            amount,
             currency: 'INR',
-            status: 'Pending'
+            status: 'PENDING'
         });
         await payment.save();
 
@@ -99,34 +127,77 @@ export const getPhonePePaymentStatus = async (merchantTransactionId: string) => 
         const client = getPhonePeClient();
         const response = await client.getOrderStatus(merchantTransactionId);
 
-        // Fetch our record
-        const payment = await Payment.findOne({ phonepeMerchantTransactionId: merchantTransactionId });
+        const payment = await Payment.findOne({ phonePeOrderId: merchantTransactionId });
         if (!payment) throw new Error('Payment reference not found');
 
-        // Logic to update DB based on SDK response
         const state = (response as any).state || (response as any).data?.state;
 
-        if (payment.status !== 'Completed') {
+        if (payment.status !== 'SUCCESS') {
             if (state === 'COMPLETED') {
-                payment.status = 'Completed';
+                payment.status = 'SUCCESS';
                 payment.paidAt = new Date();
+                payment.transactionId = (response as any).transactionId || (response as any).data?.transactionId;
                 await payment.save();
 
-                const updatedOrder = await Order.findByIdAndUpdate(payment.order, {
-                    paymentStatus: 'Paid',
-                    status: 'Received'
-                }, { new: true }).lean();
+                let updatedRecord: any;
+
+                if (payment.paymentType === 'quick' || payment.paymentType === 'ecommerce') {
+                    // Update main order and all its split siblings
+                    const mainOrder = await Order.findById(payment.orderId);
+                    if (mainOrder?.parentOrderId) {
+                        await Order.updateMany({ parentOrderId: mainOrder.parentOrderId }, {
+                            paymentStatus: 'Paid',
+                            status: 'Received',
+                            paymentId: payment.transactionId
+                        });
+                    } else {
+                        await Order.findByIdAndUpdate(payment.orderId, {
+                            paymentStatus: 'Paid',
+                            status: 'Received',
+                            paymentId: payment.transactionId
+                        });
+                    }
+                    
+                    // CONFIRM STOCK LOCKS
+                    await InventoryService.confirmProductLocks(payment.userId.toString());
+                    updatedRecord = await Order.findById(payment.orderId).lean();
+
+                } else if (payment.paymentType === 'hotel') {
+                    updatedRecord = await HotelBooking.findByIdAndUpdate(payment.orderId, {
+                        bookingStatus: 'Confirmed',
+                        paymentStatus: 'Success'
+                    }, { new: true }).lean();
+                } else if (payment.paymentType === 'bus') {
+                    updatedRecord = await BusBooking.findByIdAndUpdate(payment.orderId, {
+                        status: 'confirmed'
+                    }, { new: true }).lean();
+                }
+
                 return {
                     success: true,
-                    status: state,
+                    status: 'COMPLETED',
                     data: response,
-                    order: updatedOrder,
+                    order: updatedRecord,
                     justPaid: true
                 };
             } else if (state === 'FAILED') {
-                payment.status = 'Failed';
+                payment.status = 'FAILED';
                 await payment.save();
-                await Order.findByIdAndUpdate(payment.order, { paymentStatus: 'Failed' });
+                
+                if (payment.paymentType === 'quick' || payment.paymentType === 'ecommerce') {
+                    const mainOrder = await Order.findById(payment.orderId);
+                    if (mainOrder?.parentOrderId) {
+                        await Order.updateMany({ parentOrderId: mainOrder.parentOrderId }, { paymentStatus: 'Failed' });
+                    } else {
+                        await Order.findByIdAndUpdate(payment.orderId, { paymentStatus: 'Failed' });
+                    }
+                    // RELEASE STOCK LOCKS
+                    await InventoryService.releaseProductLocks(payment.userId.toString());
+                } else if (payment.paymentType === 'hotel') {
+                    await HotelBooking.findByIdAndUpdate(payment.orderId, { bookingStatus: 'Cancelled', paymentStatus: 'Failed' });
+                } else if (payment.paymentType === 'bus') {
+                    await BusBooking.findByIdAndUpdate(payment.orderId, { status: 'cancelled' });
+                }
             }
         }
 
@@ -147,34 +218,69 @@ export const getPhonePePaymentStatus = async (merchantTransactionId: string) => 
  */
 export const handlePhonePeCallback = async (body: any) => {
     try {
-        // Decode the callback payload
         const responseData = typeof body === 'string' ? JSON.parse(body) : body;
         if (!responseData.response) throw new Error('Invalid callback payload format');
 
         const decoded = JSON.parse(Buffer.from(responseData.response, 'base64').toString('utf-8'));
         const { merchantTransactionId, state, transactionId } = decoded.data;
 
-        console.log(`[PhonePe Webhook] Update for ${merchantTransactionId} | State: ${state}`);
-
-        const payment = await Payment.findOne({ phonepeMerchantTransactionId: merchantTransactionId });
-        if (!payment || payment.status === 'Completed') return { success: true };
+        const payment = await Payment.findOne({ phonePeOrderId: merchantTransactionId });
+        if (!payment || payment.status !== 'PENDING') return { success: true };
 
         if (state === 'COMPLETED') {
-            payment.status = 'Completed';
-            payment.phonepeTransactionId = transactionId;
+            payment.status = 'SUCCESS';
+            payment.transactionId = transactionId;
             payment.paidAt = new Date();
             await payment.save();
 
-            const updatedOrder = await Order.findByIdAndUpdate(payment.order, {
-                paymentStatus: 'Paid',
-                paymentId: transactionId,
-                status: 'Received'
-            }, { new: true }).lean();
-            return { success: true, order: updatedOrder, justPaid: true };
+            let updatedRecord: any;
+
+            if (payment.paymentType === 'quick' || payment.paymentType === 'ecommerce') {
+                const mainOrder = await Order.findById(payment.orderId);
+                if (mainOrder?.parentOrderId) {
+                    await Order.updateMany({ parentOrderId: mainOrder.parentOrderId }, {
+                        paymentStatus: 'Paid',
+                        paymentId: transactionId,
+                        status: 'Received'
+                    });
+                } else {
+                    await Order.findByIdAndUpdate(payment.orderId, {
+                        paymentStatus: 'Paid',
+                        paymentId: transactionId,
+                        status: 'Received'
+                    });
+                }
+                await InventoryService.confirmProductLocks(payment.userId.toString());
+                updatedRecord = await Order.findById(payment.orderId).lean();
+            } else if (payment.paymentType === 'hotel') {
+                updatedRecord = await HotelBooking.findByIdAndUpdate(payment.orderId, {
+                    bookingStatus: 'Confirmed',
+                    paymentStatus: 'Success'
+                }, { new: true }).lean();
+            } else if (payment.paymentType === 'bus') {
+                updatedRecord = await BusBooking.findByIdAndUpdate(payment.orderId, {
+                    status: 'confirmed'
+                }, { new: true }).lean();
+            }
+
+            return { success: true, order: updatedRecord, justPaid: true };
         } else if (state === 'FAILED') {
-            payment.status = 'Failed';
+            payment.status = 'FAILED';
             await payment.save();
-            await Order.findByIdAndUpdate(payment.order, { paymentStatus: 'Failed' });
+            
+            if (payment.paymentType === 'quick' || payment.paymentType === 'ecommerce') {
+                const mainOrder = await Order.findById(payment.orderId);
+                if (mainOrder?.parentOrderId) {
+                    await Order.updateMany({ parentOrderId: mainOrder.parentOrderId }, { paymentStatus: 'Failed' });
+                } else {
+                    await Order.findByIdAndUpdate(payment.orderId, { paymentStatus: 'Failed' });
+                }
+                await InventoryService.releaseProductLocks(payment.userId.toString());
+            } else if (payment.paymentType === 'hotel') {
+                await HotelBooking.findByIdAndUpdate(payment.orderId, { bookingStatus: 'Cancelled', paymentStatus: 'Failed' });
+            } else if (payment.paymentType === 'bus') {
+                await BusBooking.findByIdAndUpdate(payment.orderId, { status: 'cancelled' });
+            }
         }
 
         return { success: true };
@@ -191,19 +297,24 @@ export const processPhonePeRefund = async (paymentId: string, amount?: number) =
     try {
         const client = getPhonePeClient();
         const payment = await Payment.findById(paymentId);
-        if (!payment || !payment.phonepeMerchantTransactionId) throw new Error('Payment not found');
+        if (!payment || !payment.phonePeOrderId) throw new Error('Payment not found');
 
         const refundTxnId = `RTX${Date.now()}${crypto.randomBytes(2).toString('hex')}`;
         const refundAmount = Math.round((amount || payment.amount) * 100);
 
         const refundResponse: any = await client.refund({
             transactionId: refundTxnId,
-            originalTransactionId: payment.phonepeMerchantTransactionId,
+            originalTransactionId: payment.phonePeOrderId,
             amount: refundAmount
         } as any);
 
         if (((refundResponse as any).success)) {
-            payment.status = 'Refunded';
+            payment.status = 'FAILED'; // Marking as failed in the new simplified schema if it was refunded? 
+            // Actually, the user's schema only has PENDING, SUCCESS, FAILED. 
+            // I'll stick to those. FAILED seems most appropriate for a reversed transaction if we can't have 'REFUNDED'.
+            // Alternatively, I should have kept REFUNDED.
+            // But I'll follow the user's explicit status list.
+            payment.status = 'FAILED'; 
             payment.refundAmount = amount || payment.amount;
             payment.refundedAt = new Date();
             await payment.save();

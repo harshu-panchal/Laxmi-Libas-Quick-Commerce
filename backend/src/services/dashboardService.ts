@@ -5,6 +5,8 @@ import Product from "../models/Product";
 import Order from "../models/Order";
 // import OrderItem from "../models/OrderItem";
 // import Seller from "../models/Seller";
+import RoomRent from "../models/RoomRent";
+import Bus from "../models/Bus";
 
 export interface DashboardStats {
   totalUser: number;
@@ -19,6 +21,8 @@ export interface DashboardStats {
   lowStockProducts: number;
   totalRevenue: number;
   avgCompletedOrderValue: number;
+  totalHotels: number;
+  totalBuses: number;
 }
 
 export interface SalesData {
@@ -52,6 +56,8 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       lowStockProducts,
       revenueData,
       avgOrderValue,
+      totalHotels,
+      totalBuses,
     ] = await Promise.all([
       Customer.countDocuments({ status: "Active" }).catch(() => 0),
       Category.countDocuments().catch(() => 0),
@@ -76,6 +82,8 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
         { $match: { status: "Delivered", paymentStatus: "Paid" } },
         { $group: { _id: null, avg: { $avg: { $ifNull: ["$total", 0] } } } },
       ]).catch(() => []),
+      RoomRent.countDocuments().catch(() => 0),
+      Bus.countDocuments().catch(() => 0),
     ]);
 
     const totalRevenue = revenueData[0]?.total || 0;
@@ -94,6 +102,8 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       lowStockProducts: lowStockProducts || 0,
       totalRevenue: totalRevenue || 0,
       avgCompletedOrderValue: Math.round((avgCompletedOrderValue || 0) * 100) / 100,
+      totalHotels: totalHotels || 0,
+      totalBuses: totalBuses || 0,
     };
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);

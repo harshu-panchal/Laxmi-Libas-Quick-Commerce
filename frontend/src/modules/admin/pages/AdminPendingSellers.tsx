@@ -275,6 +275,48 @@ export default function AdminPendingSellers() {
                                     </div>
                                 </div>
 
+                                <div className="border-t pt-4">
+                                    <h3 className="text-sm font-bold text-neutral-900 mb-3">Manage Modules (Business Types)</h3>
+                                    <div className="flex flex-wrap gap-4 mb-4">
+                                        {['commerce', 'hotel', 'bus'].map((type) => (
+                                            <label key={type} className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={(selectedSeller as any).businessTypes?.includes(type) || (type === 'commerce' && !(selectedSeller as any).businessTypes)}
+                                                    onChange={async (e) => {
+                                                        const currentTypes = (selectedSeller as any).businessTypes || ['commerce'];
+                                                        let newTypes;
+                                                        if (e.target.checked) {
+                                                            newTypes = [...new Set([...currentTypes, type])];
+                                                        } else {
+                                                            if (currentTypes.length <= 1) {
+                                                                alert('At least one business type must be selected');
+                                                                return;
+                                                            }
+                                                            newTypes = currentTypes.filter((t: string) => t !== type);
+                                                        }
+                                                        
+                                                        try {
+                                                            setActionLoading(true);
+                                                            const response = await api.post(`admin/sellers/${selectedSeller._id}/business-types`, { businessTypes: newTypes });
+                                                            if (response.data.success) {
+                                                                setSelectedSeller({ ...selectedSeller, businessTypes: newTypes } as any);
+                                                                fetchSellers();
+                                                            }
+                                                        } catch (err: any) {
+                                                            alert(err.response?.data?.message || 'Failed to update business types');
+                                                        } finally {
+                                                            setActionLoading(false);
+                                                        }
+                                                    }}
+                                                    className="w-4 h-4 text-teal-600 border-neutral-300 rounded focus:ring-teal-500"
+                                                />
+                                                <span className="text-sm text-neutral-700 capitalize">{type}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 <div>
                                     <label className="text-xs font-medium text-neutral-600">Categories</label>
                                     <p className="text-sm text-neutral-900">{selectedSeller.categories?.join(', ') || 'N/A'}</p>

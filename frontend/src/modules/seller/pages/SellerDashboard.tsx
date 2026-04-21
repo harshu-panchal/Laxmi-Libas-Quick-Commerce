@@ -5,6 +5,7 @@ import DashboardCard from '../components/DashboardCard';
 import OrderChart from '../components/OrderChart';
 import AlertCard from '../components/AlertCard';
 import { getSellerDashboardStats, DashboardStats, NewOrder } from '../../../services/api/dashboardService';
+import { getInventoryInsights, InventoryInsights } from '../../../services/api/productService';
 import { getSellerProfile, toggleShopStatus } from '../../../services/api/auth/sellerAuthService';
 
 export default function SellerDashboard() {
@@ -12,12 +13,16 @@ export default function SellerDashboard() {
   const { user, updateUser } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [newOrders, setNewOrders] = useState<NewOrder[]>([]);
+  const [inventoryInsights, setInventoryInsights] = useState<InventoryInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [isShopOpen, setIsShopOpen] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [activeBusinessTab, setActiveBusinessTab] = useState <'commerce' | 'hotel' | 'bus'>(
+    user?.businessTypes?.[0] || 'commerce'
+  );
 
   const sellerStatus = user?.status || 'Pending';
   const isApproved = sellerStatus === 'Approved';
@@ -73,6 +78,11 @@ export default function SellerDashboard() {
           if (statsResponse.success) {
             setStats(statsResponse.data.stats);
             setNewOrders(statsResponse.data.newOrders);
+            
+            // 3. Fetch inventory insights in parallel
+            getInventoryInsights().then(res => {
+              if (res.success) setInventoryInsights(res.data);
+            }).catch(e => console.error("Inventory insights fail:", e));
           } else {
             setError(statsResponse.message || 'Failed to fetch dashboard data');
           }
@@ -359,7 +369,46 @@ export default function SellerDashboard() {
           </button>
         </div>
       </div>
-      {/* KPI Cards Grid */}
+      
+      {/* Business Type Tabs */}
+      {user?.businessTypes && user.businessTypes.length > 1 && (
+        <div className="flex bg-white p-1 rounded-xl shadow-sm border border-neutral-200">
+          {user.businessTypes.includes('commerce') && (
+            <button
+              onClick={() => setActiveBusinessTab('commerce')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                activeBusinessTab === 'commerce' ? 'bg-teal-600 text-white shadow-md' : 'text-neutral-500 hover:bg-neutral-50'
+              }`}
+            >
+              🛒 Commerce
+            </button>
+          )}
+          {user.businessTypes.includes('hotel') && (
+            <button
+              onClick={() => setActiveBusinessTab('hotel')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                activeBusinessTab === 'hotel' ? 'bg-teal-600 text-white shadow-md' : 'text-neutral-500 hover:bg-neutral-50'
+              }`}
+            >
+              🏨 Hotel
+            </button>
+          )}
+          {user.businessTypes.includes('bus') && (
+            <button
+              onClick={() => setActiveBusinessTab('bus')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                activeBusinessTab === 'bus' ? 'bg-teal-600 text-white shadow-md' : 'text-neutral-500 hover:bg-neutral-50'
+              }`}
+            >
+              🚌 Bus
+            </button>
+          )}
+        </div>
+      )}
+
+      {activeBusinessTab === 'commerce' ? (
+        <>
+          {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <DashboardCard icon={userIcon} title="Total User" value={stats.totalUser} accentColor="#3b82f6" />
         <DashboardCard icon={categoryIcon} title="Total Category" value={stats.totalCategory} accentColor="#eab308" />
@@ -369,6 +418,56 @@ export default function SellerDashboard() {
         <DashboardCard icon={completedOrdersIcon} title="Completed Orders" value={stats.completedOrders} accentColor="#16a34a" />
         <DashboardCard icon={pendingOrdersIcon} title="Pending Orders" value={stats.pendingOrders} accentColor="#a855f7" />
         <DashboardCard icon={cancelledOrdersIcon} title="Cancelled Orders" value={stats.cancelledOrders} accentColor="#ef4444" />
+      </div>
+
+      {/* Smart Inventory Insights Section */}
+      <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
+        <div className="bg-[#1a1a1a] text-white px-6 py-4 flex items-center justify-between">
+           <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center">
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold">Smart Inventory Insights</h3>
+                <p className="text-[10px] text-neutral-400 font-medium">REAL-TIME STOCK VELOCITY</p>
+              </div>
+           </div>
+           <div className="text-[10px] bg-neutral-800 px-2 py-1 rounded text-neutral-400 font-mono">
+              LIVE DATA
+           </div>
+        </div>
+        
+        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+           <div className="relative group cursor-pointer">
+              <div className="flex items-center justify-between mb-2">
+                 <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Available Stock</span>
+                 <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">READY</span>
+              </div>
+              <div className="text-3xl font-black text-neutral-900">{inventoryInsights?.availableStock || 0}</div>
+              <div className="mt-2 text-[10px] text-neutral-400">Total units available for sale across all products.</div>
+              <div className="absolute -bottom-6 left-0 w-full h-0.5 bg-green-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
+           </div>
+           
+           <div className="relative group cursor-pointer">
+              <div className="flex items-center justify-between mb-2">
+                 <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Locked Stock</span>
+                 <span className="text-[10px] px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full font-bold animate-pulse">RESERVED</span>
+              </div>
+              <div className="text-3xl font-black text-neutral-900">{inventoryInsights?.lockedStock || 0}</div>
+              <div className="mt-2 text-[10px] text-neutral-400">Units currently in user carts or pending checkout.</div>
+              <div className="absolute -bottom-6 left-0 w-full h-0.5 bg-orange-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
+           </div>
+
+           <div className="relative group cursor-pointer">
+              <div className="flex items-center justify-between mb-2">
+                 <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Sold Stock</span>
+                 <span className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold">COMPLETE</span>
+              </div>
+              <div className="text-3xl font-black text-neutral-900">{inventoryInsights?.soldStock || 0}</div>
+              <div className="mt-2 text-[10px] text-neutral-400">Units successfully delivered or in transit.</div>
+              <div className="absolute -bottom-6 left-0 w-full h-0.5 bg-blue-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
+           </div>
+        </div>
       </div>
 
       {/* Charts Row */}
@@ -612,7 +711,34 @@ export default function SellerDashboard() {
             </button>
           </div>
         </div>
-      </div>
+          </div>
+        </>
+      ) : activeBusinessTab === 'hotel' ? (
+        <div className="bg-white p-12 rounded-2xl shadow-sm border border-neutral-100 text-center space-y-4">
+          <div className="text-4xl">🏨</div>
+          <h2 className="text-xl font-bold text-neutral-800">Hotel Management Integrated</h2>
+          <p className="text-neutral-500 max-w-md mx-auto">
+            You can now manage your property, room availability, and guest check-ins directly through the LaxMart Super App interface.
+          </p>
+          <button className="bg-teal-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-teal-700 transition-all">
+            Open Hotel Console
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-neutral-100 space-y-6">
+          <div className="flex items-center justify-between border-b pb-4">
+            <h2 className="text-xl font-bold text-neutral-800">🚌 Bus Management</h2>
+            <button className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-bold">
+              + Add New Bus
+            </button>
+          </div>
+          
+          <div className="text-center py-20 bg-neutral-50 rounded-xl border border-dashed border-neutral-300">
+             <div className="text-4xl mb-4">🚌</div>
+             <p className="text-neutral-500">No buses added yet. Start by adding your first bus route.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

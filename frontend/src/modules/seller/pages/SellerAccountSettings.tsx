@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getSellerProfile, updateSellerProfile } from '../../../services/api/auth/sellerAuthService';
 import { useAuth } from '../../../context/AuthContext';
 import { getCategories, Category } from '../../../services/api/categoryService';
-import GoogleMapsAutocomplete from '../../../components/GoogleMapsAutocomplete';
-import LocationPickerMap from '../../../components/LocationPickerMap';
+import GoogleMapPicker from '../../../components/common/GoogleMapPicker';
 
 const SellerAccountSettings = () => {
     const { user, updateUser } = useAuth();
@@ -401,81 +400,46 @@ const SellerAccountSettings = () => {
                                                             Store Location <span className="text-red-500">*</span>
                                                         </label>
                                                         {isEditing ? (
-                                                            <>
-                                                                <GoogleMapsAutocomplete
-                                                                    value={sellerData.searchLocation || sellerData.address || ''}
-                                                                    onChange={(address: string, lat: number, lng: number, placeName: string, components?: { city?: string; state?: string }) => {
+                                                            <div className="space-y-4 pt-2">
+                                                                <GoogleMapPicker
+                                                                    initialLat={parseFloat(sellerData.latitude) || 26.9124}
+                                                                    initialLng={parseFloat(sellerData.longitude) || 75.7873}
+                                                                    initialRadius={parseInt(sellerData.serviceRadiusKm) || 10}
+                                                                    onLocationChange={(lat, lng, address) => {
                                                                         setSellerData(prev => ({
                                                                             ...prev,
-                                                                            searchLocation: address,
                                                                             latitude: lat.toString(),
                                                                             longitude: lng.toString(),
+                                                                            searchLocation: address,
                                                                             address: address,
-                                                                            city: components?.city || prev.city,
                                                                         }));
                                                                     }}
-                                                                    placeholder="Search and select your store location..."
-                                                                    disabled={!isEditing}
-                                                                    required
+                                                                    onRadiusChange={(radius) => {
+                                                                        setSellerData(prev => ({
+                                                                            ...prev,
+                                                                            serviceRadiusKm: radius.toString()
+                                                                        }));
+                                                                    }}
                                                                 />
-                                                                <div className="mt-4 animate-fadeIn">
-                                                                    <p className="text-sm font-medium text-neutral-700 mb-2">
-                                                                        Exact Location <span className="text-teal-600 text-xs font-normal">(Move the map to place the pin on your store's entrance)</span>
-                                                                    </p>
-                                                                    <LocationPickerMap
-                                                                        initialLat={parseFloat(sellerData.latitude) || 26.9124}
-                                                                        initialLng={parseFloat(sellerData.longitude) || 75.7873}
-                                                                        onLocationSelect={(lat, lng) => {
-                                                                            setSellerData(prev => ({
-                                                                                ...prev,
-                                                                                latitude: lat.toString(),
-                                                                                longitude: lng.toString()
-                                                                            }));
-                                                                        }}
-                                                                    />
-                                                                    <p className="mt-1 text-xs text-neutral-500 text-center">
-                                                                        Selected Coordinates: {sellerData.latitude || 'Not selected'}, {sellerData.longitude || 'Not selected'}
-                                                                    </p>
-                                                                </div>
-                                                            </>
+                                                                <p className="text-[10px] text-teal-600 font-medium text-center bg-teal-50 py-1 rounded">
+                                                                    Selected Coordinates: {parseFloat(sellerData.latitude).toFixed(6)}, {parseFloat(sellerData.longitude).toFixed(6)} | Radius: {sellerData.serviceRadiusKm} km
+                                                                </p>
+                                                            </div>
                                                         ) : (
-                                                            <textarea
-                                                                name="address"
-                                                                value={sellerData.address || sellerData.searchLocation || ''}
-                                                                disabled={true}
-                                                                rows={3}
-                                                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-gray-50/50 text-gray-500 resize-none"
-                                                            />
+                                                            <div className="space-y-3">
+                                                                <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm text-gray-600">
+                                                                    <span className="font-bold text-gray-400 block text-[10px] uppercase mb-1">Service Address</span>
+                                                                    {sellerData.address || sellerData.searchLocation || 'Not provided'}
+                                                                </div>
+                                                                <div className="inline-flex items-center gap-2 px-3 py-1 bg-teal-50 text-teal-700 rounded-full text-xs font-semibold border border-teal-100">
+                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                                    Service Radius: {sellerData.serviceRadiusKm} km
+                                                                </div>
+                                                            </div>
                                                         )}
                                                     </div>
 
                                                     <InputGroup label="City" name="city" value={sellerData.city} onChange={handleInputChange} disabled={!isEditing} />
-
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-sm font-semibold text-gray-700 ml-1">
-                                                            Service Radius (KM) <span className="text-red-500">*</span>
-                                                        </label>
-                                                        <select
-                                                            name="serviceRadiusKm"
-                                                            value={sellerData.serviceRadiusKm}
-                                                            onChange={handleInputChange}
-                                                            disabled={!isEditing}
-                                                            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all appearance-none bg-white"
-                                                        >
-                                                            <option value="1">1 km</option>
-                                                            <option value="2">2 km</option>
-                                                            <option value="5">5 km</option>
-                                                            <option value="10">10 km</option>
-                                                            <option value="20">20 km</option>
-                                                            <option value="50">50 km</option>
-                                                        </select>
-                                                        {isEditing && (
-                                                            <p className="mt-1 text-xs text-gray-500">
-                                                                Products will be shown to users within this radius from your store location
-                                                            </p>
-                                                        )}
-                                                    </div>
-
                                                 </div>
                                             </div>
                                         )}

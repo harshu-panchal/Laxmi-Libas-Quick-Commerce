@@ -5,6 +5,8 @@ import dashboardRoutes from "./dashboardRoutes";
 import customerAuthRoutes from "./customerAuthRoutes";
 import deliveryRoutes from "./deliveryRoutes";
 import deliveryAuthRoutes from "./deliveryAuthRoutes";
+import busRoutes from "../modules/bus/busRoutes";
+import hotelRoutes from "../modules/hotel/hotelRoutes";
 
 // ... (other imports)
 import { authenticate, requireUserType } from "../middleware/auth";
@@ -39,6 +41,8 @@ import sellerWalletRoutes from "./sellerWalletRoutes";
 import deliveryWalletRoutes from "./deliveryWalletRoutes";
 import adminWithdrawalRoutes from "./adminWithdrawalRoutes";
 import bannerRoutes from "./bannerRoutes";
+import supportRoutes from "../modules/support/supportRoutes";
+
 import * as configController from "../controllers/configController";
 
 // Multi-category controllers
@@ -185,6 +189,14 @@ router.use("/admin/withdrawals", authenticate, requireUserType("Admin"), adminWi
 
 // Banners routes
 router.use("/banners", bannerRoutes);
+
+// Bus routes
+router.use("/bus", busRoutes);
+
+// Hotel routes
+router.use("/hotel", hotelRoutes);
+router.use("/support", supportRoutes);
+
 
 // Service routes (protected, seller only)
 router.post("/seller/services", authenticate, requireUserType("Seller"), serviceController.createService);

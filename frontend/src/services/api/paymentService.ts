@@ -12,7 +12,7 @@
  *   GET  /api/v1/payments/phonepe/status/:id
  */
 
-import api from './config';
+import api, { rootApi } from './config';
 
 // ─── 1. Initiate PhonePe Payment ─────────────────────────────────────────────
 
@@ -72,6 +72,47 @@ export const getPaymentHistory = async () => {
         return response.data;
     } catch (error: any) {
         console.error('[PaymentService] getPaymentHistory error:', error?.response?.data || error?.message);
+        throw error;
+    }
+};
+// ─── 4. Unified Payment Flow (NEW) ───────────────────────────────────────────
+
+/**
+ * Unified Payment Handler for all modules.
+ * 
+ * @param paymentType 'quick' | 'ecommerce' | 'hotel' | 'bus'
+ * @param orderId     The ID of the order or booking
+ * @returns           The redirect URL to PhonePe
+ */
+export const handlePayment = async (paymentType: 'quick' | 'ecommerce' | 'hotel' | 'bus', orderId: string) => {
+    try {
+        // Use the new payments initiate endpoint that handles all booking types
+        const response = await api.post('/payments/phonepe/initiate', {
+            orderId,
+            paymentType
+        });
+
+        if (response.data.success && response.data.data?.redirectUrl) {
+            return response.data.data.redirectUrl;
+        }
+        throw new Error(response.data.message || 'Failed to initiate payment');
+    } catch (error: any) {
+        console.error('[PaymentService] handlePayment error:', error?.response?.data || error?.message);
+        throw error;
+    }
+};
+
+/**
+ * Check Unified Status
+ * 
+ * @param orderId   The merchantOrderId
+ */
+export const checkUnifiedStatus = async (orderId: string) => {
+    try {
+        const response = await rootApi.get(`/payment/status/${orderId}`);
+        return response.data;
+    } catch (error: any) {
+        console.error('[PaymentService] checkUnifiedStatus error:', error?.response?.data || error?.message);
         throw error;
     }
 };

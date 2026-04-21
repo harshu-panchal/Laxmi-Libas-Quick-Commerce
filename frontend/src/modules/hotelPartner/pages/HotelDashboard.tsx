@@ -1,68 +1,173 @@
-import React from 'react';
 import { Card } from '../components/Card';
 import { Table } from '../components/Table';
-import { mockDashboardStats } from '../data/mockData';
-import { Booking } from '../types';
+import { getMyHotels, getHotelBookings, updateHotelBookingStatus, getStayInvoiceUrl, Hotel, HotelBooking } from '../../../services/api/hotelPartnerService';
+import Skeleton from 'react-loading-skeleton';
 
 const HotelDashboard: React.FC = () => {
-  const { totalHotels, totalBookings, totalRevenue, recentBookings } = mockDashboardStats;
+  const [hotels, setHotels] = React.useState<Hotel[]>([]);
+  const [bookings, setBookings] = React.useState<HotelBooking[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [activeHotelId, setActiveHotelId] = React.useState<string | null>(null);
 
-  const columns = [
-    { header: 'Booking ID', accessor: 'id' as keyof Booking },
-    { header: 'Guest', accessor: 'guestName' as keyof Booking },
-    { header: 'Room', accessor: 'roomType' as keyof Booking },
-    { header: 'Check In', accessor: 'checkIn' as keyof Booking },
-    { 
-      header: 'Status', 
-      accessor: (item: Booking) => (
-        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-          item.status === 'Confirmed' ? 'bg-green-100 text-green-700' : 
-          item.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 
-          'bg-red-100 text-red-700'
-        }`}>
-          {item.status}
-        </span>
-      )
-    },
-    { 
-      header: 'Amount', 
-      accessor: (item: Booking) => `₹${item.totalAmount.toLocaleString()}` 
-    },
-  ];
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const hotelRes = await getMyHotels();
+        if (hotelRes.success && hotelRes.data.length > 0) {
+          setHotels(hotelRes.data);
+          setActiveHotelId(hotelRes.data[0]._id);
+          const bookingRes = await getHotelBookings(hotelRes.data[0]._id);
+          if (bookingRes.success) setBookings(bookingRes.data);
+        }
+      } catch (e) {
+        console.error("Dashboard fetch error", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleStatusUpdate = async (bookingId: string, status: string) => {
+     try {
+        const res = await updateHotelBookingStatus(bookingId, status);
+        if (res.success) {
+           setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, bookingStatus: status as any } : b));
+        }
+     } catch (e) {
+        alert("Action failed. Please check status transition.");
+     }
+  };
+
+  const handleDownloadInvoice = (bookingId: string) => {
+     const token = localStorage.getItem('token');
+     window.open(getStayInvoiceUrl(bookingId, token), '_blank');
+  };
+
+  if (loading) return <div className="p-8">Loading Professional Console...</div>;
+
+  const stats = {
+    totalHotels: hotels.length,
+    totalBookings: bookings.length,
+    revenue: bookings.reduce((acc, b) => acc + b.totalAmount, 0),
+    activeStays: bookings.filter(b => b.bookingStatus === 'CheckedIn').length
+  };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-3xl font-black text-neutral-800 tracking-tight">Dashboard Overview</h2>
-        <p className="text-neutral-500 font-medium">Welcome back! Here's what's happening today.</p>
+    <div className="space-y-8 pb-10">
+      {/* Header HUD */}
+      <div className="bg-[#121212] p-8 rounded-[2rem] text-white overflow-hidden relative">
+         <div className="relative z-10">
+            <h2 className="text-4xl font-black tracking-tighter mb-2">Hotel Partner Console</h2>
+            <p className="text-neutral-400 font-bold uppercase text-[10px] tracking-[0.2em]">Operational Dashboard v4.0</p>
+         </div>
+         <div className="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-teal-500/20 to-transparent"></div>
+         <div className="mt-8 flex gap-4">
+            {hotels.map(h => (
+               <button 
+                key={h._id} 
+                onClick={async () => {
+                    setActiveHotelId(h._id);
+                    const res = await getHotelBookings(h._id);
+                    if (res.success) setBookings(res.data);
+                }}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeHotelId === h._id ? 'bg-teal-500 text-white shadow-lg' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}
+               >
+                 {h.name}
+               </button>
+            ))}
+         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card 
-          title="Total Hotels" 
-          value={totalHotels} 
-          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M3 7v14M19 7v14M4 4h16M2 7h20M8 11h2v2H8v-2zm6 0h2v2h-2v-2zm-6 4h2v2H8v-2zm6 0h2v2h-2v-2z" /></svg>}
-        />
-        <Card 
-          title="Total Bookings" 
-          value={totalBookings} 
-          trend="+12% this month"
-          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>}
-        />
-        <Card 
-          title="Revenue" 
-          value={`₹${totalRevenue.toLocaleString()}`} 
-          trend="+8% this month"
-          icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>}
-        />
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold text-neutral-800">Recent Bookings</h3>
-          <button className="text-teal-600 font-bold text-sm hover:underline">View All</button>
+      {/* KPI HUD */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm">
+           <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Total Properties</div>
+           <div className="text-3xl font-black text-neutral-800">{stats.totalHotels}</div>
         </div>
-        <Table columns={columns} data={recentBookings} />
+        <div className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm">
+           <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Bookings</div>
+           <div className="text-3xl font-black text-neutral-800">{stats.totalBookings}</div>
+        </div>
+        <div className="bg-teal-500 p-6 rounded-3xl shadow-lg shadow-teal-500/20 text-white">
+           <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Revenue</div>
+           <div className="text-3xl font-black">₹{stats.revenue.toLocaleString()}</div>
+        </div>
+        <div className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm">
+           <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Active Guests</div>
+           <div className="text-3xl font-black text-neutral-800">{stats.activeStays}</div>
+        </div>
+      </div>
+
+      {/* Stay Management Center */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-black text-neutral-800 tracking-tighter">Stay Management Center</h3>
+          <div className="text-xs font-bold text-neutral-400">Showing all activity for {hotels.find(h => h._id === activeHotelId)?.name}</div>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-4">
+           {bookings.length === 0 ? (
+             <div className="bg-neutral-50 p-20 rounded-[2rem] text-center border-2 border-dashed border-neutral-200">
+                <p className="text-neutral-400 font-bold uppercase text-xs tracking-widest">No Bookings Found</p>
+             </div>
+           ) : (
+             bookings.map(booking => (
+               <div key={booking._id} className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm hover:shadow-md transition-all group flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="flex items-center gap-6 w-full md:w-auto">
+                     <div className="w-16 h-16 bg-neutral-100 rounded-2xl flex items-center justify-center overflow-hidden">
+                        {(booking.userId as any)?.profileImage ? (
+                           <img src={(booking.userId as any).profileImage} className="w-full h-full object-cover" alt="" />
+                        ) : (
+                           <div className="text-xl font-black text-neutral-300">{(booking.userId as any)?.name?.charAt(0) || "G"}</div>
+                        )}
+                     </div>
+                     <div>
+                        <div className="text-lg font-black text-neutral-800 tracking-tight">{(booking.userId as any)?.name}</div>
+                        <div className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
+                           {new Date(booking.checkIn).toLocaleDateString()} — {new Date(booking.checkOut).toLocaleDateString()}
+                        </div>
+                        <div className="mt-1">
+                           <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter ${
+                              booking.bookingStatus === 'CheckedIn' ? 'bg-green-500 text-white' : 
+                              booking.bookingStatus === 'CheckedOut' ? 'bg-neutral-100 text-neutral-400' : 
+                              'bg-teal-100 text-teal-600'
+                           }`}>
+                              {booking.bookingStatus}
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 w-full md:w-auto">
+                     {booking.bookingStatus === 'Confirmed' && (
+                        <button 
+                           onClick={() => handleStatusUpdate(booking._id, 'CheckedIn')}
+                           className="flex-1 md:flex-none px-6 py-3 bg-teal-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-teal-500/20 hover:scale-105 transition-all"
+                        >
+                           Check In
+                        </button>
+                     )}
+                     {booking.bookingStatus === 'CheckedIn' && (
+                        <button 
+                           onClick={() => handleStatusUpdate(booking._id, 'CheckedOut')}
+                           className="flex-1 md:flex-none px-6 py-3 bg-neutral-800 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 transition-all"
+                        >
+                           Check Out
+                        </button>
+                     )}
+                     <button 
+                        onClick={() => handleDownloadInvoice(booking._id)}
+                        className="p-3 bg-neutral-100 text-neutral-600 rounded-2xl hover:bg-neutral-200 transition-all"
+                        title="Download Stay Invoice"
+                     >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                     </button>
+                  </div>
+               </div>
+             ))
+           )}
+        </div>
       </div>
     </div>
   );

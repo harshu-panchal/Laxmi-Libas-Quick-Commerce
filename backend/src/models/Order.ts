@@ -36,6 +36,7 @@ export interface IOrder extends Document {
   couponCode?: string;
   total: number;
   grandTotal?: number; // Alias or computed total used in some controllers
+  tip?: number;        // Optional delivery tip from customer
 
   // Payment
   paymentMethod: string;
@@ -105,6 +106,16 @@ export interface IOrder extends Document {
   cancellationReason?: string;
   cancelledAt?: Date;
   cancelledBy?: mongoose.Types.ObjectId;
+
+  // Order Flow
+  parentOrderId?: string; // Links split orders for unified payment
+  orderType: "quick" | "ecommerce";
+  deliveryFlow: "auto" | "courier";
+  courierPartner?: string;
+  trackingId?: string;
+
+  // Unified System Type
+  type: "product" | "hotel" | "bus";
 
   createdAt: Date;
   updatedAt: Date;
@@ -233,6 +244,11 @@ const OrderSchema = new Schema<IOrder>(
     grandTotal: {
       type: Number,
     },
+    tip: {
+      type: Number,
+      default: 0,
+      min: [0, 'Tip cannot be negative'],
+    },
 
     // Payment
     paymentMethod: {
@@ -269,6 +285,7 @@ const OrderSchema = new Schema<IOrder>(
         "Received",
         "Accepted",
         "Pending",
+        "Packed",
         "Ready for pickup",
         "Processed",
         "Shipped",
@@ -379,9 +396,36 @@ const OrderSchema = new Schema<IOrder>(
     cancelledAt: {
       type: Date,
     },
-    cancelledBy: {
-      type: Schema.Types.ObjectId,
-      ref: "Admin",
+    // Order Flow
+    parentOrderId: {
+      type: String,
+      trim: true,
+    },
+    orderType: {
+      type: String,
+      enum: ["quick", "ecommerce"],
+      required: true,
+      default: "quick",
+    },
+    deliveryFlow: {
+      type: String,
+      enum: ["auto", "courier"],
+      required: true,
+      default: "auto",
+    },
+    courierPartner: {
+      type: String,
+      trim: true,
+    },
+    trackingId: {
+      type: String,
+      trim: true,
+    },
+    type: {
+      type: String,
+      enum: ["product", "hotel", "bus"],
+      default: "product",
+      required: true,
     },
   },
   {

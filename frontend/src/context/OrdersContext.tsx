@@ -115,6 +115,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
           },
           quantity: item.quantity,
           variant: item.variant, // Pass variant if available
+          selectedDeliveryType: (item as any).selectedDeliveryType || item.product.type || 'quick',
           claimedDiscountPercent: item.discountPercent || 0,
           claimedDiscountAmount: item.discountAmount || 0,
         })),

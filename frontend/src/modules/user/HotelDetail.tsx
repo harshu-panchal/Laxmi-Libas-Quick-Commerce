@@ -4,14 +4,31 @@ import { ArrowLeft, Heart, Star, Share2, MapPin, ChevronRight, Check, Info, Shie
 import { useNavigate, useParams } from 'react-router-dom';
 import { useShare } from '../../hooks/useShare';
 import ShareSheet from '../../components/ShareSheet';
-import { hotels } from './data/hotels';
+import { getHotelDetails } from '../../services/api/customerHotelService';
 
 const HotelDetail: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams();
+    const [hotel, setHotel] = React.useState<any>(null);
+    const [loading, setLoading] = React.useState(true);
 
-    // Find the specific hotel from the shared data
-    const hotel = hotels.find(h => h.id === Number(id));
+    React.useEffect(() => {
+        const fetchDetail = async () => {
+            if (!id) return;
+            setLoading(true);
+            try {
+                const response = await getHotelDetails(id);
+                if (response.success) {
+                    setHotel(response.data.hotel);
+                }
+            } catch (error) {
+                console.error('Failed to fetch hotel details:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchDetail();
+    }, [id]);
 
     // Sharing hook
     const { 
@@ -26,10 +43,19 @@ const HotelDetail: React.FC = () => {
         if (!hotel) return;
         share({
             title: hotel.name,
-            text: `Looking at this amazing property: ${hotel.name} in ${hotel.location}`,
+            text: `Looking at this amazing property: ${hotel.name} in ${hotel.city || hotel.location}`,
             url: window.location.href,
         });
     };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
+                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <p className="mt-4 text-sm font-bold text-gray-500">Loading property details...</p>
+            </div>
+        );
+    }
 
     if (!hotel) {
         return (
@@ -49,9 +75,9 @@ const HotelDetail: React.FC = () => {
     return (
         <div className="min-h-screen bg-white pb-24 font-['Inter']">
             {/* Hero Image Section */}
-            <div className="relative aspect-[4/3] w-full overflow-hidden">
+            <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
                 <img 
-                    src={hotel.images[0]} 
+                    src={hotel.mainImage || (hotel.images && hotel.images[0]) || 'https://images.unsplash.com/photo-1566073771259-6a8506099945'} 
                     alt={hotel.name} 
                     className="w-full h-full object-cover"
                 />
@@ -76,7 +102,7 @@ const HotelDetail: React.FC = () => {
 
                 {/* Image Count Badge */}
                 <div className="absolute bottom-16 right-4 bg-black/60 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-lg border border-white/20 uppercase tracking-widest">
-                    + 391 more
+                    + {hotel.images?.length || 0} photos
                 </div>
 
                 {/* Progress Dots */}
@@ -92,10 +118,10 @@ const HotelDetail: React.FC = () => {
                 <div className="bg-white rounded-[32px] p-6 shadow-[0_15px_50px_rgba(0,0,0,0.1)] border border-gray-100">
                     <div className="flex items-center gap-2 mb-3">
                         <div className="bg-blue-600 text-white text-[11px] font-black px-2 py-0.5 rounded shadow-sm">
-                            {hotel.rating}
+                            {hotel.rating || 4.2}
                         </div>
                         <span className="text-blue-600 font-[900] text-sm uppercase tracking-tight">
-                            {hotel.ratingText} · {hotel.ratingsCount} ratings
+                            {hotel.rating >= 4.5 ? 'Excellent' : 'Very Good'} · {hotel.reviewsCount || 0} reviews
                         </span>
                     </div>
 
@@ -109,14 +135,14 @@ const HotelDetail: React.FC = () => {
                                 <Star 
                                     key={i} 
                                     size={14} 
-                                    fill={i < hotel.stars ? "#ffc107" : "none"} 
-                                    className={i < hotel.stars ? "text-[#ffc107]" : "text-gray-300"} 
+                                    fill={i < (hotel.stars || 4) ? "#ffc107" : "none"} 
+                                    className={i < (hotel.stars || 4) ? "text-[#ffc107]" : "text-gray-300"} 
                                 />
                             ))}
                         </div>
                         <span className="h-1 w-1 bg-gray-300 rounded-full"></span>
                         <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                            {hotel.stars}-star Resort in {hotel.location}
+                            {hotel.stars || 4}-star property in {hotel.city || hotel.location}
                         </span>
                     </div>
                 </div>

@@ -338,6 +338,12 @@ export async function notifyDeliveryBoysOfNewOrder(
     order: any
 ): Promise<void> {
     try {
+        // Skip notification if delivery flow is not 'auto' (e.g. Courier/Ecommerce)
+        if (order.deliveryFlow && order.deliveryFlow !== 'auto') {
+            debugLog(`ℹ️ [Notification] Skipping delivery boy notification for order ${order.orderNumber}. Delivery Flow: ${order.deliveryFlow}`);
+            return;
+        }
+
         debugLog(`🔔 [Notification] New order ${order.orderNumber} (ID: ${order._id}) accepted by seller. Starting broadcast...`);
         
         // Find delivery boys near seller locations (within service radius)
@@ -482,6 +488,11 @@ export async function handleOrderAcceptance(
         const order = await Order.findById(orderId);
         if (!order) {
             return { success: false, message: 'Order not found' };
+        }
+
+        // Prevent acceptance of non-auto delivery orders (like courier/ecommerce)
+        if (order.deliveryFlow && order.deliveryFlow !== 'auto') {
+            return { success: false, message: 'This order is not for local delivery' };
         }
 
         // Check if order already has a delivery boy assigned

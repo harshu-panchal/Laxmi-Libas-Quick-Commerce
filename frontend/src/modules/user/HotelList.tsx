@@ -1,11 +1,24 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Search, Heart, MapPin, Star, Share2, Filter, ChevronLeft, ChevronRight, SlidersHorizontal, Map as MapIcon, ChevronDown, X, Calendar, Users, IndianRupee } from 'lucide-react';
+import { 
+    ArrowLeft, 
+    Search, 
+    MapPin, 
+    Calendar, 
+    X, 
+    Star, 
+    ChevronDown, 
+    SlidersHorizontal, 
+    Map as MapIcon, 
+    IndianRupee 
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { hotels } from './data/hotels';
+import { getHotels } from '../../services/api/customerHotelService';
 
 const HotelList: React.FC = () => {
     const navigate = useNavigate();
+    const [fetchedHotels, setFetchedHotels] = React.useState<any[]>([]);
+    const [loading, setLoading] = React.useState(true);
     const [showEditOverlay, setShowEditOverlay] = React.useState(false);
     const [showSortOverlay, setShowSortOverlay] = React.useState(false);
     const [showPriceOverlay, setShowPriceOverlay] = React.useState(false);
@@ -20,10 +33,31 @@ const HotelList: React.FC = () => {
     // Search States
     const [destination, setDestination] = React.useState('Goa');
     const [dates, setDates] = React.useState({
-        checkIn: '2026-04-07',
-        checkOut: '2026-04-08'
+        checkIn: new Date().toISOString().split('T')[0],
+        checkOut: new Date(Date.now() + 86400000).toISOString().split('T')[0]
     });
     const [guestConfig, setGuestConfig] = React.useState([{ adults: 2, children: 0 }]);
+
+    const fetchHotelsList = async () => {
+        setLoading(true);
+        try {
+            const response = await getHotels({ 
+                city: destination,
+                status: 'Approved'
+            });
+            if (response.success) {
+                setFetchedHotels(response.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch hotels:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchHotelsList();
+    }, []);
 
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr);
@@ -56,7 +90,9 @@ const HotelList: React.FC = () => {
         setShowSortOverlay(false);
         setShowPriceOverlay(false);
         setShowReviewsOverlay(false);
-        setTimeout(() => setIsUpdating(false), 800);
+        fetchHotelsList().then(() => {
+            setTimeout(() => setIsUpdating(false), 800);
+        });
     };
 
     const handleSortChange = (option: string) => {
@@ -528,125 +564,158 @@ const HotelList: React.FC = () => {
 
             {/* Main Content */}
             <main className="flex-1 p-4 space-y-4">
-                {hotels.map((hotel) => (
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        key={hotel.id}
-                        onClick={() => navigate(`/store/travel/hotels/detail/${hotel.id}`)}
-                        className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 relative group cursor-pointer active:scale-[0.98] transition-all"
-                    >
-                        {/* Image Section */}
-                        <div className="relative aspect-[1.3/1] bg-gray-100">
-                            <img src={hotel.images[0]} alt={hotel.name} className="w-full h-full object-cover" />
-                            
-                            {/* Member Choice Badge */}
-                            {hotel.isMemberChoice && (
-                                <div className="absolute top-4 left-4 bg-yellow-400 text-gray-900 text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 uppercase tracking-widest border border-yellow-200">
-                                    <Star size={12} fill="currentColor" />
-                                    Member Choice
-                                </div>
-                            )}
-
-                            {/* Urgency Tag */}
-                            {hotel.roomsLeft <= 3 && (
-                                <div className="absolute top-4 right-4 bg-red-600/90 backdrop-blur-md text-white text-[9px] font-black px-3 py-1.5 rounded-full shadow-lg uppercase tracking-tighter">
-                                    Only {hotel.roomsLeft} rooms left!
-                                </div>
-                            )}
-
-                            {/* Image Dots */}
-                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-                                {hotel.images.map((_, i) => (
-                                    <div key={i} className={`h-1.5 w-1.5 rounded-full ${i === 0 ? 'bg-white w-4' : 'bg-white/50'}`}></div>
-                                ))}
-                            </div>
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="mt-4 text-sm font-bold text-gray-500">Finding best hotels for you...</p>
+                    </div>
+                ) : fetchedHotels.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 px-8 text-center bg-white rounded-3xl border border-dashed border-gray-200">
+                        <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4">
+                            <MapPin size={32} className="text-gray-300" />
                         </div>
+                        <h3 className="text-lg font-black text-gray-900 mb-1">No Hotels Found</h3>
+                        <p className="text-sm text-gray-500 font-bold mb-6">We couldn't find any approved hotels in {destination} for the selected dates.</p>
+                        <button 
+                            onClick={() => setShowEditOverlay(true)}
+                            className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest"
+                        >
+                            Change Location
+                        </button>
+                    </div>
+                ) : fetchedHotels.map((hotel) => {
+                    // Mapping backend fields to UI fields
+                    const hotelId = hotel._id || hotel.id;
+                    const rating = hotel.rating || 4.2;
+                    const reviewsCount = hotel.reviewsCount || hotel.ratingsCount || 0;
+                    const price = hotel.price || 4999;
+                    const originalPrice = hotel.originalPrice || (price * 1.25);
+                    const stars = hotel.stars || 4;
+                    const ratingText = rating >= 4.5 ? 'Excellent' : rating >= 4 ? 'Very Good' : 'Good';
+                    const mainImg = hotel.mainImage || (hotel.images && hotel.images[0]) || 'https://images.unsplash.com/photo-1566073771259-6a8506099945';
+                    const amenities = hotel.amenities || [];
+                    const offers = hotel.offers || ['Free Breakfast', 'Free Cancellation'];
 
-                        {/* Content Section */}
-                        <div className="p-4">
-                            <div className="flex items-start justify-between mb-2">
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1.5 mb-2">
-                                        <div className="bg-blue-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm">
-                                            {hotel.rating}
-                                        </div>
-                                        <span className="text-blue-600 font-[900] text-xs uppercase tracking-tight">{hotel.ratingText}</span>
-                                        <span className="text-gray-400 text-[10px] font-bold">({hotel.ratingsCount})</span>
-                                    </div>
-                                    <h2 className="text-lg font-[1000] text-gray-900 leading-[1.2] mb-1 truncate">{hotel.name}</h2>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="flex items-center gap-0.5">
-                                            {[...Array(hotel.stars)].map((_, i) => (
-                                                <Star key={i} size={10} fill="#ffc107" className="text-[#ffc107]" />
-                                            ))}
-                                        </div>
-                                        <span className="h-1 w-1 bg-gray-300 rounded-full"></span>
-                                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{hotel.location}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Amenities Chips row */}
-                            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide mb-4">
-                                {hotel.amenities.map((amenity, idx) => (
-                                    <span key={idx} className="bg-gray-50 text-gray-500 text-[9px] font-black px-2.5 py-1 rounded-md border border-gray-100/50 uppercase tracking-tight whitespace-nowrap">
-                                        {amenity}
-                                    </span>
-                                ))}
-                            </div>
-
-                            {/* Offers Strip */}
-                            <div className="space-y-2 mb-5">
-                                {hotel.offers.map((offer, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 text-green-600">
-                                        <div className="w-4 h-4 rounded-full bg-green-50 flex items-center justify-center">
-                                            <span className="text-[10px] font-black italic">✓</span>
-                                        </div>
-                                        <span className="text-xs font-black">{offer}</span>
-                                    </div>
-                                ))}
-                                {hotel.hasLoginDiscount && (
-                                    <div className="inline-block bg-gray-100 px-3 py-1.5 rounded-lg text-gray-900 text-[10px] font-black uppercase tracking-widest border border-gray-200 shadow-sm">
-                                        Login Discount
+                    return (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            key={hotelId}
+                            onClick={() => navigate(`/store/travel/hotels/detail/${hotelId}`)}
+                            className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 relative group cursor-pointer active:scale-[0.98] transition-all"
+                        >
+                            {/* Image Section */}
+                            <div className="relative aspect-[1.3/1] bg-gray-100">
+                                <img src={mainImg} alt={hotel.name} className="w-full h-full object-cover" />
+                                
+                                {/* Member Choice Badge */}
+                                {hotel.isMemberChoice && (
+                                    <div className="absolute top-4 left-4 bg-yellow-400 text-gray-900 text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 uppercase tracking-widest border border-yellow-200">
+                                        <Star size={12} fill="currentColor" />
+                                        Member Choice
                                     </div>
                                 )}
-                            </div>
 
-                            {/* Pricing Section (More density) */}
-                            <div className="pt-3 border-t border-gray-50">
-                                <div className="flex items-end justify-between">
-                                    <div className="space-y-0.5">
-                                        <div className="flex items-center gap-2">
-                                            <span className="bg-green-100 text-green-700 text-[9px] font-[1000] px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                                                SAVE {hotel.discount}
-                                            </span>
-                                            {hotel.hasLoginDiscount && (
-                                                <span className="text-blue-600 text-[9px] font-black uppercase tracking-widest">+ Member Deal</span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-baseline gap-1.5">
-                                            <span className="text-2xl font-[1000] text-gray-900 leading-none">₹{hotel.price.toLocaleString()}</span>
-                                            <span className="text-xs font-bold text-gray-400 line-through">₹{hotel.originalPrice.toLocaleString()}</span>
-                                        </div>
-                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">
-                                            + ₹{hotel.taxes.toLocaleString()} taxes / night
-                                        </p>
+                                {/* Urgency Tag */}
+                                {hotel.roomsLeft <= 3 && (
+                                    <div className="absolute top-4 right-4 bg-red-600/90 backdrop-blur-md text-white text-[9px] font-black px-3 py-1.5 rounded-full shadow-lg uppercase tracking-tighter">
+                                        Only {hotel.roomsLeft || 2} rooms left!
                                     </div>
-                                    <button 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/store/travel/hotels/detail/${hotel.id}`);
-                                        }}
-                                        className="bg-gray-900 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all active:scale-95 shadow-xl shadow-gray-200"
-                                    >
-                                        Select
-                                    </button>
+                                )}
+
+                                {/* Image Dots */}
+                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                                    {[1, 2, 3].map((_, i) => (
+                                        <div key={i} className={`h-1.5 w-1.5 rounded-full ${i === 0 ? 'bg-white w-4' : 'bg-white/50'}`}></div>
+                                    ))}
                                 </div>
                             </div>
-                        </div>
-                    </motion.div>
-                ))}
+
+                            {/* Content Section */}
+                            <div className="p-4">
+                                <div className="flex items-start justify-between mb-2">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5 mb-2">
+                                            <div className="bg-blue-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm">
+                                                {rating}
+                                            </div>
+                                            <span className="text-blue-600 font-[900] text-xs uppercase tracking-tight">{ratingText}</span>
+                                            <span className="text-gray-400 text-[10px] font-bold">({reviewsCount})</span>
+                                        </div>
+                                        <h2 className="text-lg font-[1000] text-gray-900 leading-[1.2] mb-1 truncate">{hotel.name}</h2>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="flex items-center gap-0.5">
+                                                {[...Array(stars)].map((_, i) => (
+                                                    <Star key={i} size={10} fill="#ffc107" className="text-[#ffc107]" />
+                                                ))}
+                                            </div>
+                                            <span className="h-1 w-1 bg-gray-300 rounded-full"></span>
+                                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{hotel.city || destination}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Amenities Chips row */}
+                                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide mb-4">
+                                    {amenities.map((amenity: string, idx: number) => (
+                                        <span key={idx} className="bg-gray-50 text-gray-500 text-[9px] font-black px-2.5 py-1 rounded-md border border-gray-100/50 uppercase tracking-tight whitespace-nowrap">
+                                            {amenity}
+                                        </span>
+                                    ))}
+                                </div>
+
+                                {/* Offers Strip */}
+                                <div className="space-y-2 mb-5">
+                                    {offers.map((offer: string, idx: number) => (
+                                        <div key={idx} className="flex items-center gap-2 text-green-600">
+                                            <div className="w-4 h-4 rounded-full bg-green-50 flex items-center justify-center">
+                                                <span className="text-[10px] font-black italic">✓</span>
+                                            </div>
+                                            <span className="text-xs font-black">{offer}</span>
+                                        </div>
+                                    ))}
+                                    {hotel.hasLoginDiscount && (
+                                        <div className="inline-block bg-gray-100 px-3 py-1.5 rounded-lg text-gray-900 text-[10px] font-black uppercase tracking-widest border border-gray-200 shadow-sm">
+                                            Login Discount
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Pricing Section (More density) */}
+                                <div className="pt-3 border-t border-gray-50">
+                                    <div className="flex items-end justify-between">
+                                        <div className="space-y-0.5">
+                                            <div className="flex items-center gap-2">
+                                                <span className="bg-green-100 text-green-700 text-[9px] font-[1000] px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                                                    SAVE 20%
+                                                </span>
+                                                {hotel.hasLoginDiscount && (
+                                                    <span className="text-blue-600 text-[9px] font-black uppercase tracking-widest">+ Member Deal</span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-baseline gap-1.5">
+                                                <span className="text-2xl font-[1000] text-gray-900 leading-none">₹{price.toLocaleString()}</span>
+                                                <span className="text-xs font-bold text-gray-400 line-through">₹{originalPrice.toLocaleString()}</span>
+                                            </div>
+                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">
+                                                + ₹{(hotel.taxes || 500).toLocaleString()} taxes / night
+                                            </p>
+                                        </div>
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`/store/travel/hotels/detail/${hotelId}`);
+                                            }}
+                                            className="bg-gray-900 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all active:scale-[0.98] shadow-xl shadow-gray-200"
+                                        >
+                                            Select
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    );
+                })}
 
                 {/* Benefits Section */}
                 <div className="bg-neutral-900 rounded-[32px] p-8 text-center mt-12 mb-16 relative overflow-hidden group">

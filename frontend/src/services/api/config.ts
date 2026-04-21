@@ -128,4 +128,20 @@ export const removeAuthToken = () => {
   localStorage.removeItem("userData");
 };
 
+export const rootApi: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL.replace(/\/v1$/, ""),
+  timeout: 15000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+rootApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem("authToken");
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export default api;

@@ -5,7 +5,8 @@ import { Product } from '../../../types/domain';
 import { useCart } from '../../../context/CartContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useLocation } from '../../../hooks/useLocation';
-import { useToast } from '../../../context/ToastContext'; // Import useToast
+import { useToast } from '../../../context/ToastContext';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../../../components/ui/sheet';
 import { addToWishlist, removeFromWishlist, getWishlist } from '../../../services/api/customerWishlistService';
 import Button from '../../../components/ui/button';
 import Badge from '../../../components/ui/badge';
@@ -60,6 +61,8 @@ export default function ProductCard({
   const [isWishlisted, setIsWishlisted] = useState(false);
   // Single ref to track any cart operation in progress for this product
   const isOperationPendingRef = useRef(false);
+  const [isVariantSheetOpen, setIsVariantSheetOpen] = useState(false);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState<number | null>(null);
 
   useEffect(() => {
     // Only check wishlist if user is authenticated
@@ -143,24 +146,56 @@ export default function ProductCard({
     navigate(`/product/${((product as any).id || product._id) as string}`);
   };
 
-  const handleAdd = async (e: React.MouseEvent) => {
+  const handleAddType = async (e: React.MouseEvent, type: 'quick' | 'ecommerce') => {
     e.stopPropagation();
     e.preventDefault();
-
-
-
-    // Prevent any operation while another is in progress
-    if (isOperationPendingRef.current) {
-      return;
-    }
 
     isOperationPendingRef.current = true;
 
     try {
-      await addToCart(product, addButtonRef.current);
+      // If product has multiple variations, force selection via sheet
+      if (product.variations && product.variations.length > 1) {
+        setIsVariantSheetOpen(true);
+        // We'll need to store the selected type for when the variant is picked
+        (product as any).pendingType = type;
+        return;
+      }
+
+      await addToCart(product, addButtonRef.current, type);
     } finally {
-      // Reset the flag after the operation truly completes
       isOperationPendingRef.current = false;
+    }
+  };
+
+  const handleAdd = async (e: React.MouseEvent) => {
+    handleAddType(e, 'quick');
+  };
+
+  const handleVariantSelect = async (index: number) => {
+    if (!product.variations) return;
+    
+    setSelectedVariantIndex(index);
+    const variant = product.variations[index];
+    const variantTitle = variant.title || variant.value || variant.name;
+    
+    const productWithVariant = {
+      ...product,
+      price: variant.price || product.price,
+      mrp: variant.mrp || product.mrp,
+      pack: variantTitle,
+      selectedVariant: variant,
+      variantId: variant._id,
+      variantTitle: variantTitle,
+    };
+
+    try {
+      const type = (product as any).pendingType || 'quick';
+      await addToCart(productWithVariant, addButtonRef.current, type);
+      setIsVariantSheetOpen(false);
+      setSelectedVariantIndex(null);
+      (product as any).pendingType = undefined;
+    } catch (err) {
+      console.error("Failed to add variant to cart", err);
     }
   };
 
@@ -400,32 +435,56 @@ export default function ProductCard({
                 </p>
               )}
 
-              {/* 5. Price with discount / Rent */}
-              <div className="mt-auto">
-                {product.rentAmount ? (
-                  <div className="flex flex-col">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-[11px] font-bold text-neutral-900 leading-tight">
-                        ₹{product.rentAmount.toLocaleString('en-IN')}
+              {/* 5. Price & Hybrid Delivery Options */}
+              <div className="mt-auto space-y-2">
+                {/* Hybrid Delivery Selection Buttons */}
+                <div className="grid grid-cols-1 gap-1.5">
+                  {(product as any).nearbyAvailable && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddType(e, 'quick');
+                      }}
+                      className="flex items-center justify-between px-2 py-1 bg-yellow-50 border border-yellow-200 rounded-lg hover:border-primary-dark transition-colors group/quick"
+                    >
+                      <div className="flex flex-col items-start">
+                        <span className="text-[8px] font-bold text-primary-dark uppercase flex items-center gap-0.5">
+                          ⚡ Quick
+                        </span>
+                        <span className="text-[8px] text-neutral-500">{(product as any).deliveryTimeQuick || '30 min'}</span>
+                      </div>
+                      <span className="text-[10px] font-black text-neutral-900 group-hover/quick:text-primary-dark">
+                        ₹{(product as any).quickPrice || displayPrice}
                       </span>
-                      <span className="text-[8px] text-neutral-500 font-medium lowercase">/ month</span>
+                    </button>
+                  )}
+
+                  {(product as any).ecommerceAvailable && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddType(e, 'ecommerce');
+                      }}
+                      className="flex items-center justify-between px-2 py-1 bg-blue-50 border border-blue-200 rounded-lg hover:border-blue-500 transition-colors group/ecom"
+                    >
+                      <div className="flex flex-col items-start">
+                        <span className="text-[8px] font-bold text-blue-600 uppercase flex items-center gap-0.5">
+                          📦 Courier
+                        </span>
+                        <span className="text-[8px] text-neutral-500">{(product as any).deliveryTimeEcommerce || '3-5 days'}</span>
+                      </div>
+                      <span className="text-[10px] font-black text-neutral-900 group-hover/ecom:text-blue-600">
+                        ₹{(product as any).ecommercePrice || displayPrice}
+                      </span>
+                    </button>
+                  )}
+
+                  {!(product as any).nearbyAvailable && !(product as any).ecommerceAvailable && (
+                    <div className="text-[9px] text-red-500 font-medium py-1 px-2 bg-red-50 rounded-lg border border-red-100 italic">
+                      Not available at your location
                     </div>
-                    {product.securityDeposit && (
-                       <p className="text-[8px] text-neutral-500 mt-0.5">Dep. ₹{product.securityDeposit.toLocaleString('en-IN')}</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-baseline gap-1 flex-wrap">
-                    <span className="text-[11px] font-bold text-neutral-900 leading-tight">
-                      ₹{displayPrice.toLocaleString('en-IN')}
-                    </span>
-                    {mrp && mrp > displayPrice && (
-                      <span className="text-[8px] text-neutral-500 line-through leading-tight">
-                        ₹{mrp.toLocaleString('en-IN')}
-                      </span>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </>
           ) : (
@@ -532,6 +591,60 @@ export default function ProductCard({
           </div>
         </div>
       )}
+      {/* Variant Selection Sheet */}
+      <Sheet open={isVariantSheetOpen} onOpenChange={setIsVariantSheetOpen}>
+        <SheetContent side="bottom" className="h-auto pb-8 rounded-t-[32px]">
+          <SheetHeader className="pb-4">
+            <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-4" />
+            <SheetTitle className="text-center text-lg font-bold">Select Option</SheetTitle>
+          </SheetHeader>
+          
+          <div className="px-6 space-y-6">
+            <div className="flex items-center gap-4 p-3 bg-neutral-50 rounded-2xl">
+              <div className="w-16 h-16 bg-white rounded-xl overflow-hidden border border-neutral-100 flex-shrink-0">
+                <img src={product.imageUrl || product.mainImage} alt={product.name} className="w-full h-full object-cover" />
+              </div>
+              <div>
+                <h4 className="font-bold text-neutral-900 line-clamp-1">{product.name || product.productName}</h4>
+                <p className="text-xs text-neutral-500 mt-0.5">Choose your preferred size/variant</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Available Options</p>
+              <div className="grid grid-cols-1 gap-2">
+                {product.variations?.map((variant, index) => {
+                  const title = variant.title || variant.value || variant.name;
+                  const isOutOfStock = variant.stock === 0;
+                  const price = variant.price || product.price;
+                  
+                  return (
+                    <button
+                      key={index}
+                      disabled={isOutOfStock}
+                      onClick={() => handleVariantSelect(index)}
+                      className="flex items-center justify-between p-4 rounded-2xl border-2 border-neutral-100 hover:border-primary-dark hover:bg-yellow-50/30 transition-all group disabled:opacity-50 disabled:hover:border-neutral-100 disabled:hover:bg-transparent"
+                    >
+                      <div className="flex flex-col items-start">
+                        <span className="font-bold text-neutral-900 group-hover:text-primary-dark transition-colors">{title}</span>
+                        {isOutOfStock && <span className="text-[10px] text-red-500 font-bold uppercase mt-0.5">Sold Out</span>}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-neutral-900">₹{price}</span>
+                        <div className="w-6 h-6 rounded-full border-2 border-neutral-200 group-hover:border-primary-dark group-hover:bg-primary-dark flex items-center justify-center transition-all">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" className="opacity-0 group-hover:opacity-100">
+                            <path d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </motion.div>
   );
 }

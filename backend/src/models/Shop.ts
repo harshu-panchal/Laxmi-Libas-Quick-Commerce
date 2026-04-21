@@ -12,6 +12,8 @@ export interface IShop extends Document {
   products: mongoose.Types.ObjectId[];
   order: number; // For sorting/ordering
   isActive: boolean;
+  openingTime?: string; // e.g. "09:00"
+  closingTime?: string; // e.g. "22:00"
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +68,14 @@ const ShopSchema = new Schema<IShop>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    openingTime: {
+      type: String,
+      default: "00:00",
+    },
+    closingTime: {
+      type: String,
+      default: "23:59",
     },
   },
   {

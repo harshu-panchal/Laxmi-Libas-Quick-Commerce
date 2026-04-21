@@ -11,6 +11,7 @@ import { getHeaderCategoriesPublic } from "../../services/api/headerCategoryServ
 import { useLocation } from "../../hooks/useLocation";
 import { useLoading } from "../../context/LoadingContext";
 import PageLoader from "../../components/PageLoader";
+import { ProductCardSkeleton, CategoryCardSkeleton, SectionSkeleton } from "../../components/loaders/Skeletons";
 import CategoryTabBar from "../../components/CategoryTabBar";
 import { getTheme } from "../../utils/themes";
 import { useThemeContext } from "../../context/ThemeContext";
@@ -264,7 +265,16 @@ export default function Home() {
   const isDefaultTheme = activeTab === 'all';
 
   if (loading && !products.length) {
-    return <PageLoader />; // Let the global IconLoader handle the initial loading state
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="h-48 bg-neutral-100 animate-pulse mb-8" />
+        <div className="px-4 grid grid-cols-4 gap-4 mb-8">
+          {[1, 2, 3, 4].map(i => <CategoryCardSkeleton key={i} />)}
+        </div>
+        <SectionSkeleton />
+        <SectionSkeleton />
+      </div>
+    );
   }
 
   if (error && !loading) {
@@ -305,6 +315,48 @@ export default function Home() {
 
       {/* Premium Home Banner Carousel - Restored as per request */}
       <HomeBannerCarousel />
+
+      {/* LaxMart Services Grid */}
+      <div className="px-4 py-3 bg-white">
+        <div className="grid grid-cols-4 gap-3">
+          <div 
+            onClick={() => setActiveTab('minutes')}
+            className="flex flex-col items-center gap-1.5 cursor-pointer group"
+          >
+            <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:shadow-md transition-all">
+              ⚡
+            </div>
+            <span className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight">Quick</span>
+          </div>
+          <div 
+            onClick={() => setActiveTab('all')}
+            className="flex flex-col items-center gap-1.5 cursor-pointer group"
+          >
+            <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:shadow-md transition-all">
+              🛒
+            </div>
+            <span className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight">Shop</span>
+          </div>
+          <div 
+            onClick={() => navigate('/store/travel/hotels')}
+            className="flex flex-col items-center gap-1.5 cursor-pointer group"
+          >
+            <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:shadow-md transition-all">
+              🏨
+            </div>
+            <span className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight">Hotels</span>
+          </div>
+          <div 
+            onClick={() => navigate('/store/travel/buses')}
+            className="flex flex-col items-center gap-1.5 cursor-pointer group"
+          >
+            <div className="w-14 h-14 bg-teal-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:shadow-md transition-all">
+              🚌
+            </div>
+            <span className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight">Buses</span>
+          </div>
+        </div>
+      </div>
 
 
       {/* Main content */}
@@ -507,15 +559,16 @@ export default function Home() {
                         tile.productImages.filter(Boolean).length > 0);
 
                     return (
-                      <div key={tile.id} className="flex flex-col">
+                      <div key={tile.id} className="flex flex-col relative group">
                         <div
                           onClick={() => {
+                            if (!tile.isOpen) return;
                             const storeSlug =
                               tile.slug || tile.id.replace("-store", "");
                             saveScrollPosition();
                             navigate(`/store/${storeSlug}`);
                           }}
-                          className="block bg-white rounded-[28px] shadow-sm border border-neutral-200 hover:shadow-md transition-shadow cursor-pointer overflow-hidden">
+                          className={`block bg-white rounded-[28px] shadow-sm border border-neutral-200 hover:shadow-md transition-shadow cursor-pointer overflow-hidden relative ${!tile.isOpen ? 'opacity-70 grayscale' : ''}`}>
                           {hasImages ? (
                             <img
                               src={
@@ -534,12 +587,21 @@ export default function Home() {
                               {tile.name.charAt(0)}
                             </div>
                           )}
+
+                          {!tile.isOpen && (
+                            <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center transition-all">
+                               <span className="text-[10px] font-black text-white uppercase tracking-widest bg-red-600/90 px-2 py-0.5 rounded-full shadow-lg scale-90">Closed</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="mt-1.5 text-center">
-                          <span className="text-xs font-semibold text-neutral-900 line-clamp-2 leading-tight">
+                          <span className="text-[10px] font-bold text-neutral-800 line-clamp-1 leading-tight uppercase tracking-tight">
                             {tile.name}
                           </span>
+                          {!tile.isOpen && tile.openingTime && (
+                             <div className="text-[8px] font-bold text-red-500 mt-0.5">Opens at {tile.openingTime}</div>
+                          )}
                         </div>
                       </div>
                     );

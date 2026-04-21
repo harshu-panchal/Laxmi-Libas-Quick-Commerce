@@ -5,7 +5,7 @@ import OTPInput from '../../../components/OTPInput';
 import { useAuth } from '../../../context/AuthContext';
 import { getCategories, Category } from '../../../services/api/categoryService';
 import { useEffect } from 'react';
-import GoogleMapsLocationPicker from '../../../components/GoogleMapsLocationPicker';
+import GoogleMapPicker from '../../../components/common/GoogleMapPicker';
 
 export default function SellerSignUp() {
   const navigate = useNavigate();
@@ -29,6 +29,7 @@ export default function SellerSignUp() {
     ifsc: '',
     latitude: 0,
     longitude: 0,
+    businessTypes: ['commerce'] as string[],
   });
   const [showMap, setShowMap] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number, lng: number } | null>(null);
@@ -112,8 +113,8 @@ export default function SellerSignUp() {
       setError('Please enter your store name');
       return;
     }
-    if (formData.categories.length === 0) {
-      setError('Please select at least one category');
+    if (formData.businessTypes.includes('commerce') && formData.categories.length === 0) {
+      setError('Please select at least one Product Category');
       return;
     }
     if (!formData.address) {
@@ -183,6 +184,7 @@ export default function SellerSignUp() {
         businessLicense: businessLicenseUrl,
         latitude: formData.latitude.toString(),
         longitude: formData.longitude.toString(),
+        businessTypes: formData.businessTypes,
       });
 
       if (response.success) {
@@ -239,6 +241,43 @@ export default function SellerSignUp() {
               {/* Required Fields Section */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-neutral-700 border-b pb-2">Required Information</h3>
+
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-neutral-700">
+                    Business Types <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'commerce', label: 'Products', icon: '🛒' },
+                      { id: 'hotel', label: 'Hotel', icon: '🏨' },
+                      { id: 'bus', label: 'Bus', icon: '🚌' }
+                    ].map((type) => {
+                      const isSelected = formData.businessTypes.includes(type.id);
+                      return (
+                        <button
+                          key={type.id}
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => {
+                              const types = prev.businessTypes.includes(type.id)
+                                ? prev.businessTypes.filter(t => t !== type.id)
+                                : [...prev.businessTypes, type.id];
+                              return { ...prev, businessTypes: types.length > 0 ? types : prev.businessTypes };
+                            });
+                          }}
+                          className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all ${
+                            isSelected 
+                              ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-sm' 
+                              : 'border-neutral-200 bg-white text-neutral-500 hover:border-teal-200'
+                          }`}
+                        >
+                          <span className="text-lg mb-1">{type.icon}</span>
+                          <span className="text-[10px] font-bold uppercase">{type.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
@@ -310,58 +349,60 @@ export default function SellerSignUp() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Store Category <span className="text-red-500">*</span>
-                  </label>
-                  {dbCategories.length === 0 ? (
-                    <div className="text-sm text-red-500 bg-red-50 p-3 rounded-lg border border-red-100 italic">
-                      No categories available at the moment. Please contact admin.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto p-3 border border-neutral-200 rounded-lg bg-neutral-50 shadow-inner">
-                      {dbCategories.map((cat) => {
-                        const isSelected = formData.categories.includes(cat._id);
-                        return (
-                          <button
-                            key={cat._id}
-                            type="button"
-                            onClick={() => handleCategorySelect(cat._id)}
-                            disabled={loading}
-                            className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all duration-200 text-center relative ${isSelected
-                              ? 'border-teal-500 bg-teal-50 shadow-md scale-[1.02]'
-                              : 'border-neutral-200 bg-white hover:border-teal-200 hover:scale-[1.01]'
-                              }`}
-                          >
-                            {isSelected && (
-                              <div className="absolute top-1 right-1 w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center shadow-sm">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                  <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                              </div>
-                            )}
-                            {cat.image && (
-                              <img src={cat.image} alt={cat.name} className="w-10 h-10 object-contain mb-2" />
-                            )}
-                            <span className={`text-xs font-semibold ${isSelected ? 'text-teal-800' : 'text-neutral-700'}`}>
-                              {cat.name}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {formData.categories.length === 0 && dbCategories.length > 0 && (
-                    <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                      </svg>
-                      Category selection is required to proceed
-                    </p>
-                  )}
-                </div>
+                {formData.businessTypes.includes('commerce') && (
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Store Category <span className="text-red-500">*</span>
+                    </label>
+                    {dbCategories.length === 0 ? (
+                      <div className="text-sm text-red-500 bg-red-50 p-3 rounded-lg border border-red-100 italic">
+                        No categories available at the moment. Please contact admin.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto p-3 border border-neutral-200 rounded-lg bg-neutral-50 shadow-inner">
+                        {dbCategories.map((cat) => {
+                          const isSelected = formData.categories.includes(cat._id);
+                          return (
+                            <button
+                              key={cat._id}
+                              type="button"
+                              onClick={() => handleCategorySelect(cat._id)}
+                              disabled={loading}
+                              className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl transition-all duration-200 text-center relative ${isSelected
+                                ? 'border-teal-500 bg-teal-50 shadow-md scale-[1.02]'
+                                : 'border-neutral-200 bg-white hover:border-teal-200 hover:scale-[1.01]'
+                                }`}
+                            >
+                              {isSelected && (
+                                <div className="absolute top-1 right-1 w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center shadow-sm">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                  </svg>
+                                </div>
+                              )}
+                              {cat.image && (
+                                <img src={cat.image} alt={cat.name} className="w-10 h-10 object-contain mb-2" />
+                              )}
+                              <span className={`text-xs font-semibold ${isSelected ? 'text-teal-800' : 'text-neutral-700'}`}>
+                                {cat.name}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {formData.categories.length === 0 && dbCategories.length > 0 && (
+                      <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="12" />
+                          <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        Category selection is required to proceed
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -494,18 +535,22 @@ export default function SellerSignUp() {
                   {showMap && (
                     <div className="space-y-4">
                       <div className="h-64 rounded-xl overflow-hidden ring-1 ring-neutral-200">
-                        <GoogleMapsLocationPicker
+                        <GoogleMapPicker
                           initialLat={formData.latitude || 26.9124}
                           initialLng={formData.longitude || 75.7873}
-                          height="256px"
-                          onLocationSelect={(lat, lng, address) => {
+                          initialRadius={10}
+                          onLocationChange={(lat, lng, address) => {
                             setFormData(prev => ({
                               ...prev,
                               latitude: lat,
                               longitude: lng,
-                              address: address?.street ? `${address.street}, ${address.landmark || ''}` : prev.address,
-                              city: address?.city || prev.city
+                              address: address || prev.address
                             }));
+                          }}
+                          onRadiusChange={(radius) => {
+                            // Optionally store radius in formData if requested, 
+                            // for now we just use the callback signature
+                            console.log('Delivery Radius set to:', radius);
                           }}
                         />
                       </div>

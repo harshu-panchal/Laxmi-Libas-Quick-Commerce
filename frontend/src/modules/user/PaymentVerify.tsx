@@ -79,11 +79,28 @@ const PaymentVerify: React.FC = () => {
                         if (result.status === 'success') {
                             // ── SUCCESS ──────────────────────────────────────
                             if (!isCancelled) {
-                                clearCart();
-                                localStorage.removeItem('laxmart_pending_payment_id');
-                                setStatus('success');
-                                setMessage('Payment Successful! 🎉');
-                                setTimeout(() => navigate('/orders'), 2500);
+                                const travelBooking = localStorage.getItem('activeTravelBooking');
+                                if (travelBooking) {
+                                    const data = JSON.parse(travelBooking);
+                                    localStorage.removeItem('activeTravelBooking');
+                                    setStatus('success');
+                                    setMessage('Booking Confirmed! 🎉');
+                                    
+                                    const params = new URLSearchParams({
+                                        type: data.type || 'hotel',
+                                        operator: data.hotelName || data.operatorName || 'Travel Partner',
+                                        total: data.totalAmount?.toString() || '0',
+                                        seats: data.seats?.join(',') || '',
+                                        id: data.bookingId
+                                    });
+                                    setTimeout(() => navigate(`/store/travel/confirmation?${params.toString()}`), 2500);
+                                } else {
+                                    clearCart();
+                                    localStorage.removeItem('laxmart_pending_payment_id');
+                                    setStatus('success');
+                                    setMessage('Payment Successful! 🎉');
+                                    setTimeout(() => navigate('/orders'), 2500);
+                                }
                             }
                             return;
                         }
@@ -91,10 +108,11 @@ const PaymentVerify: React.FC = () => {
                         if (result.status === 'failed') {
                             // ── FAILED ───────────────────────────────────────
                             if (!isCancelled) {
+                                const isTravel = !!localStorage.getItem('activeTravelBooking');
                                 localStorage.removeItem('laxmart_pending_payment_id');
                                 setStatus('failed');
                                 setMessage('Payment failed or was cancelled.');
-                                setTimeout(() => navigate('/checkout'), 3000);
+                                setTimeout(() => navigate(isTravel ? '/store/travel/payment' : '/checkout'), 3000);
                             }
                             return;
                         }
@@ -116,9 +134,10 @@ const PaymentVerify: React.FC = () => {
 
             // ── Max attempts reached; still pending ──────────────────────────
             if (!isCancelled) {
+                const isTravel = !!localStorage.getItem('activeTravelBooking');
                 setStatus('failed');
-                setMessage('Payment verification timed out. Check your orders for status.');
-                setTimeout(() => navigate('/orders'), 4000);
+                setMessage('Payment verification timed out. Check your bookings.');
+                setTimeout(() => navigate(isTravel ? '/store/travel' : '/orders'), 4000);
             }
         };
 

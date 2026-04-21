@@ -1,90 +1,43 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Wifi, Tv, Wind, Coffee, ChevronRight, X, Check, Utensils, ShieldCheck } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { hotels } from './data/hotels';
+import { getHotelDetails } from '../../services/api/customerHotelService';
 
 const RoomSelection: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams();
-    const [selectedRooms, setSelectedRooms] = React.useState<{ [id: number]: number }>({ 1: 1 });
+    const [selectedRooms, setSelectedRooms] = React.useState<{ [id: string]: number }>({});
+    const [hotel, setHotel] = React.useState<any>(null);
+    const [rooms, setRooms] = React.useState<any[]>([]);
+    const [loading, setLoading] = React.useState(true);
 
-    const hotel = hotels.find(h => h.id === Number(id));
-
-    const rooms = [
-        {
-            id: 1,
-            name: 'Premium Room with Balcony',
-            size: '312 sq.ft',
-            occupancy: '3 Adults',
-            image: '/hotel_resort_2.png',
-            amenities: [
-                { icon: <Wifi size={16} />, label: 'WiFi access' },
-                { icon: <ShieldCheck size={16} />, label: 'Blanket' },
-                { icon: <Tv size={16} />, label: 'TV' },
-                { icon: <Wind size={16} />, label: 'Air conditioning' },
-            ],
-            price: 25758,
-            originalPrice: 37000,
-            taxes: 3415,
-            inclusions: [
-                { icon: <X size={14} className="text-red-400" />, label: 'No meals included', active: false },
-                { icon: <X size={14} className="text-red-400" />, label: 'Non-refundable', active: false },
-                { icon: <Check size={14} className="text-emerald-500" />, label: '15% Discount on food & beverages', active: true },
-            ]
-        },
-        {
-            id: 2,
-            name: 'Luxury Suite with Sea View',
-            size: '520 sq.ft',
-            occupancy: '4 Adults',
-            image: '/hotel_resort_1.png',
-            amenities: [
-                { icon: <Wifi size={16} />, label: 'WiFi access' },
-                { icon: <ShieldCheck size={16} />, label: 'Private Terrace' },
-                { icon: <Tv size={16} />, label: '65" Smart TV' },
-                { icon: <Utensils size={16} />, label: 'Mini Bar' },
-            ],
-            price: 42500,
-            originalPrice: 55000,
-            taxes: 5200,
-            inclusions: [
-                { icon: <Check size={14} className="text-emerald-500" />, label: 'Breakfast Included', active: true },
-                { icon: <Check size={14} className="text-emerald-500" />, label: 'Free Cancellation', active: true },
-                { icon: <Check size={14} className="text-emerald-500" />, label: 'Welcome Drinks', active: true },
-            ]
-        },
-        {
-            id: 3,
-            name: 'Standard Deluxe Room',
-            size: '280 sq.ft',
-            occupancy: '2 Adults',
-            image: '/hotel_resort_3.png',
-            amenities: [
-                { icon: <Wifi size={16} />, label: 'WiFi access' },
-                { icon: <Tv size={16} />, label: 'LED TV' },
-                { icon: <Wind size={16} />, label: 'Air conditioning' },
-            ],
-            price: 18500,
-            originalPrice: 24000,
-            taxes: 2100,
-            inclusions: [
-                { icon: <X size={14} className="text-red-400" />, label: 'No meals included', active: false },
-                { icon: <Check size={14} className="text-emerald-500" />, label: 'High-speed Internet', active: true },
-            ]
+    const fetchDetail = async () => {
+        if (!id) return;
+        setLoading(true);
+        try {
+            const response = await getHotelDetails(id);
+            if (response.success) {
+                setHotel(response.data);
+                setRooms(response.data.rooms || []);
+            }
+        } catch (error) {
+            console.error('Failed to fetch room details:', error);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    React.useEffect(() => {
+        fetchDetail();
+    }, [id]);
 
     const totalRoomsCount = Object.values(selectedRooms).reduce((sum, qty) => sum + qty, 0);
 
-    const handleAdd = (roomId: number) => {
+    const handleAdd = (roomId: string) => {
         setSelectedRooms(prev => ({
             ...prev,
             [roomId]: (prev[roomId] || 0) + 1
         }));
     };
 
-    const handleRemove = (roomId: number) => {
+    const handleRemove = (roomId: string) => {
         setSelectedRooms(prev => {
             const newRooms = { ...prev };
             if (newRooms[roomId] > 1) {
@@ -97,13 +50,13 @@ const RoomSelection: React.FC = () => {
     };
 
     const selectedRoomDetails = Object.entries(selectedRooms).map(([roomId, qty]) => {
-        const room = rooms.find(r => r.id === parseInt(roomId));
+        const room = rooms.find(r => (r._id || r.id).toString() === roomId);
         return { room, qty };
     }).filter(item => item.room);
 
-    const totalPrice = selectedRoomDetails.reduce((sum, item) => sum + (item.room?.price || 0) * item.qty, 0);
-    const totalOriginalPrice = selectedRoomDetails.reduce((sum, item) => sum + (item.room?.originalPrice || 0) * item.qty, 0);
-    const totalTaxes = selectedRoomDetails.reduce((sum, item) => sum + (item.room?.taxes || 0) * item.qty, 0);
+    const totalPrice = selectedRoomDetails.reduce((sum, item) => sum + (item.room?.basePrice || 0) * item.qty, 0);
+    const totalOriginalPrice = selectedRoomDetails.reduce((sum, item) => sum + (item.room?.originalPrice || (item.room?.basePrice || 0) * 1.25) * item.qty, 0);
+    const totalTaxes = selectedRoomDetails.reduce((sum, item) => sum + (item.room?.tax || 0) * item.qty, 0);
 
     return (
         <div className="min-h-screen bg-[#f8f9fa] pb-24 font-['Inter']">
@@ -140,18 +93,43 @@ const RoomSelection: React.FC = () => {
 
             {/* Room List */}
             <main className="p-4 space-y-8">
-                {rooms.map((room) => {
-                    const quantity = selectedRooms[room.id] || 0;
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="mt-4 text-sm font-bold text-gray-400">Loading rooms...</p>
+                    </div>
+                ) : rooms.length === 0 ? (
+                    <div className="text-center py-20 bg-white rounded-[32px] border border-dashed border-gray-200">
+                        <p className="text-sm font-bold text-gray-500">No rooms available for this hotel.</p>
+                    </div>
+                ) : rooms.map((room) => {
+                    const roomId = (room._id || room.id).toString();
+                    const quantity = selectedRooms[roomId] || 0;
                     const isSelected = quantity > 0;
-                    
+                    const name = room.roomType || room.name || 'Standard Room';
+                    const size = room.roomSize || '250 sq.ft';
+                    const occupancy = `${room.guestCapacity || 2} Adults`;
+                    const image = room.mainImage || (room.images && room.images[0]) || '/hotel_resort_1.png';
+                    const price = room.basePrice || 5000;
+                    const taxes = room.tax || Math.round(price * 0.12);
+                    const originalPrice = room.originalPrice || Math.round(price * 1.3);
+
+                    // Map amenities
+                    const roomAmenities = [
+                        { icon: <Wifi size={16} />, label: 'Free WiFi' },
+                        { icon: <Wind size={16} />, label: 'Air Conditioning' },
+                        { icon: <Tv size={16} />, label: 'Smart TV' },
+                        { icon: <Coffee size={16} />, label: 'Coffee Maker' }
+                    ].slice(0, 4);
+
                     return (
                         <div 
-                            key={room.id} 
+                            key={roomId} 
                             className={`bg-white rounded-[32px] overflow-hidden shadow-sm border-2 transition-all duration-300 ${isSelected ? 'border-blue-500 shadow-blue-100 shadow-xl' : 'border-gray-50'}`}
                         >
                             <div className="p-5">
                                 <div className="flex justify-between items-start mb-1">
-                                    <h3 className="text-xl font-[1000] text-gray-900 leading-tight flex-1">{room.name}</h3>
+                                    <h3 className="text-xl font-[1000] text-gray-900 leading-tight flex-1">{name}</h3>
                                     {isSelected && (
                                         <div className="bg-blue-600 text-white p-1 rounded-full animate-in zoom-in duration-300">
                                             <Check size={14} strokeWidth={4} />
@@ -159,27 +137,15 @@ const RoomSelection: React.FC = () => {
                                     )}
                                 </div>
                                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
-                                    {room.size} · {room.occupancy}
+                                    {size} · {occupancy}
                                 </p>
 
-                                {/* Image Slider Placeholder */}
                                 <div className="relative aspect-[16/9] rounded-2xl overflow-hidden mb-6 bg-gray-100">
-                                    <img src={room.image} alt={room.name} className="w-full h-full object-cover" />
-                                    <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] px-2 py-1 rounded-md font-bold">
-                                        1/5
-                                    </div>
-                                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                                        <div className="w-1.5 h-1.5 bg-white/50 rounded-full"></div>
-                                        <div className="w-1.5 h-1.5 bg-white/50 rounded-full"></div>
-                                        <div className="w-1.5 h-1.5 bg-white/50 rounded-full"></div>
-                                        <div className="w-1.5 h-1.5 bg-white/50 rounded-full"></div>
-                                    </div>
+                                    <img src={image} alt={name} className="w-full h-full object-cover" />
                                 </div>
 
-                                {/* Amenities Grid */}
                                 <div className="grid grid-cols-2 gap-y-4 mb-6">
-                                    {room.amenities.map((amenity, idx) => (
+                                    {roomAmenities.map((amenity, idx) => (
                                         <div key={idx} className="flex items-center gap-3">
                                             <div className="text-gray-400">{amenity.icon}</div>
                                             <span className="text-xs font-bold text-gray-700">{amenity.label}</span>
@@ -187,78 +153,48 @@ const RoomSelection: React.FC = () => {
                                     ))}
                                 </div>
 
-                                <button className="text-blue-600 text-xs font-[1000] uppercase tracking-widest hover:underline flex items-center gap-1 mb-6">
-                                    View all amenities
-                                </button>
-
-                                {/* Inclusions Box */}
                                 <div className={`rounded-[24px] border-2 p-5 relative overflow-hidden transition-colors duration-300 ${isSelected ? 'border-blue-500/20 bg-blue-50/30' : 'border-gray-100 bg-gray-50/30'}`}>
                                     <h4 className="text-[11px] font-[1000] text-gray-400 mb-4 uppercase tracking-[0.2em]">Inclusions</h4>
                                     <div className="space-y-4">
-                                        {room.inclusions.map((inclusion, idx) => (
-                                            <div key={idx} className="flex items-start gap-3">
-                                                <div className="mt-0.5">{inclusion.icon}</div>
-                                                <span className={`text-[11px] font-black tracking-tight ${inclusion.active ? 'text-gray-700' : 'text-gray-500'}`}>
-                                                    {inclusion.label}
-                                                </span>
-                                            </div>
-                                        ))}
+                                        <div className="flex items-start gap-3">
+                                            <Check size={14} className="text-emerald-500 mt-0.5" />
+                                            <span className="text-[11px] font-black text-gray-700">Breakfast Included</span>
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <Check size={14} className="text-emerald-500 mt-0.5" />
+                                            <span className="text-[11px] font-black text-gray-700">Free Cancellation (24h)</span>
+                                        </div>
                                     </div>
-                                    <button className="mt-4 text-blue-600 text-[10px] font-[1000] uppercase tracking-widest hover:underline flex items-center gap-1">
-                                        + 2 inclusions
-                                    </button>
                                     
-                                    {/* Select/Quantity Selector */}
                                     <div className="mt-6">
                                         {!isSelected ? (
                                             <button 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleAdd(room.id);
-                                                }}
+                                                onClick={() => handleAdd(roomId)}
                                                 className="w-full py-3.5 rounded-xl bg-white text-blue-600 border-2 border-blue-100 font-black text-[12px] uppercase tracking-widest active:scale-[0.98] transition-all hover:bg-blue-50/50"
                                             >
                                                 Select Room
                                             </button>
                                         ) : (
-                                            <div className="space-y-3">
-                                                <button 
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedRooms(prev => {
-                                                            const newRooms = { ...prev };
-                                                            delete newRooms[room.id];
-                                                            return newRooms;
-                                                        });
-                                                    }}
-                                                    className="w-full py-3.5 rounded-xl bg-blue-600 text-white border-2 border-blue-600 font-black text-[12px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-blue-100 active:scale-95 transition-all"
-                                                >
-                                                    <Check size={16} strokeWidth={4} />
-                                                    Selected
-                                                </button>
-                                            </div>
+                                            <button 
+                                                onClick={() => setSelectedRooms(prev => {
+                                                    const newRooms = { ...prev };
+                                                    delete newRooms[roomId];
+                                                    return newRooms;
+                                                })}
+                                                className="w-full py-3.5 rounded-xl bg-blue-600 text-white border-2 border-blue-600 font-black text-[12px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-blue-100 active:scale-95 transition-all"
+                                            >
+                                                <Check size={16} strokeWidth={4} />
+                                                Selected
+                                            </button>
                                         )}
                                     </div>
-
-                                    {/* Floating Types Badge */}
-                                    {room.id === 1 && (
-                                        <div className="absolute top-8 right-4 bg-gray-900 text-white text-[10px] font-black px-4 py-2 rounded-full shadow-xl">
-                                            3 Room types
-                                        </div>
-                                    )}
                                 </div>
                             </div>
 
-                            {/* Offers Banner */}
-                            <div className="bg-emerald-50 px-5 py-3 flex items-center justify-between border-t border-emerald-100 group active:opacity-80 transition-opacity">
-                                <div className="flex items-center gap-2">
-                                    <div className="bg-emerald-500 text-white p-1 rounded-full">
-                                        <Check size={10} strokeWidth={4} />
-                                    </div>
-                                    <span className="text-[11px] font-black text-emerald-700 uppercase tracking-tighter">
-                                        FKHOTELS + 2 offers applied
-                                    </span>
-                                </div>
+                            <div className="bg-emerald-50 px-5 py-3 flex items-center justify-between border-t border-emerald-100">
+                                <span className="text-[11px] font-black text-emerald-700 uppercase tracking-tighter">
+                                    Best price guaranteed with FKHOTELS
+                                </span>
                                 <ChevronRight size={14} className="text-emerald-400" />
                             </div>
                         </div>
@@ -280,7 +216,7 @@ const RoomSelection: React.FC = () => {
                     <div className="flex flex-col mt-0.5">
                         <span className="text-xl font-[1000] text-gray-900 leading-tight">₹{totalPrice.toLocaleString()}</span>
                         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
-                            + ₹{totalTaxes.toLocaleString()} TAXES & FEES / {totalRoomsCount} ROOM{totalRoomsCount !== 1 ? 'S' : ''}
+                            + ₹{totalTaxes.toLocaleString()} TAXES & FEES
                         </span>
                     </div>
                 </div>
@@ -288,7 +224,25 @@ const RoomSelection: React.FC = () => {
                 <button 
                     disabled={totalRoomsCount === 0}
                     onClick={() => {
-                        console.log('Continuing with rooms:', selectedRooms);
+                        const bookingData = {
+                            type: 'hotel',
+                            hotelId: hotel?._id || hotel?.id,
+                            hotelName: hotel?.name,
+                            hotelAddress: hotel?.location,
+                            hotelImage: hotel?.mainImage || (hotel?.images && hotel?.images[0]),
+                            checkIn: '2026-04-08',
+                            checkOut: '2026-04-09',
+                            rooms: selectedRoomDetails.map(item => ({
+                                id: item.room._id || item.room.id,
+                                name: item.room.roomType || item.room.name,
+                                price: item.room.basePrice,
+                                qty: item.qty
+                            })),
+                            totalPrice,
+                            totalTaxes,
+                            totalAmount: totalPrice + totalTaxes
+                        };
+                        localStorage.setItem('activeTravelBooking', JSON.stringify(bookingData));
                         navigate('/store/travel/cart');
                     }}
                     className={`px-8 py-3.5 rounded-xl font-[1000] text-[12px] uppercase tracking-[0.1em] transition-all shadow-lg ${totalRoomsCount > 0 ? 'bg-yellow-400 text-gray-900 shadow-yellow-100 active:scale-95' : 'bg-gray-100 text-gray-400 shadow-none cursor-not-allowed'}`}

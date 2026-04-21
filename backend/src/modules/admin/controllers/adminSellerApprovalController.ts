@@ -349,3 +349,56 @@ export const getSellerDetails = async (req: Request, res: Response) => {
         });
     }
 };
+
+/**
+ * Update seller business types (commerce, hotel, bus)
+ */
+export const updateSellerBusinessTypes = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { businessTypes } = req.body;
+
+        if (!Array.isArray(businessTypes) || businessTypes.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'At least one business type is required and must be an array',
+            });
+        }
+
+        const validTypes = ['commerce', 'hotel', 'bus'];
+        const isValid = businessTypes.every(type => validTypes.includes(type));
+
+        if (!isValid) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid business types. Must be subset of: ${validTypes.join(', ')}`,
+            });
+        }
+
+        const seller = await Seller.findByIdAndUpdate(
+            id,
+            { businessTypes },
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!seller) {
+            return res.status(404).json({
+                success: false,
+                message: 'Seller not found',
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Seller business types updated successfully',
+            data: seller,
+        });
+    } catch (error: any) {
+        console.error('Error updating seller business types:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to update seller business types',
+            error: error.message,
+        });
+    }
+};

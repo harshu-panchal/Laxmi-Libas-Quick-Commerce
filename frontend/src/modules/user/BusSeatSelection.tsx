@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, User, Info, Wine, Wifi, Power, Tv, ShieldCheck, ChevronRight, X, Contact2, Navigation, Loader2 } from 'lucide-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { getScheduleDetail, createBusBooking } from '../../services/api/customerBusService';
 
 interface Seat {
     id: string;
@@ -18,16 +19,14 @@ interface Point {
     time: string;
     date: string;
 }
-
 const BusSeatSelection: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const location = useLocation();
     
-    // Mock data from previous page
-    const operator = "Hans Travels (I) Pvt Ltd.";
-    const timing = "08:00 PM, Wed 08 Apr";
-    const basePrice = 815;
+    const [schedule, setSchedule] = useState<any>(null);
+    const [lowerDeck, setLowerDeck] = useState<Seat[]>([]);
+    const [loading, setLoading] = useState(true);
 
     const [activeTab, setActiveTab] = useState('Seat');
     const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
@@ -36,24 +35,80 @@ const BusSeatSelection: React.FC = () => {
     const [selectedDropoff, setSelectedDropoff] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [passengers, setPassengers] = useState<Record<string, { firstName: string, lastName: string, age: string, gender: string }>>({});
-    const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
     const [isRedirecting, setIsRedirecting] = useState(false);
-    const [redirectApp, setRedirectApp] = useState('');
 
-    const handlePaymentAction = () => {
-        if (!selectedPayment) return;
+    const fetchDetail = async () => {
+        if (!id) return;
+        setLoading(true);
+        try {
+            const response = await getScheduleDetail(id);
+            if (response.success) {
+                setSchedule(response.data);
+                // Map seats
+                const mappedSeats: Seat[] = (response.data.seats || []).map((s: any) => ({
+                    id: s.seatNumber,
+                    type: s.seatType === 'sleeper' ? 'sleeper' : 'seater',
+                    status: s.isBooked ? 'booked' : 'available',
+                    price: s.price || response.data.basePrice,
+                    gender: s.bookedFor
+                }));
+                setLowerDeck(mappedSeats);
+            }
+        } catch (error) {
+            console.error('Failed to fetch bus detail:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchDetail();
+    }, [id]);
+
+    const operator = schedule?.operatorName || "Loading...";
+    const timing = schedule ? `${schedule.departureTime}, ${schedule.date}` : "Loading...";
+    const basePrice = schedule?.basePrice || 0;
+
+    const handlePaymentAction = async () => {
+        if (!schedule || selectedSeats.length === 0) return;
         
-        const appName = selectedPayment === 'gpay' ? 'Google Pay' : 
-                        selectedPayment === 'phonepe' ? 'PhonePe' : 
-                        selectedPayment === 'paytm' ? 'Paytm' : 'your bank';
-                        
-        setRedirectApp(appName);
         setIsRedirecting(true);
-        
-        setTimeout(() => {
+        try {
+            const payload = {
+                scheduleId: schedule._id,
+                seats: selectedSeats.map(id => ({
+                    seatNumber: id,
+                    passengerName: `${passengers[id]?.firstName} ${passengers[id]?.lastName || ''}`,
+                    passengerAge: Number(passengers[id]?.age),
+                    passengerGender: passengers[id]?.gender || 'Male'
+                })),
+                totalAmount: totalPrice,
+                pickupPoint: selectedPickupPoint?.name || 'Main Station',
+                dropoffPoint: selectedDropoffPoint?.name || 'Arrival Point'
+            };
+
+            const response = await createBusBooking(payload);
+            if (response.success) {
+                // Store in localStorage for TravelPayment page
+                const bookingData = {
+                    type: 'bus',
+                    bookingId: response.data._id,
+                    paymentType: 'bus',
+                    operatorName: operator,
+                    totalAmount: totalPrice,
+                    seats: selectedSeats
+                };
+                localStorage.setItem('activeTravelBooking', JSON.stringify(bookingData));
+                navigate('/store/travel/payment');
+            } else {
+                alert(response.message || 'Booking failed');
+            }
+        } catch (error) {
+            console.error('Bus Booking Error:', error);
+            alert('Something went wrong. Please try again.');
+        } finally {
             setIsRedirecting(false);
-            navigate(`/store/travel/confirmation?type=bus&operator=${encodeURIComponent(operator)}&from=Mumbai&to=Pune&seats=${selectedSeats.join(',')}&total=${totalPrice}`);
-        }, 2500);
+        }
     };
 
     const handlePassengerChange = (seatId: string, field: string, value: string) => {
@@ -89,15 +144,6 @@ const BusSeatSelection: React.FC = () => {
         point.sub.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // Mock seat grid (Lower Deck)
-    const [lowerDeck, setLowerDeck] = useState<Seat[]>(
-        Array.from({ length: 15 }, (_, i) => ({
-            id: `L${i + 1}`,
-            type: i % 5 === 0 ? 'sleeper' : 'seater',
-            status: i === 3 ? 'female-booked' : i === 7 ? 'male-booked' : i === 12 ? 'booked' : 'available',
-            price: basePrice + (i % 2 === 0 ? 50 : 0)
-        }))
-    );
 
     const toggleSeat = (seatId: string) => {
         const seat = lowerDeck.find(s => s.id === seatId);

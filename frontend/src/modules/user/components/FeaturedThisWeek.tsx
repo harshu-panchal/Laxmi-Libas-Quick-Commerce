@@ -105,8 +105,8 @@ export default function FeaturedThisWeek() {
                 <div className="bg-gradient-to-r from-red-600 via-orange-500 to-red-600 rounded-b-3xl px-3 py-2 text-center shadow-lg relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
                   <div className="text-white text-[9px] font-black uppercase leading-tight tracking-wider relative z-10">
-                    <div>NEWLY</div>
-                    <div>LAUNCHED</div>
+                    <div>TRENDING</div>
+                    <div>FOR YOU</div>
                   </div>
                 </div>
               </div>
@@ -136,7 +136,7 @@ export default function FeaturedThisWeek() {
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20">
                 <div className="bg-gradient-to-r from-amber-700 via-amber-800 to-amber-700 px-3 py-1 rounded-full flex items-center gap-1 shadow-lg border border-amber-900/30">
                   <div className="w-1 h-1 bg-white rounded-sm rotate-45 shadow-sm"></div>
-                  <span className="text-white text-[8px] font-black tracking-wide">For You</span>
+                  <span className="text-white text-[8px] font-black tracking-wide">Picks</span>
                   <div className="w-1 h-1 bg-white rounded-sm rotate-45 shadow-sm"></div>
                 </div>
               </div>

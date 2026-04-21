@@ -184,3 +184,46 @@ export const sendProductApprovalNotification = async (
     priority: "Medium",
   });
 };
+
+/**
+ * Send Hotel Booking Notification
+ */
+export const sendHotelBookingNotification = async (
+  customerId: string,
+  hotelName: string,
+  status: "Confirmed" | "Cancelled" | "Check-in",
+) => {
+  const title = `Hotel Booking ${status}`;
+  const message = status === "Confirmed" 
+    ? `Your booking at ${hotelName} is confirmed! Get ready for your stay.`
+    : status === "Cancelled"
+    ? `Your booking at ${hotelName} has been cancelled.`
+    : `It's time for your check-in at ${hotelName}. Enjoy your stay!`;
+
+  return sendNotification("Customer", customerId, title, message, {
+    type: status === "Cancelled" ? "Error" : "Success",
+    link: "/hotel/bookings",
+    priority: "High",
+  });
+};
+
+/**
+ * Send Bus Booking Notification
+ */
+export const sendBusBookingNotification = async (
+  customerId: string,
+  source: string,
+  destination: string,
+  status: "Confirmed" | "Cancelled",
+) => {
+  const title = `Bus Ticket ${status}`;
+  const message = status === "Confirmed"
+    ? `Your ticket from ${source} to ${destination} is confirmed. Have a safe journey!`
+    : `Your bus ticket from ${source} to ${destination} has been cancelled.`;
+
+  return sendNotification("Customer", customerId, title, message, {
+    type: status === "Cancelled" ? "Error" : "Success",
+    link: "/transport/bookings",
+    priority: "High",
+  });
+};

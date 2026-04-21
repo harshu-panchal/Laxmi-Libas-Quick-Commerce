@@ -13,6 +13,7 @@ export interface IAdmin extends Document {
   // FCM Push Notification Tokens
   fcmTokens?: string[];        // Web push notification tokens
   fcmTokenMobile?: string[];   // Mobile push notification tokens
+  permissions?: string[];      // Module-based permissions
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -73,6 +74,11 @@ const AdminSchema = new Schema<IAdmin>(
     fcmTokenMobile: {
       type: [String],
       default: []
+    },
+    permissions: {
+      type: [String],
+      enum: ['commerce', 'orders', 'users', 'sellers', 'hotel', 'bus', 'delivery'],
+      default: ['commerce', 'orders', 'users', 'sellers'] // Default basic permissions
     },
   },
   {

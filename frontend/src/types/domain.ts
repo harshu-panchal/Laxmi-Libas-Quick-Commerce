@@ -24,8 +24,10 @@ export interface Product {
     value?: string;
     price: number;
     discPrice?: number;
+    mrp?: number;
     stock?: number;
     status?: string;
+    id?: string;
     _id?: { $oid: string } | string;
   }>;
   imageUrl?: string;

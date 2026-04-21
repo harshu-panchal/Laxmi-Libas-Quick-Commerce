@@ -23,10 +23,14 @@ export const getAllOrders = asyncHandler(
       dateFrom,
       dateTo,
       search,
+      type,
+      orderType,
     } = req.query;
 
     const query: any = {};
 
+    if (type) query.type = type;
+    if (orderType) query.orderType = orderType;
     if (status) query.status = status;
     if (paymentStatus) query.paymentStatus = paymentStatus;
     if (dateFrom || dateTo) {
@@ -193,6 +197,44 @@ export const updateOrderStatus = asyncHandler(
     return res.status(200).json({
       success: true,
       message: "Order status updated successfully",
+      data: order,
+    });
+  }
+);
+
+/**
+ * Update order tracking info (Ecommerce only)
+ */
+export const updateOrderTracking = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { courierPartner, trackingId, status } = req.body;
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (order.orderType !== 'ecommerce') {
+      return res.status(400).json({
+        success: false,
+        message: "Tracking info can only be updated for ecommerce orders",
+      });
+    }
+
+    if (courierPartner) order.courierPartner = courierPartner;
+    if (trackingId) order.trackingId = trackingId;
+    if (status) order.status = status;
+
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Order tracking info updated successfully",
       data: order,
     });
   }

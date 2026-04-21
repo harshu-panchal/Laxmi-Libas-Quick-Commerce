@@ -56,6 +56,7 @@ export interface ISeller extends Document {
   approvedAt?: Date;
   balance: number;
   categories: string[];
+  businessTypes: ('commerce' | 'hotel' | 'bus')[];
   logo?: string;
   city?: string;
   isShopOpen: boolean;
@@ -254,6 +255,12 @@ const SellerSchema = new Schema<ISeller>(
       type: Schema.Types.ObjectId,
       ref: "Category",
     }],
+    businessTypes: {
+      type: [String],
+      enum: ['commerce', 'hotel', 'bus'],
+      default: ['commerce'],
+      required: true
+    },
     logo: {
       type: String,
       trim: true,

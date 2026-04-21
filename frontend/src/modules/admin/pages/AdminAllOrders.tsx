@@ -26,6 +26,8 @@ export default function AdminAllOrders() {
   const [status, setStatus] = useState("All Status");
   const [entriesPerPage, setEntriesPerPage] = useState("10");
   const [searchQuery, setSearchQuery] = useState("");
+  const [orderTypeFilter, setOrderTypeFilter] = useState("All Types");
+  const [moduleTypeFilter, setModuleTypeFilter] = useState("All Modules");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -51,6 +53,14 @@ export default function AdminAllOrders() {
 
         if (status !== "All Status" && status !== "Payment Pending") {
           params.status = status;
+        }
+
+        if (orderTypeFilter !== "All Types") {
+          params.orderType = orderTypeFilter.toLowerCase();
+        }
+
+        if (moduleTypeFilter !== "All Modules") {
+          params.type = moduleTypeFilter.toLowerCase();
         }
 
         if (searchQuery) {
@@ -96,7 +106,8 @@ export default function AdminAllOrders() {
     currentPage,
     entriesPerPage,
     status,
-    searchQuery,
+    orderTypeFilter,
+    moduleTypeFilter,
     searchQuery,
     dateRange,
   ]);
@@ -383,6 +394,43 @@ export default function AdminAllOrders() {
                   <option>Cancelled</option>
                   <option>Rejected</option>
                   <option>Returned</option>
+                </select>
+              </div>
+
+              {/* Order Type Filter */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full lg:w-auto">
+                <label className="text-xs sm:text-sm font-medium text-neutral-700 whitespace-nowrap">
+                  Type
+                </label>
+                <select
+                  value={orderTypeFilter}
+                  onChange={(e) => {
+                    setOrderTypeFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500">
+                  <option>All Types</option>
+                  <option>Quick</option>
+                  <option>Ecommerce</option>
+                </select>
+              </div>
+
+              {/* Module Filter */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full lg:w-auto">
+                <label className="text-xs sm:text-sm font-medium text-neutral-700 whitespace-nowrap">
+                  Module
+                </label>
+                <select
+                  value={moduleTypeFilter}
+                  onChange={(e) => {
+                    setModuleTypeFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500">
+                  <option>All Modules</option>
+                  <option>Product</option>
+                  <option>Hotel</option>
+                  <option>Bus</option>
                 </select>
               </div>
 

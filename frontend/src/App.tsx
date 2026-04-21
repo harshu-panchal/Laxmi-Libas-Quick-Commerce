@@ -53,14 +53,16 @@ const Category = lazy(() => import("./modules/user/Category"));
 const Invoice = lazy(() => import("./modules/user/Invoice"));
 const Login = lazy(() => import("./modules/user/Login"));
 const Notifications = lazy(() => import("./modules/user/Notifications"));
-
+const TrackOrder = lazy(() => import("./modules/user/TrackOrder"));
 const AboutUs = lazy(() => import("./modules/user/AboutUs"));
 const ContactUs = lazy(() => import("./modules/user/ContactUs"));
 const ReturnAndRefundPolicy = lazy(() => import("./modules/user/ReturnAndRefundPolicy"));
 const TermsAndConditions = lazy(() => import("./modules/user/TermsAndConditions"));
 const PrivacyPolicy = lazy(() => import("./modules/user/PrivacyPolicy"));
 const ShippingPolicy = lazy(() => import("./modules/user/ShippingPolicy"));
+const ReferEarn = lazy(() => import("./modules/user/ReferEarn"));
 const FAQ = lazy(() => import("./modules/user/FAQ"));
+const HelpCenter = lazy(() => import("./modules/user/HelpCenter"));
 const Wishlist = lazy(() => import("./modules/user/Wishlist"));
 const Addresses = lazy(() => import("./modules/user/Addresses"));
 const AddressBook = lazy(() => import("./modules/user/AddressBook"));
@@ -467,7 +469,9 @@ function App() {
                 <Route path="/store/travel/buses/seats/:id" element={<BusSeatSelection />} />
                 <Route path="/payment/verify" element={<PaymentVerify />} />
                 <Route path="/store/minutes" element={<MinutesStore />} />
-                                    <Route path="/search" element={<Search />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/track-order/:id" element={<TrackOrder />} />
+                <Route path="/search" element={<Search />} />
                                     <Route
                                       path="/orders"
                                       element={
@@ -508,6 +512,14 @@ function App() {
                                         </ProtectedRoute>
                                       }
                                     />
+                                    <Route
+                                      path="/refer-earn"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <ReferEarn />
+                                        </ProtectedRoute>
+                                      }
+                                    />
                                     <Route path="/about-us" element={<AboutUs />} />
                                     <Route path="/contact-us" element={<ContactUs />} />
                                     <Route path="/return-refund-policy" element={<ReturnAndRefundPolicy />} />
@@ -515,6 +527,11 @@ function App() {
                                     <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                                     <Route path="/shipping-policy" element={<ShippingPolicy />} />
                                     <Route path="/faq" element={<FAQ />} />
+                                    <Route path="/help-center" element={
+                                      <ProtectedRoute requiredUserType="Customer">
+                                        <HelpCenter />
+                                      </ProtectedRoute>
+                                    } />
                                     <Route
                                       path="/wishlist"
                                       element={
