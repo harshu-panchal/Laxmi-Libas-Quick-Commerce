@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getAllSellers, updateSellerStatus, deleteSeller, Seller as SellerType, updateSeller } from '../../../services/api/sellerService';
+import { updateSellerCommission } from '../../../services/api/adminCommissionService';
 import SellerServiceMap from '../components/SellerServiceMap';
+
 
 interface Seller {
     _id: string;
@@ -108,6 +110,9 @@ export default function AdminManageSellerList() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isUpdatingRadius, setIsUpdatingRadius] = useState(false);
     const [newRadius, setNewRadius] = useState<number>(10);
+    const [isUpdatingCommission, setIsUpdatingCommission] = useState(false);
+    const [newCommissionRate, setNewCommissionRate] = useState<number>(10);
+
 
     // Fetch sellers from backend
     useEffect(() => {
@@ -241,8 +246,10 @@ export default function AdminManageSellerList() {
         if (seller) {
             setEditingSeller(seller);
             setNewRadius(seller.serviceRadiusKm || 10);
+            setNewCommissionRate(seller.commission || 10);
             setIsEditModalOpen(true);
         }
+
     };
 
     const handleUpdateRadius = async () => {
@@ -266,6 +273,29 @@ export default function AdminManageSellerList() {
             setIsUpdatingRadius(false);
         }
     };
+
+    const handleUpdateCommission = async () => {
+        if (!editingSeller) return;
+
+        try {
+            setIsUpdatingCommission(true);
+            const response = await updateSellerCommission(editingSeller._id, newCommissionRate);
+            if (response.success) {
+                setEditingSeller({ ...editingSeller, commission: newCommissionRate });
+                // Also update the seller in the main list
+                setSellers(sellers.map(s => s._id === editingSeller._id ? { ...s, commission: newCommissionRate } : s));
+                setSuccessMessage('Commission rate updated successfully');
+                setTimeout(() => setSuccessMessage(''), 3000);
+            }
+        } catch (error) {
+            console.error('Error updating commission:', error);
+            setError('Failed to update commission rate');
+            setTimeout(() => setError(''), 3000);
+        } finally {
+            setIsUpdatingCommission(false);
+        }
+    };
+
 
     const handleApprove = async (id: number | string) => {
         const sellerId = typeof id === 'number' ? sellers.find(s => s.id === id)?._id : id;
@@ -842,9 +872,27 @@ export default function AdminManageSellerList() {
                                             <p className="text-sm font-medium text-neutral-900">{editingSeller.category || 'N/A'}</p>
                                         </div>
                                         <div>
-                                            <label className="text-xs text-neutral-500">Commission</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.commission.toFixed(2)}%</p>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Commission Rate (%)</label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    step="0.1"
+                                                    value={newCommissionRate}
+                                                    onChange={(e) => setNewCommissionRate(parseFloat(e.target.value))}
+                                                    className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                />
+                                                <button
+                                                    onClick={handleUpdateCommission}
+                                                    disabled={isUpdatingCommission || newCommissionRate === editingSeller.commission}
+                                                    className="px-3 py-1.5 bg-teal-600 text-white rounded text-xs font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                                                >
+                                                    {isUpdatingCommission ? '...' : 'Update'}
+                                                </button>
+                                            </div>
                                         </div>
+
                                     </div>
                                 </div>
 

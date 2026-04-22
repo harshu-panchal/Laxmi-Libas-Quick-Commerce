@@ -1,4 +1,5 @@
 import Notification from "../models/Notification";
+import { emitToUser, emitToRole } from "../utils/socketEmitter";
 import Admin from "../models/Admin";
 import Seller from "../models/Seller";
 import Customer from "../models/Customer";
@@ -40,8 +41,8 @@ export const sendNotification = async (
     isRead: false,
   });
 
-  // Here you would integrate with push notification service (FCM, APNS, etc.)
-  // For now, we'll just create the notification record
+  // Emit socket event
+  emitToUser(recipientId, 'notification', notification);
 
   return notification;
 };
@@ -107,6 +108,15 @@ export const sendBroadcastNotification = async (
       }),
     ),
   );
+
+  // Emit socket broadcast
+  emitToRole(recipientType, 'notification', { 
+    recipientType, 
+    title, 
+    message, 
+    type: options?.type || "Info",
+    createdAt: new Date()
+  });
 
   return notifications;
 };

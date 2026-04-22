@@ -1,7 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getOrderById, updateOrderStatus, assignDeliveryBoy, Order } from '../../../services/api/admin/adminOrderService';
+import { getOrderById, updateOrderStatus, assignDeliveryBoy, generateCourierLabel, trackCourierOrder, Order } from '../../../services/api/admin/adminOrderService';
 import { getDeliveryBoys, DeliveryBoy } from '../../../services/api/admin/adminDeliveryService';
+import { Truck, Package, RefreshCw, CheckCircle, ExternalLink } from 'lucide-react'; // Added icons
 
 export default function AdminOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -10,6 +11,9 @@ export default function AdminOrderDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [updating, setUpdating] = useState(false);
+  const [labelLoading, setLabelLoading] = useState(false);
+  const [trackingInfo, setTrackingInfo] = useState<any>(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
 
   // Fetch order detail from API
   useEffect(() => {
@@ -54,6 +58,47 @@ export default function AdminOrderDetail() {
       setUpdating(false);
     }
   };
+
+  // Handle Courier Label Generation
+  const handleGenerateLabel = async () => {
+    if (!order) return;
+    setLabelLoading(true);
+    try {
+      const response = await generateCourierLabel(order._id);
+      if (response.success) {
+        setOrder(prev => prev ? { ...prev, trackingId: response.awb, status: 'Shipped' } : null);
+        alert('Delhivery Waybill generated: ' + response.awb);
+      } else {
+        alert(response.message || 'Failed to generate label');
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Delhivery integration error');
+    } finally {
+      setLabelLoading(false);
+    }
+  };
+
+  // Handle Tracking
+  const handleTrackOrder = async () => {
+    if (!order || !order.trackingId) return;
+    setTrackingLoading(true);
+    try {
+      const response = await trackCourierOrder(order._id);
+      if (response.success) {
+        setTrackingInfo(response.data);
+      }
+    } catch (err) {
+      console.error('Tracking error:', err);
+    } finally {
+      setTrackingLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (order?.trackingId && order.status === 'Shipped') {
+      handleTrackOrder();
+    }
+  }, [order?.trackingId, order?.status]);
 
   if (loading) {
     return (
@@ -220,21 +265,91 @@ export default function AdminOrderDetail() {
             </div>
           </div>
 
-          {/* Delivery Address */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Delivery Address</h2>
-            <div className="text-neutral-700">
-              <p className="font-medium">{order.customerName}</p>
-              <p>{order.deliveryAddress.address}</p>
-              <p>
-                {order.deliveryAddress.city}, {order.deliveryAddress.state || ''} -{' '}
-                {order.deliveryAddress.pincode}
-              </p>
-              {order.deliveryAddress.landmark && (
-                <p className="text-sm text-neutral-500">Landmark: {order.deliveryAddress.landmark}</p>
-              )}
             </div>
           </div>
+
+          {/* Courier Management (Ecommerce Only) */}
+          {order.orderType === 'ecommerce' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+              <div className="bg-neutral-50 px-6 py-4 border-b border-neutral-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Truck className="text-neutral-500" size={20} />
+                  <h2 className="text-lg font-bold text-neutral-900">Courier Management</h2>
+                </div>
+                <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
+                  Delhivery Integrated
+                </span>
+              </div>
+              <div className="p-6">
+                {!order.trackingId ? (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-neutral-500 mb-4 font-medium">No shipping label has been generated yet for this ecommerce order.</p>
+                    <button
+                      onClick={handleGenerateLabel}
+                      disabled={labelLoading || order.status === 'Cancelled'}
+                      className="w-full sm:w-auto bg-neutral-900 hover:bg-black text-white px-8 py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {labelLoading ? (
+                        <RefreshCw className="animate-spin" size={18} />
+                      ) : (
+                        <Package size={18} />
+                      )}
+                      Generate Delhivery Label
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="flex flex-wrap items-center justify-between gap-4 bg-teal-50 p-4 rounded-xl border border-teal-100">
+                      <div>
+                        <span className="text-[10px] font-black text-teal-600 uppercase tracking-widest block mb-1">Waybill Number (AWB)</span>
+                        <span className="text-lg font-black text-teal-900">{order.trackingId}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={handleTrackOrder}
+                          className="bg-white text-neutral-900 p-2 rounded-lg border border-teal-200 shadow-sm hover:bg-teal-100 transition-colors"
+                          title="Refresh Status"
+                        >
+                          <RefreshCw size={18} className={trackingLoading ? 'animate-spin' : ''} />
+                        </button>
+                        <a 
+                          href={`https://www.delhivery.com/track/package/${order.trackingId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-teal-600 text-white p-2 rounded-lg shadow-md hover:bg-teal-700 transition-colors"
+                          title="View on Delhivery Website"
+                        >
+                          <ExternalLink size={18} />
+                        </a>
+                      </div>
+                    </div>
+
+                    {trackingInfo && trackingInfo.ShipmentData && (
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
+                          <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
+                          Live Tracking Milestones
+                        </h3>
+                        <div className="relative pl-6 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-neutral-100">
+                          {trackingInfo.ShipmentData[0]?.Shipment?.Scans?.slice(0, 5).map((scan: any, idx: number) => (
+                            <div key={idx} className="relative">
+                              <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-white border-2 border-teal-500 z-10"></div>
+                              <div>
+                                <p className="text-sm font-bold text-neutral-900 leading-tight">{scan.ScanDetail?.Instructions || scan.ScanDetail?.Status}</p>
+                                <p className="text-[10px] text-neutral-400 font-bold mt-1 uppercase">
+                                  {scan.ScanDetail?.ScannedLocation} • {new Date(scan.ScanDetail?.ScanDateTime).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}

@@ -7,7 +7,10 @@ export interface IHotelRoom extends Document {
   pricePerNight: number;
   capacity: number;
   amenities: string[];
-  images: string[];
+  images: Array<{
+    url: string;
+    caption?: string;
+  }>;
   totalRooms: number;
   availableRooms: number;
   status: 'Available' | 'Full' | 'Inactive';
@@ -42,7 +45,10 @@ const HotelRoomSchema = new Schema<IHotelRoom>(
       min: 1,
     },
     amenities: [String],
-    images: [String],
+    images: [{
+      url: String,
+      caption: String,
+    }],
     totalRooms: {
       type: Number,
       required: true,

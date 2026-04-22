@@ -1,30 +1,61 @@
-import { Card } from '../components/Card';
-import { Table } from '../components/Table';
-import { getMyBuses, getBusBookings, updateBusBookingStatus, getManifestUrl, Bus, BusBooking } from '../../../services/api/transportPartnerService';
-import Skeleton from 'react-loading-skeleton';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Bus as BusIcon, 
+  Users, 
+  MapPin, 
+  TrendingUp, 
+  Download, 
+  RefreshCw,
+  MoreVertical,
+  CheckCircle2,
+  Clock,
+  ArrowRight,
+  IndianRupee,
+  Navigation
+} from 'lucide-react';
+import { 
+  getMyBuses, 
+  getBusBookings, 
+  updateBusBookingStatus, 
+  getManifestUrl, 
+  Bus, 
+  BusBooking 
+} from '../../../services/api/transportPartnerService';
+import { motion, AnimatePresence } from 'framer-motion';
+import { format } from 'date-fns';
 
 const TransportDashboard: React.FC = () => {
-  const [buses, setBuses] = React.useState<Bus[]>([]);
-  const [bookings, setBookings] = React.useState<BusBooking[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [activeBusId, setActiveBusId] = React.useState<string | null>(null);
+  const navigate = useNavigate();
+  const [buses, setBuses] = useState<Bus[]>([]);
+  const [bookings, setBookings] = useState<BusBooking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeBusId, setActiveBusId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  React.useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const busRes = await getMyBuses();
-        if (busRes.success && busRes.data.length > 0) {
-          setBuses(busRes.data);
-          setActiveBusId(busRes.data[0]._id);
-          const bookingRes = await getBusBookings(busRes.data[0]._id);
-          if (bookingRes.success) setBookings(bookingRes.data);
-        }
-      } catch (e) {
-        console.error("Dashboard fetch error", e);
-      } finally {
-        setLoading(false);
+  const fetchData = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    else setIsRefreshing(true);
+
+    try {
+      const busRes = await getMyBuses();
+      if (busRes.success && busRes.data.length > 0) {
+        setBuses(busRes.data);
+        const currentBusId = activeBusId || busRes.data[0]._id;
+        if (!activeBusId) setActiveBusId(currentBusId);
+        
+        const bookingRes = await getBusBookings(currentBusId);
+        if (bookingRes.success) setBookings(bookingRes.data);
       }
-    };
+    } catch (e) {
+      console.error("Dashboard fetch error", e);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -35,7 +66,7 @@ const TransportDashboard: React.FC = () => {
            setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, status: status as any } : b));
         }
      } catch (e) {
-        alert("Action failed.");
+        console.error("Status update error", e);
      }
   };
 
@@ -44,163 +75,256 @@ const TransportDashboard: React.FC = () => {
      window.open(getManifestUrl(busId, token), '_blank');
   };
 
-  if (loading) return <div className="p-8">Syncing Fleet Data...</div>;
-
-  const stats = {
-    totalBuses: buses.length,
-    totalBookings: bookings.length,
-    revenue: bookings.reduce((acc, b) => acc + b.amount, 0),
-    boardedCount: bookings.filter(b => b.status === 'Boarded').length
-  };
+  if (loading) return (
+    <div className="p-12 flex flex-col items-center justify-center min-h-[60vh]">
+      <motion.div 
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        className="w-12 h-12 text-blue-600 mb-4"
+      >
+        <RefreshCw size={48} />
+      </motion.div>
+      <p className="text-sm font-black text-neutral-400 uppercase tracking-widest animate-pulse">Syncing Fleet Intelligence...</p>
+    </div>
+  );
 
   return (
-    <div className="space-y-10 pb-10">
-      {/* Fleet Header HUD */}
-      <div className="bg-[#1a1a1a] p-10 rounded-[2.5rem] text-white overflow-hidden relative border border-neutral-800">
-         <div className="relative z-10">
-            <h2 className="text-4xl font-black tracking-tighter mb-2">Fleet Management Console</h2>
-            <p className="text-neutral-400 font-bold uppercase text-[10px] tracking-[0.2em]">Route Intelligence & Tracking</p>
-         </div>
-         <div className="absolute right-[-10%] top-[-20%] w-64 h-64 bg-teal-500/20 blur-[100px] rounded-full"></div>
-         
-         <div className="mt-8 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {buses.map(bus => (
-               <button 
-                key={bus._id} 
-                onClick={async () => {
-                    setActiveBusId(bus._id);
-                    const res = await getBusBookings(bus._id);
-                    if (res.success) setBookings(res.data);
-                }}
-                className={`flex-shrink-0 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border ${activeBusId === bus._id ? 'bg-teal-500 border-teal-400 text-white shadow-xl shadow-teal-500/20' : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'}`}
-               >
-                 {bus.busName} ({bus.busNumber})
-               </button>
-            ))}
-         </div>
-      </div>
-
-      {/* Analytics KPI HUD */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm flex items-center justify-between">
-            <div>
-               <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Fleet Size</div>
-               <div className="text-3xl font-black text-neutral-800">{stats.totalBuses}</div>
-            </div>
-            <div className="w-12 h-12 bg-neutral-50 rounded-2xl flex items-center justify-center text-neutral-400">
-               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-1.1 0-2 .9-2 2v7c0 1.1.9 2 2 2h2"></path><circle cx="7" cy="17" r="2"></circle><circle cx="17" cy="17" r="2"></circle></svg>
-            </div>
-        </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm flex items-center justify-between">
-            <div>
-               <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Total Bookings</div>
-               <div className="text-3xl font-black text-neutral-800">{stats.totalBookings}</div>
-            </div>
-            <div className="w-12 h-12 bg-neutral-50 rounded-2xl flex items-center justify-center text-neutral-400">
-               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line></svg>
-            </div>
-        </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm flex items-center justify-between">
-            <div>
-               <div className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Boarded Today</div>
-               <div className="text-3xl font-black text-neutral-800">{stats.boardedCount}</div>
-            </div>
-            <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500">
-               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
-            </div>
-        </div>
-        <div className="bg-neutral-900 p-6 rounded-[2rem] shadow-xl shadow-black/10 text-white flex items-center justify-between">
-            <div>
-               <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Fleet Revenue</div>
-               <div className="text-3xl font-black text-white">₹{stats.revenue.toLocaleString()}</div>
-            </div>
-            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-teal-400 font-bold">₹</div>
-        </div>
-      </div>
-
-      {/* Operational Manifest Area */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h3 className="text-2xl font-black text-neutral-800 tracking-tighter">Passenger Manifest</h3>
-            <p className="text-sm font-medium text-neutral-400">Manage boarding and seat verification</p>
-          </div>
-          {activeBusId && (
-            <button 
-              onClick={() => handleDownloadManifest(activeBusId)}
-              className="flex items-center gap-2 px-6 py-3 bg-neutral-100 test-neutral-800 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-neutral-200 transition-all border border-neutral-200"
+    <div className="space-y-8 pb-10 max-w-[1600px] mx-auto">
+      {/* Fleet Command HUD */}
+      <div className="relative bg-neutral-900 rounded-[2.5rem] p-8 md:p-12 text-white overflow-hidden shadow-2xl shadow-blue-900/20">
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+          <div className="space-y-4">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              Download Manifest PDF
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Route Monitoring Active</span>
+            </motion.div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tighter">Fleet Operations <span className="text-blue-500">Console</span></h1>
+            <p className="text-neutral-400 font-medium max-w-md">Track your routes, manage passenger boarding, and optimize fleet performance across all active routes.</p>
+          </div>
+          
+          <div className="flex flex-wrap gap-3">
+            <button 
+              onClick={() => fetchData(false)}
+              className={`p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+            >
+              <RefreshCw size={20} />
             </button>
-          )}
+            <button 
+              onClick={() => navigate('/seller/transport/add')}
+              className="px-8 py-4 bg-blue-500 text-white rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all"
+            >
+              <BusIcon size={20} />
+              Register New Bus
+            </button>
+          </div>
         </div>
-        
-        <div className="bg-white rounded-[2.5rem] border border-neutral-100 shadow-sm overflow-hidden">
-           <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                 <thead>
-                    <tr className="bg-neutral-50 border-b border-neutral-100">
-                       <th className="px-8 py-5 text-[10px] font-black uppercase text-neutral-400 tracking-widest">Passenger</th>
-                       <th className="px-6 py-5 text-[10px] font-black uppercase text-neutral-400 tracking-widest">Seat Nos</th>
-                       <th className="px-6 py-5 text-[10px] font-black uppercase text-neutral-400 tracking-widest">Amount</th>
-                       <th className="px-6 py-5 text-[10px] font-black uppercase text-neutral-400 tracking-widest">Status</th>
-                       <th className="px-8 py-5 text-[10px] font-black uppercase text-neutral-400 tracking-widest text-right">Actions</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-neutral-50">
-                    {bookings.length === 0 ? (
-                       <tr>
-                          <td colSpan={5} className="px-8 py-20 text-center text-neutral-400 font-bold uppercase text-xs tracking-widest">No passengers assigned to this trip</td>
-                       </tr>
-                    ) : (
-                       bookings.map(booking => (
-                          <tr key={booking._id} className="hover:bg-neutral-50/50 transition-colors group">
-                             <td className="px-8 py-5">
-                                <div className="font-black text-neutral-800 tracking-tight">{(booking.userId as any)?.name || "GUEST"}</div>
-                                <div className="text-[10px] font-bold text-neutral-400 tracking-widest">{(booking.userId as any)?.mobile || "NO PHONE"}</div>
-                             </td>
-                             <td className="px-6 py-5">
-                                <div className="flex gap-1 flex-wrap">
-                                   {booking.seats?.map(s => (
-                                      <span key={s} className="px-2 py-0.5 bg-neutral-100 rounded-md text-[10px] font-black font-mono text-neutral-600 border border-neutral-200">{s}</span>
-                                   ))}
-                                </div>
-                             </td>
-                             <td className="px-6 py-5 font-black text-neutral-800">₹{booking.amount}</td>
-                             <td className="px-6 py-5">
-                                <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                                   booking.status === 'Boarded' ? 'bg-orange-100 text-orange-600 border border-orange-200' : 
-                                   booking.status === 'Completed' ? 'bg-green-100 text-green-600 border border-green-200' : 
-                                   'bg-teal-100 text-teal-600 border border-teal-200'
-                                }`}>
-                                   {booking.status}
-                                </span>
-                             </td>
-                             <td className="px-8 py-5 text-right">
-                                {booking.status === 'Confirmed' && (
-                                   <button 
-                                      onClick={() => handleStatusUpdate(booking._id, 'Boarded')}
-                                      className="px-4 py-2 bg-orange-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-orange-500/20"
-                                   >
-                                      Mark Boarded
-                                   </button>
-                                )}
-                                {booking.status === 'Boarded' && (
-                                   <button 
-                                      onClick={() => handleStatusUpdate(booking._id, 'Completed')}
-                                      className="px-4 py-2 bg-neutral-800 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
-                                   >
-                                      Trip Complete
-                                   </button>
-                                )}
-                             </td>
-                          </tr>
-                       ))
-                    )}
-                 </tbody>
-              </table>
-           </div>
+
+        {/* Fleet Selector */}
+        <div className="mt-12 flex gap-4 overflow-x-auto pb-4 scrollbar-hide relative z-10">
+          {buses.map(b => (
+            <button
+              key={b._id}
+              onClick={() => setActiveBusId(b._id)}
+              className={`flex-shrink-0 px-6 py-4 rounded-3xl border-2 transition-all flex flex-col items-start gap-1 group ${
+                activeBusId === b._id 
+                ? 'bg-white border-white text-neutral-900 shadow-xl' 
+                : 'bg-white/5 border-transparent text-white/60 hover:bg-white/10'
+              }`}
+            >
+              <span className="text-xs font-black uppercase tracking-widest opacity-60">{b.busNumber}</span>
+              <span className="text-lg font-black tracking-tight">{b.busName}</span>
+              <div className="mt-2 flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-blue-500/10 text-blue-500">
+                Active Route
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-[40%] h-full bg-gradient-to-l from-blue-500/10 to-transparent pointer-events-none" />
+        <div className="absolute bottom-[-50%] right-[-10%] w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
+      </div>
+
+      {/* Fleet KPI Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Active Routes', value: buses.length, icon: Navigation, color: 'text-blue-500', bg: 'bg-blue-50' },
+          { label: 'Total Passengers', value: bookings.length, icon: Users, color: 'text-purple-500', bg: 'bg-purple-50' },
+          { label: 'Fleet Revenue', value: '₹' + bookings.reduce((a, b) => a + b.amount, 0).toLocaleString(), icon: IndianRupee, color: 'text-teal-500', bg: 'bg-teal-50' },
+          { label: 'On-Time Performance', value: '94%', icon: TrendingUp, color: 'text-orange-500', bg: 'bg-orange-50' },
+        ].map((stat, i) => (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            key={stat.label}
+            className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm group hover:shadow-md transition-all"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center`}>
+                <stat.icon size={24} />
+              </div>
+              <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-full">+5.2%</span>
+            </div>
+            <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{stat.label}</p>
+            <h3 className="text-3xl font-black text-neutral-800 tracking-tighter mt-1">{stat.value}</h3>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Main Operational Area */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        {/* Passenger Manifest */}
+        <div className="xl:col-span-2 space-y-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-4">
+            <div>
+              <h2 className="text-2xl font-black text-neutral-900 tracking-tight flex items-center gap-3">
+                <Users className="text-blue-500" size={24} />
+                Passenger Manifest
+              </h2>
+              <p className="text-sm font-medium text-neutral-400">Boarding & seating verification for current trip</p>
+            </div>
+            {activeBusId && (
+              <button 
+                onClick={() => handleDownloadManifest(activeBusId)}
+                className="flex items-center gap-2 px-6 py-3 bg-neutral-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-neutral-900/20"
+              >
+                <Download size={16} />
+                Download PDF
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <AnimatePresence mode="popLayout">
+              {bookings.length === 0 ? (
+                <div className="p-20 bg-neutral-50 rounded-[2.5rem] border-2 border-dashed border-neutral-200 text-center">
+                  <p className="text-neutral-400 font-bold uppercase tracking-widest text-xs">No passenger records for this trip</p>
+                </div>
+              ) : (
+                bookings.map((booking, i) => (
+                  <motion.div
+                    key={booking._id}
+                    layout
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all group flex flex-col sm:flex-row items-center justify-between gap-6"
+                  >
+                    <div className="flex items-center gap-5 w-full sm:w-auto">
+                      <div className="w-16 h-16 bg-neutral-100 rounded-2xl flex items-center justify-center text-2xl font-black text-neutral-300 relative overflow-hidden">
+                        {(booking.userId as any)?.name?.[0] || 'G'}
+                        <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-500" />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-black text-neutral-800">{(booking.userId as any)?.name || 'Guest'}</h4>
+                        <div className="flex gap-1 mt-1">
+                          {booking.seats?.map(s => (
+                            <span key={s} className="px-2 py-0.5 bg-neutral-50 border border-neutral-100 rounded-md text-[10px] font-black font-mono text-neutral-500">{s}</span>
+                          ))}
+                        </div>
+                        <div className="mt-2 flex gap-2">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${
+                            booking.status === 'Boarded' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 
+                            booking.status === 'Completed' ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' :
+                            'bg-blue-100 text-blue-600'
+                          }`}>
+                            {booking.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                      <div className="text-right mr-4 hidden md:block">
+                        <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Fare Paid</p>
+                        <p className="text-lg font-black text-neutral-800">₹{booking.amount.toLocaleString()}</p>
+                      </div>
+                      
+                      {booking.status === 'Confirmed' && (
+                        <button 
+                          onClick={() => handleStatusUpdate(booking._id, 'Boarded')}
+                          className="flex-1 sm:flex-none px-6 py-3 bg-orange-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-500/20 hover:scale-105 active:scale-95 transition-all"
+                        >
+                          Mark Boarded
+                        </button>
+                      )}
+                      
+                      {booking.status === 'Boarded' && (
+                        <button 
+                          onClick={() => handleStatusUpdate(booking._id, 'Completed')}
+                          className="flex-1 sm:flex-none px-6 py-3 bg-neutral-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all"
+                        >
+                          Trip Ended
+                        </button>
+                      )}
+
+                      <div className="flex gap-2">
+                        <button className="p-3 bg-neutral-50 text-neutral-600 rounded-2xl hover:bg-neutral-100 transition-all border border-neutral-200">
+                          <MapPin size={18} />
+                        </button>
+                        <button className="p-3 bg-neutral-50 text-neutral-600 rounded-2xl hover:bg-neutral-100 transition-all border border-neutral-200">
+                          <MoreVertical size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Fleet Insights */}
+        <div className="space-y-6">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm space-y-6">
+            <h3 className="text-xl font-black text-neutral-900 tracking-tight">Route Efficiency</h3>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-neutral-400">
+                  <span>Occupancy</span>
+                  <span className="text-blue-600">82%</span>
+                </div>
+                <div className="w-full h-3 bg-neutral-100 rounded-full overflow-hidden p-0.5">
+                  <div className="w-[82%] h-full bg-blue-500 rounded-full" />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-neutral-400">
+                  <span>Fuel Efficiency</span>
+                  <span className="text-teal-600">92%</span>
+                </div>
+                <div className="w-full h-3 bg-neutral-100 rounded-full overflow-hidden p-0.5">
+                  <div className="w-[92%] h-full bg-teal-500 rounded-full" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="pt-6 border-t border-neutral-50 space-y-3">
+              <button className="w-full flex items-center justify-between p-4 bg-blue-50 text-blue-700 rounded-2xl font-bold text-sm hover:bg-blue-100 transition-all group">
+                Optimize Schedule
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+              <button className="w-full flex items-center justify-between p-4 bg-neutral-50 text-neutral-700 rounded-2xl font-bold text-sm hover:bg-neutral-100 transition-all group">
+                Fleet Tracking
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-blue-600 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-blue-600/20 relative overflow-hidden">
+             <div className="relative z-10 space-y-4">
+                <h3 className="text-xl font-black">Route Assistance</h3>
+                <p className="text-blue-100 text-sm font-medium">Real-time GPS tracking and route optimization support.</p>
+                <button className="px-6 py-3 bg-white text-blue-600 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl">SOS Support</button>
+             </div>
+             <div className="absolute right-[-20%] top-[-20%] w-48 h-48 bg-white/10 rounded-full blur-2xl" />
+          </div>
         </div>
       </div>
     </div>

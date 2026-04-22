@@ -4,6 +4,7 @@ import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
 import Seller from "../../../models/Seller";
 import mongoose from "mongoose";
+import { normalizeCity, calculateDistance, getDeliveryTypeByDistance } from "../../../utils/locationUtils";
 // import { findSellersWithinRange } from "../../../utils/locationHelper";
 
 // Get products with hybrid filtering (Smart Decision Engine)
@@ -14,6 +15,7 @@ export const getProducts = async (req: Request, res: Response) => {
       lng,
       pincode,
       categoryId,
+      city: userCityParam,
       limit = 20,
       page = 1
     } = req.query;
@@ -47,7 +49,25 @@ export const getProducts = async (req: Request, res: Response) => {
       };
       quickProducts = await Product.find(quickQuery)
         .populate('category', 'name')
-        .populate('seller', 'storeName location serviceRadiusKm')
+        .populate('seller', 'storeName location serviceRadiusKm city')
+        .limit(limitNum)
+        .skip(skip)
+        .lean();
+    } else if (userCityParam) {
+      // City-based fallback for quick delivery
+      const normalizedCity = normalizeCity(userCityParam as string);
+      const sellersInCity = await Seller.find({ city: normalizedCity, status: 'Approved' }).select('_id');
+      const sellerIds = sellersInCity.map(s => s._id);
+      
+      const quickQuery = {
+        ...baseQuery,
+        type: { $in: ['quick', 'both'] },
+        seller: { $in: sellerIds }
+      };
+      
+      quickProducts = await Product.find(quickQuery)
+        .populate('category', 'name')
+        .populate('seller', 'storeName location serviceRadiusKm city')
         .limit(limitNum)
         .skip(skip)
         .lean();
@@ -93,14 +113,43 @@ export const getProducts = async (req: Request, res: Response) => {
       .map((product: any) => {
         const nearbyAvailable  = quickProducts.some((q: any) => q._id.toString() === product._id.toString());
         const ecommerceAvailable = ecommerceProducts.some((e: any) => e._id.toString() === product._id.toString());
+        const seller = product.seller as any;
+        const sellerCity = seller?.city ? normalizeCity(seller.city) : '';
+        const userCity = userCityParam ? normalizeCity(userCityParam as string) : '';
+        
+        let deliveryInfo = { 
+          type: 'standard' as const, 
+          label: 'Standard Delivery', 
+          time: '3-5 days' 
+        };
+
+        let distance = null;
+        if (userLat && userLng && seller?.location?.coordinates) {
+          distance = calculateDistance(
+            userLat, 
+            userLng, 
+            seller.location.coordinates[1], // lat
+            seller.location.coordinates[0]  // lng
+          );
+          deliveryInfo = getDeliveryTypeByDistance(distance);
+        } else if (sellerCity && userCity && sellerCity === userCity) {
+          // Fallback to same city logic if no coords
+          deliveryInfo = { type: 'quick', label: 'Quick Delivery', time: '30-45 min' };
+        }
+
         return {
           productId: product._id,
           ...product,
-          nearbyAvailable,
+          distance,
+          nearbyAvailable: deliveryInfo.type === 'quick',
           ecommerceAvailable,
+          quickDeliveryAvailable: deliveryInfo.type === 'quick',
+          isSameCity: sellerCity === userCity,
+          deliveryType: deliveryInfo.type,
+          deliveryLabel: deliveryInfo.label,
           quickPrice: product.discPrice || product.price,
           ecommercePrice: product.discPrice || product.price,
-          deliveryTimeQuick: '30-45 min',
+          deliveryTimeQuick: deliveryInfo.time,
           deliveryTimeEcommerce: '3-5 days',
         };
       });
@@ -138,6 +187,11 @@ export const getProductById = async (req: Request, res: Response) => {
         "storeName mobile city fssaiLicNo address location serviceRadiusKm status"
       );
 
+    const seller = product.seller as any;
+    if (seller && seller.city) {
+      seller.city = normalizeCity(seller.city);
+    }
+
     if (!product || (product.seller as any)?.status !== "Approved") {
       return res.status(404).json({
         success: false,
@@ -148,7 +202,6 @@ export const getProductById = async (req: Request, res: Response) => {
     // Parse location (unused but kept for potential future use)
     // const userLat = latitude ? parseFloat(latitude as string) : null;
     // const userLng = longitude ? parseFloat(longitude as string) : null;
-    const seller = product.seller as any;
 
     // Initialize availability flag - Always true as per user request
     let isAvailableAtLocation = true;

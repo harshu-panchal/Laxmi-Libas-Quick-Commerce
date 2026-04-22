@@ -7,6 +7,20 @@ import AlertCard from '../components/AlertCard';
 import { getSellerDashboardStats, DashboardStats, NewOrder } from '../../../services/api/dashboardService';
 import { getInventoryInsights, InventoryInsights } from '../../../services/api/productService';
 import { getSellerProfile, toggleShopStatus } from '../../../services/api/auth/sellerAuthService';
+import { 
+  ShoppingBag, 
+  Hotel, 
+  Bus, 
+  TrendingUp, 
+  Package, 
+  CheckCircle2, 
+  Clock, 
+  AlertTriangle,
+  ArrowRight,
+  RefreshCw,
+  LayoutDashboard
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SellerDashboard() {
   const navigate = useNavigate();
@@ -16,75 +30,37 @@ export default function SellerDashboard() {
   const [inventoryInsights, setInventoryInsights] = useState<InventoryInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
   const [isShopOpen, setIsShopOpen] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
-  const [activeBusinessTab, setActiveBusinessTab] = useState <'commerce' | 'hotel' | 'bus'>(
+  const [activeBusinessTab, setActiveBusinessTab] = useState<'commerce' | 'hotel' | 'bus'>(
     user?.businessTypes?.[0] || 'commerce'
   );
-
-  const sellerStatus = user?.status || 'Pending';
-  const isApproved = sellerStatus === 'Approved';
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        setError(null);
-
-        // 1. Fetch seller profile first to check for status updates
         const profileResponse = await getSellerProfile();
-        
         if (profileResponse.success) {
           const fetchedProfile = profileResponse.data;
-          const currentStatus = user?.status;
-          const newStatus = fetchedProfile.status;
-
-          // If status has changed to Approved, update AuthContext
-          if (newStatus === 'Approved' && currentStatus !== 'Approved') {
-            console.log('Seller status updated to Approved! Updating auth context...');
-            
-            // Construct updated user object with all fresh data from profile
-            const updatedUser: User = {
-              ...user,
-              id: fetchedProfile._id,
-              sellerName: fetchedProfile.sellerName,
-              mobile: fetchedProfile.mobile,
-              email: fetchedProfile.email,
-              storeName: fetchedProfile.storeName,
-              status: 'Approved',
-              logo: fetchedProfile.logo,
-              address: fetchedProfile.address,
-              city: fetchedProfile.city,
-              categories: fetchedProfile.categories,
-              category: fetchedProfile.category,
-            } as User;
-            
+          const updatedUser: User = { ...user, ...fetchedProfile, id: fetchedProfile._id, status: fetchedProfile.status || 'Pending' } as User;
+          if (JSON.stringify(user?.businessTypes) !== JSON.stringify(fetchedProfile.businessTypes) || user?.status !== fetchedProfile.status) {
             updateUser(updatedUser);
-            // The updateUser call will trigger a re-render of this component
-            // because AuthContext state changes, and isApproved will become true.
-            return; 
           }
-
-          const shopStatus = fetchedProfile.isShopOpen ?? true;
-          setIsShopOpen(shopStatus);
+          setIsShopOpen(fetchedProfile.isShopOpen ?? true);
+          if (fetchedProfile.status !== 'Approved') {
+            setLoading(false);
+            return;
+          }
         }
 
-        // 2. If approved, fetch dashboard stats
-        if (isApproved) {
+        if (user?.status === 'Approved') {
           const statsResponse = await getSellerDashboardStats();
-
           if (statsResponse.success) {
             setStats(statsResponse.data.stats);
             setNewOrders(statsResponse.data.newOrders);
-            
-            // 3. Fetch inventory insights in parallel
-            getInventoryInsights().then(res => {
-              if (res.success) setInventoryInsights(res.data);
-            }).catch(e => console.error("Inventory insights fail:", e));
-          } else {
-            setError(statsResponse.message || 'Failed to fetch dashboard data');
+            const inventoryRes = await getInventoryInsights();
+            if (inventoryRes.success) setInventoryInsights(inventoryRes.data);
           }
         }
       } catch (err: any) {
@@ -94,652 +70,249 @@ export default function SellerDashboard() {
         setLoading(false);
       }
     };
-
     fetchDashboardData();
-  }, [isApproved, user?.status]); // Add user?.status as dependency to react to AuthContext updates
+  }, [user?.status]);
 
   const handleToggleShop = async () => {
-    if (!isApproved) return;
     try {
       setStatusLoading(true);
       const response = await toggleShopStatus();
-      if (response.success) {
-        setIsShopOpen(response.data.isShopOpen);
-        alert(`Shop is now ${response.data.isShopOpen ? 'Open' : 'Closed'}`);
-      } else {
-        alert('Failed to toggle shop status: ' + (response.message || 'Unknown error'));
-      }
+      if (response.success) setIsShopOpen(response.data.isShopOpen);
     } catch (error: any) {
-      alert('Error toggling shop status: ' + (error.response?.data?.message || error.message || 'Unknown error'));
+      console.error(error);
     } finally {
       setStatusLoading(false);
     }
   };
 
-
-  const getStatusBadgeClass = (status: NewOrder['status']) => {
-    switch (status) {
-      case 'Out For Delivery':
-        return 'text-blue-800 bg-blue-100 border border-blue-400';
-      case 'Received':
-        return 'text-blue-600 bg-blue-50';
-      case 'Payment Pending':
-        return 'text-orange-600 bg-orange-50';
-      case 'Cancelled':
-        return 'text-red-600 bg-pink-50';
-      default:
-        return 'text-gray-600 bg-gray-50';
-    }
-  };
-
-  const totalPages = Math.ceil(newOrders.length / entriesPerPage);
-  const startIndex = (currentPage - 1) * entriesPerPage;
-  const endIndex = startIndex + entriesPerPage;
-  const displayedOrders = newOrders.slice(startIndex, endIndex);
-
-  // Icons for KPI cards
-  const userIcon = (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" fill="none" />
-      <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
-    </svg>
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="text-teal-600">
+        <RefreshCw size={48} />
+      </motion.div>
+    </div>
   );
 
-  const categoryIcon = (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-
-  const subcategoryIcon = (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-
-  const productIcon = (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M16 21V5C16 4.46957 15.7893 3.96086 15.4142 3.58579C15.0391 3.21071 14.5304 3 14 3H10C9.46957 3 8.96086 3.21071 8.58579 3.58579C8.21071 3.96086 8 4.46957 8 5V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-
-  const ordersIcon = (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-
-  const completedOrdersIcon = (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M16 7H18C19.1046 7 20 7.89543 20 9V19C20 20.1046 19.1046 21 18 21H6C4.89543 21 4 20.1046 4 19V9C4 7.89543 4.89543 7 6 7H8"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-
-  const pendingOrdersIcon = (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-
-  const cancelledOrdersIcon = (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M16 7L8 15M8 7L16 15M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M16 7H18C19.1046 7 20 7.89543 20 9V19C20 20.1046 19.1046 21 18 21H6C4.89543 21 4 20.1046 4 19V9C4 7.89543 4.89543 7 6 7H8"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-
-  // Alert icons
-  const soldOutIcon = (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M16 21V5C16 4.46957 15.7893 3.96086 15.4142 3.58579C15.0391 3.21071 14.5304 3 14 3H10C9.46957 3 8.96086 3.21071 8.58579 3.58579C8.21071 3.96086 8 4.46957 8 5V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 12H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-
-  const lowStockIcon = (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M16 21V5C16 4.46957 15.7893 3.96086 15.4142 3.58579C15.0391 3.21071 14.5304 3 14 3H10C9.46957 3 8.96086 3.21071 8.58579 3.58579C8.21071 3.96086 8 4.46957 8 5V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M12 9V15M9 12H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-
-  if (loading) {
+  if (user?.status !== 'Approved') {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
-      </div>
-    );
-  }
+      <div className="max-w-4xl mx-auto space-y-8 py-10">
+        <div className="bg-white p-12 rounded-[2.5rem] shadow-2xl shadow-neutral-200/50 border border-neutral-100 text-center relative overflow-hidden">
+          <motion.div 
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-24 h-24 bg-teal-50 rounded-[2rem] flex items-center justify-center text-teal-600 mx-auto mb-8"
+          >
+            <Clock size={48} />
+          </motion.div>
+          <h1 className="text-4xl font-black text-neutral-900 mb-4 tracking-tight">Onboarding in Progress</h1>
+          <p className="text-neutral-500 font-medium max-w-lg mx-auto mb-12">
+            Welcome to LaxMart! Our administration team is currently verifying your profile and business details.
+          </p>
 
-  if (!isApproved) {
-    return (
-       <div className="space-y-6">
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-neutral-100 text-center">
-            <div className="w-20 h-20 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 mx-auto mb-6">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-neutral-800 mb-2">Registration Received!</h1>
-            <p className="text-neutral-600 max-w-lg mx-auto mb-8">
-              Welcome to LaxMart! Your application is currently being reviewed by our administrative team.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <div className="p-6 bg-neutral-50 rounded-xl border border-neutral-200">
-                <div className="text-teal-600 font-bold text-lg mb-1">Step 1</div>
-                <div className="text-sm font-semibold text-neutral-700 mb-2">Profile Review</div>
-                <p className="text-xs text-neutral-500">We verify your store details and documents provided during signup.</p>
-                <div className="mt-4 inline-flex items-center px-2 py-1 bg-green-100 text-green-700 rounded text-[10px] font-bold uppercase tracking-wider">Completed</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+            {[
+              { step: 1, label: 'Profile Review', status: 'Completed', color: 'bg-green-500' },
+              { step: 2, label: 'Document Verification', status: 'In Progress', color: 'bg-teal-500', active: true },
+              { step: 3, label: 'Account Activation', status: 'Pending', color: 'bg-neutral-200' },
+            ].map((s) => (
+              <div key={s.step} className={`p-6 rounded-3xl border transition-all ${s.active ? 'bg-white border-teal-500 shadow-xl scale-105' : 'bg-neutral-50 border-neutral-200 opacity-60'}`}>
+                <div className={`${s.active ? 'text-teal-600' : 'text-neutral-400'} font-black text-lg mb-1`}>Step {s.step}</div>
+                <div className="text-sm font-bold text-neutral-800 mb-2">{s.label}</div>
+                <div className={`inline-flex px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest text-white ${s.color} ${s.active ? 'animate-pulse' : ''}`}>
+                  {s.status}
+                </div>
               </div>
-              <div className="p-6 bg-white rounded-xl border-2 border-teal-500 shadow-md transform scale-105">
-                <div className="text-teal-600 font-bold text-lg mb-1">Step 2</div>
-                <div className="text-sm font-semibold text-neutral-700 mb-2">Final Verification</div>
-                <p className="text-xs text-neutral-500">Our team performs final checks before activating your seller account.</p>
-                <div className="mt-4 inline-flex items-center px-2 py-1 bg-teal-100 text-teal-700 rounded text-[10px] font-bold uppercase tracking-wider animate-pulse">In Progress</div>
-              </div>
-              <div className="p-6 bg-neutral-50 rounded-xl border border-neutral-200 opacity-60">
-                <div className="text-neutral-400 font-bold text-lg mb-1">Step 3</div>
-                <div className="text-sm font-semibold text-neutral-400 mb-2">Account Activation</div>
-                <p className="text-xs text-neutral-400">Once approved, you can start adding products and receiving orders.</p>
-                <div className="mt-4 inline-flex items-center px-2 py-1 bg-neutral-100 text-neutral-400 rounded text-[10px] font-bold uppercase tracking-wider">Pending</div>
-              </div>
-            </div>
+            ))}
           </div>
-
-          <div className="bg-teal-600 rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden shadow-lg">
-             <div className="relative z-10">
-               <h2 className="text-xl font-bold mb-2">Need Help?</h2>
-               <p className="text-teal-100 text-sm mb-6 max-w-md">
-                 If you have any questions about your application or the onboarding process, reach out to our support team.
-               </p>
-               <button className="bg-white text-teal-700 px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-teal-50 transition-colors shadow-md">
-                 Contact Support
-               </button>
-             </div>
-             <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-white/10 -skew-x-12 transform translate-x-1/2"></div>
-          </div>
-       </div>
-    );
-  }
-
-  if (error || !stats) {
-    return (
-      <div className="p-8 text-center text-red-500 bg-white rounded-lg shadow-sm border border-neutral-200">
-        {error || 'Stats not available'}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header with Shop Status Toggle */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-4 rounded-lg shadow-sm border border-neutral-200 gap-4 sm:gap-0">
-        <div>
-          <h1 className="text-xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-sm text-gray-500">Overview of your store performance</p>
+    <div className="space-y-8 pb-10 max-w-[1600px] mx-auto">
+      {/* Premium Header */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white p-8 rounded-[2.5rem] shadow-sm border border-neutral-100 gap-6">
+        <div className="flex items-center gap-6">
+          <div className="w-16 h-16 bg-teal-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-teal-600/20">
+            <LayoutDashboard size={32} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black text-neutral-900 tracking-tight">Operational Hub</h1>
+            <p className="text-neutral-500 font-medium flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              Real-time store performance overview
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-          <span className={`text-sm font-medium ${isShopOpen ? 'text-primary-dark' : 'text-red-500'}`}>
-            {isShopOpen ? 'Shop is Live' : 'Shop is Closed'}
-          </span>
+        
+        <div className="flex items-center gap-4 bg-neutral-50 p-3 rounded-3xl border border-neutral-100 w-full lg:w-auto">
+          <div className="px-4">
+            <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Shop Status</p>
+            <p className={`text-sm font-black ${isShopOpen ? 'text-teal-600' : 'text-red-500'}`}>
+              {isShopOpen ? 'ACTIVE & LIVE' : 'CURRENTLY CLOSED'}
+            </p>
+          </div>
           <button
             onClick={handleToggleShop}
             disabled={statusLoading}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
-              isShopOpen ? 'bg-teal-600' : 'bg-gray-200'
-            } ${statusLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            className={`relative inline-flex h-10 w-20 items-center rounded-2xl transition-all ${
+              isShopOpen ? 'bg-teal-600' : 'bg-neutral-300'
+            }`}
           >
-            <span
-              className={`${
-                isShopOpen ? 'translate-x-6' : 'translate-x-1'
-              } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
+            <motion.span
+              animate={{ x: isShopOpen ? 44 : 4 }}
+              className="inline-block h-8 w-8 transform rounded-xl bg-white shadow-md"
             />
           </button>
         </div>
       </div>
-      
-      {/* Business Type Tabs */}
-      {user?.businessTypes && user.businessTypes.length > 1 && (
-        <div className="flex bg-white p-1 rounded-xl shadow-sm border border-neutral-200">
-          {user.businessTypes.includes('commerce') && (
-            <button
-              onClick={() => setActiveBusinessTab('commerce')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all ${
-                activeBusinessTab === 'commerce' ? 'bg-teal-600 text-white shadow-md' : 'text-neutral-500 hover:bg-neutral-50'
-              }`}
-            >
-              🛒 Commerce
-            </button>
-          )}
-          {user.businessTypes.includes('hotel') && (
-            <button
-              onClick={() => setActiveBusinessTab('hotel')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all ${
-                activeBusinessTab === 'hotel' ? 'bg-teal-600 text-white shadow-md' : 'text-neutral-500 hover:bg-neutral-50'
-              }`}
-            >
-              🏨 Hotel
-            </button>
-          )}
-          {user.businessTypes.includes('bus') && (
-            <button
-              onClick={() => setActiveBusinessTab('bus')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all ${
-                activeBusinessTab === 'bus' ? 'bg-teal-600 text-white shadow-md' : 'text-neutral-500 hover:bg-neutral-50'
-              }`}
-            >
-              🚌 Bus
-            </button>
-          )}
-        </div>
-      )}
 
-      {activeBusinessTab === 'commerce' ? (
-        <>
-          {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <DashboardCard icon={userIcon} title="Total User" value={stats.totalUser} accentColor="#3b82f6" />
-        <DashboardCard icon={categoryIcon} title="Total Category" value={stats.totalCategory} accentColor="#eab308" />
-        <DashboardCard icon={subcategoryIcon} title="Total Subcategory" value={stats.totalSubcategory} accentColor="#ec4899" />
-        <DashboardCard icon={productIcon} title="Total Product" value={stats.totalProduct} accentColor="#f97316" />
-        <DashboardCard icon={ordersIcon} title="Total Orders" value={stats.totalOrders} accentColor="#3b82f6" />
-        <DashboardCard icon={completedOrdersIcon} title="Completed Orders" value={stats.completedOrders} accentColor="#16a34a" />
-        <DashboardCard icon={pendingOrdersIcon} title="Pending Orders" value={stats.pendingOrders} accentColor="#a855f7" />
-        <DashboardCard icon={cancelledOrdersIcon} title="Cancelled Orders" value={stats.cancelledOrders} accentColor="#ef4444" />
-      </div>
-
-      {/* Smart Inventory Insights Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
-        <div className="bg-[#1a1a1a] text-white px-6 py-4 flex items-center justify-between">
-           <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center">
-                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
-              </div>
-              <div>
-                <h3 className="text-sm font-bold">Smart Inventory Insights</h3>
-                <p className="text-[10px] text-neutral-400 font-medium">REAL-TIME STOCK VELOCITY</p>
-              </div>
-           </div>
-           <div className="text-[10px] bg-neutral-800 px-2 py-1 rounded text-neutral-400 font-mono">
-              LIVE DATA
-           </div>
-        </div>
-        
-        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-           <div className="relative group cursor-pointer">
-              <div className="flex items-center justify-between mb-2">
-                 <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Available Stock</span>
-                 <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">READY</span>
-              </div>
-              <div className="text-3xl font-black text-neutral-900">{inventoryInsights?.availableStock || 0}</div>
-              <div className="mt-2 text-[10px] text-neutral-400">Total units available for sale across all products.</div>
-              <div className="absolute -bottom-6 left-0 w-full h-0.5 bg-green-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
-           </div>
-           
-           <div className="relative group cursor-pointer">
-              <div className="flex items-center justify-between mb-2">
-                 <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Locked Stock</span>
-                 <span className="text-[10px] px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full font-bold animate-pulse">RESERVED</span>
-              </div>
-              <div className="text-3xl font-black text-neutral-900">{inventoryInsights?.lockedStock || 0}</div>
-              <div className="mt-2 text-[10px] text-neutral-400">Units currently in user carts or pending checkout.</div>
-              <div className="absolute -bottom-6 left-0 w-full h-0.5 bg-orange-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
-           </div>
-
-           <div className="relative group cursor-pointer">
-              <div className="flex items-center justify-between mb-2">
-                 <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Sold Stock</span>
-                 <span className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold">COMPLETE</span>
-              </div>
-              <div className="text-3xl font-black text-neutral-900">{inventoryInsights?.soldStock || 0}</div>
-              <div className="mt-2 text-[10px] text-neutral-400">Units successfully delivered or in transit.</div>
-              <div className="absolute -bottom-6 left-0 w-full h-0.5 bg-blue-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
-           </div>
-        </div>
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <OrderChart title={`Order - ${new Date().toLocaleString('default', { month: 'short' })} ${new Date().getFullYear()}`} data={stats.dailyOrderData} maxValue={Math.max(...stats.dailyOrderData.map(d => d.value), 5)} height={400} />
-        <OrderChart title={`Order - ${new Date().getFullYear()}`} data={stats.yearlyOrderData} maxValue={Math.max(...stats.yearlyOrderData.map(d => d.value), 20)} height={400} />
-      </div>
-
-      {/* Alerts and Button Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Alert Cards - Side by Side */}
-        <AlertCard icon={soldOutIcon} title="Product Sold Out" value={stats.soldOutProducts} accentColor="#ec4899" />
-        <AlertCard icon={lowStockIcon} title="Product low on Stock" value={stats.lowStockProducts} accentColor="#eab308" />
-      </div>
-
-      {/* View New Orders Table Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-        {/* Teal Header Bar */}
-        <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
-          <h2 className="text-base sm:text-lg font-semibold">View New Orders</h2>
-        </div>
-
-        {/* Show Entries Control */}
-        <div className="px-4 sm:px-6 py-3 border-b border-neutral-200">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-neutral-700">Show</span>
-            <input
-              type="number"
-              value={entriesPerPage}
-              onChange={(e) => {
-                const value = parseInt(e.target.value) || 10;
-                setEntriesPerPage(Math.max(1, Math.min(100, value)));
-                setCurrentPage(1);
-              }}
-              className="w-16 px-2 py-1 border border-neutral-300 rounded text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
-              min="1"
-              max="100"
-            />
-            <span className="text-sm text-neutral-700">entries</span>
+      {/* Multi-Vertical Navigation */}
+      {(() => {
+        const types = user?.businessTypes || [];
+        if (types.length <= 1) return null;
+        return (
+          <div className="flex gap-4 p-2 bg-neutral-100 rounded-[2rem]">
+            {types.map((type: any) => (
+              <button
+                key={type}
+                onClick={() => setActiveBusinessTab(type)}
+                className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${
+                  activeBusinessTab === type 
+                  ? 'bg-white text-neutral-900 shadow-xl scale-[1.02]' 
+                  : 'text-neutral-400 hover:text-neutral-600'
+                }`}
+              >
+                {type === 'commerce' ? <ShoppingBag size={18} /> : type === 'hotel' ? <Hotel size={18} /> : <Bus size={18} />}
+                {type} Console
+              </button>
+            ))}
           </div>
-        </div>
+        );
+      })()}
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px]">
-            <thead className="bg-neutral-50 border-b border-neutral-200">
-              <tr>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">
-                  ID
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    O. Date
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="text-neutral-400 cursor-pointer"
-                    >
-                      <path
-                        d="M7 10L12 5L17 10M7 14L12 19L17 14"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+      <AnimatePresence mode="wait">
+        {activeBusinessTab === 'commerce' ? (
+          <motion.div 
+            key="commerce"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-8"
+          >
+            {/* KPI Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              {[
+                { label: 'Total Orders', value: stats?.totalOrders || 0, icon: Package, color: 'text-blue-500', bg: 'bg-blue-50' },
+                { label: 'Total Revenue', value: '₹' + (stats?.totalRevenue?.toLocaleString() || 0), icon: TrendingUp, color: 'text-teal-500', bg: 'bg-teal-50' },
+                { label: 'Pending', value: stats?.pendingOrders || 0, icon: Clock, color: 'text-orange-500', bg: 'bg-orange-50' },
+                { label: 'Completed', value: stats?.completedOrders || 0, icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-50' },
+              ].map((s) => (
+                <div key={s.label} className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm flex items-center gap-4">
+                  <div className={`w-12 h-12 ${s.bg} ${s.color} rounded-2xl flex items-center justify-center`}>
+                    <s.icon size={24} />
                   </div>
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    Status
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="text-neutral-400 cursor-pointer"
-                    >
-                      <path
-                        d="M7 10L12 5L17 10M7 14L12 19L17 14"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                  <div>
+                    <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{s.label}</p>
+                    <h3 className="text-2xl font-black text-neutral-800 tracking-tight">{s.value}</h3>
                   </div>
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    Amount
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="text-neutral-400 cursor-pointer"
-                    >
-                      <path
-                        d="M7 10L12 5L17 10M7 14L12 19L17 14"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    Action
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="text-neutral-400 cursor-pointer"
-                    >
-                      <path
-                        d="M7 10L12 5L17 10M7 14L12 19L17 14"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-neutral-200">
-              {displayedOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-neutral-50">
-                  <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">{order.id}</td>
-                  <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">{order.orderDate}</td>
-                  <td className="px-4 sm:px-6 py-3">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(order.status)}`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">₹ {order.amount}</td>
-                  <td className="px-4 sm:px-6 py-3">
-                    <button
-                      onClick={() => navigate(`/seller/orders/${order.id}`)}
-                      className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors"
-                      aria-label="View order details"
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <circle
-                          cx="11"
-                          cy="11"
-                          r="8"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M21 21L16.65 16.65"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
 
-        {/* Pagination Footer */}
-        <div className="px-4 sm:px-6 py-3 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
-          <div className="text-xs sm:text-sm text-neutral-700">
-            Showing {startIndex + 1} to {Math.min(endIndex, newOrders.length)} of {newOrders.length} entries
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className={`p-2 border border-neutral-300 rounded ${currentPage === 1
-                ? 'text-neutral-400 cursor-not-allowed bg-neutral-50'
-                : 'text-neutral-700 hover:bg-neutral-50'
-                }`}
-              aria-label="Previous page"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M15 18L9 12L15 6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className={`p-2 border border-neutral-300 rounded ${currentPage === totalPages
-                ? 'text-neutral-400 cursor-not-allowed bg-neutral-50'
-                : 'text-neutral-700 hover:bg-neutral-50'
-                }`}
-              aria-label="Next page"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M9 18L15 12L9 6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-          </div>
-        </>
-      ) : activeBusinessTab === 'hotel' ? (
-        <div className="bg-white p-12 rounded-2xl shadow-sm border border-neutral-100 text-center space-y-4">
-          <div className="text-4xl">🏨</div>
-          <h2 className="text-xl font-bold text-neutral-800">Hotel Management Integrated</h2>
-          <p className="text-neutral-500 max-w-md mx-auto">
-            You can now manage your property, room availability, and guest check-ins directly through the LaxMart Super App interface.
-          </p>
-          <button className="bg-teal-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-teal-700 transition-all">
-            Open Hotel Console
-          </button>
-        </div>
-      ) : (
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-neutral-100 space-y-6">
-          <div className="flex items-center justify-between border-b pb-4">
-            <h2 className="text-xl font-bold text-neutral-800">🚌 Bus Management</h2>
-            <button className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-bold">
-              + Add New Bus
-            </button>
-          </div>
-          
-          <div className="text-center py-20 bg-neutral-50 rounded-xl border border-dashed border-neutral-300">
-             <div className="text-4xl mb-4">🚌</div>
-             <p className="text-neutral-500">No buses added yet. Start by adding your first bus route.</p>
-          </div>
-        </div>
-      )}
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+              <div className="xl:col-span-2 space-y-6">
+                <div className="bg-white rounded-[2.5rem] border border-neutral-100 shadow-sm overflow-hidden">
+                  <div className="p-8 border-b border-neutral-50 flex justify-between items-center">
+                    <h2 className="text-xl font-black text-neutral-900 tracking-tight">Recent Orders</h2>
+                    <button onClick={() => navigate('/seller/orders')} className="text-xs font-black text-teal-600 hover:underline uppercase tracking-widest">View All</button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-neutral-50/50">
+                          <th className="px-8 py-4 text-[10px] font-black uppercase text-neutral-400 tracking-widest">Order ID</th>
+                          <th className="px-8 py-4 text-[10px] font-black uppercase text-neutral-400 tracking-widest">Amount</th>
+                          <th className="px-8 py-4 text-[10px] font-black uppercase text-neutral-400 tracking-widest">Status</th>
+                          <th className="px-8 py-4 text-[10px] font-black uppercase text-neutral-400 tracking-widest">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-50">
+                        {newOrders.map((order) => (
+                          <tr key={order.id} className="hover:bg-neutral-50/50 transition-colors">
+                            <td className="px-8 py-5 font-bold text-neutral-700">#{order.id}</td>
+                            <td className="px-8 py-5 font-black text-neutral-900">₹{order.amount}</td>
+                            <td className="px-8 py-5">
+                              <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[9px] font-black uppercase tracking-widest">
+                                {order.status}
+                              </span>
+                            </td>
+                            <td className="px-8 py-5">
+                              <button onClick={() => navigate(`/seller/orders/${order.id}`)} className="p-2 bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-all">
+                                <ArrowRight size={18} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="bg-[#1a1a1a] text-white p-8 rounded-[2.5rem] shadow-xl space-y-6">
+                  <h3 className="text-lg font-black tracking-tight">Stock Insights</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-neutral-400">Low Stock Alert</span>
+                      <span className="text-orange-500 font-black">{stats?.lowStockProducts || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-neutral-400">Sold Out Items</span>
+                      <span className="text-red-500 font-black">{stats?.soldOutProducts || 0}</span>
+                    </div>
+                  </div>
+                  <button onClick={() => navigate('/seller/stock-management')} className="w-full py-4 bg-teal-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-teal-700 transition-all">Manage Inventory</button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ) : activeBusinessTab === 'hotel' ? (
+          <motion.div 
+            key="hotel-hero"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-white p-12 rounded-[3rem] text-center border border-neutral-100 shadow-xl"
+          >
+            <div className="w-20 h-20 bg-teal-50 text-teal-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+              <Hotel size={40} />
+            </div>
+            <h2 className="text-3xl font-black text-neutral-900 mb-4">Hotel Partner Console</h2>
+            <p className="text-neutral-500 font-medium mb-10">You are in the Hotel Management view. Access specific operations below.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+              <button onClick={() => navigate('/seller/hotel/dashboard')} className="p-8 bg-neutral-900 text-white rounded-3xl font-black text-lg hover:scale-105 transition-all shadow-2xl shadow-neutral-900/20">Open Operations</button>
+              <button onClick={() => navigate('/seller/hotel/add')} className="p-8 bg-teal-600 text-white rounded-3xl font-black text-lg hover:scale-105 transition-all shadow-2xl shadow-teal-600/20">Add New Property</button>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="bus-hero"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-white p-12 rounded-[3rem] text-center border border-neutral-100 shadow-xl"
+          >
+            <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+              <Bus size={40} />
+            </div>
+            <h2 className="text-3xl font-black text-neutral-900 mb-4">Transport Partner Console</h2>
+            <p className="text-neutral-500 font-medium mb-10">Manage your fleet and routes with real-time tracking.</p>
+            <button onClick={() => navigate('/seller/transport')} className="px-12 py-5 bg-blue-600 text-white rounded-[2rem] font-black text-xl hover:scale-105 transition-all shadow-2xl shadow-blue-600/20">Manage Fleet</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
-

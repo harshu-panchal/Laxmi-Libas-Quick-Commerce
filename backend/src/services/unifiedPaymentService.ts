@@ -4,7 +4,11 @@ import Order from '../models/Order';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import BusBooking from '../models/BusBooking';
+import HotelBooking from '../models/HotelBooking';
+import Hotel from '../models/Hotel';
+import Bus from '../models/Bus';
 import { sendNotification } from './notificationService';
+import { processBookingSettlement } from './settlementService';
 
 const CLIENT_ID = process.env.PHONEPE_CLIENT_ID?.trim() || '';
 const CLIENT_SECRET = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
@@ -40,15 +44,21 @@ export const createUnifiedPayment = async (orderId: string, paymentType: 'quick'
         let customerId = userId;
         let modelName = 'Order';
 
-        if (paymentType === 'quick' || paymentType === 'ecommerce' || paymentType === 'hotel') {
+        if (paymentType === 'quick' || paymentType === 'ecommerce') {
             const order = await Order.findById(orderId);
-            if (!order) throw new Error('Order/Booking not found');
+            if (!order) throw new Error('Order not found');
             amountAmount = order.total;
             customerId = order.customer.toString();
+        } else if (paymentType === 'hotel') {
+            const booking = await HotelBooking.findById(orderId);
+            if (!booking) throw new Error('Hotel booking not found');
+            amountAmount = booking.totalAmount;
+            customerId = booking.userId.toString();
+            modelName = 'HotelBooking';
         } else if (paymentType === 'bus') {
             const booking = await BusBooking.findById(orderId);
             if (!booking) throw new Error('Bus booking not found');
-            amountAmount = booking.totalPrice;
+            amountAmount = booking.totalAmount;
             customerId = booking.userId.toString();
             modelName = 'BusBooking';
         }
@@ -144,53 +154,89 @@ const updatePaymentSuccess = async (payment: any, transactionId: string) => {
     payment.paidAt = new Date();
     await payment.save();
 
-    if (payment.paymentType === 'quick' || payment.paymentType === 'ecommerce' || payment.paymentType === 'hotel') {
+    if (payment.paymentType === 'quick' || payment.paymentType === 'ecommerce') {
         const order = await Order.findById(payment.orderId);
         if (order) {
             order.paymentStatus = 'Paid';
-            // User requested:
-            // quick -> Received (unchanged flow usually sets this or Accepted)
-            // ecommerce -> CONFIRMED (mapped to Accepted in our system)
-            // hotel -> BOOKED (mapped to Received in our system)
-            
             if (payment.paymentType === 'quick') {
                 order.status = 'Received';
-            } else if (payment.paymentType === 'ecommerce') {
-                order.status = 'Accepted'; // CONFIRMED
-            } else if (payment.paymentType === 'hotel') {
-                order.status = 'Received'; // BOOKED
+            } else {
+                order.status = 'Accepted'; // 'CONFIRMED' for ecommerce
             }
-            
             await order.save();
 
             // Send Success Notification
-            let message = `Your payment of ₹${payment.amount} was successful. `;
-            if (payment.paymentType === 'hotel') {
-                message += 'Your hotel booking is now confirmed.';
-            } else {
-                message += 'Our team is preparing your order.';
+            await sendNotification(
+                'Customer',
+                payment.userId.toString(),
+                'Payment Successful',
+                `Your payment of ₹${payment.amount} was successful. Our team is preparing your order.`,
+                { type: 'Payment', link: `/orders/${payment.orderId}`, priority: 'Medium' }
+            );
+        }
+    } else if (payment.paymentType === 'hotel') {
+        const booking = await HotelBooking.findById(payment.orderId);
+        if (booking) {
+            booking.paymentStatus = 'Success';
+            booking.bookingStatus = 'Confirmed';
+            booking.transactionId = transactionId;
+            await booking.save();
+
+            // Settlement Logic for Hotel Partner
+            try {
+                const hotel = await Hotel.findById(booking.hotelId);
+                if (hotel && hotel.sellerId) {
+                    await processBookingSettlement(
+                        booking._id.toString(),
+                        'hotel',
+                        booking.totalAmount,
+                        hotel.sellerId.toString()
+                    );
+                }
+            } catch (settleError) {
+                console.error('❌ [Settlement] Hotel Settlement Failed:', settleError);
             }
 
             await sendNotification(
                 'Customer',
                 payment.userId.toString(),
-                'Payment Successful',
-                message,
-                { type: 'Payment', link: `/orders/${payment.orderId}`, priority: 'Medium' }
+                'Booking Confirmed',
+                `Your payment of ₹${payment.amount} was successful. Your hotel booking is now confirmed.`,
+                { type: 'Payment', link: `/account`, priority: 'Medium' }
             );
         }
     } else if (payment.paymentType === 'bus') {
         const booking = await BusBooking.findById(payment.orderId);
         if (booking) {
+            booking.paymentStatus = 'Success';
             booking.status = 'confirmed';
+            booking.transactionId = transactionId;
             await booking.save();
+
+            // Settlement Logic for Bus Partner
+            try {
+                const { default: BusSchedule } = await import('../models/BusSchedule');
+                const schedule = await BusSchedule.findById(booking.scheduleId);
+                const bus = schedule ? await Bus.findById(schedule.busId) : null;
+                
+                if (bus && bus.sellerId) {
+                    await processBookingSettlement(
+                        booking._id.toString(),
+                        'bus',
+                        booking.totalAmount,
+                        bus.sellerId.toString()
+                    );
+                }
+            } catch (settleError) {
+                console.error('❌ [Settlement] Bus Settlement Failed:', settleError);
+            }
 
             await sendNotification(
                 'Customer',
                 payment.userId.toString(),
                 'Ticket Confirmed',
                 `Your payment for the bus ticket was successful. Your journey is confirmed.`,
-                { type: 'Order', link: `/transport/bookings`, priority: 'High' }
+                { type: 'Order', link: `/store/travel/confirmation?type=bus&id=${booking._id}`, priority: 'High' }
             );
         }
     }

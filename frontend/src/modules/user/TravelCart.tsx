@@ -38,12 +38,12 @@ const TravelCart: React.FC = () => {
         checkIn, 
         checkOut, 
         rooms: selectedRooms,
-        totalPrice: basePrice,
-        totalTaxes: taxes,
-        totalAmount: total,
-        totalOriginalPrice = (basePrice + taxes) * 1.3
+        totalPrice: basePrice = 0,
+        totalTaxes: taxes = 0,
+        totalAmount: total = 0,
     } = bookingData;
 
+    const totalOriginalPrice = (basePrice + taxes) * 1.3;
     const savings = Math.max(0, totalOriginalPrice - total);
 
     return (
@@ -104,7 +104,7 @@ const TravelCart: React.FC = () => {
                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{room.qty} Room{room.qty > 1 ? 's' : ''} · 1 Night</span>
                                 </div>
                                 <div className="text-right">
-                                    <span className="text-xs font-[1000] text-gray-900 leading-none">₹{room.price.toLocaleString()}</span>
+                                    <span className="text-xs font-[1000] text-gray-900 leading-none">₹{((room.price || 0) * (room.qty || 1)).toLocaleString()}</span>
                                 </div>
                             </div>
                         ))}

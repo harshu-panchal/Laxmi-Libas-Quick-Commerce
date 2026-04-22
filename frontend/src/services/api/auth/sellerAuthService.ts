@@ -41,6 +41,8 @@ export interface RegisterData {
   serviceRadiusKm?: string | number;
   idProof?: string;
   businessLicense?: string;
+  businessType: 'product' | 'hotel' | 'bus';
+  businessDetails: any;
 }
 
 export interface RegisterResponse {

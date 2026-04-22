@@ -151,6 +151,7 @@ export class PDFService {
       doc.end();
     });
   }
+
   /**
    * Generates a professional stay invoice for hotel bookings
    */
@@ -268,4 +269,60 @@ export class PDFService {
       doc.end();
     });
   }
+
+  /**
+   * Generates a professional bus ticket for customers
+   */
+  static async generateBusTicket(booking: any): Promise<Buffer> {
+    const doc = new PDFDocument({ margin: 50 });
+    const buffers: Buffer[] = [];
+
+    return new Promise((resolve, reject) => {
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
+
+      const schedule = booking.scheduleId;
+      const bus = schedule?.busId;
+      const route = schedule?.routeId;
+
+      // Ticket Header
+      doc.fontSize(22).text('E-TICKET', { align: 'center', bold: true });
+      doc.fontSize(10).text('LaxMart Travel', { align: 'center' });
+      doc.moveDown();
+
+      // Trip Summary
+      doc.rect(50, 100, 500, 100).fill('#f9f9f9').stroke('#eeeeee');
+      doc.fillColor('black').fontSize(14).text(`${route?.from || 'Source'} \u2192 ${route?.to || 'Destination'}`, 60, 115, { bold: true });
+      doc.fontSize(10).text(`Operator: ${bus?.operatorName || 'Laxmi Travels'}`, 60, 135);
+      doc.text(`Bus: ${bus?.busName || 'Deluxe'} (${bus?.busNumber || ''})`, 60, 150);
+      doc.text(`Date & Time: ${new Date(schedule?.departureDate).toLocaleDateString()} at ${schedule?.departureTime}`, 60, 165);
+
+      // Passenger Details
+      doc.moveDown(5);
+      doc.fontSize(12).text('PASSENGER DETAILS', { underline: true });
+      doc.moveDown();
+      
+      booking.seats.forEach((seat: any, i: number) => {
+          doc.fontSize(10).text(`${i+1}. ${seat.passengerName} (${seat.passengerAge}, ${seat.passengerGender}) - Seat: ${seat.seatNumber}`);
+      });
+
+      // Boarding Details
+      doc.moveDown(2);
+      doc.fontSize(12).text('BOARDING & DROPOFF', { underline: true });
+      doc.moveDown();
+      doc.fontSize(10).text(`Pickup: ${booking.pickupPoint}`, { bold: true });
+      doc.text(`Dropoff: ${booking.dropoffPoint}`, { bold: true });
+
+      // Important Instructions
+      doc.moveDown(3);
+      doc.fontSize(8).fillColor('gray').text('IMPORTANT INSTRUCTIONS:', { bold: true });
+      doc.text('1. Please carry a valid government ID proof.');
+      doc.text('2. Reach the boarding point 15 minutes before departure.');
+      doc.text('3. This ticket is non-transferable.');
+
+      doc.end();
+    });
+  }
+
 }

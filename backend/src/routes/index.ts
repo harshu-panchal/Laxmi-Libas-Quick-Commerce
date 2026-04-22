@@ -7,8 +7,6 @@ import deliveryRoutes from "./deliveryRoutes";
 import deliveryAuthRoutes from "./deliveryAuthRoutes";
 import busRoutes from "../modules/bus/busRoutes";
 import hotelRoutes from "../modules/hotel/hotelRoutes";
-
-// ... (other imports)
 import { authenticate, requireUserType } from "../middleware/auth";
 import customerRoutes from "./customerRoutes";
 import sellerRoutes from "./sellerRoutes";
@@ -36,25 +34,23 @@ import customerTrackingRoutes from "../modules/customer/routes/trackingRoutes";
 import deliveryTrackingRoutes from "../modules/delivery/routes/trackingRoutes";
 import fcmTokenRoutes from "./fcmTokenRoutes";
 import paymentRoutes from "./paymentRoutes";
-import phonePeRoutes from "./phonePeRoutes"; // NEW: /api/payments/phonepe/* routes
+import phonePeRoutes from "./phonePeRoutes"; 
 import sellerWalletRoutes from "./sellerWalletRoutes";
 import deliveryWalletRoutes from "./deliveryWalletRoutes";
 import adminWithdrawalRoutes from "./adminWithdrawalRoutes";
 import bannerRoutes from "./bannerRoutes";
 import supportRoutes from "../modules/support/supportRoutes";
-
 import * as configController from "../controllers/configController";
-
-// Multi-category controllers
 import * as serviceController from "../modules/seller/controllers/serviceController";
 import * as roomRentController from "../modules/seller/controllers/roomRentController";
-
 import {
   createOrder,
   getMyOrders,
   getOrderById,
   cancelOrder,
 } from "../modules/customer/controllers/customerOrderController";
+
+import notificationRoutes from "./notificationRoutes";
 
 const router = Router();
 
@@ -80,43 +76,18 @@ router.use("/auth/delivery", deliveryAuthRoutes);
 router.use("/fcm-tokens", authenticate, fcmTokenRoutes);
 
 // Delivery routes (protected)
-router.use(
-  "/delivery",
-  authenticate,
-  requireUserType("Delivery"),
-  deliveryRoutes
-);
-router.use(
-  "/delivery",
-  authenticate,
-  requireUserType("Delivery"),
-  deliveryTrackingRoutes
-);
+router.use("/delivery", authenticate, requireUserType("Delivery"), deliveryRoutes);
+router.use("/delivery", authenticate, requireUserType("Delivery"), deliveryTrackingRoutes);
 
-// Customer routes - Specific routes MUST be registered before general /customer route
-// to prevent Express from matching the broader route first
+// Customer routes
 router.use("/customer/products", customerProductRoutes);
 router.use("/customer/categories", customerCategoryRoutes);
-
-// Tracking routes (must be before general /customer/orders/:id route)
 router.use("/customer", customerTrackingRoutes);
 
-// Customer orders route - direct registration to avoid module loading issue
-console.log("🔥 REGISTERING CUSTOMER ORDER ROUTES");
-router.post(
-  "/customer/orders",
-  (_req, _res, next) => {
-    console.log("✅ POST /customer/orders ROUTE MATCHED!");
-    next();
-  },
-  authenticate,
-  requireUserType("Customer"),
-  createOrder
-);
+router.post("/customer/orders", authenticate, requireUserType("Customer"), createOrder);
 router.get("/customer/orders", authenticate, requireUserType("Customer"), getMyOrders);
 router.get("/customer/orders/:id", authenticate, requireUserType("Customer"), getOrderById);
 router.post("/customer/orders/:id/cancel", authenticate, requireUserType("Customer"), cancelOrder);
-// router.patch("/customer/orders/:id/notes", authenticate, requireUserType("Customer"), updateOrderNotes);
 
 router.use("/customer/coupons", customerCouponRoutes);
 router.use("/customer/addresses", customerAddressRoutes);
@@ -125,80 +96,45 @@ router.use("/customer/cart", customerCartRoutes);
 router.use("/customer/wishlist", wishlistRoutes);
 router.use("/customer/reviews", productReviewRoutes);
 router.use("/customer/discounts", customerDiscountRoutes);
-// General customer route (must be last to avoid intercepting specific routes)
 router.use("/customer", customerRoutes);
 
 // Seller dashboard routes
 router.use("/seller/dashboard", dashboardRoutes);
-
-// Seller management routes (protected, admin only)
 router.use("/sellers", sellerRoutes);
 
-// Admin routes (protected, admin only)
-console.log("🔥 MOUNTING ADMIN ROUTES AT /admin");
+// Admin routes
 router.use("/admin", adminRoutes);
-
-// Admin discount routes
 router.use("/admin/discounts", adminDiscountRoutes);
 
-// Upload routes (protected)
+// Other routes
 router.use("/upload", uploadRoutes);
-
-// Product routes (protected, seller only)
 router.use("/products", productRoutes);
-
-// Category routes (protected, seller/admin)
 router.use("/categories", categoryRoutes);
-
-// Header Category Routes
 router.use("/header-categories", headerCategoryRoutes);
-
-// Order routes (protected, seller only)
 router.use("/orders", orderRoutes);
-
-// Return routes (protected, seller only)
 router.use("/returns", returnRoutes);
-
-// Report routes (protected, seller only)
 router.use("/seller/reports", reportRoutes);
-
-// Wallet routes (protected, seller only)
 router.use("/seller/wallet", walletRoutes);
-
-// Tax routes (protected, seller/admin)
 router.use("/seller/taxes", taxRoutes);
-
-// Payment routes — legacy path (PhonePe integration)
 router.use("/payment", paymentRoutes);
-
-// Payment routes — NEW clean path: /api/payments/phonepe/*
-// POST /api/payments/phonepe/initiate  → initiate PhonePe session
-// GET  /api/payments/phonepe/status/:orderId → check payment status
-// POST /api/payments/phonepe/callback  → webhook from PhonePe (public)
-// POST /api/payments/phonepe/refund    → admin refund
 router.use("/payments", phonePeRoutes);
-
-// Seller wallet routes (protected, seller only)
 router.use("/seller/wallet-new", authenticate, requireUserType("Seller"), sellerWalletRoutes);
-
-// Delivery wallet routes (protected, delivery only)
 router.use("/delivery/wallet", authenticate, requireUserType("Delivery"), deliveryWalletRoutes);
-
-// Admin withdrawal management routes (protected, admin only)
 router.use("/admin/withdrawals", authenticate, requireUserType("Admin"), adminWithdrawalRoutes);
-
-// Banners routes
 router.use("/banners", bannerRoutes);
-
-// Bus routes
 router.use("/bus", busRoutes);
 
-// Hotel routes
+// Hotel routes (Integrated Rukkoin aliases)
 router.use("/hotel", hotelRoutes);
+router.use("/hotels", hotelRoutes);
+router.use("/bookings", hotelRoutes);
+router.use("/rooms", hotelRoutes);
+router.use("/hotel-admin", hotelRoutes);
+
+router.use("/customer/notifications", notificationRoutes);
 router.use("/support", supportRoutes);
 
-
-// Service routes (protected, seller only)
+// Service & Room Rent routes
 router.post("/seller/services", authenticate, requireUserType("Seller"), serviceController.createService);
 router.get("/seller/services", authenticate, requireUserType("Seller"), serviceController.getSellerServices);
 router.get("/seller/services/:id", authenticate, requireUserType("Seller"), serviceController.getServiceById);
@@ -206,18 +142,11 @@ router.put("/seller/services/:id", authenticate, requireUserType("Seller"), serv
 router.delete("/seller/services/:id", authenticate, requireUserType("Seller"), serviceController.deleteService);
 router.patch("/seller/services/:id/toggle-status", authenticate, requireUserType("Seller"), serviceController.toggleServiceStatus);
 
-// Room Rent routes (protected, seller only)
 router.post("/seller/room-rent", authenticate, requireUserType("Seller"), roomRentController.createRoomRent);
 router.get("/seller/room-rent", authenticate, requireUserType("Seller"), roomRentController.getSellerRoomRents);
 router.get("/seller/room-rent/:id", authenticate, requireUserType("Seller"), roomRentController.getRoomRentById);
 router.put("/seller/room-rent/:id", authenticate, requireUserType("Seller"), roomRentController.updateRoomRent);
 router.delete("/seller/room-rent/:id", authenticate, requireUserType("Seller"), roomRentController.deleteRoomRent);
 router.patch("/seller/room-rent/:id/toggle-status", authenticate, requireUserType("Seller"), roomRentController.toggleRoomRentStatus);
-
-// Admin commission management routes (protected, admin only)
-
-
-// Add more routes here
-// router.use('/users', userRoutes);
 
 export default router;

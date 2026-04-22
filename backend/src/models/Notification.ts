@@ -1,138 +1,55 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Schema, Document } from 'mongoose';
 
 export interface INotification extends Document {
-  // Recipient Info
-  recipientType: "Admin" | "Seller" | "Customer" | "Delivery" | "All";
-  recipientId?: mongoose.Types.ObjectId; // Specific user ID if not 'All'
-
-  // Notification Content
-  title: string;
+  recipientType?: 'Admin' | 'Seller' | 'Customer' | 'Delivery';
+  recipientId?: mongoose.Types.ObjectId | string;
+  userId?: mongoose.Types.ObjectId; 
+  role?: 'admin' | 'seller' | 'user' | 'delivery';
+  title?: string;
   message: string;
-  type:
-  | "Info"
-  | "Success"
-  | "Warning"
-  | "Error"
-  | "Order"
-  | "Payment"
-  | "System";
-
-  // Link/Action
+  type: string;
   link?: string;
   actionLabel?: string;
-
-  // Status
+  priority?: 'Low' | 'Medium' | 'High' | 'Urgent';
   isRead: boolean;
-  readAt?: Date;
-
-  // Priority
-  priority: "Low" | "Medium" | "High" | "Urgent";
-
-  // Expiry
+  data?: any; 
   expiresAt?: Date;
-
-  // Sent At (for push notifications)
-  sentAt?: Date;
-
-  // Created By
-  createdBy?: mongoose.Types.ObjectId;
-
   createdAt: Date;
   updatedAt: Date;
 }
 
 const NotificationSchema = new Schema<INotification>(
   {
-    // Recipient Info
-    recipientType: {
-      type: String,
-      enum: ["Admin", "Seller", "Customer", "Delivery", "All"],
-      required: [true, "Recipient type is required"],
+    // Legacy fields
+    recipientType: { 
+      type: String, 
+      enum: ['Admin', 'Seller', 'Customer', 'Delivery', 'admin', 'seller', 'user', 'delivery'] 
     },
-    recipientId: {
-      type: Schema.Types.ObjectId,
+    recipientId: { type: Schema.Types.Mixed },
+    title: { type: String },
+    link: { type: String },
+    actionLabel: { type: String },
+    priority: { 
+      type: String, 
+      enum: ['Low', 'Medium', 'High', 'Urgent'],
+      default: 'Medium'
     },
+    expiresAt: { type: Date },
 
-    // Notification Content
-    title: {
-      type: String,
-      required: [true, "Title is required"],
-      trim: true,
-    },
-    message: {
-      type: String,
-      required: [true, "Message is required"],
-      trim: true,
-    },
-    type: {
-      type: String,
-      enum: [
-        "Info",
-        "Success",
-        "Warning",
-        "Error",
-        "Order",
-        "Payment",
-        "System",
-      ],
-      default: "Info",
-    },
-
-    // Link/Action
-    link: {
-      type: String,
-      trim: true,
-    },
-    actionLabel: {
-      type: String,
-      trim: true,
-    },
-
-    // Status
-    isRead: {
-      type: Boolean,
-      default: false,
-    },
-    readAt: {
-      type: Date,
-    },
-
-    // Priority
-    priority: {
-      type: String,
-      enum: ["Low", "Medium", "High", "Urgent"],
-      default: "Medium",
-    },
-
-    // Expiry
-    expiresAt: {
-      type: Date,
-    },
-
-    // Sent At (for push notifications)
-    sentAt: {
-      type: Date,
-    },
-
-    // Created By
-    createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: "Admin",
-    },
+    // New unified fields
+    userId: { type: Schema.Types.ObjectId, refPath: 'recipientType' },
+    role: { type: String },
+    type: { type: String, required: true },
+    message: { type: String, required: true },
+    isRead: { type: Boolean, default: false },
+    data: { type: Schema.Types.Mixed },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Indexes for faster queries
-NotificationSchema.index({ recipientType: 1, recipientId: 1, isRead: 1 });
-NotificationSchema.index({ createdAt: -1 });
-NotificationSchema.index({ expiresAt: 1 });
+NotificationSchema.index({ recipientId: 1, createdAt: -1 });
+NotificationSchema.index({ userId: 1, createdAt: -1 });
+NotificationSchema.index({ role: 1, createdAt: -1 });
 
-const Notification = (mongoose.models.Notification as mongoose.Model<INotification>) || mongoose.model<INotification>(
-  "Notification",
-  NotificationSchema
-);
-
+const Notification = mongoose.models.Notification || mongoose.model<INotification>('Notification', NotificationSchema);
 export default Notification;

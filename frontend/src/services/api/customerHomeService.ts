@@ -27,6 +27,7 @@ export const getHomeContent = async (
   headerCategorySlug?: string,
   latitude?: number,
   longitude?: number,
+  city?: string,
   useCache: boolean = true,
   cacheTTL: number = 5 * 60 * 1000, // 5 minutes
   skipLoader: boolean = false
@@ -38,6 +39,9 @@ export const getHomeContent = async (
     if (latitude !== undefined && longitude !== undefined) {
       params.latitude = latitude;
       params.longitude = longitude;
+    }
+    if (city) {
+      params.city = city;
     }
     const response = await api.get<HomeContentResponse>("/customer/home", {
       params,
@@ -59,12 +63,16 @@ export const getHomeContent = async (
 export const getStoreProducts = async (
   storeId: string,
   latitude?: number,
-  longitude?: number
+  longitude?: number,
+  city?: string
 ): Promise<any> => {
   const params: any = {};
   if (latitude !== undefined && longitude !== undefined) {
     params.latitude = latitude;
     params.longitude = longitude;
+  }
+  if (city) {
+    params.city = city;
   }
   const response = await api.get(`/customer/home/store/${storeId}`, { params });
   return response.data;

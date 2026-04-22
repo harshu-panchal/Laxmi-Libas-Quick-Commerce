@@ -1,3 +1,6 @@
+import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Check, ChevronRight, Wifi, Wind, Tv, Coffee } from 'lucide-react';
 import { getHotelDetails } from '../../services/api/customerHotelService';
 
 const RoomSelection: React.FC = () => {
@@ -14,7 +17,7 @@ const RoomSelection: React.FC = () => {
         try {
             const response = await getHotelDetails(id);
             if (response.success) {
-                setHotel(response.data);
+                setHotel(response.data.hotel);
                 setRooms(response.data.rooms || []);
             }
         } catch (error) {
@@ -54,9 +57,16 @@ const RoomSelection: React.FC = () => {
         return { room, qty };
     }).filter(item => item.room);
 
-    const totalPrice = selectedRoomDetails.reduce((sum, item) => sum + (item.room?.basePrice || 0) * item.qty, 0);
-    const totalOriginalPrice = selectedRoomDetails.reduce((sum, item) => sum + (item.room?.originalPrice || (item.room?.basePrice || 0) * 1.25) * item.qty, 0);
+    const totalPrice = selectedRoomDetails.reduce((sum, item) => {
+        const p = item.room?.basePrice || item.room?.pricePerNight || 0;
+        return sum + p * item.qty;
+    }, 0);
+    
     const totalTaxes = selectedRoomDetails.reduce((sum, item) => sum + (item.room?.tax || 0) * item.qty, 0);
+    const totalOriginalPrice = selectedRoomDetails.reduce((sum, item) => {
+        const p = item.room?.originalPrice || (item.room?.basePrice || item.room?.pricePerNight || 0) * 1.25;
+        return sum + p * item.qty;
+    }, 0);
 
     return (
         <div className="min-h-screen bg-[#f8f9fa] pb-24 font-['Inter']">
@@ -70,25 +80,22 @@ const RoomSelection: React.FC = () => {
                 </button>
                 <div className="flex flex-col">
                     <h2 className="text-[15px] font-[1000] text-gray-900 truncate max-w-[250px]">
-                        {hotel?.name || 'Loading...'}, {hotel?.location}
+                        {hotel?.name || 'Loading...'}, {hotel?.city}
                     </h2>
                     <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                        08 Apr - 09 Apr · {totalRoomsCount} Room{totalRoomsCount !== 1 ? 's' : ''} selected
+                        Available Rooms · {totalRoomsCount} Room{totalRoomsCount !== 1 ? 's' : ''} selected
                     </p>
                 </div>
             </header>
 
             {/* Filter Bar */}
             <div className="bg-white px-4 py-3 flex items-center gap-2 overflow-x-auto hide-scrollbar border-b border-gray-100">
-                <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest flex-shrink-0">Filter by</span>
-                <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full whitespace-nowrap active:scale-95 transition-all">
-                    <Utensils size={14} className="text-gray-500" />
-                    <span className="text-[11px] font-black text-gray-700 uppercase tracking-widest">Breakfast Included</span>
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full whitespace-nowrap active:scale-95 transition-all">
-                    <Check size={14} className="text-gray-500" />
-                    <span className="text-[11px] font-black text-gray-700 uppercase tracking-widest">Free Cancellation</span>
-                </button>
+                <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest flex-shrink-0">Amenities</span>
+                {hotel?.amenities?.map((amenity: string, idx: number) => (
+                    <button key={idx} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full whitespace-nowrap active:scale-95 transition-all">
+                        <span className="text-[11px] font-black text-gray-700 uppercase tracking-widest">{amenity}</span>
+                    </button>
+                ))}
             </div>
 
             {/* Room List */}
@@ -107,14 +114,13 @@ const RoomSelection: React.FC = () => {
                     const quantity = selectedRooms[roomId] || 0;
                     const isSelected = quantity > 0;
                     const name = room.roomType || room.name || 'Standard Room';
-                    const size = room.roomSize || '250 sq.ft';
-                    const occupancy = `${room.guestCapacity || 2} Adults`;
-                    const image = room.mainImage || (room.images && room.images[0]) || '/hotel_resort_1.png';
-                    const price = room.basePrice || 5000;
-                    const taxes = room.tax || Math.round(price * 0.12);
-                    const originalPrice = room.originalPrice || Math.round(price * 1.3);
+                    const size = room.roomSize ? `${room.roomSize} sq.ft` : '250 sq.ft';
+                    const occupancy = `${room.guestCapacity || room.capacity || 2} Adults`;
+                    const image = room.mainImage || (room.images && room.images[0]) || 'https://images.unsplash.com/photo-1590490360182-c33d57733427';
+                    const price = room.basePrice || room.pricePerNight || 0;
+                    const taxes = room.tax || 0;
+                    const originalPrice = room.originalPrice || price;
 
-                    // Map amenities
                     const roomAmenities = [
                         { icon: <Wifi size={16} />, label: 'Free WiFi' },
                         { icon: <Wind size={16} />, label: 'Air Conditioning' },
@@ -228,14 +234,14 @@ const RoomSelection: React.FC = () => {
                             type: 'hotel',
                             hotelId: hotel?._id || hotel?.id,
                             hotelName: hotel?.name,
-                            hotelAddress: hotel?.location,
-                            hotelImage: hotel?.mainImage || (hotel?.images && hotel?.images[0]),
-                            checkIn: '2026-04-08',
-                            checkOut: '2026-04-09',
+                            hotelAddress: hotel?.address || (hotel?.city ? `${hotel.city}, ${hotel.state}` : 'Address not available'),
+                            hotelImage: hotel?.mainImage || (hotel?.images && hotel?.images[0]?.url) || 'https://images.unsplash.com/photo-1566073771259-6a8506099945',
+                            checkIn: new Date().toISOString().split('T')[0],
+                            checkOut: new Date(Date.now() + 86400000).toISOString().split('T')[0],
                             rooms: selectedRoomDetails.map(item => ({
                                 id: item.room._id || item.room.id,
                                 name: item.room.roomType || item.room.name,
-                                price: item.room.basePrice,
+                                price: item.room.basePrice || item.room.pricePerNight || 0,
                                 qty: item.qty
                             })),
                             totalPrice,

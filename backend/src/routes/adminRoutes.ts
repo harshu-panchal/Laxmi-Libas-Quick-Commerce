@@ -174,6 +174,8 @@ router.patch("/orders/:id/status", checkPermission('orders'), orderController.up
 router.patch("/orders/:id/assign-delivery", checkPermission('delivery'), orderController.assignDeliveryBoy);
 router.get("/orders/export/csv", checkPermission('orders'), orderController.exportOrders);
 router.patch("/orders/:id/tracking", checkPermission('orders'), orderController.updateOrderTracking);
+router.post("/orders/:id/generate-label", checkPermission('orders'), orderController.generateCourierLabel);
+router.get("/orders/:id/track-courier", checkPermission('orders'), orderController.trackCourierOrder);
 
 // ==================== Return Request Routes ====================
 router.get("/return-requests", orderController.getReturnRequests);
@@ -322,6 +324,8 @@ router.delete("/policies/:id", policyController.deletePolicy);
 
 // ==================== Seller Routes ====================
 router.get("/sellers", sellerController.getAllSellers);
+router.patch("/sellers/:id/commission", checkPermission('sellers'), sellerController.updateSellerCommission);
+
 
 // ==================== Seller Approval Routes ====================
 router.get("/sellers/pending", sellerApprovalController.getPendingSellers);
@@ -378,6 +382,11 @@ router.get("/bestseller-cards/:id", bestsellerCardController.getBestsellerCardBy
 router.post("/bestseller-cards", bestsellerCardController.createBestsellerCard);
 router.put("/bestseller-cards/:id", bestsellerCardController.updateBestsellerCard);
 router.delete("/bestseller-cards/:id", bestsellerCardController.deleteBestsellerCard);
+
+// ==================== Bus Management Routes ====================
+router.get("/buses", busController.getAllBuses);
+router.patch("/buses/:id/status", busController.updateBusStatus);
+router.get("/buses/bookings", busController.getBusBookings);
 router.put("/bestseller-cards/reorder", bestsellerCardController.reorderBestsellerCards);
 
 // ==================== Lowest Prices Product Routes ====================

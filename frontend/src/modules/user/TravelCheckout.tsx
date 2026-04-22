@@ -1,3 +1,6 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, User, Mail, Phone, MessageSquare } from 'lucide-react';
 import { createHotelBooking } from '../../services/api/customerHotelService';
 
 const TravelCheckout: React.FC = () => {
@@ -42,6 +45,7 @@ const TravelCheckout: React.FC = () => {
                 amount: bookingData.totalAmount
             };
 
+            console.log('🚀 Sending booking payload:', payload);
             const response = await createHotelBooking(payload);
             if (response.success) {
                 // Update local storage with bookingId and type
@@ -151,7 +155,7 @@ const TravelCheckout: React.FC = () => {
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-5 py-3 flex items-center justify-between shadow-[0_-8px_30px_rgba(0,0,0,0.06)] z-50">
                 <div className="flex flex-col">
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Grand Total</span>
-                    <span className="text-xl font-[1000] text-gray-900 mt-1">₹{bookingData?.totalAmount.toLocaleString()}</span>
+                    <span className="text-xl font-[1000] text-gray-900 mt-1">₹{(bookingData?.totalAmount || 0).toLocaleString()}</span>
                 </div>
                 <button 
                     disabled={loading}

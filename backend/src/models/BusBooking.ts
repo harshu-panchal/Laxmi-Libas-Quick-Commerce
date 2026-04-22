@@ -1,25 +1,30 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IBusBooking extends Document {
-  busId: mongoose.Types.ObjectId;
+  scheduleId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
-  seats: string[];   // seat labels e.g. ['A1', 'A2']
-  totalPrice: number;
-  amount?: number;   // alias for totalPrice
-  passengerDetails?: any;
+  seats: {
+    seatNumber: string;
+    passengerName: string;
+    passengerAge: number;
+    passengerGender: string;
+  }[];
+  totalAmount: number;
+  pickupPoint: string;
+  dropoffPoint: string;
   status: 'LOCKED' | 'confirmed' | 'cancelled';
   paymentStatus: 'Pending' | 'Success' | 'Failed';
-  merchantOrderId?: string; // PhonePe MT... id for callback lookup
+  merchantOrderId?: string;
   transactionId?: string;
-  expiresAt?: Date;  // lock expiry
+  expiresAt?: Date;
   bookingDate: Date;
 }
 
 const BusBookingSchema = new Schema<IBusBooking>(
   {
-    busId: {
+    scheduleId: {
       type: Schema.Types.ObjectId,
-      ref: 'Bus',
+      ref: 'BusSchedule',
       required: true,
     },
     userId: {
@@ -27,21 +32,26 @@ const BusBookingSchema = new Schema<IBusBooking>(
       ref: 'User',
       required: true,
     },
-    seats: {
-      type: [String],
-      default: [],
-    },
-    totalPrice: {
+    seats: [
+      {
+        seatNumber: { type: String, required: true },
+        passengerName: { type: String, required: true },
+        passengerAge: { type: Number, required: true },
+        passengerGender: { type: String, required: true },
+      },
+    ],
+    totalAmount: {
       type: Number,
       required: true,
       min: 0,
     },
-    amount: {
-      type: Number,
-      min: 0,
+    pickupPoint: {
+      type: String,
+      required: true,
     },
-    passengerDetails: {
-      type: mongoose.Schema.Types.Mixed,
+    dropoffPoint: {
+      type: String,
+      required: true,
     },
     status: {
       type: String,

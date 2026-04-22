@@ -13,6 +13,8 @@ export default function AdminBillingSettings() {
     const [platformFee, setPlatformFee] = useState<number>(0);
     const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState<number>(0);
     const [deliveryCharges, setDeliveryCharges] = useState<number>(0);
+    const [globalCommissionRate, setGlobalCommissionRate] = useState<number>(10);
+
 
     // Distance Based Config
     const [isDistanceBased, setIsDistanceBased] = useState(false);
@@ -39,6 +41,8 @@ export default function AdminBillingSettings() {
                 setPlatformFee(data.platformFee || 0);
                 setFreeDeliveryThreshold(data.freeDeliveryThreshold || 0);
                 setDeliveryCharges(data.deliveryCharges || 0);
+                setGlobalCommissionRate(data.globalCommissionRate || 10);
+
 
                 if (data.deliveryConfig) {
                     setIsDistanceBased(data.deliveryConfig.isDistanceBased || false);
@@ -69,7 +73,9 @@ export default function AdminBillingSettings() {
                 platformFee,
                 freeDeliveryThreshold,
                 deliveryCharges,
+                globalCommissionRate,
                 deliveryConfig: {
+
                     isDistanceBased,
                     baseCharge,
                     baseDistance,
@@ -170,8 +176,29 @@ export default function AdminBillingSettings() {
                             </div>
                             <p className="mt-1 text-xs text-gray-500">Orders above this amount will have free delivery.</p>
                         </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Global Commission Rate (%)
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    step="0.1"
+                                    value={globalCommissionRate}
+                                    onChange={(e) => setGlobalCommissionRate(Number(e.target.value))}
+                                    className="w-full pr-10 py-2 border border-gray-300 rounded-lg focus:ring-yellow-500 focus:border-yellow-500"
+                                    placeholder="e.g. 10"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">Default commission taken by Admin if partner-specific rate is not set.</p>
+                        </div>
                     </div>
                 </div>
+
 
                 {/* Delivery Configuration Section */}
                 <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">

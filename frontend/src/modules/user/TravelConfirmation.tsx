@@ -154,12 +154,19 @@ const TravelConfirmation: React.FC = () => {
                 </div>
             </main>
 
-            <footer className="p-6">
+            <footer className="p-6 flex flex-col gap-3">
+                <button 
+                    onClick={() => navigate('/bookings')}
+                    className="w-full h-14 bg-white border-2 border-primary-dark text-primary-dark rounded-2xl flex items-center justify-center gap-3 font-bold active:scale-[0.98] transition-all"
+                >
+                    <Calendar size={20} />
+                    <span>View My Bookings</span>
+                </button>
                 <button 
                     onClick={() => navigate('/store/travel')}
                     className="w-full h-16 bg-gray-900 text-white rounded-2xl flex items-center justify-center gap-3 font-bold group hover:bg-black active:scale-[0.98] transition-all"
                 >
-                    <span>Done</span>
+                    <span>Back to Travel Home</span>
                     <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </button>
             </footer>

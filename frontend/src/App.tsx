@@ -41,6 +41,7 @@ import Checkout from "./modules/user/Checkout";
 import CheckoutAddress from "./modules/user/CheckoutAddress";
 import ProductDetail from "./modules/user/ProductDetail";
 import PaymentVerify from "./modules/user/PaymentVerify";
+import TravelBookings from "./modules/user/TravelBookings";
 
 // Lazy load less critical routes for code splitting
 const Search = lazy(() => import("./modules/user/Search"));
@@ -115,7 +116,7 @@ const SellerSignUp = lazy(() => import("./modules/seller/pages/SellerSignUp"));
 
 // Lazy load admin routes
 const AdminLayout = lazy(() => import("./modules/admin/components/AdminLayout"));
-const AdminDashboard = lazy(() => import("./modules/admin/pages/AdminDashboard"));
+const AdminDashboard = lazy(() => import("./modules/admin/pages/AdminUnifiedDashboard"));
 const AdminLogin = lazy(() => import("./modules/admin/pages/AdminLogin"));
 const AdminCategory = lazy(() => import("./modules/admin/pages/AdminCategory"));
 const AdminHeaderCategory = lazy(() => import("./modules/admin/pages/AdminHeaderCategory"));
@@ -173,6 +174,8 @@ const AdminDiscountRules = lazy(() => import("./modules/admin/pages/AdminDiscoun
 // Lazy load hotel partner routes
 const HotelLayout = lazy(() => import("./modules/hotelPartner/components/HotelLayout"));
 const HotelDashboard = lazy(() => import("./modules/hotelPartner/pages/HotelDashboard"));
+const HotelPartnerHome = lazy(() => import("./modules/hotelPartner/pages/HotelPartnerHome"));
+const HotelOnboarding = lazy(() => import("./modules/hotelPartner/pages/HotelOnboarding"));
 const AddHotel = lazy(() => import("./modules/hotelPartner/pages/AddHotel"));
 const RoomsManagement = lazy(() => import("./modules/hotelPartner/pages/RoomsManagement"));
 const HotelBookings = lazy(() => import("./modules/hotelPartner/pages/Bookings"));
@@ -318,7 +321,10 @@ function App() {
                                 <Suspense fallback={<IconLoader forceShow />}>
                                   <SellerLayout>
                                     <Routes>
+                                      {/* Main Dashboard */}
                                       <Route path="" element={<SellerDashboard />} />
+                                      
+                                      {/* Commerce/Laxmart Module */}
                                       <Route path="orders" element={<SellerOrders />} />
                                       <Route path="orders/:id" element={<SellerOrderDetail />} />
                                       <Route path="category" element={<SellerCategory />} />
@@ -332,6 +338,22 @@ function App() {
                                       <Route path="return-order" element={<SellerReturnRequest />} />
                                       <Route path="wallet" element={<SellerWallet />} />
                                       <Route path="reports/sales" element={<SellerSalesReport />} />
+
+                                      {/* Hotel Management Module */}
+                                      <Route path="hotel/dashboard" element={<HotelDashboard />} />
+                                      <Route path="hotel/add" element={<AddHotel />} />
+                                      <Route path="hotel/rooms" element={<RoomsManagement />} />
+                                      <Route path="hotel/bookings" element={<HotelBookings />} />
+                                      <Route path="hotel/earnings" element={<HotelEarnings />} />
+
+                                      {/* Transport Management Module */}
+                                      <Route path="transport" element={<TransportDashboard />} />
+                                      <Route path="transport/add-bus" element={<AddBus />} />
+                                      <Route path="transport/routes" element={<RouteManagement />} />
+                                      <Route path="transport/schedule" element={<SchedulePage />} />
+                                      <Route path="transport/bookings" element={<BookingsPage />} />
+                                      <Route path="transport/earnings" element={<EarningsPage />} />
+
                                       <Route path="account-settings" element={<SellerAccountSettings />} />
                                     </Routes>
                                   </SellerLayout>
@@ -409,41 +431,24 @@ function App() {
                             }
                           />
 
-                          {/* Hotel Partner Routes */}
+                          {/* Unified Hotel Redirects */}
                           <Route
                             path="/hotel/*"
                             element={
                               <Suspense fallback={<IconLoader forceShow />}>
-                                <HotelLayout>
-                                  <Routes>
-                                    <Route path="" element={<HotelDashboard />} />
-                                    <Route path="add" element={<AddHotel />} />
-                                    <Route path="rooms" element={<RoomsManagement />} />
-                                    <Route path="bookings" element={<HotelBookings />} />
-                                    <Route path="earnings" element={<HotelEarnings />} />
-                                  </Routes>
-                                </HotelLayout>
+                                <Routes>
+                                  <Route path="welcome" element={<HotelPartnerHome />} />
+                                  <Route path="onboarding" element={<HotelOnboarding />} />
+                                  <Route path="*" element={<Navigate to="/seller/hotel/dashboard" replace />} />
+                                </Routes>
                               </Suspense>
                             }
                           />
 
-                          {/* Transport Partner Routes */}
+                          {/* Unified Transport Redirects */}
                           <Route
                             path="/transport/*"
-                            element={
-                              <Suspense fallback={<IconLoader forceShow />}>
-                                <TransportLayout>
-                                  <Routes>
-                                    <Route path="" element={<TransportDashboard />} />
-                                    <Route path="add-bus" element={<AddBus />} />
-                                    <Route path="routes" element={<RouteManagement />} />
-                                    <Route path="schedule" element={<SchedulePage />} />
-                                    <Route path="bookings" element={<BookingsPage />} />
-                                    <Route path="earnings" element={<EarningsPage />} />
-                                  </Routes>
-                                </TransportLayout>
-                              </Suspense>
-                            }
+                            element={<Navigate to="/seller/transport" replace />}
                           />
 
                           {/* Main App Routes */}
@@ -468,6 +473,14 @@ function App() {
                 <Route path="/store/travel/buses/results" element={<BusResults />} />
                 <Route path="/store/travel/buses/seats/:id" element={<BusSeatSelection />} />
                 <Route path="/payment/verify" element={<PaymentVerify />} />
+                <Route
+                  path="/bookings"
+                  element={
+                    <ProtectedRoute requiredUserType="Customer">
+                      <TravelBookings />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/store/minutes" element={<MinutesStore />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/track-order/:id" element={<TrackOrder />} />

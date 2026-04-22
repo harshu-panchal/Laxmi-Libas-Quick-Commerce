@@ -3,12 +3,12 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IBus extends Document {
   sellerId: mongoose.Types.ObjectId;
   busName: string;
-  from: string;
-  to: string;
-  departureTime: Date;
-  price: number;
+  busNumber: string;
+  busType: 'AC Sleeper' | 'AC Seater' | 'Non-AC Sleeper' | 'Non-AC Seater' | 'Luxury' | 'Bharat Benz Luxury' | 'AC' | 'Non-AC' | 'Sleeper' | 'Seater' | 'Semisleeper';
+  operatorName: string;
+  amenities: string[];
+  images: string[];
   totalSeats: number;
-  availableSeats: number;
   status: 'active' | 'inactive';
   createdAt: Date;
   updatedAt: Date;
@@ -34,48 +34,20 @@ const BusSchema = new Schema<IBus>(
     },
     busType: {
       type: String,
-      enum: ['AC', 'Non-AC', 'Sleeper', 'Seater', 'Semisleeper'],
+      enum: ['AC Sleeper', 'AC Seater', 'Non-AC Sleeper', 'Non-AC Seater', 'Luxury', 'Bharat Benz Luxury', 'AC', 'Non-AC', 'Sleeper', 'Seater', 'Semisleeper'],
       required: true,
     },
-    companyName: {
+    operatorName: {
       type: String,
       required: true,
     },
-    from: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    to: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    departureTime: {
-      type: Date,
-      required: true,
-    },
-    arrivalTime: {
-      type: Date,
-      required: true,
-    },
-    price: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
+    amenities: [String],
+    images: [String],
     totalSeats: {
       type: Number,
       required: true,
       min: 1,
     },
-    availableSeats: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    amenities: [String],
-    images: [String],
     status: {
       type: String,
       enum: ['active', 'inactive'],

@@ -9,6 +9,7 @@ import { notFound } from "./middleware/notFound";
 import { ensureDefaultAdmin } from "./utils/ensureDefaultAdmin";
 import { seedHeaderCategories } from "./utils/seedHeaderCategories";
 import { initializeSocket } from "./socket/socketService";
+import { setIo } from "./utils/socketEmitter";
 import { initializeFirebaseAdmin } from "./services/firebaseAdmin";
 import { logStartupEnvChecks } from "./utils/startupEnvChecks";
 import unifiedPaymentRoutes from "./routes/unifiedPaymentRoutes";
@@ -88,6 +89,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Initialize Socket.io
 const io = initializeSocket(httpServer);
+setIo(io);
 app.set("io", io);
 
 // Routes

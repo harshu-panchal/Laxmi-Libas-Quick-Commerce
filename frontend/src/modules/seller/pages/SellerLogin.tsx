@@ -55,6 +55,7 @@ export default function SellerLogin() {
           address: response.data.user.address,
           city: response.data.user.city,
           categories: response.data.user.categories,
+          businessTypes: response.data.user.businessTypes,
         });
         // Navigate to seller dashboard only on success
         navigate('/seller', { replace: true });

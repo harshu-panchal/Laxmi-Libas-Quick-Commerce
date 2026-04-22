@@ -30,6 +30,19 @@ export default {
           DEFAULT: '#FFC107',
           dark: '#F57C00',
         },
+        hotel: {
+          light: '#60A5FA',
+          DEFAULT: '#2563EB',
+          dark: '#1E40AF',
+        },
+        partner: {
+          bg: '#FFFFFF',
+          text: {
+            primary: '#111827',
+            secondary: '#4B5563',
+          },
+          btn: '#111827',
+        },
         cream: '#FFF9C4',
       },
     },

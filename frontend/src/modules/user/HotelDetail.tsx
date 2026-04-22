@@ -135,14 +135,14 @@ const HotelDetail: React.FC = () => {
                                 <Star 
                                     key={i} 
                                     size={14} 
-                                    fill={i < (hotel.stars || 4) ? "#ffc107" : "none"} 
-                                    className={i < (hotel.stars || 4) ? "text-[#ffc107]" : "text-gray-300"} 
+                                    fill={i < hotel.stars ? "#ffc107" : "none"} 
+                                    className={i < hotel.stars ? "text-[#ffc107]" : "text-gray-300"} 
                                 />
                             ))}
                         </div>
                         <span className="h-1 w-1 bg-gray-300 rounded-full"></span>
                         <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                            {hotel.stars || 4}-star property in {hotel.city || hotel.location}
+                            {hotel.propertyType} in {hotel.city}
                         </span>
                     </div>
                 </div>
@@ -151,44 +151,20 @@ const HotelDetail: React.FC = () => {
             {/* Highlights Section */}
             <div className="px-5 mt-8 grid grid-cols-2 gap-4">
                 <div className="bg-neutral-50 rounded-[24px] p-4 border border-gray-100 flex flex-col items-center text-center">
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 text-center">Top Rated</span>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 text-center">Location</span>
                     <div className="relative mb-2">
-                        <div className="absolute -left-6 top-1/2 -translate-y-1/2 opacity-20 transform -scale-x-100 italic">🌿</div>
-                        <span className="text-sm font-black text-gray-900 leading-tight">Central Location</span>
-                        <div className="absolute -right-6 top-1/2 -translate-y-1/2 opacity-20 italic">🌿</div>
+                        <span className="text-sm font-black text-gray-900 leading-tight">{hotel.city}</span>
                     </div>
-                    <span className="text-[10px] font-bold text-gray-500 uppercase">10+ mentions</span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">{hotel.state}</span>
                 </div>
 
                 <div className="bg-cyan-50/30 rounded-[24px] p-4 border border-cyan-100/50 flex flex-col items-center">
-                    <span className="text-[10px] font-black text-cyan-600 uppercase tracking-[0.2em] mb-3">In the Spotlight</span>
+                    <span className="text-[10px] font-black text-cyan-600 uppercase tracking-[0.2em] mb-3">Key Feature</span>
                     <div className="flex flex-wrap justify-center gap-1.5">
-                        <span className="text-[11px] font-black text-cyan-700 tracking-tight">Scenic</span>
+                        <span className="text-[11px] font-black text-cyan-700 tracking-tight">{hotel.propertyType}</span>
                         <span className="text-cyan-300 text-[8px] self-center">✦</span>
-                        <span className="text-[11px] font-black text-cyan-700 tracking-tight">Relaxing</span>
-                        <span className="text-cyan-300 text-[8px] self-center">✦</span>
-                        <span className="text-[11px] font-black text-cyan-700 tracking-tight">Tasty</span>
+                        <span className="text-[11px] font-black text-cyan-700 tracking-tight">{hotel.spaceType || 'Private Room'}</span>
                     </div>
-                </div>
-            </div>
-
-            {/* AI Generated Tag */}
-            <p className="px-5 mt-3 text-[10px] font-bold text-gray-400 italic text-center">
-                AI generated highlights from recent guest reviews
-            </p>
-
-            {/* Savings Banner */}
-            <div className="px-5 mt-8">
-                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between group active:scale-[0.98] transition-all">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-emerald-500 text-white p-1.5 rounded-full shadow-sm">
-                            <Check size={14} strokeWidth={4} />
-                        </div>
-                        <span className="text-xs font-black text-emerald-700 tracking-tight">
-                            ₹3,000 saved with LAXMART!
-                        </span>
-                    </div>
-                    <ChevronRight size={16} className="text-emerald-400 group-hover:translate-x-1 transition-transform" />
                 </div>
             </div>
 
@@ -200,14 +176,8 @@ const HotelDetail: React.FC = () => {
                 </div>
                 <div className="space-y-4">
                     <p className="text-sm font-bold text-gray-600 leading-relaxed">
-                        Nestled along the serene shores of Morjim, Foxoso LA Beach Resort offers a perfect blend of luxury and coastal charm. Our property features expansive ocean views, a state-of-the-art spa, and infinity pools designed for ultimate relaxation.
+                        {hotel.description || "No description provided."}
                     </p>
-                    <p className="text-sm font-bold text-gray-600 leading-relaxed">
-                        Each suite is meticulously designed with contemporary Goan aesthetics, featuring private balconies and premium linens to ensure a restful stay.
-                    </p>
-                    <button className="text-blue-600 text-xs font-black uppercase tracking-widest flex items-center gap-1 hover:underline">
-                        Read More <ChevronRight size={14} />
-                    </button>
                 </div>
             </div>
 
@@ -225,7 +195,7 @@ const HotelDetail: React.FC = () => {
                             </div>
                             <div>
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Check-in</p>
-                                <p className="text-sm font-black text-gray-900">02:00 PM</p>
+                                <p className="text-sm font-black text-gray-900">{hotel.policies?.checkInTime || '12:00 PM'}</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
@@ -234,7 +204,7 @@ const HotelDetail: React.FC = () => {
                             </div>
                             <div>
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Check-out</p>
-                                <p className="text-sm font-black text-gray-900">11:00 AM</p>
+                                <p className="text-sm font-black text-gray-900">{hotel.policies?.checkOutTime || '11:00 AM'}</p>
                             </div>
                         </div>
                     </div>
@@ -242,17 +212,36 @@ const HotelDetail: React.FC = () => {
                     <div className="space-y-4 pt-2">
                         <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
                             <div className="flex items-center gap-3">
-                                <Cigarette size={18} className="text-gray-400" />
+                                <Cigarette size={18} className={hotel.policies?.smokingAllowed ? "text-blue-600" : "text-gray-400"} />
                                 <span className="text-xs font-black text-gray-700">Smoking Allowed</span>
                             </div>
-                            <span className="text-[9px] font-black bg-gray-200 text-gray-500 px-2 py-1 rounded uppercase">Designated Areas</span>
+                            {hotel.policies?.smokingAllowed ? (
+                                <span className="text-[9px] font-black bg-blue-100 text-blue-600 px-2 py-1 rounded uppercase">Yes</span>
+                            ) : (
+                                <Ban size={16} className="text-red-400" />
+                            )}
                         </div>
                         <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
                             <div className="flex items-center gap-3">
-                                <Dog size={18} className="text-gray-400" />
+                                <Dog size={18} className={hotel.policies?.petsAllowed ? "text-blue-600" : "text-gray-400"} />
                                 <span className="text-xs font-black text-gray-700">Pets Allowed</span>
                             </div>
-                            <Ban size={16} className="text-red-400" />
+                            {hotel.policies?.petsAllowed ? (
+                                <span className="text-[9px] font-black bg-blue-100 text-blue-600 px-2 py-1 rounded uppercase">Yes</span>
+                            ) : (
+                                <Ban size={16} className="text-red-400" />
+                            )}
+                        </div>
+                        <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                            <div className="flex items-center gap-3">
+                                <ShieldCheck size={18} className={hotel.policies?.coupleFriendly ? "text-blue-600" : "text-gray-400"} />
+                                <span className="text-xs font-black text-gray-700">Couple Friendly</span>
+                            </div>
+                            {hotel.policies?.coupleFriendly ? (
+                                <span className="text-[9px] font-black bg-blue-100 text-blue-600 px-2 py-1 rounded uppercase">Yes</span>
+                            ) : (
+                                <Ban size={16} className="text-red-400" />
+                            )}
                         </div>
                     </div>
                 </div>
@@ -282,11 +271,8 @@ const HotelDetail: React.FC = () => {
                     
                     <div className="p-4 bg-white border-t border-gray-100">
                         <p className="text-sm font-bold text-gray-800 leading-tight">
-                            Foxoso LA Beach Resort, Vithaldas Wada, Morjim, Goa 403512
+                            {hotel.address}, {hotel.city} {hotel.pincode}
                         </p>
-                        <button className="mt-3 w-full bg-gray-50 py-3 rounded-xl text-blue-600 text-[11px] font-black uppercase tracking-widest border border-gray-100 active:scale-95 transition-all">
-                            Get Directions
-                        </button>
                     </div>
                 </div>
             </div>
@@ -296,14 +282,10 @@ const HotelDetail: React.FC = () => {
             {/* Sticky Bottom Bar */}
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-5 py-3 flex items-center justify-between shadow-[0_-8px_30px_rgba(0,0,0,0.06)] z-50">
                 <div className="flex flex-col">
-                    <div className="flex items-center gap-1.5 leading-none">
-                        <span className="text-[11px] font-bold text-gray-400 line-through">₹{hotel.originalPrice.toLocaleString()}</span>
-                        <span className="text-[10px] font-black text-green-600 uppercase tracking-tighter">65% OFF</span>
-                    </div>
-                    <div className="flex flex-col mt-0.5">
-                        <span className="text-xl font-[1000] text-gray-900 leading-tight">₹{hotel.price.toLocaleString()}</span>
+                    <div className="flex items-baseline gap-1.5">
+                        <span className="text-xl font-[1000] text-gray-900 leading-tight">₹{(hotel.basePrice || 0).toLocaleString()}</span>
                         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
-                            + ₹{hotel.taxes.toLocaleString()} TAXES & FEES
+                            / NIGHT
                         </span>
                     </div>
                 </div>

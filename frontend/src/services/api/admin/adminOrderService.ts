@@ -67,6 +67,9 @@ export interface Order {
   | "Failed";
   assignedAt?: string;
   trackingNumber?: string;
+  trackingId?: string; // Delhivery Waybill
+  courierPartner?: string;
+  orderType?: 'quick' | 'ecommerce';
   estimatedDeliveryDate?: string;
   deliveredAt?: string;
   adminNotes?: string;
@@ -215,5 +218,20 @@ export const exportOrders = async (
     params,
     responseType: "blob",
   });
+  return response.data;
+};
+/**
+ * Generate Delhivery Courier Label
+ */
+export const generateCourierLabel = async (id: string): Promise<ApiResponse<any>> => {
+  const response = await api.post<ApiResponse<any>>(`/admin/orders/${id}/generate-label`);
+  return response.data;
+};
+
+/**
+ * Track courier order status
+ */
+export const trackCourierOrder = async (id: string): Promise<ApiResponse<any>> => {
+  const response = await api.get<ApiResponse<any>>(`/admin/orders/${id}/track-courier`);
   return response.data;
 };

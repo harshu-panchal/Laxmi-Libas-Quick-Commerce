@@ -2,11 +2,11 @@ import axiosInstance from '../config';
 
 export interface HotelListing {
     _id: string;
-    title: string;
+    name: string;
     city: string;
-    rentAmount: number;
+    propertyType: string;
     status: string;
-    seller: {
+    sellerId: {
         _id: string;
         sellerName: string;
         storeName: string;

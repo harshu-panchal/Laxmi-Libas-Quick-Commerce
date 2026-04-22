@@ -29,6 +29,14 @@ export const getMyBuses = async (): Promise<ApiResponse<Bus[]>> => {
 };
 
 /**
+ * Add a new bus
+ */
+export const addBus = async (busData: any): Promise<ApiResponse<Bus>> => {
+  const response = await api.post<ApiResponse<Bus>>('/bus/add', busData);
+  return response.data;
+};
+
+/**
  * Get bookings for a specific bus
  */
 export const getBusBookings = async (busId: string): Promise<ApiResponse<BusBooking[]>> => {
@@ -42,6 +50,38 @@ export const getBusBookings = async (busId: string): Promise<ApiResponse<BusBook
 export const updateBusBookingStatus = async (bookingId: string, status: string): Promise<ApiResponse<BusBooking>> => {
   const response = await api.patch<ApiResponse<BusBooking>>(`/bus/bookings/${bookingId}/status`, { status });
   return response.data;
+};
+
+/**
+ * Get all routes for seller
+ */
+export const getSellerRoutes = async (): Promise<ApiResponse<any[]>> => {
+    const response = await api.get<ApiResponse<any[]>>('/bus/routes/all');
+    return response.data;
+};
+
+/**
+ * Add new route
+ */
+export const addBusRoute = async (routeData: any): Promise<ApiResponse<any>> => {
+    const response = await api.post<ApiResponse<any>>('/bus/routes/add', routeData);
+    return response.data;
+};
+
+/**
+ * Get all schedules for seller
+ */
+export const getSellerSchedules = async (): Promise<ApiResponse<any[]>> => {
+    const response = await api.get<ApiResponse<any[]>>('/bus/schedules/all');
+    return response.data;
+};
+
+/**
+ * Add new schedule
+ */
+export const addBusSchedule = async (scheduleData: any): Promise<ApiResponse<any>> => {
+    const response = await api.post<ApiResponse<any>>('/bus/schedules/add', scheduleData);
+    return response.data;
 };
 
 /**

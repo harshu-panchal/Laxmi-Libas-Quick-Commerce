@@ -29,7 +29,8 @@ export default function SellerSignUp() {
     ifsc: '',
     latitude: 0,
     longitude: 0,
-    businessTypes: ['commerce'] as string[],
+    businessType: 'product' as 'product' | 'hotel' | 'bus',
+    businessDetails: {} as any,
   });
   const [showMap, setShowMap] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number, lng: number } | null>(null);
@@ -78,6 +79,17 @@ export default function SellerSignUp() {
     }
   };
 
+  const handleBusinessDetailsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      businessDetails: {
+        ...prev.businessDetails,
+        [name]: value
+      }
+    }));
+  };
+
   const handleCategorySelect = (catId: string) => {
     setFormData(prev => {
       const isSelected = prev.categories.includes(catId);
@@ -109,13 +121,35 @@ export default function SellerSignUp() {
       setError('Please enter your email address');
       return;
     }
-    if (!formData.storeName) {
-      setError('Please enter your store name');
-      return;
-    }
-    if (formData.businessTypes.includes('commerce') && formData.categories.length === 0) {
-      setError('Please select at least one Product Category');
-      return;
+
+    // Dynamic Validation
+    if (formData.businessType === 'product') {
+        if (!formData.storeName) {
+            setError('Please enter your store name');
+            return;
+        }
+        if (formData.categories.length === 0) {
+            setError('Please select at least one Product Category');
+            return;
+        }
+    } else if (formData.businessType === 'hotel') {
+        if (!formData.businessDetails.hotelName) {
+            setError('Please enter your hotel name');
+            return;
+        }
+        if (!formData.businessDetails.roomsCount) {
+            setError('Please enter the total number of rooms');
+            return;
+        }
+    } else if (formData.businessType === 'bus') {
+        if (!formData.businessDetails.companyName) {
+            setError('Please enter your company name');
+            return;
+        }
+        if (!formData.businessDetails.licenseNumber) {
+            setError('Please enter your license number');
+            return;
+        }
     }
     if (!formData.address) {
       setError('Please enter your store address');
@@ -175,7 +209,6 @@ export default function SellerSignUp() {
         sellerName: formData.sellerName,
         mobile: formData.mobile,
         email: formData.email,
-        storeName: formData.storeName,
         category: formData.categories[0], // Primary
         categories: formData.categories, // Full list
         address: formData.address,
@@ -184,7 +217,9 @@ export default function SellerSignUp() {
         businessLicense: businessLicenseUrl,
         latitude: formData.latitude.toString(),
         longitude: formData.longitude.toString(),
-        businessTypes: formData.businessTypes,
+        businessType: formData.businessType,
+        businessDetails: formData.businessDetails,
+        storeName: formData.businessType === 'product' ? formData.storeName : (formData.businessDetails.hotelName || formData.businessDetails.companyName || 'Service Provider'),
       });
 
       if (response.success) {
@@ -225,8 +260,12 @@ export default function SellerSignUp() {
               className="h-20 w-auto mx-auto object-contain drop-shadow-md"
             />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-1">Seller Sign Up</h1>
-          <p className="text-yellow-50 text-sm">Create your seller account</p>
+          <h1 className="text-2xl font-bold text-white mb-1">
+            {formData.businessType === 'product' ? 'Seller' : formData.businessType === 'hotel' ? 'Hotel Partner' : 'Transport Partner'} Sign Up
+          </h1>
+          <p className="text-yellow-50 text-sm">
+            Create your {formData.businessType === 'product' ? 'seller' : 'partner'} account
+          </p>
         </div>
 
         {/* Sign Up Form */}
@@ -248,22 +287,22 @@ export default function SellerSignUp() {
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      { id: 'commerce', label: 'Products', icon: '🛒' },
+                      { id: 'product', label: 'Products', icon: '🛒' },
                       { id: 'hotel', label: 'Hotel', icon: '🏨' },
                       { id: 'bus', label: 'Bus', icon: '🚌' }
                     ].map((type) => {
-                      const isSelected = formData.businessTypes.includes(type.id);
+                      const isSelected = formData.businessType === type.id;
                       return (
                         <button
                           key={type.id}
                           type="button"
                           onClick={() => {
-                            setFormData(prev => {
-                              const types = prev.businessTypes.includes(type.id)
-                                ? prev.businessTypes.filter(t => t !== type.id)
-                                : [...prev.businessTypes, type.id];
-                              return { ...prev, businessTypes: types.length > 0 ? types : prev.businessTypes };
-                            });
+                            setFormData(prev => ({ 
+                                ...prev, 
+                                businessType: type.id as any,
+                                // Reset business details when switching types to avoid data mixup
+                                businessDetails: {} 
+                            }));
                           }}
                           className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all ${
                             isSelected 
@@ -279,21 +318,176 @@ export default function SellerSignUp() {
                   </div>
                 </div>
 
+                {/* Common Fields */}
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Seller Name <span className="text-red-500">*</span>
+                    Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     name="sellerName"
                     value={formData.sellerName}
                     onChange={handleInputChange}
-                    placeholder="Enter your name"
+                    placeholder="Enter your full name"
                     required
                     className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
                     disabled={loading}
                   />
                 </div>
+
+                {/* Dynamic Fields based on selection */}
+                {formData.businessType === 'product' && (
+                    <div className="space-y-4 animate-in fade-in duration-300">
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                Store Name <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="storeName"
+                                value={formData.storeName}
+                                onChange={handleInputChange}
+                                placeholder="e.g. Laxmi General Store"
+                                className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                GST Number (Optional)
+                            </label>
+                            <input
+                                type="text"
+                                name="taxNumber"
+                                value={formData.taxNumber}
+                                onChange={handleInputChange}
+                                placeholder="GSTR-XXXXXXX"
+                                className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {formData.businessType === 'hotel' && (
+                    <div className="space-y-4 animate-in slide-in-from-right duration-300">
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                Hotel Name <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="hotelName"
+                                value={formData.businessDetails.hotelName || ''}
+                                onChange={handleBusinessDetailsChange}
+                                placeholder="e.g. Grand Laxmi Palace"
+                                className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                    Total Rooms <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    name="roomsCount"
+                                    value={formData.businessDetails.roomsCount || ''}
+                                    onChange={handleBusinessDetailsChange}
+                                    placeholder="20"
+                                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                    Hotel Rating
+                                </label>
+                                <select
+                                    name="rating"
+                                    value={formData.businessDetails.rating || ''}
+                                    onChange={handleBusinessDetailsChange}
+                                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                                >
+                                    <option value="">Select Rating</option>
+                                    <option value="3">3 Star</option>
+                                    <option value="4">4 Star</option>
+                                    <option value="5">5 Star</option>
+                                    <option value="Boutique">Boutique</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                Common Amenities
+                            </label>
+                            <input
+                                type="text"
+                                name="amenities"
+                                value={formData.businessDetails.amenities || ''}
+                                onChange={handleBusinessDetailsChange}
+                                placeholder="WiFi, Parking, Pool, etc."
+                                className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {formData.businessType === 'bus' && (
+                    <div className="space-y-4 animate-in slide-in-from-right duration-300">
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                Travel Agency Name <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="companyName"
+                                value={formData.businessDetails.companyName || ''}
+                                onChange={handleBusinessDetailsChange}
+                                placeholder="e.g. Laxmi Express Travels"
+                                className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                License Number <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="licenseNumber"
+                                value={formData.businessDetails.licenseNumber || ''}
+                                onChange={handleBusinessDetailsChange}
+                                placeholder="RTO-XX-XXXXXX"
+                                className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                    Fleet Size
+                                </label>
+                                <input
+                                    type="number"
+                                    name="fleetSize"
+                                    value={formData.businessDetails.fleetSize || ''}
+                                    onChange={handleBusinessDetailsChange}
+                                    placeholder="5"
+                                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                    Primary Base City
+                                </label>
+                                <input
+                                    type="text"
+                                    name="baseCity"
+                                    value={formData.businessDetails.baseCity || ''}
+                                    onChange={handleBusinessDetailsChange}
+                                    placeholder="e.g. Jaipur"
+                                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
@@ -333,23 +527,7 @@ export default function SellerSignUp() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Store Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="storeName"
-                    value={formData.storeName}
-                    onChange={handleInputChange}
-                    placeholder="Enter store name"
-                    required
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                    disabled={loading}
-                  />
-                </div>
-
-                {formData.businessTypes.includes('commerce') && (
+                {formData.businessType === 'product' && (
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
                       Store Category <span className="text-red-500">*</span>
@@ -460,14 +638,14 @@ export default function SellerSignUp() {
 
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Store Address <span className="text-red-500">*</span>
+                    {formData.businessType === 'product' ? 'Store' : formData.businessType === 'hotel' ? 'Hotel' : 'Agency'} Address <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     name="address"
                     value={formData.address}
                     onChange={handleInputChange}
-                    placeholder="Enter store address"
+                    placeholder={`Enter ${formData.businessType === 'product' ? 'store' : formData.businessType === 'hotel' ? 'hotel' : 'agency'} address`}
                     required
                     className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
                     disabled={loading}
@@ -494,7 +672,7 @@ export default function SellerSignUp() {
                 <div className="space-y-4 pt-4 border-t">
                   <div className="flex justify-between items-center mb-2">
                     <label className="block text-sm font-medium text-neutral-700">
-                      Pin Store Location <span className="text-red-500">*</span>
+                      Pin {formData.businessType === 'product' ? 'Store' : formData.businessType === 'hotel' ? 'Hotel' : 'Agency'} Location <span className="text-red-500">*</span>
                     </label>
                     <button
                       type="button"
@@ -555,7 +733,7 @@ export default function SellerSignUp() {
                         />
                       </div>
                       <p className="text-[10px] text-neutral-500 italic text-center">
-                        Drag the map to pinpoint your exact store location
+                        Drag the map to pinpoint your exact {formData.businessType === 'product' ? 'store' : formData.businessType === 'hotel' ? 'hotel' : 'agency'} location
                       </p>
                     </div>
                   )}
@@ -690,9 +868,7 @@ export default function SellerSignUp() {
                   </svg>
                   What Happens Next?
                 </h3>
-                <p className="text-teal-700 text-xs leading-relaxed">
-                  Our admin team will review your application within 24-48 hours. Once approved, you'll receive a notification and you can start listing your products.
-                </p>
+                  Our admin team will review your application within 24-48 hours. Once approved, you'll receive a notification and you can start managing your {formData.businessType === 'product' ? 'products' : formData.businessType === 'hotel' ? 'rooms' : 'fleet'}.
               </div>
 
               <div className="pt-4">

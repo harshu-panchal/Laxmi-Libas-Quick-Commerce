@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { 
   addHotel, 
+  updateHotel,
+  deleteHotel,
   addRoom, 
+  getHotelRooms,
+  updateRoomStatus,
   getSellerHotels, 
   getHotelBookings,
   approveHotel,
@@ -9,31 +13,45 @@ import {
   getHotels,
   getHotelDetails,
   createBooking,
+  getMyBookings,
   updateBookingStatus,
-  getStayInvoice
+  getStayInvoice,
+  saveOnboardingStep,
+  getCurrentLocation,
+  getHotelCities
 } from './hotelController';
 import { authenticate, checkSellerAccess, checkPermission } from '../../middleware/auth';
 
-console.log('DEBUG: hotelController imports', { addHotel, addRoom, getSellerHotels, getHotelBookings, approveHotel, getAllBookings, getHotels, getHotelDetails, createBooking, updateBookingStatus, getStayInvoice });
-console.log('DEBUG: auth imports', { authenticate, checkSellerAccess, checkPermission });
-
 const router = Router();
 
-// Customer Routes
-router.get('/', getHotels);
-router.get('/:hotelId', getHotelDetails);
-router.post('/booking', authenticate, createBooking);
+// ⚠️ IMPORTANT: Static routes MUST come before dynamic /:hotelId routes in Express!
 
-// Seller Routes
-router.post('/add', authenticate, checkSellerAccess('hotel'), addHotel);
-router.post('/:hotelId/rooms', authenticate, checkSellerAccess('hotel'), addRoom);
+// --- Static customer routes ---
+router.get('/', getHotels);
+router.get('/location/current', getCurrentLocation);
+router.post('/booking', authenticate, createBooking);
+router.get('/my-bookings', authenticate, getMyBookings);
+router.get('/cities', getHotelCities);
+
+// --- Static seller/partner routes (MUST be before /:hotelId) ---
 router.get('/my-hotels', authenticate, checkSellerAccess('hotel'), getSellerHotels);
-router.get('/:hotelId/bookings', authenticate, checkSellerAccess('hotel'), getHotelBookings);
+router.post('/save-onboarding', authenticate, checkSellerAccess('hotel'), saveOnboardingStep);
+router.post('/add', authenticate, checkSellerAccess('hotel'), addHotel);
+router.patch('/rooms/:roomId/status', authenticate, checkSellerAccess('hotel'), updateRoomStatus);
 router.patch('/bookings/:bookingId/status', authenticate, checkSellerAccess('hotel'), updateBookingStatus);
 router.get('/bookings/:bookingId/invoice', authenticate, checkSellerAccess('hotel'), getStayInvoice);
 
-// Admin Routes
-router.patch('/:hotelId/approve', authenticate, checkPermission('hotel'), approveHotel);
+// --- Static admin routes (MUST be before /:hotelId) ---
+router.get('/admin/all', authenticate, checkPermission('hotel'), getHotels);
 router.get('/admin/bookings', authenticate, checkPermission('hotel'), getAllBookings);
+
+// --- Dynamic routes with /:hotelId (MUST come last) ---
+router.get('/:hotelId', getHotelDetails);
+router.put('/:hotelId', authenticate, checkSellerAccess('hotel'), updateHotel);
+router.delete('/:hotelId', authenticate, checkSellerAccess('hotel'), deleteHotel);
+router.get('/:hotelId/rooms', authenticate, checkSellerAccess('hotel'), getHotelRooms);
+router.post('/:hotelId/rooms', authenticate, checkSellerAccess('hotel'), addRoom);
+router.get('/:hotelId/bookings', authenticate, checkSellerAccess('hotel'), getHotelBookings);
+router.patch('/:hotelId/approve', authenticate, checkPermission('hotel'), approveHotel);
 
 export default router;

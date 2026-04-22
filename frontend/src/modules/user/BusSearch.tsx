@@ -2,15 +2,43 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, MapPin, ArrowUpDown, Calendar, ChevronRight, X, Search, ShieldCheck, Zap, Star, Map as MapIcon, Clock, Bus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getBusCities } from '../../services/api/customerBusService';
+import { toast } from 'react-hot-toast';
+
+import { useLocation } from '../../hooks/useLocation';
 
 const BusSearch: React.FC = () => {
     const navigate = useNavigate();
-    const [from, setFrom] = useState('');
+    const { location: userLocation } = useLocation();
+    const [from, setFrom] = useState(userLocation?.city || '');
     const [to, setTo] = useState('');
     const [selectedDate, setSelectedDate] = useState('08 Apr');
     const [showCityOverlay, setShowCityOverlay] = useState<{ open: boolean; type: 'from' | 'to' }>({ open: false, type: 'from' });
     const [showDateSheet, setShowDateSheet] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [availableCities, setAvailableCities] = useState<string[]>([]);
+    const [isLoadingCities, setIsLoadingCities] = useState(false);
+
+    React.useEffect(() => {
+        const fetchCities = async () => {
+            setIsLoadingCities(true);
+            try {
+                const response = await getBusCities();
+                if (response.success) {
+                    setAvailableCities(response.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch bus cities:', error);
+            } finally {
+                setIsLoadingCities(false);
+            }
+        };
+        fetchCities();
+    }, []);
+
+    const filteredCities = searchQuery 
+        ? availableCities.filter(city => city.toLowerCase().includes(searchQuery.toLowerCase()))
+        : availableCities;
 
     const handleSwap = () => {
         setFrom(to);
@@ -344,30 +372,43 @@ const BusSearch: React.FC = () => {
                             </div>
 
                             <div>
-                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.25em] mb-6">Popular Cities</h3>
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.25em] mb-6">
+                                    {searchQuery ? 'Search Results' : 'Available Cities'}
+                                </h3>
                                 <div className="grid grid-cols-1 gap-1">
-                                    {popularCities.map((city, idx) => (
-                                        <motion.div 
-                                            key={idx}
-                                            whileTap={{ scale: 0.98 }}
-                                            onClick={() => {
-                                                if (showCityOverlay.type === 'from') setFrom(city.name);
-                                                else setTo(city.name);
-                                                setShowCityOverlay({ open: false, type: 'from' });
-                                                setSearchQuery('');
-                                            }}
-                                            className="flex items-center gap-4 p-4 rounded-2xl hover:bg-blue-50/50 cursor-pointer group transition-all"
-                                        >
-                                            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                                                <MapIcon size={18} strokeWidth={2.5} />
-                                            </div>
-                                            <div className="flex-1">
-                                                <h4 className="text-sm font-black text-gray-900 leading-none group-hover:text-blue-600 transition-colors">{city.name}</h4>
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-1">{city.state}</p>
-                                            </div>
-                                            <ChevronRight size={18} className="text-gray-100 group-hover:text-blue-200 transition-colors" />
-                                        </motion.div>
-                                    ))}
+                                    {isLoadingCities ? (
+                                        <div className="flex justify-center p-10">
+                                            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    ) : filteredCities.length > 0 ? (
+                                        filteredCities.map((cityName, idx) => (
+                                            <motion.div 
+                                                key={idx}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => {
+                                                    if (showCityOverlay.type === 'from') setFrom(cityName);
+                                                    else setTo(cityName);
+                                                    setShowCityOverlay({ open: false, type: 'from' });
+                                                    setSearchQuery('');
+                                                }}
+                                                className="flex items-center gap-4 p-4 rounded-2xl hover:bg-blue-50/50 cursor-pointer group transition-all"
+                                            >
+                                                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                                    <MapIcon size={18} strokeWidth={2.5} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="text-sm font-black text-gray-900 leading-none group-hover:text-blue-600 transition-colors">{cityName}</h4>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-1">Bus Station Available</p>
+                                                </div>
+                                                <ChevronRight size={18} className="text-gray-100 group-hover:text-blue-200 transition-colors" />
+                                            </motion.div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center p-10">
+                                            <MapIcon size={40} className="mx-auto text-gray-200 mb-3" />
+                                            <p className="text-gray-500 font-bold">No registered cities found for "{searchQuery}"</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

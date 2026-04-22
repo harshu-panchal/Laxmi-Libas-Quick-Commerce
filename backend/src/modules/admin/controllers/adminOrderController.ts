@@ -5,9 +5,11 @@ import OrderItem from "../../../models/OrderItem";
 import Delivery from "../../../models/Delivery";
 import DeliveryAssignment from "../../../models/DeliveryAssignment";
 import Return from "../../../models/Return";
+import Seller from "../../../models/Seller"; // Added Seller model
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
 import { Server as SocketIOServer } from "socket.io";
 import { calculateEstimatedDeliveryBoyEarning } from "../../../services/orderNotificationService";
+import { DelhiveryService } from "../../../services/shipping/DelhiveryService"; // Added DelhiveryService
 
 /**
  * Get all orders with filters
@@ -239,6 +241,109 @@ export const updateOrderTracking = asyncHandler(
     });
   }
 );
+
+/**
+ * Generate Delhivery shipping label (Waybill)
+ */
+export const generateCourierLabel = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const order = await Order.findById(id).populate('items');
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (order.orderType !== 'ecommerce') {
+      return res.status(400).json({ success: false, message: "Only ecommerce orders support courier labels" });
+    }
+
+    // Get seller info for pickup location (Assuming single seller order or using primary seller)
+    const firstItem = await OrderItem.findById(order.items[0]).populate('seller');
+    if (!firstItem || !firstItem.seller) {
+       return res.status(400).json({ success: false, message: "Seller information not found for this order" });
+    }
+
+    const seller = firstItem.seller as any;
+
+    try {
+      const delhiveryParams = {
+        orderNumber: order.orderNumber,
+        add: order.deliveryAddress.address,
+        phone: order.customerPhone,
+        payment_mode: order.paymentMethod === 'COD' ? 'COD' as const : 'Prepaid' as const,
+        name: order.customerName,
+        pin: order.deliveryAddress.pincode,
+        sellerName: seller.storeName || seller.sellerName,
+        sellerAddress: seller.address || "Pickup Point",
+        sellerPhone: seller.mobile,
+        sellerCity: seller.city || "City",
+        sellerPin: seller.businessDetails?.pincode || "452001", // Fallback pin
+        weight: 0.5, // Default weight 0.5kg
+        totalAmount: order.total
+      };
+
+      const result = await DelhiveryService.createShipment(delhiveryParams);
+
+      if (result.success && result.packages && result.packages.length > 0) {
+        order.trackingId = result.packages[0].waybill;
+        order.courierPartner = 'Delhivery';
+        order.status = 'Shipped';
+        await order.save();
+
+        return res.status(200).json({
+          success: true,
+          message: "Delhivery label generated successfully",
+          awb: order.trackingId,
+          data: result
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "Failed to generate label from Delhivery",
+          details: result
+        });
+      }
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: "Delhivery API Error",
+        error: error.message
+      });
+    }
+  }
+);
+
+/**
+ * Fetch live tracking from Delhivery
+ */
+export const trackCourierOrder = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+
+    if (!order || !order.trackingId) {
+      return res.status(404).json({ success: false, message: "Order or tracking ID not found" });
+    }
+
+    try {
+      const trackingInfo = await DelhiveryService.trackShipment(order.trackingId);
+      return res.status(200).json({
+        success: true,
+        data: trackingInfo
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch tracking data",
+        error: error.message
+      });
+    }
+  }
+);
+
 
 /**
  * Assign delivery boy to order

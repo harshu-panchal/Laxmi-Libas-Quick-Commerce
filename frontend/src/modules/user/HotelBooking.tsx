@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Calendar, Users, ChevronRight, Zap, Lock, Star, Clock, MapPin, ShieldCheck, Heart, X, ArrowLeft, Share2, Home, Plane, Hotel, Bus } from 'lucide-react';
+import { Search, Calendar, Users, ChevronRight, Zap, Lock, Star, Clock, MapPin, ShieldCheck, Heart, X, ArrowLeft, Share2, Home, Plane, Hotel, Bus, Ticket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getHotelCities } from '../../services/api/customerHotelService';
 
 const HotelBooking: React.FC = () => {
     const navigate = useNavigate();
@@ -15,6 +16,29 @@ const HotelBooking: React.FC = () => {
     const [showSearchOverlay, setShowSearchOverlay] = React.useState(false);
     const [selectedLocation, setSelectedLocation] = React.useState('City, Hotel or Area');
     const [searchQuery, setSearchQuery] = React.useState('');
+    const [availableCities, setAvailableCities] = React.useState<string[]>([]);
+    const [isLoadingCities, setIsLoadingCities] = React.useState(false);
+
+    React.useEffect(() => {
+        const fetchCities = async () => {
+            setIsLoadingCities(true);
+            try {
+                const response = await getHotelCities();
+                if (response.success) {
+                    setAvailableCities(response.data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch hotel cities:', err);
+            } finally {
+                setIsLoadingCities(false);
+            }
+        };
+        fetchCities();
+    }, []);
+
+    const filteredCities = searchQuery 
+        ? availableCities.filter(city => city.toLowerCase().includes(searchQuery.toLowerCase()))
+        : availableCities;
 
     const trendingDestinations = [
         { name: 'Goa', sub: 'India', type: 'State', img: '/hotel_deal_1.png' },
@@ -207,30 +231,44 @@ const HotelBooking: React.FC = () => {
                             </div>
 
                             <div>
-                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-5">Trending Destinations</h3>
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-5">
+                                    {searchQuery ? 'Search Results' : 'Available Cities'}
+                                </h3>
                                 <div className="space-y-0.5">
-                                    {trendingDestinations.map((dest, idx) => (
-                                        <motion.div 
-                                            key={idx}
-                                            whileTap={{ scale: 0.98 }}
-                                            onClick={() => {
-                                                setSelectedLocation(`${dest.name}, ${dest.sub}`);
-                                                setShowSearchOverlay(false);
-                                            }}
-                                            className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full overflow-hidden shadow-sm bg-gray-100">
-                                                    <img src={dest.img} alt={dest.name} className="w-full h-full object-cover" />
+                                    {isLoadingCities ? (
+                                        <div className="flex justify-center p-10">
+                                            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    ) : filteredCities.length > 0 ? (
+                                        filteredCities.map((cityName, idx) => (
+                                            <motion.div 
+                                                key={idx}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => {
+                                                    setSelectedLocation(cityName);
+                                                    setShowSearchOverlay(false);
+                                                    setSearchQuery('');
+                                                }}
+                                                className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-50 text-blue-600 shadow-sm">
+                                                        <MapPin size={18} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-sm font-black text-gray-900 leading-none">{cityName}</h4>
+                                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mt-1">Available Destination</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h4 className="text-sm font-black text-gray-900 leading-none">{dest.name}</h4>
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mt-1">{dest.sub}</p>
-                                                </div>
-                                            </div>
-                                            <span className="text-[9px] font-black text-gray-300 uppercase tracking-wider">{dest.type}</span>
-                                        </motion.div>
-                                    ))}
+                                                <ChevronRight size={16} className="text-gray-300" />
+                                            </motion.div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center p-10">
+                                            <MapPin size={40} className="mx-auto text-gray-200 mb-3" />
+                                            <p className="text-gray-500 font-bold">No registered hotels found for "{searchQuery}"</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -254,6 +292,14 @@ const HotelBooking: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <motion.button 
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => navigate('/bookings')}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-tighter shadow-md active:scale-95 transition-all"
+                    >
+                        <Ticket size={14} strokeWidth={3} />
+                        My Bookings
+                    </motion.button>
                     <motion.button 
                         whileTap={{ scale: 0.9 }}
                         className="p-2.5 bg-gray-50 rounded-xl text-gray-400 hover:text-gray-600 transition-colors"

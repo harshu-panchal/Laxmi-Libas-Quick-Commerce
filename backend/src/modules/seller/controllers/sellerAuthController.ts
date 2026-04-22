@@ -99,10 +99,18 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Pending sellers CAN login but with limited access (frontend gates pages based on status)
+  // Restrict login to ONLY Approved sellers
+  if (seller.status !== 'Approved') {
+    console.log(`[SellerAuth] Forbidden login attempt for ${mobile}. Status: "${seller.status}" (Expected: "Approved")`);
+    return res.status(403).json({
+      success: false,
+      message: `Your account is currently ${seller.status}. You can only login once an admin has approved your application.`,
+      status: seller.status.toLowerCase(),
+    });
+  }
 
   // Generate JWT token
-  const token = generateToken(seller._id.toString(), "Seller", undefined, seller.category.toString());
+  const token = generateToken(seller._id.toString(), "Seller", undefined, seller.category?.toString() || "");
 
   return res.status(200).json({
     success: true,
@@ -121,6 +129,8 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
         city: seller.city,
         categories: seller.categories,
         category: seller.category,
+        businessType: seller.businessType,
+        businessTypes: seller.businessTypes,
       },
     },
   });
@@ -137,14 +147,34 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     storeName,
     category,
     address,
+    businessType,
+    businessDetails,
   } = req.body;
 
-  // Validation (password removed - sellers don't need password during signup)
-  if (!sellerName || !mobile || !email || !storeName || (!category && (!req.body.categories || req.body.categories.length === 0))) {
+  // Validation
+  console.log("📥 Registration Request body:", JSON.stringify(req.body, null, 2));
+
+  if (!sellerName || !mobile || !email || !businessType) {
     return res.status(400).json({
       success: false,
-      message:
-        "Required fields (Name, Mobile, Email, Store Name, at least one Category) must be provided",
+      message: "Basic details (Name, Mobile, Email, Business Type) are required",
+    });
+  }
+
+  // Validation (password removed - sellers don't need password during signup)
+  const isProductSeller = businessType === 'product';
+  if (!sellerName || !mobile || !email || !storeName || (isProductSeller && (!category && (!req.body.categories || req.body.categories.length === 0)))) {
+    const missing = [];
+    if (!sellerName) missing.push("Name");
+    if (!mobile) missing.push("Mobile");
+    if (!email) missing.push("Email");
+    if (!storeName) missing.push(isProductSeller ? "Store Name" : "Business Name");
+    if (isProductSeller && !category && (!req.body.categories || req.body.categories.length === 0)) missing.push("Categories");
+
+    return res.status(400).json({
+      success: false,
+      message: `Required fields missing: ${missing.join(", ")}`,
+      debug: { businessType, isProductSeller, hasCategories: !!(req.body.categories?.length) }
     });
   }
 
@@ -163,22 +193,24 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Validate categories exist
-  for (const catId of finalCategories) {
-    if (!mongoose.Types.ObjectId.isValid(catId)) {
+  // Validate categories exist (only for product sellers)
+  if (isProductSeller && finalCategories.length > 0) {
+    for (const catId of finalCategories) {
+      if (!mongoose.Types.ObjectId.isValid(catId)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid Category ID: ${catId}`,
+        });
+      }
+    }
+
+    const existingCats = await Category.find({ _id: { $in: finalCategories } });
+    if (existingCats.length !== finalCategories.length) {
       return res.status(400).json({
         success: false,
-        message: `Invalid Category ID: ${catId}`,
+        message: "One or more selected categories do not exist.",
       });
     }
-  }
-
-  const existingCats = await Category.find({ _id: { $in: finalCategories } });
-  if (existingCats.length !== finalCategories.length) {
-    return res.status(400).json({
-      success: false,
-      message: "One or more selected categories do not exist.",
-    });
   }
 
   // All sellers must be approved by admin by default
@@ -209,6 +241,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     categories: finalCategories,
     address,
     city: req.body.city,
+    businessType,
+    businessDetails: businessDetails || {},
+    businessTypes: [businessType === 'product' ? 'commerce' : businessType],
     latitude: latitude || "",
     longitude: longitude || "",
     location: (latitude && longitude) ? {

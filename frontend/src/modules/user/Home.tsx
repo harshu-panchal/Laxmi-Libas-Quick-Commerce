@@ -75,7 +75,8 @@ export default function Home() {
         const response = await getHomeContent(
           slug,
           location?.latitude,
-          location?.longitude
+          location?.longitude,
+          location?.city
         );
 
         if (response.success && response.data) {
@@ -147,6 +148,7 @@ export default function Home() {
                 slug,
                 location?.latitude,
                 location?.longitude,
+                location?.city,
                 true,
                 5 * 60 * 1000,
                 true

@@ -1,36 +1,28 @@
 import { Router } from 'express';
-import { 
-  addBus, 
-  getSellerBuses, 
-  updateBusRoute, 
-  getBusBookings,
-  approveBus,
-  getAllBusBookings,
-  searchBuses,
-  getBusDetails,
-  createBusBooking,
-  updateBusBookingStatus,
-  getPassengerManifest
-} from './busController';
-import { authenticate, checkSellerAccess, checkPermission } from '../../middleware/auth';
+import * as busController from './busController';
+import { authenticate } from '../../middleware/auth';
 
 const router = Router();
 
-// Customer Routes
-router.get('/', searchBuses);
-router.get('/:busId', getBusDetails);
-router.post('/booking', authenticate, createBusBooking);
+// --- Seller Routes (Accessible via /api/bus/...) ---
+router.get('/my-buses', authenticate, busController.getSellerBuses);
+router.post('/add', authenticate, busController.addBus);
+router.get('/routes/all', authenticate, busController.getSellerRoutes);
+router.post('/routes/add', authenticate, busController.addBusRoute);
+router.get('/schedules/all', authenticate, busController.getSellerSchedules);
+router.post('/schedules/add', authenticate, busController.addBusSchedule);
 
-// Seller Routes
-router.post('/add', authenticate, checkSellerAccess('bus'), addBus);
-router.get('/my-buses', authenticate, checkSellerAccess('bus'), getSellerBuses);
-router.patch('/:busId/route', authenticate, checkSellerAccess('bus'), updateBusRoute);
-router.get('/:busId/bookings', authenticate, checkSellerAccess('bus'), getBusBookings);
-router.patch('/bookings/:bookingId/status', authenticate, checkSellerAccess('bus'), updateBusBookingStatus);
-router.get('/:busId/manifest', authenticate, checkSellerAccess('bus'), getPassengerManifest);
+router.get('/:busId/bookings', authenticate, busController.getBusBookings);
+router.patch('/bookings/:bookingId/status', authenticate, busController.updateBookingStatus);
+router.get('/:busId/manifest', authenticate, busController.getManifest);
 
-// Admin Routes
-router.patch('/:busId/approve', authenticate, checkPermission('bus'), approveBus);
-router.get('/admin/bookings', authenticate, checkPermission('bus'), getAllBusBookings);
+// --- Customer Routes ---
+router.get('/', busController.searchBuses);
+router.get('/bookings/:bookingId/ticket', authenticate, busController.getTicket);
+router.post('/booking', authenticate, busController.createBusBooking);
+router.get('/cities', busController.getBusCities); // Dynamic cities list
+router.get('/my-bookings', authenticate, busController.getMyBookings);
+router.get('/:id', busController.getScheduleDetail);
 
 export default router;
+

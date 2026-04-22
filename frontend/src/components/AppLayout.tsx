@@ -43,8 +43,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Check if location is required for current route
   const requiresLocation = () => {
-    // Temporarily disabled: location is not mandatory for now
-    return false;
+    // If location is not set, we always want to prompt on the home/entry pages
+    if (!userLocation || !userLocation.latitude || !userLocation.longitude) return true;
+    
+    // Modules that strictly require location
+    const strictlyRequired = ['/store/minutes', '/checkout', '/cart'];
+    return strictlyRequired.some(path => location.pathname.startsWith(path));
   };
 
   // ... (rest of the component logic)
@@ -306,21 +310,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </div>
               )} */}
 
-              {/* Location line - only show if user has provided location, hide on order-again */}
-              {userLocation && (userLocation.address || userLocation.city) && !isOrderAgainPage && (
-                <div className="px-4 md:px-6 lg:px-8 py-2 flex items-center justify-between text-sm">
-                  <span className="text-neutral-700 line-clamp-1" title={userLocation?.address || ''}>
-                    {userLocation?.address
-                      ? userLocation.address.length > 50
-                        ? `${userLocation.address.substring(0, 50)}...`
-                        : userLocation.address
-                      : userLocation?.city && userLocation?.state
-                        ? `${userLocation.city}, ${userLocation.state}`
-                        : userLocation?.city || ''}
-                  </span>
+              {/* Location line - show detected city prominently */}
+              {!isOrderAgainPage && (
+                <div className="px-4 md:px-6 lg:px-8 py-2 bg-neutral-50 flex items-center justify-between text-sm border-b border-neutral-100">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-orange-600">
+                        <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <span className="text-neutral-900 font-medium whitespace-nowrap">
+                      {userLocation?.city ? `Delivering to ${userLocation.city}` : 'Select your location'}
+                    </span>
+                    {userLocation?.address && (
+                      <span className="text-neutral-500 truncate hidden sm:inline" title={userLocation.address}>
+                        • {userLocation.address.length > 40 ? `${userLocation.address.substring(0, 40)}...` : userLocation.address}
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={() => setShowLocationChangeModal(true)}
-                    className="text-blue-600 font-medium hover:text-blue-700 transition-colors flex-shrink-0 ml-2"
+                    className="text-orange-600 font-bold hover:text-orange-700 transition-colors flex-shrink-0 ml-4 px-2 py-0.5 rounded-md hover:bg-orange-50"
                   >
                     Change
                   </button>

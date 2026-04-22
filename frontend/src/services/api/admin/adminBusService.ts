@@ -14,6 +14,38 @@ export interface BusListing {
     createdAt: string;
 }
 
+export interface BusBookingListing {
+    _id: string;
+    userId: {
+        _id: string;
+        name: string;
+        email: string;
+        mobile: string;
+    };
+    scheduleId: {
+        _id: string;
+        busId: {
+            _id: string;
+            busNumber: string;
+            operatorName: string;
+        };
+        departureTime: string;
+        departureDate: string;
+    };
+    seats: {
+        seatNumber: string;
+        passengerName: string;
+        passengerAge: number;
+        passengerGender: string;
+    }[];
+    totalAmount: number;
+    pickupPoint: string;
+    dropoffPoint: string;
+    status: string;
+    paymentStatus: string;
+    createdAt: string;
+}
+
 export const getAllBuses = async (params?: any) => {
     const response = await axiosInstance.get('/admin/buses', { params });
     return response.data;

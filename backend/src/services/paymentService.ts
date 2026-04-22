@@ -74,7 +74,7 @@ export const createPhonePeOrder = async (
         } else if (paymentType === 'bus') {
             const booking = await BusBooking.findById(orderId);
             if (!booking) throw new Error('Bus booking not found');
-            amount = booking.totalPrice; // Fixed field name
+            amount = booking.totalAmount; // FIXED field name (was totalPrice)
             userId = booking.userId;
         }
 
@@ -165,12 +165,13 @@ export const getPhonePePaymentStatus = async (merchantTransactionId: string) => 
                 } else if (payment.paymentType === 'hotel') {
                     updatedRecord = await HotelBooking.findByIdAndUpdate(payment.orderId, {
                         bookingStatus: 'Confirmed',
-                        paymentStatus: 'Success'
                     }, { new: true }).lean();
+                    await commitBookingResources(payment); // COMMIT HOTEL ROOMS
                 } else if (payment.paymentType === 'bus') {
                     updatedRecord = await BusBooking.findByIdAndUpdate(payment.orderId, {
                         status: 'confirmed'
                     }, { new: true }).lean();
+                    await commitBookingResources(payment); // COMMIT BUS SEATS
                 }
 
                 return {
@@ -255,12 +256,13 @@ export const handlePhonePeCallback = async (body: any) => {
             } else if (payment.paymentType === 'hotel') {
                 updatedRecord = await HotelBooking.findByIdAndUpdate(payment.orderId, {
                     bookingStatus: 'Confirmed',
-                    paymentStatus: 'Success'
                 }, { new: true }).lean();
+                await commitBookingResources(payment);
             } else if (payment.paymentType === 'bus') {
                 updatedRecord = await BusBooking.findByIdAndUpdate(payment.orderId, {
                     status: 'confirmed'
                 }, { new: true }).lean();
+                await commitBookingResources(payment);
             }
 
             return { success: true, order: updatedRecord, justPaid: true };
@@ -326,3 +328,56 @@ export const processPhonePeRefund = async (paymentId: string, amount?: number) =
         return { success: false, message: error.message };
     }
 };
+
+/**
+ * 5. Commit Resources (Private Helper)
+ * Locks seats for bus or decrements availability for hotel
+ */
+import HotelRoom from '../models/HotelRoom';
+import BusSchedule from '../models/BusSchedule';
+
+async function commitBookingResources(payment: any) {
+    try {
+        console.log(`[PaymentService] Committing resources for type: ${payment.paymentType}, ID: ${payment.orderId}`);
+        
+        if (payment.paymentType === 'hotel') {
+            const booking = await HotelBooking.findById(payment.orderId);
+            if (!booking) return;
+
+            // Decrement rooms for each room type booked
+            for (const item of booking.rooms) {
+                const room = await HotelRoom.findById(item.roomId);
+                if (room) {
+                    room.availableRooms = Math.max(0, room.availableRooms - item.count);
+                    if (room.availableRooms === 0) {
+                        room.status = 'Full';
+                    }
+                    await room.save();
+                    console.log(`[Hotel] Room ${room.roomType} availability reduced. Remaining: ${room.availableRooms}`);
+                }
+            }
+
+        } else if (payment.paymentType === 'bus') {
+            const booking = await BusBooking.findById(payment.orderId);
+            if (!booking) return;
+
+            const schedule = await BusSchedule.findById(booking.scheduleId);
+            if (!schedule) return;
+
+            const seatNums = booking.seats.map(s => s.seatNumber);
+            
+            // Mark seats as booked
+            schedule.seats = schedule.seats.map(s => {
+                if (seatNums.includes(s.seatNumber)) {
+                    return { ...s, isBooked: true };
+                }
+                return s;
+            });
+
+            await schedule.save();
+            console.log(`[Bus] Schedule ${booking.scheduleId} seats locked: ${seatNums.join(', ')}`);
+        }
+    } catch (err) {
+        console.error('[PaymentService] Resource Commitment Failed:', err);
+    }
+}

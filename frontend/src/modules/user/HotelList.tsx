@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getHotels } from '../../services/api/customerHotelService';
+import { useLocation } from '../../hooks/useLocation';
 
 const HotelList: React.FC = () => {
     const navigate = useNavigate();
@@ -30,8 +31,10 @@ const HotelList: React.FC = () => {
     const checkInRef = React.useRef<HTMLInputElement>(null);
     const checkOutRef = React.useRef<HTMLInputElement>(null);
 
+    const { location: userLocation } = useLocation();
+
     // Search States
-    const [destination, setDestination] = React.useState('Goa');
+    const [destination, setDestination] = React.useState(userLocation?.city || '');
     const [dates, setDates] = React.useState({
         checkIn: new Date().toISOString().split('T')[0],
         checkOut: new Date(Date.now() + 86400000).toISOString().split('T')[0]
@@ -41,10 +44,20 @@ const HotelList: React.FC = () => {
     const fetchHotelsList = async () => {
         setLoading(true);
         try {
-            const response = await getHotels({ 
-                city: destination,
+            const queryParams: any = { 
                 status: 'Approved'
-            });
+            };
+            
+            if (destination && destination.trim() !== '') {
+                queryParams.city = destination.trim();
+            }
+
+            if (userLocation?.latitude && userLocation?.longitude) {
+                queryParams.latitude = userLocation.latitude;
+                queryParams.longitude = userLocation.longitude;
+            }
+
+            const response = await getHotels(queryParams);
             if (response.success) {
                 setFetchedHotels(response.data);
             }
@@ -585,16 +598,22 @@ const HotelList: React.FC = () => {
                     </div>
                 ) : fetchedHotels.map((hotel) => {
                     // Mapping backend fields to UI fields
-                    const hotelId = hotel._id || hotel.id;
-                    const rating = hotel.rating || 4.2;
-                    const reviewsCount = hotel.reviewsCount || hotel.ratingsCount || 0;
-                    const price = hotel.price || 4999;
-                    const originalPrice = hotel.originalPrice || (price * 1.25);
-                    const stars = hotel.stars || 4;
-                    const ratingText = rating >= 4.5 ? 'Excellent' : rating >= 4 ? 'Very Good' : 'Good';
-                    const mainImg = hotel.mainImage || (hotel.images && hotel.images[0]) || 'https://images.unsplash.com/photo-1566073771259-6a8506099945';
+                    const hotelId = hotel._id;
+                    const rating = hotel.rating || 0;
+                    const reviewsCount = hotel.reviewsCount || 0;
+                    const price = hotel.basePrice || 0;
+                    const originalPrice = hotel.originalPrice || price; // Use actual original price if available
+                    const stars = hotel.stars || 3;
+                    const ratingText = rating >= 4.5 ? 'Excellent' : rating >= 4 ? 'Very Good' : rating > 0 ? 'Good' : 'New';
+                    const mainImg = hotel.mainImage || 'https://images.unsplash.com/photo-1566073771259-6a8506099945';
                     const amenities = hotel.amenities || [];
-                    const offers = hotel.offers || ['Free Breakfast', 'Free Cancellation'];
+                    const offers = [
+                      ...(hotel.policies?.coupleFriendly ? ['Couple Friendly'] : []),
+                      'Laxmart Verified'
+                    ];
+
+                    const hasDiscount = originalPrice > price;
+                    const discountPercent = hasDiscount ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
 
                     return (
                         <motion.div 
@@ -617,18 +636,11 @@ const HotelList: React.FC = () => {
                                 )}
 
                                 {/* Urgency Tag */}
-                                {hotel.roomsLeft <= 3 && (
+                                {hotel.details?.roomsLeft <= 3 && (
                                     <div className="absolute top-4 right-4 bg-red-600/90 backdrop-blur-md text-white text-[9px] font-black px-3 py-1.5 rounded-full shadow-lg uppercase tracking-tighter">
-                                        Only {hotel.roomsLeft || 2} rooms left!
+                                        Only {hotel.details.roomsLeft} rooms left!
                                     </div>
                                 )}
-
-                                {/* Image Dots */}
-                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-                                    {[1, 2, 3].map((_, i) => (
-                                        <div key={i} className={`h-1.5 w-1.5 rounded-full ${i === 0 ? 'bg-white w-4' : 'bg-white/50'}`}></div>
-                                    ))}
-                                </div>
                             </div>
 
                             {/* Content Section */}
@@ -636,28 +648,32 @@ const HotelList: React.FC = () => {
                                 <div className="flex items-start justify-between mb-2">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1.5 mb-2">
-                                            <div className="bg-blue-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm">
-                                                {rating}
-                                            </div>
+                                            {rating > 0 && (
+                                                <div className="bg-blue-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm">
+                                                    {rating}
+                                                </div>
+                                            )}
                                             <span className="text-blue-600 font-[900] text-xs uppercase tracking-tight">{ratingText}</span>
-                                            <span className="text-gray-400 text-[10px] font-bold">({reviewsCount})</span>
+                                            {reviewsCount > 0 && (
+                                                <span className="text-gray-400 text-[10px] font-bold">({reviewsCount})</span>
+                                            )}
                                         </div>
                                         <h2 className="text-lg font-[1000] text-gray-900 leading-[1.2] mb-1 truncate">{hotel.name}</h2>
                                         <div className="flex items-center gap-2 mb-2">
                                             <div className="flex items-center gap-0.5">
-                                                {[...Array(stars)].map((_, i) => (
-                                                    <Star key={i} size={10} fill="#ffc107" className="text-[#ffc107]" />
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star key={i} size={10} fill={i < stars ? "#ffc107" : "#e5e7eb"} className={i < stars ? "text-[#ffc107]" : "text-gray-200"} />
                                                 ))}
                                             </div>
                                             <span className="h-1 w-1 bg-gray-300 rounded-full"></span>
-                                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{hotel.city || destination}</span>
+                                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{hotel.city}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Amenities Chips row */}
                                 <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide mb-4">
-                                    {amenities.map((amenity: string, idx: number) => (
+                                    {amenities.slice(0, 4).map((amenity: string, idx: number) => (
                                         <span key={idx} className="bg-gray-50 text-gray-500 text-[9px] font-black px-2.5 py-1 rounded-md border border-gray-100/50 uppercase tracking-tight whitespace-nowrap">
                                             {amenity}
                                         </span>
@@ -674,31 +690,27 @@ const HotelList: React.FC = () => {
                                             <span className="text-xs font-black">{offer}</span>
                                         </div>
                                     ))}
-                                    {hotel.hasLoginDiscount && (
-                                        <div className="inline-block bg-gray-100 px-3 py-1.5 rounded-lg text-gray-900 text-[10px] font-black uppercase tracking-widest border border-gray-200 shadow-sm">
-                                            Login Discount
-                                        </div>
-                                    )}
                                 </div>
 
-                                {/* Pricing Section (More density) */}
+                                {/* Pricing Section */}
                                 <div className="pt-3 border-t border-gray-50">
                                     <div className="flex items-end justify-between">
                                         <div className="space-y-0.5">
                                             <div className="flex items-center gap-2">
-                                                <span className="bg-green-100 text-green-700 text-[9px] font-[1000] px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                                                    SAVE 20%
-                                                </span>
-                                                {hotel.hasLoginDiscount && (
-                                                    <span className="text-blue-600 text-[9px] font-black uppercase tracking-widest">+ Member Deal</span>
+                                                {hasDiscount && (
+                                                    <span className="bg-green-100 text-green-700 text-[9px] font-[1000] px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                                                        SAVE {discountPercent}%
+                                                    </span>
                                                 )}
                                             </div>
                                             <div className="flex items-baseline gap-1.5">
                                                 <span className="text-2xl font-[1000] text-gray-900 leading-none">₹{price.toLocaleString()}</span>
-                                                <span className="text-xs font-bold text-gray-400 line-through">₹{originalPrice.toLocaleString()}</span>
+                                                {hasDiscount && (
+                                                    <span className="text-xs font-bold text-gray-400 line-through">₹{originalPrice.toLocaleString()}</span>
+                                                )}
                                             </div>
                                             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">
-                                                + ₹{(hotel.taxes || 500).toLocaleString()} taxes / night
+                                                + ₹{(hotel.taxes || 0).toLocaleString()} taxes / night
                                             </p>
                                         </div>
                                         <button 

@@ -1,5 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcrypt';
+import { ILocationData, LocationSchema } from './schemas/LocationSchema';
 
 export interface ISeller extends Document {
   // Authentication
@@ -56,9 +57,12 @@ export interface ISeller extends Document {
   approvedAt?: Date;
   balance: number;
   categories: string[];
+  businessType: 'product' | 'hotel' | 'bus';
   businessTypes: ('commerce' | 'hotel' | 'bus')[];
+  businessDetails: any;
   logo?: string;
   city?: string;
+  structuredLocation?: ILocationData;
   isShopOpen: boolean;
   latitude?: string;
   longitude?: string;
@@ -129,7 +133,7 @@ const SellerSchema = new Schema<ISeller>(
     category: {
       type: Schema.Types.ObjectId,
       ref: "Category",
-      required: [true, 'Category is required'],
+      required: false,
     },
     taxName: {
       type: String,
@@ -255,11 +259,21 @@ const SellerSchema = new Schema<ISeller>(
       type: Schema.Types.ObjectId,
       ref: "Category",
     }],
+    businessType: {
+      type: String,
+      enum: ['product', 'hotel', 'bus'],
+      default: 'product',
+      required: true
+    },
     businessTypes: {
       type: [String],
       enum: ['commerce', 'hotel', 'bus'],
       default: ['commerce'],
       required: true
+    },
+    businessDetails: {
+      type: Object,
+      default: {}
     },
     logo: {
       type: String,
@@ -268,6 +282,9 @@ const SellerSchema = new Schema<ISeller>(
     city: {
       type: String,
       trim: true,
+    },
+    structuredLocation: {
+      type: LocationSchema,
     },
     isShopOpen: {
       type: Boolean,
@@ -311,7 +328,21 @@ const SellerSchema = new Schema<ISeller>(
   }
 );
 
-// Hash password before saving (only if password is provided)
+SellerSchema.pre('save', function(next) {
+  if (this.isModified('latitude') || this.isModified('longitude')) {
+    const lat = Number(this.latitude);
+    const lng = Number(this.longitude);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      this.location = {
+        type: 'Point',
+        coordinates: [lng, lat]
+      };
+    }
+  }
+  next();
+});
+
+// Hash password before saving
 SellerSchema.pre('save', async function (next) {
   // Skip password hashing if password is not provided or not modified
   if (!this.isModified('password') || !this.password) {
@@ -321,6 +352,17 @@ SellerSchema.pre('save', async function (next) {
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    
+    // Normalize city if present
+    if (this.city) {
+      this.city = this.city
+        .trim()
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+    
     next();
   } catch (error: any) {
     next(error);
@@ -336,6 +378,7 @@ SellerSchema.methods.comparePassword = async function (
 
 // Index for status queries
 SellerSchema.index({ status: 1 });
+SellerSchema.index({ location: '2dsphere' });
 
 const Seller = (mongoose.models.Seller as mongoose.Model<ISeller>) || mongoose.model<ISeller>('Seller', SellerSchema);
 

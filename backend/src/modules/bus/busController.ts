@@ -1,179 +1,327 @@
 import { Request, Response } from 'express';
 import Bus from '../../models/Bus';
+import BusRoute from '../../models/BusRoute';
+import BusSchedule from '../../models/BusSchedule';
 import BusBooking from '../../models/BusBooking';
 import { PDFService } from '../../services/PDFService';
 import { asyncHandler } from '../../utils/asyncHandler';
-
-// --- Seller Features ---
-
-export const addBus = async (req: Request, res: Response) => {
-  try {
-    const sellerId = (req as any).user.userId;
-    const bus = new Bus({ ...req.body, sellerId });
-    await bus.save();
-    res.status(201).json({ success: true, data: bus });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-export const getSellerBuses = async (req: Request, res: Response) => {
-  try {
-    const sellerId = (req as any).user.userId;
-    const buses = await Bus.find({ sellerId });
-    res.json({ success: true, data: buses });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-export const updateBusRoute = async (req: Request, res: Response) => {
-  try {
-    const { busId } = req.params;
-    const bus = await Bus.findByIdAndUpdate(busId, req.body, { new: true });
-    res.json({ success: true, data: bus });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-export const getBusBookings = async (req: Request, res: Response) => {
-  try {
-    const { busId } = req.params;
-    const bookings = await BusBooking.find({ busId }).populate('userId');
-    res.json({ success: true, data: bookings });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+import mongoose from 'mongoose';
+import { normalizeCity, calculateDistance } from '../../utils/locationUtils';
 
 // --- Customer Features ---
 
-export const searchBuses = async (req: Request, res: Response) => {
-  try {
-    const { from, to, date } = req.query;
-    const query: any = { status: 'Approved' };
+/**
+ * Search buses (schedules) between source and destination on a specific date
+ */
+export const searchBuses = asyncHandler(async (req: Request, res: Response) => {
+  const { from, to, date, fromLat, fromLng, toLat, toLng } = req.query;
 
-    if (from) query['route.from'] = new RegExp(from as string, 'i');
-    if (to)   query['route.to']   = new RegExp(to   as string, 'i');
-
-    // Filter by exact calendar day: from startOfDay to endOfDay (local time)
-    if (date) {
-      const startOfDay = new Date(date as string);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date as string);
-      endOfDay.setHours(23, 59, 59, 999);
-      query['departureTime'] = { $gte: startOfDay, $lte: endOfDay };
-    }
-
-    const buses = await Bus.find(query).sort({ departureTime: 1 });
-    res.json({ success: true, data: buses });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+  if (!from && (!fromLat || !fromLng)) {
+    res.status(400).json({ success: false, message: 'Source location is required' });
+    return;
   }
-};
-
-export const getBusDetails = async (req: Request, res: Response) => {
-  try {
-    const { busId } = req.params;
-    const bus = await Bus.findById(busId);
-    if (!bus) return res.status(404).json({ success: false, message: 'Bus not found' });
-    res.json({ success: true, data: bus });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+  if (!to && (!toLat || !toLng)) {
+    res.status(400).json({ success: false, message: 'Destination location is required' });
+    return;
   }
-};
 
-export const createBusBooking = async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).user.userId;
-    const { busId, seats, totalAmount, passengerDetails } = req.body;
+  const query: any = { isActive: true };
 
-    const bus = await Bus.findById(busId);
-    if (!bus) return res.status(404).json({ success: false, message: 'Bus not found' });
-
-    // Validate seats
-    const bookedSeats = await BusBooking.find({ busId, status: { $ne: 'Cancelled' } }).distinct('seats');
-    const isAnySeatTaken = seats.some((s: string) => bookedSeats.includes(s));
-    
-    if (isAnySeatTaken) {
-      return res.status(400).json({ success: false, message: 'One or more seats already booked' });
-    }
-
-    const booking = new BusBooking({
-      userId,
-      busId,
-      seats,
-      amount: totalAmount,
-      passengerDetails,
-      status: 'Pending'
-    });
-
-    await booking.save();
-    res.status(201).json({ success: true, data: booking });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+  // Geo-search for "from" if coordinates provided, else fallback to city string
+  if (fromLat && fromLng) {
+    query.fromLocationGeo = {
+      $near: {
+        $geometry: { type: "Point", coordinates: [Number(fromLng), Number(fromLat)] },
+        $maxDistance: 15000 // 15 km
+      }
+    };
+  } else if (from) {
+    query.from = normalizeCity(from as string);
   }
-};
 
-// --- Admin Features ---
-
-export const approveBus = async (req: Request, res: Response) => {
-  try {
-    const { busId } = req.params;
-    const { status } = req.body;
-    const bus = await Bus.findByIdAndUpdate(busId, { status }, { new: true });
-    res.json({ success: true, data: bus });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+  // Geo-search for "to" if coordinates provided
+  if (toLat && toLng) {
+    query.toLocationGeo = {
+      $near: {
+        $geometry: { type: "Point", coordinates: [Number(toLng), Number(toLat)] },
+        $maxDistance: 15000 // 15 km
+      }
+    };
+  } else if (to) {
+    query.to = normalizeCity(to as string);
   }
-};
 
-export const getAllBusBookings = async (req: Request, res: Response) => {
-  try {
-    const bookings = await BusBooking.find().populate('busId userId');
-    res.json({ success: true, data: bookings });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+  // 1. Find routes that match source and destination
+  const routes = await BusRoute.find(query);
+
+  if (routes.length === 0) {
+    res.json({ success: true, data: [] });
+    return;
   }
-};
+
+  const routeIds = routes.map(r => r._id);
+
+  // 2. Find schedules for these routes
+  const scheduleQuery: any = {
+    routeId: { $in: routeIds },
+    isActive: true
+  };
+
+  if (date) {
+    const startOfDay = new Date(date as string);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date as string);
+    endOfDay.setHours(23, 59, 59, 999);
+    scheduleQuery.departureDate = { $gte: startOfDay, $lte: endOfDay };
+  }
+
+  const schedules = await BusSchedule.find(scheduleQuery)
+    .populate('busId')
+    .populate('routeId')
+    .sort({ departureTime: 1 });
+
+  // Transform for frontend if needed
+  const formattedSchedules = schedules.map(s => {
+    const bus = s.busId as any;
+    const route = s.routeId as any;
+    return {
+      _id: s._id,
+      operatorName: bus.operatorName,
+      busName: bus.busName,
+      busType: bus.busType,
+      from: route.from,
+      to: route.to,
+      departureTime: s.departureTime,
+      arrivalTime: s.arrivalTime,
+      date: s.departureDate.toLocaleDateString(),
+      basePrice: s.basePrice,
+      amenities: bus.amenities,
+      availableSeats: s.seats.filter(st => !st.isBooked).length
+    };
+  });
+
+  res.json({ success: true, data: formattedSchedules });
+});
 
 /**
- * Professional Bus Booking Status Update
+ * Get specific schedule detail (with seat map)
  */
-export const updateBusBookingStatus = asyncHandler(async (req: Request, res: Response) => {
-  const { bookingId } = req.params;
-  const { status } = req.body; // Confirmed | Boarded | Completed | Cancelled
+export const getScheduleDetail = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
 
-  const booking = await BusBooking.findById(bookingId);
+  const schedule = await BusSchedule.findById(id)
+    .populate('busId')
+    .populate('routeId');
+
+  if (!schedule) {
+    res.status(404).json({ success: false, message: 'Schedule not found' });
+    return;
+  }
+
+  const bus = schedule.busId as any;
+  const route = schedule.routeId as any;
+
+  const data = {
+    _id: schedule._id,
+    operatorName: bus.operatorName,
+    date: schedule.departureDate.toLocaleDateString(),
+    departureTime: schedule.departureTime,
+    basePrice: schedule.basePrice,
+    seats: schedule.seats,
+    pickupPoints: route.pickupPoints,
+    dropoffPoints: route.dropoffPoints,
+    amenities: bus.amenities
+  };
+
+  res.json({ success: true, data });
+});
+
+/**
+ * Get current user's bus bookings
+ */
+export const getMyBookings = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.userId;
+  const bookings = await BusBooking.find({ userId })
+    .populate({
+      path: 'scheduleId',
+      populate: [{ path: 'busId' }, { path: 'routeId' }]
+    })
+    .sort({ createdAt: -1 });
+  res.json({ success: true, data: bookings });
+});
+
+/**
+ * Create Bus Booking (Initial lock)
+ */
+export const createBusBooking = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.userId;
+  const { scheduleId, seats, totalAmount, pickupPoint, dropoffPoint } = req.body;
+
+  const schedule = await BusSchedule.findById(scheduleId);
+  if (!schedule) {
+    res.status(404).json({ success: false, message: 'Schedule not found' });
+    return;
+  }
+
+  // Check if seats are still available
+  const seatNumbersToBook = seats.map((s: any) => s.seatNumber);
+  const alreadyBooked = schedule.seats.filter(s => s.isBooked && seatNumbersToBook.includes(s.seatNumber));
+
+  if (alreadyBooked.length > 0) {
+    res.status(400).json({ success: false, message: 'Some seats are already booked' });
+    return;
+  }
+
+  // Create booking record
+  const booking = new BusBooking({
+    scheduleId,
+    userId,
+    seats,
+    totalAmount,
+    pickupPoint,
+    dropoffPoint,
+    status: 'LOCKED',
+    paymentStatus: 'Pending',
+    expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 min lock
+  });
+
+  await booking.save();
+
+  res.status(201).json({ success: true, data: booking });
+});
+
+export const getTicket = asyncHandler(async (req: Request, res: Response) => {
+  const { bookingId } = req.params;
+  const booking = await BusBooking.findById(bookingId)
+    .populate({
+        path: 'scheduleId',
+        populate: [{ path: 'busId' }, { path: 'routeId' }]
+    });
+
   if (!booking) {
     res.status(404).json({ success: false, message: 'Booking not found' });
     return;
   }
 
-  booking.status = status;
-  await booking.save();
-
-  res.json({ success: true, message: `Passenger status updated to ${status}`, data: booking });
+  const pdfBuffer = await PDFService.generateBusTicket(booking);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename=ticket-${bookingId}.pdf`);
+  res.send(pdfBuffer);
 });
 
-/**
- * Generate Passenger Manifest PDF
- */
-export const getPassengerManifest = asyncHandler(async (req: Request, res: Response) => {
-  const { busId } = req.params;
+// --- Seller Features ---
 
+export const getSellerBuses = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+  const buses = await Bus.find({ sellerId });
+  res.json({ success: true, data: buses });
+});
+
+export const addBus = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+  const bus = new Bus({ ...req.body, sellerId });
+  await bus.save();
+  res.status(201).json({ success: true, data: bus });
+});
+
+export const getBusBookings = asyncHandler(async (req: Request, res: Response) => {
+  const { busId } = req.params;
+  
+  // Find all schedules for this bus
+  const schedules = await BusSchedule.find({ busId }).distinct('_id');
+  
+  const bookings = await BusBooking.find({ scheduleId: { $in: schedules } })
+    .populate('userId')
+    .sort({ createdAt: -1 });
+
+  res.json({ success: true, data: bookings });
+});
+
+export const updateBookingStatus = asyncHandler(async (req: Request, res: Response) => {
+  const { bookingId } = req.params;
+  const { status } = req.body;
+
+  const booking = await BusBooking.findByIdAndUpdate(bookingId, { status }, { new: true });
+  if (!booking) {
+    res.status(404).json({ success: false, message: 'Booking not found' });
+    return;
+  }
+
+  // If confirmed, update schedule seats
+  if (status === 'confirmed') {
+    const schedule = await BusSchedule.findById(booking.scheduleId);
+    if (schedule) {
+      const seatNums = booking.seats.map(s => s.seatNumber);
+      schedule.seats = schedule.seats.map(s => {
+        if (seatNums.includes(s.seatNumber)) {
+          return { ...s, isBooked: true };
+        }
+        return s;
+      });
+      await schedule.save();
+    }
+  }
+
+  res.json({ success: true, data: booking });
+});
+
+export const getManifest = asyncHandler(async (req: Request, res: Response) => {
+  const { busId } = req.params;
   const bus = await Bus.findById(busId);
   if (!bus) {
     res.status(404).json({ success: false, message: 'Bus not found' });
     return;
   }
 
-  const bookings = await BusBooking.find({ busId }).populate('userId');
+  const schedules = await BusSchedule.find({ busId }).distinct('_id');
+  const bookings = await BusBooking.find({ scheduleId: { $in: schedules }, status: 'confirmed' }).populate('userId');
 
   const pdfBuffer = await PDFService.generateBusManifest(bus, bookings);
-
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename=Manifest-${busId}.pdf`);
+  res.setHeader('Content-Disposition', `attachment; filename=manifest-${busId}.pdf`);
   res.send(pdfBuffer);
+});
+
+// Routes Management
+export const getSellerRoutes = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+  const routes = await BusRoute.find({ sellerId });
+  res.json({ success: true, data: routes });
+});
+
+export const addBusRoute = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+  const route = new BusRoute({ ...req.body, sellerId });
+  await route.save();
+  res.status(201).json({ success: true, data: route });
+});
+
+// Schedule Management
+export const getSellerSchedules = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+  const buses = await Bus.find({ sellerId }).distinct('_id');
+  const schedules = await BusSchedule.find({ busId: { $in: buses } }).populate('busId routeId');
+  res.json({ success: true, data: schedules });
+});
+
+export const addBusSchedule = asyncHandler(async (req: Request, res: Response) => {
+  const schedule = new BusSchedule(req.body);
+  await schedule.save();
+  res.status(201).json({ success: true, data: schedule });
+});
+
+
+/**
+ * Get unique cities for bus search
+ */
+export const getBusCities = asyncHandler(async (_req: Request, res: Response) => {
+  const fromCities = await BusRoute.distinct('from', { isActive: true });
+  const toCities = await BusRoute.distinct('to', { isActive: true });
+  
+  const allCities = [...new Set([...fromCities, ...toCities])].sort();
+  
+  res.json({
+    success: true,
+    data: allCities
+  });
 });

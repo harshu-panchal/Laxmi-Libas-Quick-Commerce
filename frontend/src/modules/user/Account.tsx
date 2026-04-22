@@ -157,10 +157,14 @@ export default function Account() {
       </div>
 
       <div className="px-4 md:px-6 lg:px-8 -mt-4 md:-mt-6 mb-4 md:mb-6">
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-2.5 md:gap-6 max-w-2xl md:mx-auto">
+        <div className="grid grid-cols-3 md:grid-cols-3 gap-2.5 md:gap-6 max-w-2xl md:mx-auto">
           <button onClick={() => navigate('/orders')} className="bg-white rounded-lg border border-neutral-200 p-3 md:p-4 hover:shadow-md transition-shadow text-center outline-none">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1.5 md:mb-2 text-neutral-700 md:w-6 md:h-6"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
             <div className="text-[10px] md:text-xs font-semibold text-neutral-900">Your orders</div>
+          </button>
+          <button onClick={() => navigate('/bookings')} className="bg-white rounded-lg border border-neutral-200 p-3 md:p-4 hover:shadow-md transition-shadow text-center outline-none">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1.5 md:mb-2 text-neutral-700 md:w-6 md:h-6"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M12 7v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M8 11h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M8 15h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+            <div className="text-[10px] md:text-xs font-semibold text-neutral-900">Bookings</div>
           </button>
           <button
             onClick={() => navigate('/help-center')}

@@ -1,3 +1,7 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Zap, ChevronRight, ChevronDown, Star, Clock, Bus } from 'lucide-react';
 import { searchBuses } from '../../services/api/customerBusService';
 
 const BusResults: React.FC = () => {
@@ -128,17 +132,17 @@ const BusResults: React.FC = () => {
                         </button>
                     </div>
                 ) : fetchedBuses.map((bus) => {
-                    const busId = bus._id || bus.id;
-                    const operator = bus.operatorName || bus.operator || 'Laxmi Travels';
-                    const busType = bus.busType || bus.type || 'Non A/C Sleeper';
+                    const busId = bus._id;
+                    const operator = bus.operatorName;
+                    const busType = bus.busType;
                     const rating = bus.rating || 4.2;
-                    const reviews = bus.reviewsCount || bus.reviews || 0;
-                    const price = bus.price || 600;
-                    const departure = bus.departureTime ? new Date(bus.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (bus.departure || '08:00 PM');
-                    const arrival = bus.arrivalTime ? new Date(bus.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (bus.arrival || '06:00 AM');
-                    const duration = bus.duration || '10h 00m';
-                    const seatsLeft = bus.availableSeats || 20;
-                    const offers = bus.offers || ['Get 10% OFF with FKBUS'];
+                    const reviews = bus.reviewsCount || 0;
+                    const price = bus.basePrice; // Changed from bus.price to bus.basePrice
+                    const departure = bus.departureTime;
+                    const arrival = bus.arrivalTime;
+                    const duration = bus.duration || '07h 30m'; // Default duration if missing
+                    const seatsLeft = bus.availableSeats;
+                    const offers = bus.offers || ['FKBUS10 - 10% Off']; 
 
                     return (
                         <motion.div 

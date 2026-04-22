@@ -154,18 +154,27 @@ const menuItems: MenuItem[] = [
   { label: "Return", path: "/seller/return", businessType: "commerce" },
   {
     label: "Hotel Management",
-    path: "/hotel",
+    path: "/seller/hotel",
     businessType: "hotel",
+    hasSubmenu: true,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 21h18M3 7h18M5 7v14M19 7v14M9 11h2M9 15h2M13 11h2M13 15h2M5 3l7 4 7-4" />
       </svg>
     ),
+    submenuItems: [
+      { label: "Overview", path: "/seller/hotel/dashboard", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
+      { label: "Property Info", path: "/seller/hotel/add", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
+      { label: "Room Inventory", path: "/seller/hotel/rooms", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 20h20M2 14l2-2h16l2 2M2 14V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/></svg> },
+      { label: "Bookings", path: "/seller/hotel/bookings", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+      { label: "Earnings", path: "/seller/hotel/earnings", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> },
+    ]
   },
   {
     label: "Bus Management",
-    path: "/transport",
+    path: "/seller/transport",
     businessType: "bus",
+    hasSubmenu: true,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
@@ -175,6 +184,12 @@ const menuItems: MenuItem[] = [
         <path d="M12 3v14" />
       </svg>
     ),
+    submenuItems: [
+      { label: "Overview", path: "/seller/transport", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
+      { label: "Add Bus", path: "/seller/transport/add-bus", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg> },
+      { label: "Route Mgmt", path: "/seller/transport/routes", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 17l9.2-9.2M17 7a2 2 0 0 0-2.8 2.8l-9.2 9.2a2 2 0 0 0 2.8-2.8l9.2-9.2"/></svg> },
+      { label: "Bookings", path: "/seller/transport/bookings", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+    ]
   },
 ];
 
@@ -262,7 +277,10 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
         <ul className="space-y-1 px-2 sm:px-4">
           {menuItems.filter(item => {
             if (!item.businessType) return true;
-            return user?.businessTypes?.includes(item.businessType);
+            
+            // Plural fallback to singular field
+            const types = user?.businessTypes || (user?.businessType ? [user.businessType === 'product' ? 'commerce' : user.businessType] : []);
+            return types.includes(item.businessType);
           }).map((item) => {
             const expanded = isExpanded(item.path);
             const active =

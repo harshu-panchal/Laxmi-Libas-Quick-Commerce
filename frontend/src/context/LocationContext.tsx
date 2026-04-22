@@ -235,6 +235,10 @@ export function LocationProvider({ children }: { children: ReactNode }) {
               setLocation(newLocation);
               setLocationError(null); // Clear error on successful geocoding
               localStorage.setItem('userLocation', JSON.stringify(newLocation));
+              localStorage.setItem('coords', JSON.stringify({ 
+                lat: newLocation.latitude, 
+                lng: newLocation.longitude 
+              }));
 
               // Save to backend in background (non-blocking, don't wait - only for customers)
 
@@ -262,6 +266,10 @@ export function LocationProvider({ children }: { children: ReactNode }) {
                 setLocation(fallbackLocation);
                 setLocationError(null); // Clear error since we have valid coordinates
                 localStorage.setItem('userLocation', JSON.stringify(fallbackLocation));
+                localStorage.setItem('coords', JSON.stringify({ 
+                  lat: fallbackLocation.latitude, 
+                  lng: fallbackLocation.longitude 
+                }));
 
                 // Try to save to backend anyway
                 if (isAuthenticated && user && user.userType === 'Customer') {
@@ -549,7 +557,13 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     setLocation(newLocation);
     setIsLocationEnabled(true);
     setLocationError(null);
+    
+    // Store in localStorage for persistence
     localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newLocation));
+    localStorage.setItem('coords', JSON.stringify({ 
+      lat: newLocation.latitude, 
+      lng: newLocation.longitude 
+    }));
 
     // Cache geocoding result if we have full address
     if (newLocation.address && newLocation.latitude && newLocation.longitude) {

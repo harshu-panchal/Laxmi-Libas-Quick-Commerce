@@ -14,3 +14,12 @@ export const createBusBooking = async (bookingData: any) => {
   const response = await axiosInstance.post('/bus/booking', bookingData);
   return response.data;
 };
+
+export const getBusCities = async () => {
+  const response = await axiosInstance.get('/bus/cities');
+  return response.data;
+};
+export const getMyBusBookings = async () => {
+  const response = await axiosInstance.get('/bus/my-bookings');
+  return response.data;
+};

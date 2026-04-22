@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import HomeHero from './components/HomeHero';
 import { ChevronRight, Building2, Bus, Briefcase, Clock, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -7,6 +8,7 @@ import LongWeekendDeals from './components/LongWeekendDeals';
 
 const TravelStore: React.FC = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [timeLeft, setTimeLeft] = useState({ h: 0, m: 38, s: 16 });
 
     useEffect(() => {
@@ -37,7 +39,7 @@ const TravelStore: React.FC = () => {
             <div className="px-4 pt-5 relative z-10">
                 {/* Welcome Section */}
                 <div className="flex justify-between items-center mb-5">
-                    <h1 className="text-2xl font-bold text-gray-900">Welcome Palak</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Welcome {user?.name || user?.sellerName || 'Guest'}</h1>
                     <div className="bg-white rounded-full px-3 py-1 flex items-center gap-1.5 shadow-sm border border-gray-100">
                         <div className="w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center text-white">
                             <Zap size={12} fill="currentColor" />

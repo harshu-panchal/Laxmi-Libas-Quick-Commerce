@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, User, Info, Wine, Wifi, Power, Tv, ShieldCheck, ChevronRight, X, Contact2, Navigation, Loader2 } from 'lucide-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { getScheduleDetail, createBusBooking } from '../../services/api/customerBusService';
+import { useAuth } from '../../context/AuthContext';
 
 interface Seat {
     id: string;
@@ -23,6 +24,7 @@ const BusSeatSelection: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const location = useLocation();
+    const { user } = useAuth();
     
     const [schedule, setSchedule] = useState<any>(null);
     const [lowerDeck, setLowerDeck] = useState<Seat[]>([]);
@@ -30,12 +32,14 @@ const BusSeatSelection: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState('Seat');
     const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
-    const [bookingStep, setBookingStep] = useState<'seats' | 'pickup' | 'dropoff' | 'passengers' | 'review' | 'payment'>('seats');
+    const [bookingStep, setBookingStep] = useState<'seats' | 'pickup' | 'dropoff' | 'passengers' | 'review'>('seats');
     const [selectedPickup, setSelectedPickup] = useState<string | null>(null);
     const [selectedDropoff, setSelectedDropoff] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [passengers, setPassengers] = useState<Record<string, { firstName: string, lastName: string, age: string, gender: string }>>({});
     const [isRedirecting, setIsRedirecting] = useState(false);
+    const [selectedPayment, setSelectedPayment] = useState<string>('phonepe');
+    const [redirectApp, setRedirectApp] = useState<string>('PhonePe');
 
     const fetchDetail = async () => {
         if (!id) return;
@@ -83,8 +87,8 @@ const BusSeatSelection: React.FC = () => {
                     passengerGender: passengers[id]?.gender || 'Male'
                 })),
                 totalAmount: totalPrice,
-                pickupPoint: selectedPickupPoint?.name || 'Main Station',
-                dropoffPoint: selectedDropoffPoint?.name || 'Arrival Point'
+                pickupPoint: selectedPickupPoint?.name || 'To be specified',
+                dropoffPoint: selectedDropoffPoint?.name || 'To be specified'
             };
 
             const response = await createBusBooking(payload);
@@ -121,21 +125,22 @@ const BusSeatSelection: React.FC = () => {
         }));
     };
 
-    // Mock pick-up points
-    const pickupPoints: Point[] = [
-        { id: 'p1', name: "Hans Travels, Balaji Building Neema Heart Hospital Ke Samne Indian Petrol Pump Dindayal Chowk", sub: "Hans Travels, Balaji Building Neema Had Hospital Ke Samne Indian Petrol Pump Dindayal Chowk", time: "08:00 PM", date: "08 Apr, 2026" },
-        { id: 'p2', name: "Interstate Bus Terminal (ISBT)", sub: "Platform No. 4, Main Terminal Area", time: "08:30 PM", date: "08 Apr, 2026" },
-        { id: 'p3', name: "Vijay Nagar Square", sub: "Near Orbit Mall, Main Road", time: "09:00 PM", date: "08 Apr, 2026" },
-        { id: 'p4', name: "Rajwada Palace Gate", sub: "Heritage Area, City Center", time: "09:15 PM", date: "08 Apr, 2026" }
-    ];
+    // Dynamic pick-up and drop-off points from schedule
+    const pickupPoints: Point[] = (schedule?.pickupPoints || []).map((p: any, i: number) => ({
+        id: `p${i}`,
+        name: p.name,
+        sub: p.location || "Pickup Location",
+        time: p.time,
+        date: schedule?.date || ""
+    }));
 
-    // Mock drop-off points
-    const dropoffPoints: Point[] = [
-        { id: 'd1', name: "Dhaula Kuan Bus Stop", sub: "Main Road, Delhi", time: "06:00 AM", date: "09 Apr, 2026" },
-        { id: 'd2', name: "Kashmiri Gate ISBT", sub: "Arrival Platform, New Delhi", time: "06:45 AM", date: "09 Apr, 2026" },
-        { id: 'd3', name: "Sarai Kale Khan", sub: "Main Entrance, New Delhi", time: "07:15 AM", date: "09 Apr, 2026" },
-        { id: 'd4', name: "Maharana Pratap ISBT", sub: "Arrival Terminal, Delhi", time: "07:30 AM", date: "09 Apr, 2026" }
-    ];
+    const dropoffPoints: Point[] = (schedule?.dropoffPoints || []).map((p: any, i: number) => ({
+        id: `d${i}`,
+        name: p.name,
+        sub: p.location || "Dropoff Location",
+        time: p.time,
+        date: schedule?.date || ""
+    }));
 
     const currentList = bookingStep === 'pickup' ? pickupPoints : dropoffPoints;
 
@@ -195,7 +200,7 @@ const BusSeatSelection: React.FC = () => {
                         else if (bookingStep === 'pickup') setBookingStep('seats');
                         else if (bookingStep === 'dropoff') setBookingStep('pickup');
                         else if (bookingStep === 'passengers') setBookingStep('dropoff');
-                        else setBookingStep('passengers');
+                        else setBookingStep('review');
                     }} 
                     className="p-1 active:scale-90 transition-transform"
                 >
@@ -206,7 +211,6 @@ const BusSeatSelection: React.FC = () => {
                         {bookingStep === 'seats' ? operator : 
                          bookingStep === 'passengers' ? 'Traveller details' :
                          bookingStep === 'review' ? 'Review booking' :
-                         bookingStep === 'payment' ? 'Payments' :
                          `Choose ${bookingStep}-up point`.replace('drop-up', 'drop-off')}
                     </h1>
                     {bookingStep === 'seats' && (
@@ -437,15 +441,18 @@ const BusSeatSelection: React.FC = () => {
                                 <input 
                                     type="tel" 
                                     placeholder="Enter mobile number"
-                                    defaultValue="8770620342"
-                                    className="flex-1 px-4 py-4 text-sm font-bold text-gray-900 focus:outline-none placeholder:text-gray-300"
+                                    value={user?.mobile || ''}
+                                    readOnly
+                                    className="flex-1 px-4 py-4 text-sm font-bold text-gray-900 focus:outline-none placeholder:text-gray-300 bg-gray-50/20"
                                 />
                             </div>
 
                             <input 
                                 type="email" 
                                 placeholder="Enter email address"
-                                className="w-full bg-white border border-gray-100 rounded-xl px-4 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:border-blue-400 transition-all placeholder:text-gray-300"
+                                value={user?.email || ''}
+                                readOnly
+                                className="w-full bg-gray-50/50 border border-gray-100 rounded-xl px-4 py-4 text-sm font-bold text-gray-900 focus:outline-none placeholder:text-gray-300"
                             />
                         </div>
                     </div>
@@ -796,10 +803,9 @@ const BusSeatSelection: React.FC = () => {
                         } else if (bookingStep === 'passengers') {
                             setBookingStep('review');
                         } else if (bookingStep === 'review') {
-                            setBookingStep('payment');
-                        } else {
-                            // Final payment step
                             handlePaymentAction();
+                        } else {
+                            // Already handled
                         }
                     }}
                     disabled={
@@ -825,9 +831,9 @@ const BusSeatSelection: React.FC = () => {
                     {bookingStep === 'seats' ? 'Select pick-up point' : 
                      bookingStep === 'pickup' ? 'Select drop-off point' : 
                      bookingStep === 'dropoff' ? 'Add travellers' :
-                     bookingStep === 'passengers' ? 'PROCEED TO PAYMENT' :
-                     bookingStep === 'review' ? 'Continue to payment' :
-                     `Pay ₹${totalPrice}`}
+                     bookingStep === 'passengers' ? 'Review Booking' :
+                     bookingStep === 'review' ? `Pay ₹${totalPrice}` :
+                     'Proceed'}
                 </motion.button>
             </div>
             {/* Redirection Overlay */}
