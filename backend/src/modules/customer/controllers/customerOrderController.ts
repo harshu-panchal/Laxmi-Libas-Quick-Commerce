@@ -148,8 +148,25 @@ export const createOrder = async (req: Request, res: Response) => {
             const product = productsMap.get(prodId.toString());
             if (!product) throw new Error(`Product ${prodId} not found`);
 
-            const deliveryType = item.selectedDeliveryType || (product.type === 'ecommerce' ? 'ecommerce' : 'quick');
-            if (deliveryType === 'quick') quickItems.push(item);
+            // Fetch seller to get their city
+            const seller = await Seller.findById(product.seller).select('city location');
+            const sellerCity = seller?.city ? normalizeCity(seller.city) : '';
+            const customerCity = address.city ? normalizeCity(address.city) : '';
+
+            // Decision: If same city, it's quick. Otherwise ecommerce.
+            // Also check if product type allows it (if product is 'ecommerce' only, it stays ecommerce)
+            let decidedType: 'quick' | 'ecommerce' = 'ecommerce';
+            
+            if (product.type === 'ecommerce') {
+                decidedType = 'ecommerce';
+            } else if (product.type === 'quick') {
+                decidedType = (sellerCity === customerCity) ? 'quick' : 'ecommerce';
+            } else {
+                // Type is 'both'
+                decidedType = (sellerCity === customerCity) ? 'quick' : 'ecommerce';
+            }
+
+            if (decidedType === 'quick') quickItems.push(item);
             else ecommerceItems.push(item);
         }
 

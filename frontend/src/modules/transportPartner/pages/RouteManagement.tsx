@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, MapPin, Trash2, Edit2 } from 'lucide-react';
 import { getSellerRoutes, addBusRoute } from '../../../services/api/transportPartnerService';
+import GoogleMapsAutocomplete, { AutocompleteResult } from '../../../components/GoogleMapsAutocomplete';
 
 interface Point {
     name: string;
@@ -14,7 +15,9 @@ const RouteManagement: React.FC = () => {
 
     // Form state
     const [from, setFrom] = useState('');
+    const [fromLocation, setFromLocation] = useState<any>(null);
     const [to, setTo] = useState('');
+    const [toLocation, setToLocation] = useState<any>(null);
     const [duration, setDuration] = useState('');
     const [pickups, setPickups] = useState<Point[]>([{ name: '', time: '' }]);
     const [dropoffs, setDropoffs] = useState<Point[]>([{ name: '', time: '' }]);
@@ -35,32 +38,56 @@ const RouteManagement: React.FC = () => {
     };
 
     const handleAddRoute = async () => {
-        if (!from || !to) {
-            alert("Please provide source and destination");
+        if (!from || !to || !fromLocation || !toLocation) {
+            alert("Please provide source and destination with locations");
             return;
         }
         try {
             const payload = {
                 from,
                 to,
+                fromLocation: {
+                    city: fromLocation.city,
+                    state: fromLocation.state,
+                    pincode: fromLocation.pincode,
+                    address: fromLocation.address,
+                    coordinates: {
+                        lat: fromLocation.latitude,
+                        lng: fromLocation.longitude
+                    }
+                },
+                toLocation: {
+                    city: toLocation.city,
+                    state: toLocation.state,
+                    pincode: toLocation.pincode,
+                    address: toLocation.address,
+                    coordinates: {
+                        lat: toLocation.latitude,
+                        lng: toLocation.longitude
+                    }
+                },
                 duration,
                 pickupPoints: pickups.filter(p => p.name && p.time),
                 dropoffPoints: dropoffs.filter(p => p.name && p.time)
             };
             const res = await addBusRoute(payload);
             if (res.success) {
-                setRoutes([...routes, res.data]);
+                // Fetch again to ensure we have the latest data from server
+                const freshRoutes = await getSellerRoutes();
+                if (freshRoutes.success) setRoutes(freshRoutes.data);
                 setIsAdding(false);
                 resetForm();
             }
-        } catch (e) {
-            alert("Failed to add route");
+        } catch (e: any) {
+            alert(e.response?.data?.message || "Failed to add route");
         }
     };
 
     const resetForm = () => {
         setFrom('');
+        setFromLocation(null);
         setTo('');
+        setToLocation(null);
         setDuration('');
         setPickups([{ name: '', time: '' }]);
         setDropoffs([{ name: '', time: '' }]);
@@ -89,19 +116,37 @@ const RouteManagement: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-2">Source (From)</label>
-                            <input 
+                            <GoogleMapsAutocomplete 
                                 value={from}
-                                onChange={e => setFrom(e.target.value)}
-                                className="w-full bg-neutral-50 border-none rounded-2xl px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-teal-500/20 transition-all"
+                                onChange={(result: AutocompleteResult) => {
+                                    setFrom(result.address);
+                                    setFromLocation({
+                                        city: result.city,
+                                        state: result.state,
+                                        pincode: result.pincode,
+                                        address: result.address,
+                                        latitude: result.lat,
+                                        longitude: result.lng
+                                    });
+                                }}
                                 placeholder="Departure City"
                             />
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-2">Destination (To)</label>
-                            <input 
+                            <GoogleMapsAutocomplete 
                                 value={to}
-                                onChange={e => setTo(e.target.value)}
-                                className="w-full bg-neutral-50 border-none rounded-2xl px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-teal-500/20 transition-all"
+                                onChange={(result: AutocompleteResult) => {
+                                    setTo(result.address);
+                                    setToLocation({
+                                        city: result.city,
+                                        state: result.state,
+                                        pincode: result.pincode,
+                                        address: result.address,
+                                        latitude: result.lat,
+                                        longitude: result.lng
+                                    });
+                                }}
                                 placeholder="Arrival City"
                             />
                         </div>

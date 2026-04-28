@@ -69,7 +69,7 @@ const SchedulePage: React.FC = () => {
 
             const res = await addBusSchedule(payload);
             if (res.success) {
-                setSchedules([...schedules, res.data]);
+                await fetchInitialData(); // Re-fetch to get populated fields (busId, routeId)
                 setIsAdding(false);
                 resetForm();
             }

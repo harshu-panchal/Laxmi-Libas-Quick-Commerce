@@ -7,7 +7,6 @@ import { PDFService } from '../../services/PDFService';
 import { asyncHandler } from '../../utils/asyncHandler';
 import mongoose from 'mongoose';
 import { normalizeCity, calculateDistance } from '../../utils/locationUtils';
-
 // --- Customer Features ---
 
 /**
@@ -15,6 +14,7 @@ import { normalizeCity, calculateDistance } from '../../utils/locationUtils';
  */
 export const searchBuses = asyncHandler(async (req: Request, res: Response) => {
   const { from, to, date, fromLat, fromLng, toLat, toLng } = req.query;
+
 
   if (!from && (!fromLat || !fromLng)) {
     res.status(400).json({ success: false, message: 'Source location is required' });
@@ -27,7 +27,10 @@ export const searchBuses = asyncHandler(async (req: Request, res: Response) => {
 
   const query: any = { isActive: true };
 
-  // Geo-search for "from" if coordinates provided, else fallback to city string
+  // Helper to escape regex special characters
+  const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // Search for "from"
   if (fromLat && fromLng) {
     query.fromLocationGeo = {
       $near: {
@@ -36,10 +39,10 @@ export const searchBuses = asyncHandler(async (req: Request, res: Response) => {
       }
     };
   } else if (from) {
-    query.from = normalizeCity(from as string);
+    query.from = new RegExp(escapeRegExp((from as string).trim()), 'i');
   }
 
-  // Geo-search for "to" if coordinates provided
+  // Search for "to"
   if (toLat && toLng) {
     query.toLocationGeo = {
       $near: {
@@ -48,7 +51,7 @@ export const searchBuses = asyncHandler(async (req: Request, res: Response) => {
       }
     };
   } else if (to) {
-    query.to = normalizeCity(to as string);
+    query.to = new RegExp(escapeRegExp((to as string).trim()), 'i');
   }
 
   // 1. Find routes that match source and destination
@@ -155,6 +158,7 @@ export const getMyBookings = asyncHandler(async (req: Request, res: Response) =>
  */
 export const createBusBooking = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).user.userId;
+  console.log('[BusController] createBusBooking BODY:', req.body);
   const { scheduleId, seats, totalAmount, pickupPoint, dropoffPoint } = req.body;
 
   const schedule = await BusSchedule.findById(scheduleId);
@@ -307,7 +311,8 @@ export const getSellerSchedules = asyncHandler(async (req: Request, res: Respons
 export const addBusSchedule = asyncHandler(async (req: Request, res: Response) => {
   const schedule = new BusSchedule(req.body);
   await schedule.save();
-  res.status(201).json({ success: true, data: schedule });
+  const populatedSchedule = await BusSchedule.findById(schedule._id).populate('busId routeId');
+  res.status(201).json({ success: true, data: populatedSchedule });
 });
 
 
@@ -315,10 +320,11 @@ export const addBusSchedule = asyncHandler(async (req: Request, res: Response) =
  * Get unique cities for bus search
  */
 export const getBusCities = asyncHandler(async (_req: Request, res: Response) => {
-  const fromCities = await BusRoute.distinct('from', { isActive: true });
-  const toCities = await BusRoute.distinct('to', { isActive: true });
+  // Broaden city fetching to include all unique cities in the routes table
+  const fromCities = await BusRoute.distinct('from');
+  const toCities = await BusRoute.distinct('to');
   
-  const allCities = [...new Set([...fromCities, ...toCities])].sort();
+  const allCities = [...new Set([...fromCities, ...toCities])].filter(Boolean).sort();
   
   res.json({
     success: true,

@@ -109,10 +109,13 @@ export interface IOrder extends Document {
 
   // Order Flow
   parentOrderId?: string; // Links split orders for unified payment
-  orderType: "quick" | "ecommerce";
-  deliveryFlow: "auto" | "courier";
+  orderType: "quick" | "standard";
+  deliveryType: "instant" | "courier";
   courierPartner?: string;
   trackingId?: string;
+  trackingStatus?: string;
+  trackingHistory?: any[];
+  shipmentWeight?: number;
 
   // Unified System Type
   type: "product" | "hotel" | "bus";
@@ -403,15 +406,15 @@ const OrderSchema = new Schema<IOrder>(
     },
     orderType: {
       type: String,
-      enum: ["quick", "ecommerce"],
+      enum: ["quick", "standard"],
       required: true,
       default: "quick",
     },
-    deliveryFlow: {
+    deliveryType: {
       type: String,
-      enum: ["auto", "courier"],
+      enum: ["instant", "courier"],
       required: true,
-      default: "auto",
+      default: "instant",
     },
     courierPartner: {
       type: String,
@@ -420,6 +423,18 @@ const OrderSchema = new Schema<IOrder>(
     trackingId: {
       type: String,
       trim: true,
+    },
+    trackingStatus: {
+      type: String,
+      trim: true,
+    },
+    trackingHistory: {
+      type: [Schema.Types.Mixed],
+      default: [],
+    },
+    shipmentWeight: {
+      type: Number,
+      default: 0.5, // Default weight in KG
     },
     type: {
       type: String,

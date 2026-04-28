@@ -2,8 +2,11 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import LaxmartEntryGrid from './components/LaxmartEntryGrid';
 
+import { useLocation } from '../../hooks/useLocation';
+
 const LaxmartEntry: React.FC = () => {
     const navigate = useNavigate();
+    const { location: userLocation, requestLocation, isLocationLoading } = useLocation();
 
     // Mock data for "Still looking for these?"
     const recentQueries = [
@@ -23,27 +26,12 @@ const LaxmartEntry: React.FC = () => {
 
     return (
         <div className="flex flex-col min-h-screen bg-[#f3f4f6]">
-            {/* Header / Location Bar */}
-            <div className="bg-[#eff6ff] px-4 py-3 flex items-center justify-between">
+            {/* Header Title Only */}
+            <div className="bg-white px-4 py-3 flex items-center justify-between border-b border-neutral-100">
                 <div className="flex items-center gap-2">
-                    <div className="bg-white p-1.5 rounded-md shadow-sm">
-                        <svg className="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-                        </svg>
-                    </div>
-                    <div className="flex flex-col">
-                        <div className="flex items-center gap-1">
-                            <span className="text-sm font-bold text-gray-900">HOME</span>
-                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                        <span className="text-[11px] text-gray-500 truncate max-w-[180px]">
-                            Adarsh Nagar, Sector b2 near riza kiran...
-                        </span>
-                    </div>
+                    <h1 className="text-xl font-black text-primary-dark italic tracking-tighter">LAXMART</h1>
                 </div>
-                <div className="bg-white px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 border border-yellow-200">
+                <div className="bg-neutral-50 px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 border border-neutral-100">
                     <div className="w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center">
                         <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M13 3l-1 5h4L7 21l1-8H4l9-10z" />
@@ -51,6 +39,30 @@ const LaxmartEntry: React.FC = () => {
                     </div>
                     <span className="text-sm font-bold text-gray-800">0</span>
                 </div>
+            </div>
+
+            {/* Dedicated Location Selection Card (Prominent) */}
+            <div className="px-4 pt-4">
+                <button 
+                    onClick={() => requestLocation()}
+                    className="w-full bg-white rounded-2xl p-4 shadow-sm border border-neutral-100 flex items-center gap-4 active:scale-[0.98] transition-all"
+                >
+                    <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shrink-0">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                        </svg>
+                    </div>
+                    <div className="flex-1 text-left">
+                        <p className="text-[14px] font-black text-neutral-800 uppercase tracking-tight">Delivery Location</p>
+                        <p className="text-[12px] text-neutral-500 truncate max-w-[200px]">
+                            {isLocationLoading ? "Detecting your spot..." : (userLocation?.address || "Tap to set delivery address")}
+                        </p>
+                    </div>
+                    <div className="px-3 py-1 bg-blue-600 rounded-lg text-white text-[10px] font-black uppercase tracking-widest">
+                        SET
+                    </div>
+                </button>
             </div>
 
             {/* Search Bar */}

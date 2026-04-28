@@ -8,22 +8,18 @@ export const useSocket = () => {
   const { token, user } = useAuth();
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-
   useEffect(() => {
     if (!token) return;
-
     // Initialize socket
-    const socket = io(SOCKET_URL, {
+    const socket = io(SOCKET_URL,{
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
-
     socket.on('connect', () => {
       console.log('Socket connected:', socket.id);
       setIsConnected(true);
-
       // Join rooms based on user role
       if (user) {
         socket.emit('join-user-room', user.userId);
@@ -41,7 +37,6 @@ export const useSocket = () => {
     });
 
     socketRef.current = socket;
-
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect();

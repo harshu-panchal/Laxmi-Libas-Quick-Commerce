@@ -87,3 +87,53 @@ export const getRoadDistances = async (
         return origins.map(org => haversineDistance(org.lat, org.lng, destination.lat, destination.lng));
     }
 };
+
+/**
+ * Reverse geocode coordinates to address using Google Maps Geocoding API
+ */
+export const reverseGeocode = async (
+    lat: number,
+    lng: number,
+    apiKey?: string
+): Promise<any> => {
+    if (!apiKey) {
+        throw new Error('Google Maps API key is required for geocoding');
+    }
+
+    try {
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&language=en`;
+        const response = await axios.get(url);
+
+        if (response.data.status === 'OK' && response.data.results.length > 0) {
+            const result = response.data.results[0];
+            const addressComponents = result.address_components || [];
+            
+            let city = '';
+            let state = '';
+            let pincode = '';
+
+            addressComponents.forEach((component: any) => {
+                const types = component.types || [];
+                if (types.includes('locality')) city = component.long_name;
+                else if (!city && types.includes('administrative_area_level_2')) city = component.long_name;
+                
+                if (types.includes('administrative_area_level_1')) state = component.long_name;
+                if (types.includes('postal_code')) pincode = component.long_name;
+            });
+
+            return {
+                formatted_address: result.formatted_address,
+                city,
+                state,
+                pincode,
+                results: response.data.results
+            };
+        }
+
+        throw new Error(response.data.error_message || response.data.status || 'Failed to geocode');
+
+    } catch (error: any) {
+        console.error('Google Reverse Geocode Failed:', error.message);
+        throw error;
+    }
+};

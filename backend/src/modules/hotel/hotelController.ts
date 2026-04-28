@@ -22,7 +22,7 @@ export const saveOnboardingStep = async (req: Request, res: Response) => {
 
     if (hotelDraftId) {
       const updateFields: any = { ...data };
-      
+
       // Ensure we don't accidentally overwrite sellerId or other critical fields
       delete updateFields.sellerId;
       delete updateFields._id;
@@ -63,7 +63,7 @@ export const addHotel = async (req: Request, res: Response) => {
   try {
     const sellerId = new mongoose.Types.ObjectId((req as any).user.userId);
     const { latitude, longitude, ...hotelData } = req.body;
-    
+
     // Format location for GeoJSON support
     const location = (latitude && longitude) ? {
       type: 'Point',
@@ -73,11 +73,11 @@ export const addHotel = async (req: Request, res: Response) => {
       coordinates: [0, 0]
     };
 
-    const hotel = new Hotel({ 
-      ...hotelData, 
+    const hotel = new Hotel({
+      ...hotelData,
       sellerId,
       location,
-      status: 'Pending' 
+      status: 'Pending'
     });
 
     await hotel.save();
@@ -90,41 +90,41 @@ export const addHotel = async (req: Request, res: Response) => {
 };
 
 export const updateHotel = async (req: Request, res: Response) => {
-    try {
-      const { hotelId } = req.params;
-      const sellerId = (req as any).user.userId;
-      
-      const hotel = await Hotel.findById(hotelId);
-      if (!hotel) return res.status(404).json({ success: false, message: 'Hotel not found' });
-      
-      if (hotel.sellerId.toString() !== sellerId && (req as any).user.userType !== 'Admin') {
-        return res.status(403).json({ success: false, message: 'Not authorized' });
-      }
+  try {
+    const { hotelId } = req.params;
+    const sellerId = (req as any).user.userId;
 
-      const updatedHotel = await Hotel.findByIdAndUpdate(hotelId, req.body, { new: true });
-      res.json({ success: true, data: updatedHotel });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
+    const hotel = await Hotel.findById(hotelId);
+    if (!hotel) return res.status(404).json({ success: false, message: 'Hotel not found' });
+
+    if (hotel.sellerId.toString() !== sellerId && (req as any).user.userType !== 'Admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
     }
+
+    const updatedHotel = await Hotel.findByIdAndUpdate(hotelId, req.body, { new: true });
+    res.json({ success: true, data: updatedHotel });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const deleteHotel = async (req: Request, res: Response) => {
-    try {
-      const { hotelId } = req.params;
-      const sellerId = (req as any).user.userId;
-      
-      const hotel = await Hotel.findById(hotelId);
-      if (!hotel) return res.status(404).json({ success: false, message: 'Hotel not found' });
-      
-      if (hotel.sellerId.toString() !== sellerId && (req as any).user.userType !== 'Admin') {
-        return res.status(403).json({ success: false, message: 'Not authorized' });
-      }
+  try {
+    const { hotelId } = req.params;
+    const sellerId = (req as any).user.userId;
 
-      await hotel.deleteOne();
-      res.json({ success: true, message: 'Hotel deleted successfully' });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
+    const hotel = await Hotel.findById(hotelId);
+    if (!hotel) return res.status(404).json({ success: false, message: 'Hotel not found' });
+
+    if (hotel.sellerId.toString() !== sellerId && (req as any).user.userType !== 'Admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
     }
+
+    await hotel.deleteOne();
+    res.json({ success: true, message: 'Hotel deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const addRoom = async (req: Request, res: Response) => {
@@ -163,18 +163,18 @@ export const getSellerHotels = async (req: Request, res: Response) => {
   try {
     const sellerIdStr = (req as any).user.userId;
     console.log(`🔍 Fetching hotels for seller: ${sellerIdStr}`);
-    
+
     // Cast to ObjectId because the Hotel.sellerId field is stored as ObjectId,
     // but JWT carries it as a plain string — direct string comparison would fail.
     const sellerId = new mongoose.Types.ObjectId(sellerIdStr);
-    
+
     const hotels = await Hotel.find({ sellerId }).sort({ createdAt: -1 });
     console.log(`✅ Found ${hotels.length} hotels for seller ${sellerIdStr}`);
-    
-    return res.json({ 
-      success: true, 
+
+    return res.json({
+      success: true,
       count: hotels.length,
-      data: hotels 
+      data: hotels
     });
   } catch (error: any) {
     console.error('❌ Get Seller Hotels Error:', error);
@@ -197,14 +197,14 @@ export const getHotelBookings = async (req: Request, res: Response) => {
 export const getHotels = async (req: Request, res: Response) => {
   try {
     const { city, search, minPrice, maxPrice, latitude, longitude } = req.query;
-    const query: any = { status: 'Approved' };
-    
+    // Include Pending and Approved so new hotels show up immediately for testing
+    const query: any = { status: { $in: ['Approved', 'Pending'] } };
+
     const userLat = latitude ? Number(latitude) : null;
     const userLng = longitude ? Number(longitude) : null;
 
     if (city) {
-      const normalizedCity = normalizeCity(city as string);
-      query.city = normalizedCity;
+      query.city = { $regex: `^${(city as string).trim()}$`, $options: 'i' };
     } else if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
       query.location = {
         $near: {
@@ -216,18 +216,15 @@ export const getHotels = async (req: Request, res: Response) => {
         }
       };
     }
-    
-    if (search) query.name = new RegExp(search as string, 'i');
-    
+    if (search) query.name = { $regex: search as string, $options: 'i' };
     let hotels = await Hotel.find(query).lean();
-
     // Map through hotels to calculate distance if user coords are present
     hotels = hotels.map((hotel: any) => {
       let distance = null;
       if (userLat && userLng && hotel.location?.coordinates) {
         distance = calculateDistance(
-          userLat, 
-          userLng, 
+          userLat,
+          userLng,
           hotel.location.coordinates[1], // lat
           hotel.location.coordinates[0]  // lng
         );
@@ -242,14 +239,14 @@ export const getHotels = async (req: Request, res: Response) => {
         const cheapestRoom = await HotelRoom.findOne({ hotelId: hotel._id, status: 'Available' })
           .sort({ pricePerNight: 1 })
           .lean();
-        
+
         if (cheapestRoom) {
           hotel.basePrice = cheapestRoom.pricePerNight;
         }
       }
       return hotel;
     }));
-    
+
     res.json({ success: true, data: hotelsWithPrices });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -261,7 +258,7 @@ export const getHotelDetails = async (req: Request, res: Response) => {
     const { hotelId } = req.params;
     const hotel = await Hotel.findById(hotelId);
     if (!hotel) return res.status(404).json({ success: false, message: 'Hotel not found' });
-    
+
     const rooms = await HotelRoom.find({ hotelId, status: 'Available' });
     res.json({ success: true, data: { hotel, rooms } });
   } catch (error: any) {
@@ -270,13 +267,13 @@ export const getHotelDetails = async (req: Request, res: Response) => {
 };
 
 export const getMyBookings = async (req: Request, res: Response) => {
-    try {
-      const userId = (req as any).user.userId;
-      const bookings = await HotelBooking.find({ userId }).populate('hotelId roomId');
-      res.json({ success: true, data: bookings });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
-    }
+  try {
+    const userId = (req as any).user.userId;
+    const bookings = await HotelBooking.find({ userId }).populate('hotelId roomId');
+    res.json({ success: true, data: bookings });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const createBooking = async (req: Request, res: Response) => {
@@ -299,9 +296,9 @@ export const createBooking = async (req: Request, res: Response) => {
 
     if (!hotelId || !roomId || !checkIn || !checkOut || !totalAmount) {
       console.error('❌ Booking validation failed: Missing fields');
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Missing required booking fields: hotelId, roomId/rooms, checkIn, checkOut, and totalAmount are required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required booking fields: hotelId, roomId/rooms, checkIn, checkOut, and totalAmount are required'
       });
     }
 
@@ -312,8 +309,8 @@ export const createBooking = async (req: Request, res: Response) => {
     }
 
     if (room.availableRooms <= 0) {
-        console.warn('⚠️ Room not available:', roomId);
-        return res.status(400).json({ success: false, message: 'No rooms available for this type' });
+      console.warn('⚠️ Room not available:', roomId);
+      return res.status(400).json({ success: false, message: 'No rooms available for this type' });
     }
 
     const userId = new mongoose.Types.ObjectId(userIdStr);
@@ -341,23 +338,23 @@ export const createBooking = async (req: Request, res: Response) => {
 };
 
 export const getCurrentLocation = async (req: Request, res: Response) => {
-    try {
-      const ipResponse = await axios.get('http://ip-api.com/json');
-      if (ipResponse.data && ipResponse.data.status === 'success') {
-        return res.status(200).json({
-          success: true,
-          location: {
-            lat: ipResponse.data.lat,
-            lng: ipResponse.data.lon,
-            city: ipResponse.data.city,
-            type: 'ip-based'
-          }
-        });
-      }
-      res.status(404).json({ success: false, message: 'Could not detect location' });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: 'Error detecting location' });
+  try {
+    const ipResponse = await axios.get('http://ip-api.com/json');
+    if (ipResponse.data && ipResponse.data.status === 'success') {
+      return res.status(200).json({
+        success: true,
+        location: {
+          lat: ipResponse.data.lat,
+          lng: ipResponse.data.lon,
+          city: ipResponse.data.city,
+          type: 'ip-based'
+        }
+      });
     }
+    res.status(404).json({ success: false, message: 'Could not detect location' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Error detecting location' });
+  }
 };
 
 // --- Admin Features ---
@@ -422,9 +419,9 @@ export const getStayInvoice = asyncHandler(async (req: Request, res: Response) =
  * Get unique cities for hotel selection
  */
 export const getHotelCities = asyncHandler(async (_req: Request, res: Response) => {
-  const cities = await Hotel.distinct('city', { status: 'Approved' });
-  const sortedCities = cities.sort();
-  
+  const cities = await Hotel.distinct('city', { status: { $in: ['Approved', 'Pending'] } });
+  const sortedCities = cities.filter(Boolean).sort();
+
   res.json({
     success: true,
     data: sortedCities

@@ -144,7 +144,11 @@ export const getCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice'
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice',
+                populate: {
+                    path: 'seller',
+                    select: 'city storeName location'
+                }
             }
         });
 
@@ -335,7 +339,11 @@ export const updateCartItem = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice'
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice',
+                populate: {
+                    path: 'seller',
+                    select: 'city storeName location'
+                }
             }
         });
 
@@ -395,7 +403,11 @@ export const removeFromCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice'
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice',
+                populate: {
+                    path: 'seller',
+                    select: 'city storeName location'
+                }
             }
         });
 

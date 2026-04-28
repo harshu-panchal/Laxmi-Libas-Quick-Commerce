@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
+import { ILocationData, LocationSchema } from "./schemas/LocationSchema";
 
 export interface IProduct extends Document {
   // Basic Info
@@ -133,6 +134,9 @@ export interface IProduct extends Document {
   type: "quick" | "ecommerce" | "both";
   availablePincodes?: string[];
   courierAvailable?: boolean;
+  city?: string;
+  pincode?: string;
+  structuredLocation?: ILocationData;
   latitude?: number;
   longitude?: number;
   radius?: number;
@@ -427,6 +431,17 @@ const ProductSchema = new Schema<IProduct>(
       type: Boolean,
       default: false,
     },
+    city: {
+      type: String,
+      trim: true,
+    },
+    pincode: {
+      type: String,
+      trim: true,
+    },
+    structuredLocation: {
+      type: LocationSchema,
+    },
     latitude: {
       type: Number,
     },
@@ -496,6 +511,13 @@ ProductSchema.pre("save", function (next) {
   }
 
   // Sync location coordinates if latitude and longitude are provided
+  if (doc.structuredLocation && doc.structuredLocation.coordinates) {
+    doc.latitude = doc.structuredLocation.coordinates.lat;
+    doc.longitude = doc.structuredLocation.coordinates.lng;
+    doc.city = doc.structuredLocation.city;
+    doc.pincode = doc.structuredLocation.pincode;
+  }
+
   if (doc.latitude !== undefined && doc.longitude !== undefined) {
     doc.location = {
       type: "Point",

@@ -6,7 +6,7 @@ import { useSocket } from '../hooks/useSocket';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 
-export const NotificationBell = ({ size = 24, className = "" }: { size?: number, className?: string }) => {
+export const NotificationBell = ({ size = 24, className = "", variant = "dropdown" }: { size?: number, className?: string, variant?: "dropdown" | "static" }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -95,6 +95,19 @@ export const NotificationBell = ({ size = 24, className = "" }: { size?: number,
       default: return 'bg-teal-100 text-teal-600';
     }
   };
+
+  if (variant === "static") {
+    return (
+      <div className={`relative inline-flex ${className}`}>
+        <Bell size={size} />
+        {unreadCount > 0 && (
+          <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-600 text-white text-[8px] font-bold rounded-full border border-white flex items-center justify-center">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>

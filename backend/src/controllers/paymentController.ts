@@ -31,6 +31,7 @@ import { Server as SocketIOServer } from 'socket.io';
  */
 export const initiatePayment = async (req: Request, res: Response) => {
     try {
+        console.log('[PaymentController] BODY:', req.body);
         const { orderId, paymentType = 'product' } = req.body;
 
         if (!orderId) {

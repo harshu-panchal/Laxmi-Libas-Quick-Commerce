@@ -3,11 +3,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, User, MapPin, Search, History, Sparkles, Calendar as CalendarIcon, Map } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import HotelCard from '../../components/cards/HotelCard';
+import { useLocation } from '../../../context/LocationContext';
+import { toast } from 'react-hot-toast';
 
 const SearchPage = () => {
     const navigate = useNavigate();
+    const { requestLocation, isLocationLoading } = useLocation();
     const [selectedDate, setSelectedDate] = useState(0);
     const [searchFocused, setSearchFocused] = useState(false);
+
+    const handleNearMe = async () => {
+        try {
+            await requestLocation();
+            toast.success('Location updated!');
+        } catch (err) {
+            toast.error('Could not get location');
+        }
+    };
 
     // Mock Date Generation
     const days = Array.from({ length: 14 }, (_, i) => {
@@ -144,16 +156,26 @@ const SearchPage = () => {
                 {/* 1. Quick Location Action */}
                 <motion.button
                     whileTap={{ scale: 0.98 }}
-                    className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-1 rounded-2xl flex items-center gap-4 group"
+                    onClick={handleNearMe}
+                    disabled={isLocationLoading}
+                    className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-1 rounded-2xl flex items-center gap-4 group disabled:opacity-70"
                 >
                     <div className="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4 w-full border border-blue-100/50">
                         <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                            <MapPin size={22} fill="currentColor" className="text-blue-600/20" strokeWidth={2.5} />
-                            <MapPin size={22} className="absolute text-blue-600" strokeWidth={2.5} />
+                            {isLocationLoading ? (
+                                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                                <>
+                                    <MapPin size={22} fill="currentColor" className="text-blue-600/20" strokeWidth={2.5} />
+                                    <MapPin size={22} className="absolute text-blue-600" strokeWidth={2.5} />
+                                </>
+                            )}
                         </div>
                         <div className="text-left">
                             <h4 className="text-sm font-bold text-surface">Near Current Location</h4>
-                            <p className="text-xs text-gray-500 font-medium">Find stays around you</p>
+                            <p className="text-xs text-gray-500 font-medium">
+                                {isLocationLoading ? 'Fetching location...' : 'Find stays around you'}
+                            </p>
                         </div>
                     </div>
                 </motion.button>

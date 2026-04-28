@@ -6,6 +6,7 @@ import Seller from "../../../models/Seller";
 import WalletTransaction from "../../../models/WalletTransaction";
 import { notifyDeliveryBoysOfNewOrder } from "../../../services/orderNotificationService";
 import { Server as SocketIOServer } from "socket.io";
+import { DelhiveryService } from "../../../services/shipping/DelhiveryService";
 
 
 /**
@@ -405,6 +406,32 @@ export const markAsPacked = asyncHandler(
     }
 
     order.status = 'Packed';
+
+    // 🚀 AUTO COURIER TRIGGER (For Ecommerce Flow)
+    if (order.orderType === 'ecommerce') {
+      try {
+        console.log(`[CourierAuto] Triggering shipment for Order ${order.orderNumber}`);
+        const courierResponse = await DelhiveryService.createShipmentFromOrder(order);
+        
+        if (courierResponse && courierResponse.success !== false) {
+           // Delhivery returns waybills in shipments array
+           const waybill = courierResponse.packages?.[0]?.waybill || 
+                           courierResponse.shipments?.[0]?.waybill;
+           
+           if (waybill) {
+               order.status = 'Shipped';
+               order.trackingId = waybill;
+               order.courierPartner = 'Delhivery';
+               order.trackingStatus = 'SHIPPED';
+               console.log(`[CourierAuto] Order ${order.orderNumber} automatically SHIPPED with Waybill: ${waybill}`);
+           }
+        }
+      } catch (courierError: any) {
+        console.error(`[CourierAuto] Failed to auto-assign courier for Order ${order.orderNumber}:`, courierError.message);
+        // We don't fail the "Packed" action, but the order remains in "Packed" status for manual retry
+      }
+    }
+
     await order.save();
 
     return res.status(200).json({ success: true, message: "Order marked as Packed", data: { status: order.status } });

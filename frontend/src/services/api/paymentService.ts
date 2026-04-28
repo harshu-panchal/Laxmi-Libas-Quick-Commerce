@@ -52,8 +52,8 @@ export const createPhonePeOrder = async (orderId: string, amount?: number) => {
  */
 export const checkPhonePePaymentStatus = async (merchantOrderId: string) => {
     try {
-        // Uses the legacy status route that exists on production server
-        const response = await api.get(`/payment/status/${merchantOrderId}`);
+        // Uses the new unified status route
+        const response = await api.get(`/payments/phonepe/status/${merchantOrderId}`);
         return response.data;
     } catch (error: any) {
         console.error('[PaymentService] checkPhonePePaymentStatus error:', error?.response?.data || error?.message);
@@ -85,6 +85,7 @@ export const getPaymentHistory = async () => {
  * @returns           The redirect URL to PhonePe
  */
 export const handlePayment = async (paymentType: 'quick' | 'ecommerce' | 'hotel' | 'bus', orderId: string) => {
+    console.log('[PaymentService] handlePayment', { paymentType, orderId });
     try {
         // Use the new payments initiate endpoint that handles all booking types
         const response = await api.post('/payments/phonepe/initiate', {

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getAllBuses, updateBusStatus, getBusBookings, BusListing, BusBookingListing } from '../../../services/api/admin/adminBusService';
+import { updateSellerCommission } from '../../../services/api/adminCommissionService';
 import api from '../../../services/api/config';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bus, Calendar, MapPin, User, ShieldCheck, Search, Filter, ChevronRight, Eye, X, Check, AlertCircle, Users, Store } from 'lucide-react';
+import { Bus, Calendar, MapPin, User, ShieldCheck, Search, Filter, ChevronRight, Eye, X, Check, AlertCircle, Users, Store, Edit2 } from 'lucide-react';
 
 interface TransportPartner {
   _id: string;
@@ -87,6 +88,55 @@ const AdminTransportManagement: React.FC = () => {
       alert(err.response?.data?.message || `Failed to ${action} partner`);
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleDeletePartner = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this partner? This will also remove all their associated listings and schedules.')) {
+      try {
+        setActionLoading(id);
+        const response = await api.delete(`admin/sellers/${id}`);
+        if (response.data.success) {
+          setPartners(partners.filter(p => p._id !== id));
+        }
+      } catch (err: any) {
+        alert(err.response?.data?.message || 'Failed to delete partner');
+      } finally {
+        setActionLoading(null);
+      }
+    }
+  };
+
+  const handleUpdatePartnerStatus = async (id: string, status: string) => {
+    try {
+      setActionLoading(id);
+      const response = await api.patch(`admin/sellers/${id}/status`, { status });
+      if (response.data.success) {
+        setPartners(partners.map(p => p._id === id ? { ...p, status: status as any } : p));
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to update partner status');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUpdateCommission = async (id: string) => {
+    const currentCommission = partners.find(p => p._id === id)?.commission || 0;
+    const newRate = prompt('Enter new commission rate (%):', currentCommission.toString());
+    
+    if (newRate !== null && !isNaN(parseFloat(newRate))) {
+      try {
+        setActionLoading(id);
+        const response = await updateSellerCommission(id, parseFloat(newRate));
+        if (response.success) {
+          setPartners(partners.map(p => p._id === id ? { ...p, commission: parseFloat(newRate) } : p));
+        }
+      } catch (err: any) {
+        alert(err.response?.data?.message || 'Failed to update commission');
+      } finally {
+        setActionLoading(null);
+      }
     }
   };
 
@@ -271,9 +321,10 @@ const AdminTransportManagement: React.FC = () => {
                         </span>
                       </td>
                       <td className="p-6 text-right">
-                        {partner.status === 'Pending' ? (
-                          <div className="flex items-center justify-end gap-2">
-                             <button 
+                        <div className="flex items-center justify-end gap-2">
+                          {partner.status === 'Pending' ? (
+                            <>
+                              <button 
                                 disabled={actionLoading === partner._id}
                                 onClick={() => handlePartnerAction(partner._id, 'approve')}
                                 className="bg-teal-600 text-white p-2 rounded-xl hover:bg-teal-700 transition-all disabled:opacity-50"
@@ -289,10 +340,38 @@ const AdminTransportManagement: React.FC = () => {
                               >
                                 <X size={18} />
                               </button>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] font-black italic text-neutral-300 uppercase tracking-widest">No Action Reqd</span>
-                        )}
+                            </>
+                          ) : (
+                            <>
+                              <select 
+                                disabled={actionLoading === partner._id}
+                                value={partner.status}
+                                onChange={(e) => handleUpdatePartnerStatus(partner._id, e.target.value)}
+                                className="bg-neutral-50 border border-neutral-100 rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-wider focus:ring-2 focus:ring-teal-500 outline-none transition-all"
+                              >
+                                <option value="Approved">Approved</option>
+                                <option value="Blocked">Blocked</option>
+                                <option value="Rejected">Rejected</option>
+                              </select>
+                              <button 
+                                disabled={actionLoading === partner._id}
+                                onClick={() => handleUpdateCommission(partner._id)}
+                                className="p-2.5 text-teal-600 hover:bg-teal-50 rounded-xl transition-all disabled:opacity-50"
+                                title="Update Commission"
+                              >
+                                <Edit2 size={18} />
+                              </button>
+                              <button 
+                                disabled={actionLoading === partner._id}
+                                onClick={() => handleDeletePartner(partner._id)}
+                                className="p-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-all disabled:opacity-50"
+                                title="Delete Partner"
+                              >
+                                <X size={18} />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))

@@ -153,49 +153,41 @@ const BusResults: React.FC = () => {
                             onClick={() => navigate(`/store/travel/buses/seats/${busId}?operator=${encodeURIComponent(operator)}&timing=${encodeURIComponent(departure)}`)}
                             className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-[0_8px_20px_-10px_rgba(0,0,0,0.1)] p-4 relative cursor-pointer"
                         >
-                            <div className="flex justify-between items-start mb-1.5">
+                            <div className="flex justify-between items-start mb-1">
                                 <div className="flex-1">
-                                    <h3 className="text-base font-black text-gray-900 leading-tight">{operator}</h3>
-                                    <p className="text-[10px] font-bold text-gray-400 mt-0.5 uppercase tracking-tighter">{busType}</p>
+                                    <h3 className="text-sm font-black text-gray-900 leading-tight">{operator}</h3>
+                                    <p className="text-[9px] font-bold text-gray-400 mt-0.5 uppercase tracking-tighter">{busType}</p>
                                 </div>
-                                <div className="bg-[#1eb27e] text-white px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm h-fit">
-                                    <Star size={10} fill="currentColor" />
-                                    <span className="text-[10px] font-black">{rating}</span>
-                                    <div className="h-2.5 w-[1px] bg-white/30 mx-0.5"></div>
-                                    <span className="text-[9px] font-bold opacity-80">{reviews}</span>
+                                <div className="bg-[#1eb27e] text-white px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm h-fit">
+                                    <Star size={8} fill="currentColor" />
+                                    <span className="text-[9px] font-black">{rating}</span>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 text-[10px] font-black text-gray-400 mb-3 mt-0.5">
+                            <div className="flex items-center gap-3 text-[9px] font-black text-gray-400 mb-2 mt-0.5">
                                 <div className="flex items-center gap-1">
-                                    <Clock size={10} strokeWidth={3} />
+                                    <Clock size={8} strokeWidth={3} />
                                     <span>{duration}</span>
                                 </div>
                                 <div className="w-1 h-1 bg-gray-200 rounded-full"></div>
-                                <span className={seatsLeft < 10 ? 'text-red-500' : ''}>{seatsLeft} seats available</span>
+                                <span className={seatsLeft < 10 ? 'text-red-500' : ''}>{seatsLeft} left</span>
                             </div>
 
-                            <div className="flex items-end justify-between border-t border-gray-50 pt-3">
+                            <div className="flex items-end justify-between border-t border-gray-50 pt-2">
                                 <div className="flex flex-col">
-                                    <span className="text-xl font-black text-gray-900 leading-none tracking-tight">
+                                    <span className="text-base font-black text-gray-900 leading-none tracking-tight">
                                         {departure} - {arrival}
                                     </span>
-                                    <div className="flex gap-1 mt-2.5">
+                                    <div className="flex gap-1 mt-2">
                                         {offers.slice(0, 1).map((offer: string, idx: number) => (
-                                            <span key={idx} className="text-[9px] font-black text-[#1eb27e] bg-[#e7f9f2] px-2 py-0.5 rounded-md whitespace-nowrap border border-[#d1f1e5]">
+                                            <span key={idx} className="text-[8px] font-black text-[#1eb27e] bg-[#e7f9f2] px-1.5 py-0.5 rounded-md whitespace-nowrap border border-[#d1f1e5]">
                                                 {offer}
                                             </span>
                                         ))}
-                                        {offers.length > 1 && (
-                                            <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                                                +{offers.length - 1} more
-                                            </span>
-                                        )}
                                     </div>
                                 </div>
                                 <div className="text-right flex flex-col items-end">
-                                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-0.5">Total price</span>
-                                    <span className="text-xl font-black text-gray-900 tracking-tight leading-none">₹{price}</span>
+                                    <span className="text-lg font-black text-gray-900 tracking-tight leading-none">₹{price}</span>
                                 </div>
                             </div>
 

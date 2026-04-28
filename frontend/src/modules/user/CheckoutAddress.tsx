@@ -9,6 +9,7 @@ import { getAddresses, addAddress, updateAddress, Address } from '../../services
 import { appConfig } from '../../services/configService';
 import { calculateProductPrice } from '../../utils/priceUtils';
 import GoogleMapsLocationPicker from '../../components/GoogleMapsLocationPicker';
+import GoogleMapsAutocomplete, { AutocompleteResult } from '../../components/GoogleMapsAutocomplete';
 
 export default function CheckoutAddress() {
   const { cart } = useCart();
@@ -30,6 +31,8 @@ export default function CheckoutAddress() {
     pincode: editAddress?.pincode || '',
     state: editAddress?.state || '',
     landmark: editAddress?.landmark || '',
+    latitude: editAddress?.latitude || 0,
+    longitude: editAddress?.longitude || 0,
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof OrderAddress, string>>>({});
@@ -43,7 +46,8 @@ export default function CheckoutAddress() {
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    libraries: ['places']
   });
 
   // Get user's current location on mount
@@ -248,8 +252,8 @@ export default function CheckoutAddress() {
         type: addressType.charAt(0).toUpperCase() + addressType.slice(1) as 'Home' | 'Work' | 'Hotel' | 'Other', // Capitalize
         isDefault: true, // Auto set as default for now
         address: `${address.flat}, ${address.street}`, // Fallback combined string
-        latitude: finalLat,
-        longitude: finalLng,
+        latitude: address.latitude || selectedLatitude || 0,
+        longitude: address.longitude || selectedLongitude || 0,
       };
 
       // If editing an existing address, use updateAddress instead
@@ -437,29 +441,36 @@ export default function CheckoutAddress() {
 
         <div>
           <label className="block text-xs font-medium text-neutral-700 mb-1">
-            Street / Area <span className="text-red-500">*</span>
+            Street / Area / Search Location <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
+          <GoogleMapsAutocomplete
             value={address.street}
-            onChange={(e) => handleInputChange('street', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 transition-colors ${errors.street ? 'border-red-500' : 'border-neutral-200'
-              }`}
-            placeholder="Street/Area"
+            placeholder="Search for your building, street or area"
+            onChange={(result: AutocompleteResult) => {
+              setAddress(prev => ({
+                ...prev,
+                street: result.address,
+                city: result.city,
+                state: result.state,
+                pincode: result.pincode,
+                latitude: result.lat,
+                longitude: result.lng
+              }));
+            }}
+            required
           />
           {errors.street && <p className="text-[10px] text-red-500 mt-0.5">{errors.street}</p>}
         </div>
 
         <div>
           <label className="block text-xs font-medium text-neutral-700 mb-1">
-            City <span className="text-red-500">*</span>
+            City (Auto-filled) <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={address.city}
-            onChange={(e) => handleInputChange('city', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 transition-colors ${errors.city ? 'border-red-500' : 'border-neutral-200'
-              }`}
+            readOnly
+            className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-xs text-neutral-500 cursor-not-allowed"
             placeholder="City"
           />
           {errors.city && <p className="text-[10px] text-red-500 mt-0.5">{errors.city}</p>}
@@ -467,14 +478,13 @@ export default function CheckoutAddress() {
 
         <div>
           <label className="block text-xs font-medium text-neutral-700 mb-1">
-            State <span className="text-red-500">*</span>
+            State (Auto-filled) <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={address.state || ''}
-            onChange={(e) => handleInputChange('state', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 transition-colors ${errors.state ? 'border-red-500' : 'border-neutral-200'
-              }`}
+            readOnly
+            className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-xs text-neutral-500 cursor-not-allowed"
             placeholder="State"
           />
           {errors.state && <p className="text-[10px] text-red-500 mt-0.5">{errors.state}</p>}
@@ -482,16 +492,14 @@ export default function CheckoutAddress() {
 
         <div>
           <label className="block text-xs font-medium text-neutral-700 mb-1">
-            Pincode <span className="text-red-500">*</span>
+            Pincode (Auto-filled) <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={address.pincode}
-            onChange={(e) => handleInputChange('pincode', e.target.value.replace(/\D/g, ''))}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 transition-colors ${errors.pincode ? 'border-red-500' : 'border-neutral-200'
-              }`}
+            readOnly
+            className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-xs text-neutral-500 cursor-not-allowed"
             placeholder="Pincode"
-            maxLength={6}
           />
           {errors.pincode && <p className="text-[10px] text-red-500 mt-0.5">{errors.pincode}</p>}
         </div>

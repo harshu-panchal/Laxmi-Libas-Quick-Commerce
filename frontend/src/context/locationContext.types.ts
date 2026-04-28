@@ -17,6 +17,7 @@ export interface LocationContextType {
   locationPermissionStatus: 'granted' | 'denied' | 'prompt' | 'session_granted';
   requestLocation: () => Promise<void>;
   updateLocation: (location: Location) => Promise<void>;
+  reverseGeocode: (lat: number, lng: number) => Promise<any>;
   clearLocation: () => void;
 }
 

@@ -37,7 +37,7 @@ export default function HomeHero({
   headerCategories = []
 }: HomeHeroProps) {
   const navigate = useNavigate();
-  const { location: userLocation } = useLocation();
+  const { location: userLocation, requestLocation, isLocationLoading } = useLocation();
   const heroRef = useRef<HTMLDivElement>(null);
   const topSectionRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
@@ -46,20 +46,24 @@ export default function HomeHero({
   const [scrollProgress, setScrollProgress] = useState(0);
 
   // Format location display text - only show if user has provided location
+  // Format location display text - prioritized for local area names
   const locationDisplayText = useMemo(() => {
-    if (userLocation?.address) {
-      // Use the full address if available
-      return userLocation.address;
-    }
-    // Fallback to city, state format if available
-    if (userLocation?.city && userLocation?.state) {
-      return `${userLocation.city}, ${userLocation.state}`;
-    }
-    // Fallback to city only
-    if (userLocation?.city) {
+    if (!userLocation) return '';
+
+    // If we have a city field (which now contains "Area, City" from our context update)
+    if (userLocation.city) {
       return userLocation.city;
     }
-    // No default - return empty string if no location provided
+
+    if (userLocation.address) {
+      // If address is long, try to extract the first 2-3 components (usually most specific)
+      const parts = userLocation.address.split(',').map(p => p.trim());
+      if (parts.length > 2) {
+        return `${parts[0]}, ${parts[1]}`;
+      }
+      return userLocation.address;
+    }
+
     return '';
   }, [userLocation]);
 
@@ -86,19 +90,12 @@ export default function HomeHero({
   // Search suggestions based on active tab or fetched categories
   const searchSuggestions = useMemo(() => {
     const baseSuggestion = 'your desired items or stores';
-    if (activeTab === 'all' && categories.length > 0) {
-      // Use real category names for 'all' tab suggestions
-      return [baseSuggestion, ...categories.slice(0, 7).map(c => c.name.toLowerCase())];
+    if (categories.length > 0) {
+      // Use real category names for suggestions
+      return [baseSuggestion, ...categories.slice(0, 10).map(c => c.name.toLowerCase())];
     }
-
-    switch (activeTab) {
-      case 'clothing':
-      case 'fashion':
-        return [baseSuggestion, 'clothing', 'uniform', 'accessories', 'jackets', 'shirts', 'tops'];
-      default: // 'all'
-        return [baseSuggestion, 't-shirts', 'jeans', 'jackets', 'dresses', 'uniforms', 'fashion accessories'];
-    }
-  }, [activeTab, categories]);
+    return [baseSuggestion, 't-shirts', 'jeans', 'jackets', 'dresses', 'uniforms', 'fashion accessories'];
+  }, [categories]);
 
   useLayoutEffect(() => {
     const hero = heroRef.current;
@@ -190,8 +187,8 @@ export default function HomeHero({
       {/* Top section with delivery info and buttons - NOT sticky */}
       {!hideTopContent && (
         <div className="pt-3 px-3">
-          {/* Row 1: App Icons / Service Tiles - Restored 4 Tiles */}
-          <div className="flex justify-center gap-2 pb-3 scrollbar-hide px-1">
+          {/* Row 1: App Icons / Service Tiles - Simplified to 3 Modules */}
+          <div className="flex justify-center gap-4 pb-3 scrollbar-hide px-1">
             {[
               { 
                 id: 'laxmart', 
@@ -200,18 +197,6 @@ export default function HomeHero({
                 path: '/user/home',
                 activeBg: 'bg-[#ffec00]',
                 activeBorder: 'border-yellow-300',
-                inactiveBg: 'bg-white',
-                inactiveBorder: 'border-gray-100'
-              },
-              { 
-                id: 'minutes', 
-                name: 'Minutes', 
-                icon: '/10mins_icon_pink_1774950068063.png', 
-                path: '/store/minutes',
-                activeBg: 'bg-[#ffebf5]',
-                activeBorder: 'border-[#fccde5]',
-                inactiveBg: 'bg-white',
-                inactiveBorder: 'border-gray-100'
               },
               { 
                 id: 'travel', 
@@ -220,18 +205,14 @@ export default function HomeHero({
                 path: '/store/travel',
                 activeBg: 'bg-[#fff1f1]',
                 activeBorder: 'border-[#ffdada]',
-                inactiveBg: 'bg-white',
-                inactiveBorder: 'border-gray-100'
               },
               { 
-                id: 'grocery', 
-                name: 'Grocery', 
-                icon: '/grocery_saver_green_flat_1774950367400.png', 
-                path: '#grocery',
-                activeBg: 'bg-[#f0fff4]',
-                activeBorder: 'border-[#c6f6d5]',
-                inactiveBg: 'bg-white',
-                inactiveBorder: 'border-gray-100'
+                id: 'quick', 
+                name: 'Quick', 
+                icon: '/10mins_icon_pink_1774950068063.png', 
+                path: '/store/minutes',
+                activeBg: 'bg-[#ffebf5]',
+                activeBorder: 'border-[#fccde5]',
               }
             ].map((store) => (
               <div 
@@ -243,21 +224,25 @@ export default function HomeHero({
                   }
                 }}
               >
-                <div className={`w-[72px] h-[54px] rounded-xl p-1 shadow-sm active:scale-95 transition-transform cursor-pointer flex flex-col items-center justify-between border ${activeStore === store.id ? `${store.activeBg} ${store.activeBorder}` : `${store.inactiveBg} ${store.inactiveBorder}`
+                <div className={`w-[84px] h-[58px] rounded-2xl p-1 shadow-sm active:scale-95 transition-all cursor-pointer flex flex-col items-center justify-between border-2 ${activeStore === store.id ? `${store.activeBg} ${store.activeBorder}` : 'bg-white border-neutral-100'
                   }`}>
                   <div className="flex-1 flex items-center justify-center">
-                    <img src={store.icon} alt={store.name} className="w-[26px] h-[26px] object-contain" />
+                    <img src={store.icon} alt={store.name} className="w-[30px] h-[30px] object-contain" />
                   </div>
-                  <span className="text-[9px] font-[900] text-gray-900 pb-0.5 italic tracking-tight">{store.name}</span>
+                  <span className="text-[10px] font-black text-gray-900 pb-0.5 uppercase tracking-tighter">{store.name}</span>
                 </div>
               </div>
             ))}
           </div>
 
+
           {/* Row 2: Location and Rewards Bar */}
           {!hideLocationBar && (
             <div className="flex items-center justify-between gap-2 mb-0">
-              <div className="flex-1 min-w-0 bg-[#dff1ff] rounded-full px-3 py-1.5 flex items-center gap-2 shadow-sm border border-[#c5e4ff]">
+              <div 
+                onClick={() => requestLocation()}
+                className="flex-1 min-w-0 bg-[#dff1ff] rounded-full px-3 py-1.5 flex items-center gap-2 shadow-sm border border-[#c5e4ff] cursor-pointer active:scale-[0.98] transition-transform"
+              >
                 <div className="bg-gray-800 rounded-md p-1 flex-shrink-0">
                   <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
@@ -265,10 +250,14 @@ export default function HomeHero({
                 </div>
                 <span className="text-[12px] font-[900] text-gray-800 uppercase tracking-tight flex-shrink-0">HOME</span>
                 <span className="text-[11px] font-bold text-gray-600 truncate">
-                  {locationDisplayText || "Sarvanad nagar ,near pearl gi..."}
+                  {isLocationLoading ? "Locating..." : (locationDisplayText || "Set precise location...")}
                 </span>
-                <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                <svg className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform ${isLocationLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {isLocationLoading ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                  )}
                 </svg>
               </div>
 

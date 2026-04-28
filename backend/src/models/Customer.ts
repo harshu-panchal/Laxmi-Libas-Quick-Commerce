@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { ILocationData, LocationSchema } from './schemas/LocationSchema';
 
 export interface ICustomer extends Document {
   name: string;
@@ -19,6 +20,7 @@ export interface ICustomer extends Document {
   city?: string;
   state?: string;
   pincode?: string;
+  structuredLocation?: ILocationData;
   locationUpdatedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -136,6 +138,9 @@ const CustomerSchema = new Schema<ICustomer>(
       type: String,
       trim: true,
     },
+    structuredLocation: {
+      type: LocationSchema,
+    },
     locationUpdatedAt: {
       type: Date,
     },
@@ -167,6 +172,15 @@ const CustomerSchema = new Schema<ICustomer>(
     timestamps: true,
   }
 );
+
+// Sync latitude/longitude from structuredLocation before saving
+CustomerSchema.pre('save', function(next) {
+  if (this.structuredLocation && this.structuredLocation.coordinates) {
+    this.latitude = this.structuredLocation.coordinates.lat;
+    this.longitude = this.structuredLocation.coordinates.lng;
+  }
+  next();
+});
 
 // Generate refCode and deliveryOtp before saving if not provided
 CustomerSchema.pre('save', async function (next) {

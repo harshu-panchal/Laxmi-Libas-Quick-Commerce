@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { MapPin, Navigation, RefreshCw, Loader2 } from 'lucide-react';
+import { useLocation } from '../../../hooks/useLocation';
+import GenericLocationAutocomplete from '../../../components/GenericLocationAutocomplete';
 
 interface Props {
     value: any;
@@ -9,6 +11,7 @@ interface Props {
 const StepAddress: React.FC<Props> = ({ value, onChange }) => {
     const [fetching, setFetching] = useState(false);
     const [showForm, setShowForm] = useState(!!(value?.city));
+    const { reverseGeocode } = useLocation();
 
     const handleGPS = async () => {
         setFetching(true);
@@ -16,11 +19,24 @@ const StepAddress: React.FC<Props> = ({ value, onChange }) => {
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
                     const { latitude, longitude } = position.coords;
-                    // In a real app, you'd reverse geocode here. 
-                    // For now, let's just show the form.
-                    setFetching(false);
-                    setShowForm(true);
-                    onChange({ ...value, latitude, longitude });
+                    try {
+                        const geoResult = await reverseGeocode(latitude, longitude);
+                        onChange({ 
+                            ...value, 
+                            latitude, 
+                            longitude,
+                            street: geoResult.formatted_address,
+                            city: geoResult.city,
+                            state: geoResult.state,
+                            pincode: geoResult.pincode
+                        });
+                    } catch (e) {
+                        console.error('Reverse geocoding failed:', e);
+                        onChange({ ...value, latitude, longitude });
+                    } finally {
+                        setFetching(false);
+                        setShowForm(true);
+                    }
                 },
                 (error) => {
                     setFetching(false);
@@ -89,6 +105,26 @@ const StepAddress: React.FC<Props> = ({ value, onChange }) => {
                         <button onClick={() => setShowForm(false)} className="text-[10px] font-black text-hotel-DEFAULT uppercase tracking-widest flex items-center gap-1">
                             <RefreshCw size={10} /> Change
                         </button>
+                    </div>
+
+                    <div className="px-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Quick Search</label>
+                        <GenericLocationAutocomplete 
+                            value={value?.address || ''}
+                            onSelect={(data) => {
+                                onChange({
+                                    ...value,
+                                    address: data.address,
+                                    street: data.address,
+                                    city: data.city,
+                                    state: data.state,
+                                    zipCode: data.pincode,
+                                    latitude: data.latitude,
+                                    longitude: data.longitude
+                                });
+                            }}
+                            placeholder="Search your area, building or city..."
+                        />
                     </div>
                     
                     <div className="space-y-4">

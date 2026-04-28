@@ -214,7 +214,39 @@ export default function AddressBook() {
                       <p className="text-sm text-neutral-700 mt-1">
                         Phone number: {addr.phone || "Not added"}
                       </p>
-                      <div className="flex items-center gap-3 mt-3 text-teal-700">
+                      <div className="flex flex-wrap items-center gap-3 mt-3 text-teal-700">
+                        <button
+                          onClick={() => navigate('/checkout/address', { state: { editAddress: {
+                            id: addr._id,
+                            name: addr.fullName,
+                            phone: addr.phone,
+                            flat: addr.address,
+                            street: addr.address,
+                            city: addr.city,
+                            state: addr.state,
+                            pincode: addr.pincode,
+                            landmark: addr.landmark,
+                            latitude: addr.latitude,
+                            longitude: addr.longitude,
+                            type: addr.type
+                          } } })}
+                          className="flex items-center gap-1 text-sm font-semibold hover:text-teal-800"
+                          disabled={isBusy}
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                          Edit
+                        </button>
                         <button
                           onClick={() => handleShare(addr)}
                           className="flex items-center gap-1 text-sm font-semibold hover:text-teal-800"

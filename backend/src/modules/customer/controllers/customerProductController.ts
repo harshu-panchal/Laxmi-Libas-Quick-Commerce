@@ -13,6 +13,8 @@ export const getProducts = async (req: Request, res: Response) => {
     const {
       lat,
       lng,
+      latitude,
+      longitude,
       pincode,
       categoryId,
       city: userCityParam,
@@ -22,8 +24,10 @@ export const getProducts = async (req: Request, res: Response) => {
 
     const limitNum = Number(limit);
     const skip = (Number(page) - 1) * limitNum;
-    const userLat = lat ? Number(lat) : null;
-    const userLng = lng ? Number(lng) : null;
+    
+    // Support both 'lat'/'lng' and 'latitude'/'longitude'
+    const userLat = (latitude || lat) ? Number(latitude || lat) : null;
+    const userLng = (longitude || lng) ? Number(longitude || lng) : null;
     const userPincode = pincode ? String(pincode).trim() : null;
 
     // ── Base query for active, published, approved-seller products ──────────

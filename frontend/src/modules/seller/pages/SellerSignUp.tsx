@@ -6,6 +6,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { getCategories, Category } from '../../../services/api/categoryService';
 import { useEffect } from 'react';
 import GoogleMapPicker from '../../../components/common/GoogleMapPicker';
+import GoogleMapsAutocomplete, { AutocompleteResult } from '../../../components/GoogleMapsAutocomplete';
 
 export default function SellerSignUp() {
   const navigate = useNavigate();
@@ -29,6 +30,8 @@ export default function SellerSignUp() {
     ifsc: '',
     latitude: 0,
     longitude: 0,
+    pincode: '',
+    structuredLocation: null as any,
     businessType: 'product' as 'product' | 'hotel' | 'bus',
     businessDetails: {} as any,
   });
@@ -217,6 +220,8 @@ export default function SellerSignUp() {
         businessLicense: businessLicenseUrl,
         latitude: formData.latitude.toString(),
         longitude: formData.longitude.toString(),
+        pincode: formData.pincode,
+        structuredLocation: formData.structuredLocation,
         businessType: formData.businessType,
         businessDetails: formData.businessDetails,
         storeName: formData.businessType === 'product' ? formData.storeName : (formData.businessDetails.hotelName || formData.businessDetails.companyName || 'Service Provider'),
@@ -638,34 +643,57 @@ export default function SellerSignUp() {
 
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    {formData.businessType === 'product' ? 'Store' : formData.businessType === 'hotel' ? 'Hotel' : 'Agency'} Address <span className="text-red-500">*</span>
+                    {formData.businessType === 'product' ? 'Store' : formData.businessType === 'hotel' ? 'Hotel' : 'Agency'} Search Location <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    name="address"
+                  <GoogleMapsAutocomplete
                     value={formData.address}
-                    onChange={handleInputChange}
-                    placeholder={`Enter ${formData.businessType === 'product' ? 'store' : formData.businessType === 'hotel' ? 'hotel' : 'agency'} address`}
+                    placeholder={`Search for your ${formData.businessType === 'product' ? 'store' : formData.businessType === 'hotel' ? 'hotel' : 'agency'} location...`}
+                    onChange={(result: AutocompleteResult) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        address: result.address,
+                        city: result.city,
+                        pincode: result.pincode,
+                        latitude: result.lat,
+                        longitude: result.lng,
+                        structuredLocation: result.structuredLocation
+                      }));
+                      setShowMap(true); // Show map to confirm
+                    }}
                     required
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                    disabled={loading}
                   />
+                  <p className="mt-1 text-[10px] text-neutral-500">
+                    City and coordinates will be automatically filled from your selection.
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    City <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    placeholder="Enter city"
-                    required
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                    disabled={loading}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      City (Auto-filled)
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      readOnly
+                      placeholder="Select above..."
+                      className="w-full px-3 py-2.5 text-sm border border-neutral-200 bg-neutral-50 rounded-lg text-neutral-600 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Pincode (Auto-filled)
+                    </label>
+                    <input
+                      type="text"
+                      name="pincode"
+                      value={formData.pincode}
+                      readOnly
+                      placeholder="Select above..."
+                      className="w-full px-3 py-2.5 text-sm border border-neutral-200 bg-neutral-50 rounded-lg text-neutral-600 outline-none"
+                    />
+                  </div>
                 </div>
 
                 {/* Location Picker Section */}

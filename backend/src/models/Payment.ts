@@ -48,7 +48,17 @@ const PaymentSchema = new Schema<IPayment>(
     orderId: {
       type: Schema.Types.ObjectId,
       ref: "Order",
-      required: [true, "Order ID is required"],
+      required: false, // Optional because it could be a Travel booking
+    },
+    hotelBookingId: {
+      type: Schema.Types.ObjectId,
+      ref: "HotelBooking",
+      required: false,
+    },
+    busBookingId: {
+      type: Schema.Types.ObjectId,
+      ref: "BusBooking",
+      required: false,
     },
     userId: {
       type: Schema.Types.ObjectId,

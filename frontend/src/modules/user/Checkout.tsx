@@ -35,6 +35,8 @@ import { addToWishlist } from "../../services/api/customerWishlistService";
 import { updateProfile } from "../../services/api/customerService";
 import { createPhonePeOrder } from "../../services/api/paymentService";
 import { calculateProductPrice } from "../../utils/priceUtils";
+import { createOrder } from "../../services/api/customerOrderService";
+import { normalizeCity } from "../../utils/locationUtils";
 
 // const STORAGE_KEY = 'saved_address'; // Removed
 
@@ -56,9 +58,17 @@ const CartItemRow = ({ item, updateQuantity, handleMoveToWishlist }: any) => {
       </div>
       <div className="flex-1 min-w-0">
         <h4 className="text-xs font-bold text-neutral-900 truncate">{item.product?.name}</h4>
-        <p className="text-[10px] text-neutral-500 mb-1">{item.product?.pack} • {item.quantity} Unit</p>
+        <div className="flex items-center gap-2 mb-1">
+          <p className="text-[10px] text-neutral-500">{item.product?.pack} • {item.quantity} Unit</p>
+          <button 
+            onClick={() => handleMoveToWishlist(item)}
+            className="text-[9px] text-primary-dark font-bold hover:underline"
+          >
+            Wishlist
+          </button>
+        </div>
         <div className="flex items-center justify-between">
-           <div className="flex items-center gap-2 bg-neutral-50 rounded-lg p-0.5 border border-neutral-200">
+           <div className="flex items-center gap-2 bg-white rounded-lg p-0.5 border border-neutral-200">
              <button onClick={() => updateQuantity(item.product?.id, item.quantity - 1, item.variant)} className="w-5 h-5 flex items-center justify-center text-neutral-600 hover:text-primary-dark"><Minus size={12} /></button>
              <span className="text-[11px] font-bold min-w-[12px] text-center">{item.quantity}</span>
              <button onClick={() => updateQuantity(item.product?.id, item.quantity + 1, item.variant)} className="w-5 h-5 flex items-center justify-center text-neutral-600 hover:text-primary-dark"><Plus size={12} /></button>
@@ -73,7 +83,7 @@ const CartItemRow = ({ item, updateQuantity, handleMoveToWishlist }: any) => {
   );
 };
 
-const ShipmentSection = ({ items, title, eta, bgColor, icon }: any) => {
+const ShipmentSection = ({ items, title, eta, bgColor, icon, updateQuantity, handleMoveToWishlist }: any) => {
   if (items.length === 0) return null;
   return (
     <div className={`${bgColor} border border-neutral-200 rounded-2xl overflow-hidden mb-4`}>
@@ -90,7 +100,12 @@ const ShipmentSection = ({ items, title, eta, bgColor, icon }: any) => {
       </div>
       <div className="p-4 space-y-4">
         {items.map((item: any) => (
-          <CartItemRow key={item.product?.id || item.product?._id} item={item} />
+          <CartItemRow 
+            key={item.product?.id || item.product?._id} 
+            item={item} 
+            updateQuantity={updateQuantity}
+            handleMoveToWishlist={handleMoveToWishlist}
+          />
         ))}
       </div>
     </div>
@@ -295,33 +310,33 @@ export default function Checkout() {
     fetchSimilar();
   }, [cart?.items?.length]);
 
-  if (cartLoading || ((cart?.items?.length || 0) === 0 && !showOrderSuccess)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-primary-dark border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-sm font-medium text-neutral-600">
-            {cartLoading ? "Loading checkout..." : "Redirecting..."}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   const allDisplayItems = (cart?.items || []).filter(
     (item) => item && item.product,
   );
 
-  // Split items into delivery groups
-  const quickDeliveryItems = useMemo(() => 
-    allDisplayItems.filter(item => (item.product?.type === 'quick' || item.product?.type === 'both' || !item.product?.type) && item.selectedDeliveryType === 'quick'),
-    [allDisplayItems]
-  );
+  // Split items into delivery groups based on City Match
+  const quickDeliveryItems = useMemo(() => {
+    const deliveryCity = selectedAddress?.city ? normalizeCity(selectedAddress.city) : '';
+    return allDisplayItems.filter(item => {
+      const sellerCity = item.product?.sellerCity ? normalizeCity(item.product.sellerCity) : '';
+      const isSameCity = deliveryCity === sellerCity;
+      
+      // If same city, it's quick (if product supports it). If different city, it's ecommerce.
+      if (item.product?.type === 'ecommerce') return false;
+      return isSameCity;
+    });
+  }, [allDisplayItems, selectedAddress]);
 
-  const ecommerceShippingItems = useMemo(() => 
-    allDisplayItems.filter(item => (item.product?.type === 'ecommerce' || item.product?.type === 'both') && item.selectedDeliveryType === 'ecommerce'),
-    [allDisplayItems]
-  );
+  const ecommerceShippingItems = useMemo(() => {
+    const deliveryCity = selectedAddress?.city ? normalizeCity(selectedAddress.city) : '';
+    return allDisplayItems.filter(item => {
+      const sellerCity = item.product?.sellerCity ? normalizeCity(item.product.sellerCity) : '';
+      const isSameCity = deliveryCity === sellerCity;
+      
+      if (item.product?.type === 'ecommerce') return true;
+      return !isSameCity;
+    });
+  }, [allDisplayItems, selectedAddress]);
 
   const isSplitOrder = quickDeliveryItems.length > 0 && ecommerceShippingItems.length > 0;
 
@@ -340,6 +355,19 @@ export default function Checkout() {
       finalTotal: total,
     };
   }, [allDisplayItems, cart]);
+
+  if (cartLoading || ((cart?.items?.length || 0) === 0 && !showOrderSuccess)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-primary-dark border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-sm font-medium text-neutral-600">
+            {cartLoading ? "Loading checkout..." : "Redirecting..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const freeDeliveryThreshold =
     cart.freeDeliveryThreshold ?? appConfig.freeDeliveryThreshold;
@@ -501,7 +529,7 @@ export default function Checkout() {
     // Validate required address fields
     if (!selectedAddress.city || !selectedAddress.pincode) {
       console.error("Address is missing required fields (city or pincode)");
-      alert("Please ensure your address has city and pincode.");
+      showGlobalToast("Please ensure your address has city and pincode.", "error");
       return;
     }
 
@@ -530,19 +558,10 @@ export default function Checkout() {
     };
 
     try {
-      // Use internal service that calls POST /api/orders
-      // Since addOrder in useOrders might be specific to single orders, we'll try to reach the new endpoint
-       const response = await fetch(`${appConfig.apiUrl}/customer/orders`, {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify(orderData)
-       });
-       const result = await response.json();
+      // Use internal service that calls POST /api/v1/customer/orders
+      const result = await createOrder(orderData as any);
 
-       if (result.success) {
+      if (result.success) {
         const { parentOrderId, orders, primaryOrderId } = result.data;
         
         if (paymentMethod === "COD") {
@@ -571,12 +590,15 @@ export default function Checkout() {
       }
     } catch (error: any) {
       console.error("Order placement failed", error);
-      // Show user-friendly error message
+      
+      // Extract the most descriptive error message
       const errorMessage =
-        error.message ||
-        error.response?.data?.message ||
+        error.response?.data?.message || 
+        error.message || 
         "Failed to place order. Please try again.";
-      alert(errorMessage);
+      
+      // Use the global toast system for a premium experience
+      showGlobalToast(errorMessage, "error");
     }
   };
 
@@ -1210,95 +1232,119 @@ export default function Checkout() {
           </div> 
           */}
 
-          <p className="text-[10px] text-neutral-600 mb-2.5">
-            Shipment of {displayCart.itemCount || 0}{" "}
-            {(displayCart.itemCount || 0) === 1 ? "item" : "items"}
-          </p>
+          {/* Split Shipment View */}
+          {isSplitOrder ? (
+            <div className="space-y-4">
+              <ShipmentSection 
+                items={quickDeliveryItems} 
+                title="Quick Delivery" 
+                eta="10-15 Mins" 
+                bgColor="bg-yellow-50/30"
+                icon={<Zap size={14} className="text-yellow-600" />}
+                updateQuantity={updateQuantity}
+                handleMoveToWishlist={handleMoveToWishlist}
+              />
+              <ShipmentSection 
+                items={ecommerceShippingItems} 
+                title="Standard Shipping" 
+                eta="2-3 Days" 
+                bgColor="bg-blue-50/30"
+                icon={<Truck size={14} className="text-blue-600" />}
+                updateQuantity={updateQuantity}
+                handleMoveToWishlist={handleMoveToWishlist}
+              />
+            </div>
+          ) : (
+            <>
+              <p className="text-[10px] text-neutral-600 mb-2.5">
+                Shipment of {displayCart.itemCount || 0}{" "}
+                {(displayCart.itemCount || 0) === 1 ? "item" : "items"}
+              </p>
 
-          {/* Cart Items */}
-          <div className="space-y-2.5">
-            {displayItems
-              .filter((item) => item.product)
-              .map((item) => (
-                <div
-                  key={item.product?.id || Math.random()}
-                  className="flex gap-2">
-                  {/* Product Image */}
-                  <div className="w-12 h-12 bg-neutral-100 rounded-lg flex-shrink-0 overflow-hidden">
-                    {item.product?.imageUrl ? (
-                      <img
-                        src={item.product?.imageUrl}
-                        alt={item.product?.name}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-neutral-400">
-                        {(item.product?.name || "").charAt(0)}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Product Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-xs font-semibold text-neutral-900 mb-0.5 line-clamp-2">
-                      {item.product?.name}
-                    </h3>
-                    <p className="text-[10px] text-neutral-600 mb-0.5">
-                      {item.quantity} × {item.product?.pack}
-                    </p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMoveToWishlist(item);
-                      }}
-                      className="text-[10px] text-primary-dark font-medium mb-1.5 hover:text-yellow-700 transition-colors">
-                      Move to wishlist
-                    </button>
-
-                    {/* Quantity Selector */}
-                    <div className="flex items-center justify-between mt-1.5">
-                      <div className="flex items-center gap-1.5 bg-white border-2 border-primary-dark rounded-full px-1.5 py-0.5">
-                        <button
-                          onClick={() =>
-                            updateQuantity(item.product?.id, item.quantity - 1, item.variant)
-                          }
-                          className="w-5 h-5 flex items-center justify-center text-primary-dark font-bold hover:bg-yellow-50 rounded-full transition-colors text-xs">
-                          −
-                        </button>
-                        <span className="text-xs font-bold text-primary-dark min-w-[1.25rem] text-center">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() =>
-                            updateQuantity(item.product?.id, item.quantity + 1, item.variant)
-                          }
-                          className="w-5 h-5 flex items-center justify-center text-primary-dark font-bold hover:bg-yellow-50 rounded-full transition-colors text-xs">
-                          +
-                        </button>
-                      </div>
-
-                      {/* Price */}
-                      {(() => {
-                        const { displayPrice, mrp, hasDiscount } =
-                          calculateProductPrice(item.product, item.variant);
-                        return (
-                          <div className="flex items-center gap-1.5">
-                            {hasDiscount && (
-                              <span className="text-[10px] text-neutral-500 line-through">
-                                ₹{mrp}
-                              </span>
-                            )}
-                            <span className="text-sm font-bold text-neutral-900">
-                              ₹{displayPrice}
-                            </span>
+              {/* Cart Items */}
+              <div className="space-y-2.5">
+                {allDisplayItems.map((item) => (
+                    <div
+                      key={item.product?.id || Math.random()}
+                      className="flex gap-2">
+                      {/* Product Image */}
+                      <div className="w-12 h-12 bg-neutral-100 rounded-lg flex-shrink-0 overflow-hidden">
+                        {item.product?.imageUrl ? (
+                          <img
+                            src={item.product?.imageUrl}
+                            alt={item.product?.name}
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-neutral-400">
+                            {(item.product?.name || "").charAt(0)}
                           </div>
-                        );
-                      })()}
+                        )}
+                      </div>
+
+                      {/* Product Info */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-xs font-semibold text-neutral-900 mb-0.5 line-clamp-2">
+                          {item.product?.name}
+                        </h3>
+                        <p className="text-[10px] text-neutral-600 mb-0.5">
+                          {item.quantity} × {item.product?.pack}
+                        </p>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMoveToWishlist(item);
+                          }}
+                          className="text-[10px] text-primary-dark font-medium mb-1.5 hover:text-yellow-700 transition-colors">
+                          Move to wishlist
+                        </button>
+
+                        {/* Quantity Selector */}
+                        <div className="flex items-center justify-between mt-1.5">
+                          <div className="flex items-center gap-1.5 bg-white border-2 border-primary-dark rounded-full px-1.5 py-0.5">
+                            <button
+                              onClick={() =>
+                                updateQuantity(item.product?.id, item.quantity - 1, item.variant)
+                              }
+                              className="w-5 h-5 flex items-center justify-center text-primary-dark font-bold hover:bg-yellow-50 rounded-full transition-colors text-xs">
+                              −
+                            </button>
+                            <span className="text-xs font-bold text-primary-dark min-w-[1.25rem] text-center">
+                              {item.quantity}
+                            </span>
+                            <button
+                              onClick={() =>
+                                updateQuantity(item.product?.id, item.quantity + 1, item.variant)
+                              }
+                              className="w-5 h-5 flex items-center justify-center text-primary-dark font-bold hover:bg-yellow-50 rounded-full transition-colors text-xs">
+                              +
+                            </button>
+                          </div>
+
+                          {/* Price */}
+                          {(() => {
+                            const { displayPrice, mrp, hasDiscount } =
+                              calculateProductPrice(item.product, item.variant);
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                {hasDiscount && (
+                                  <span className="text-[10px] text-neutral-500 line-through">
+                                    ₹{mrp}
+                                  </span>
+                                )}
+                                <span className="text-sm font-bold text-neutral-900">
+                                  ₹{displayPrice}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
-          </div>
+                  ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

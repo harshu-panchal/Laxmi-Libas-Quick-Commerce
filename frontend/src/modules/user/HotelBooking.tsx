@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Calendar, Users, ChevronRight, Zap, Lock, Star, Clock, MapPin, ShieldCheck, Heart, X, ArrowLeft, Share2, Home, Plane, Hotel, Bus, Ticket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getHotelCities } from '../../services/api/customerHotelService';
+import { useLocation } from '../../hooks/useLocation';
+
 
 const HotelBooking: React.FC = () => {
     const navigate = useNavigate();
@@ -14,7 +16,16 @@ const HotelBooking: React.FC = () => {
         checkOut: '2026-04-01'
     });
     const [showSearchOverlay, setShowSearchOverlay] = React.useState(false);
-    const [selectedLocation, setSelectedLocation] = React.useState('City, Hotel or Area');
+    const { location: userLocation } = useLocation();
+    const [selectedLocation, setSelectedLocation] = React.useState(userLocation?.city || 'City, Hotel or Area');
+
+    // Keep destination in sync with real-time location city if not manually overridden
+    React.useEffect(() => {
+        if (userLocation?.city && (selectedLocation === 'City, Hotel or Area' || !selectedLocation)) {
+            setSelectedLocation(userLocation.city);
+        }
+    }, [userLocation?.city]);
+
     const [searchQuery, setSearchQuery] = React.useState('');
     const [availableCities, setAvailableCities] = React.useState<string[]>([]);
     const [isLoadingCities, setIsLoadingCities] = React.useState(false);

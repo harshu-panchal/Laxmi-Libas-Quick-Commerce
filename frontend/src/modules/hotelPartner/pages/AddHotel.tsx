@@ -4,7 +4,8 @@ import { InputField } from '../components/InputField';
 import { Button } from '../components/Button';
 import { addHotel } from '../../../services/api/hotelPartnerService';
 import { uploadImage } from '../../../services/api/uploadService';
-import { Camera, Loader2, X, Building2 } from 'lucide-react';
+import { Camera, Loader2, X, Building2, MapPin } from 'lucide-react';
+import GoogleMapsAutocomplete, { AutocompleteResult } from '../../../components/GoogleMapsAutocomplete';
 
 const amenitiesList = [
   'Free WiFi', 'Pool', 'Spa', 'Restaurant', 'Gym', 'Parking', 'Room Service', 'Bar', 'AC', 'Heater'
@@ -22,8 +23,9 @@ const AddHotel: React.FC = () => {
     city: '',
     state: '',
     pincode: '',
-    latitude: '0',
-    longitude: '0',
+    latitude: 0,
+    longitude: 0,
+    structuredLocation: null as any,
     basePrice: '',
     stars: '3',
     mainImage: '',
@@ -129,10 +131,64 @@ const AddHotel: React.FC = () => {
             </div>
           </div>
 
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-neutral-700 mb-2 ml-1 uppercase tracking-wider">
+                Search Property Location <span className="text-red-500">*</span>
+              </label>
+              <GoogleMapsAutocomplete
+                value={formData.address}
+                placeholder="Search for your hotel location..."
+                onChange={(result: AutocompleteResult) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    address: result.address,
+                    city: result.city,
+                    state: result.state,
+                    pincode: result.pincode,
+                    latitude: result.lat,
+                    longitude: result.lng,
+                    structuredLocation: result.structuredLocation
+                  }));
+                }}
+                required
+              />
+              <p className="mt-1.5 text-[10px] font-bold text-neutral-400 uppercase tracking-widest flex items-center gap-1">
+                <MapPin size={10} /> Address, City, and Pincode will be auto-filled
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <InputField label="City" placeholder="Type city manually" value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} required />
-            <InputField label="State" placeholder="e.g. Madhya Pradesh" value={formData.state} onChange={(e) => setFormData({...formData, state: e.target.value})} required />
-            <InputField label="Pincode" placeholder="e.g. 456001" value={formData.pincode} onChange={(e) => setFormData({...formData, pincode: e.target.value})} required />
+            <div>
+              <label className="text-sm font-semibold text-neutral-700 ml-1">City (Auto-filled)</label>
+              <input 
+                type="text" 
+                value={formData.city} 
+                readOnly 
+                placeholder="Select location above"
+                className="w-full bg-neutral-100 border-none rounded-xl p-3 text-sm font-medium text-neutral-500 cursor-not-allowed mt-1.5"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-neutral-700 ml-1">State (Auto-filled)</label>
+              <input 
+                type="text" 
+                value={formData.state} 
+                readOnly 
+                placeholder="Select location above"
+                className="w-full bg-neutral-100 border-none rounded-xl p-3 text-sm font-medium text-neutral-500 cursor-not-allowed mt-1.5"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-neutral-700 ml-1">Pincode (Auto-filled)</label>
+              <input 
+                type="text" 
+                value={formData.pincode} 
+                readOnly 
+                placeholder="Select location above"
+                className="w-full bg-neutral-100 border-none rounded-xl p-3 text-sm font-medium text-neutral-500 cursor-not-allowed mt-1.5"
+              />
+            </div>
           </div>
         </div>
 
@@ -193,7 +249,12 @@ const AddHotel: React.FC = () => {
             />
           </div>
 
-          <InputField label="Street Address" placeholder="Detailed address" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} required />
+          <InputField 
+            label="Street Address (Manual Fine-tuning)" 
+            placeholder="Room No, Floor, Landmark..." 
+            value={formData.address} 
+            onChange={(e) => setFormData({...formData, address: e.target.value})} 
+          />
 
           <InputField 
             label="Description" 

@@ -4,9 +4,7 @@ import Commission from "../models/Commission";
 import AppSettings from "../models/AppSettings";
 import WalletTransaction from "../models/WalletTransaction";
 
-/**
- * Handles the financial settlement for a successful booking (Hotel/Bus)
- */
+
 export const processBookingSettlement = async (
   bookingId: string,
   type: 'hotel' | 'bus',
@@ -21,22 +19,17 @@ export const processBookingSettlement = async (
     if (!seller) throw new Error("Seller not found for settlement");
 
     const settings = await AppSettings.getSettings();
-    
+
     // Get commission rate: Seller specific OR Global default
-    const commissionRate = seller.commissionRate !== undefined 
-      ? seller.commissionRate 
+    const commissionRate = seller.commissionRate !== undefined
+      ? seller.commissionRate
       : (settings.globalCommissionRate || 10);
 
     const commissionAmount = (totalAmount * commissionRate) / 100;
     const sellerShare = totalAmount - commissionAmount;
 
-    // 1. Create Commission Record
-    // Note: We're reusing the Commission model. Since 'order' field is required 
-    // and refs 'Order', we might need to be careful. 
-    // For now, we'll store the bookingId but since MongoDB doesn't enforce 
-    // ref integrity unless we use $lookup, it should work for tracking.
     const commission = new Commission({
-      order: new mongoose.Types.ObjectId(bookingId), // Using bookingId as orderId
+      order: new mongoose.Types.ObjectId(bookingId),
       seller: seller._id,
       type: "SELLER",
       orderAmount: totalAmount,
@@ -65,7 +58,7 @@ export const processBookingSettlement = async (
 
     await session.commitTransaction();
     console.log(`💰 [Settlement] Processed for ${type} booking ${bookingId}. Seller Share: ₹${sellerShare}, Admin Comm: ₹${commissionAmount}`);
-    
+
     return { success: true, sellerShare, commissionAmount };
   } catch (error: any) {
     await session.abortTransaction();

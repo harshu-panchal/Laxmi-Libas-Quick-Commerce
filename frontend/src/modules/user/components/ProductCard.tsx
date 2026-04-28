@@ -240,6 +240,10 @@ export default function ProductCard({
     }
   };
 
+  // Distance-based delivery logic
+  const sellerDistance = (product as any).distance || (product.seller as any)?.distance || 10; // Default to 10 if unknown
+  const isQuickAvailable = sellerDistance <= 5;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -247,13 +251,13 @@ export default function ProductCard({
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2 }}
-      className="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col relative"
+      className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden flex flex-col relative"
     >
       <div
         onClick={handleCardClick}
         className="cursor-pointer flex-1 flex flex-col"
       >
-        <div className={`w-full ${compact ? 'h-32 md:h-40' : categoryStyle ? 'h-28 md:h-36' : 'h-40 md:h-48'} bg-neutral-100 flex items-center justify-center overflow-hidden relative`}>
+        <div className={`w-full ${categoryStyle ? 'h-24 md:h-32' : 'h-32 md:h-40'} bg-neutral-50 flex items-center justify-center overflow-hidden relative`}>
           {product.imageUrl || product.mainImage ? (
             <img
               ref={imageRef}
@@ -261,286 +265,112 @@ export default function ProductCard({
               alt={product.name || product.productName || 'Product'}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
-              onError={(e) => {
-                // Hide broken image and show fallback
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const parent = target.parentElement;
-                if (parent && !parent.querySelector('.fallback-icon')) {
-                  const fallback = document.createElement('div');
-                  fallback.className = 'w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400 text-4xl fallback-icon';
-                  fallback.textContent = (product.name || product.productName || '?').charAt(0).toUpperCase();
-                  parent.appendChild(fallback);
-                }
-              }}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400 text-4xl">
+            <div className="w-full h-full flex items-center justify-center bg-neutral-50 text-neutral-300 text-2xl">
               {(product.name || product.productName || '?').charAt(0).toUpperCase()}
             </div>
           )}
 
-          {categoryStyle && showBadge && discount > 0 && (
-            <div className="absolute top-2 left-2 z-10 bg-primary-dark text-white text-[10px] font-semibold px-2 py-0.5 rounded">
-              {discount}% off
+          {/* Compact Discount Badge */}
+          {discount > 0 && (
+            <div className="absolute top-1.5 left-1.5 z-10 bg-indigo-600 text-white text-[8px] md:text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-sm uppercase tracking-tighter">
+              {discount}% OFF
             </div>
           )}
 
-          {!categoryStyle && showBadge && (badgeText || discount > 0) && (
-            <Badge
-              variant="destructive"
-              className="absolute top-2 left-2 z-10 text-xs px-2 py-1"
-            >
-              {badgeText || `${discount}% OFF`}
-            </Badge>
-          )}
-
-          {showPackBadge && (
-            <Badge
-              variant="outline"
-              className="absolute top-2 right-2 z-10 text-xs px-2 py-1 font-medium"
-            >
-              {product.variations?.[0]?.value || product.pack}
-            </Badge>
-          )}
-
+          {/* Heart Icon (Small) */}
           {showHeartIcon && (
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleWishlist(e);
-              }}
-              className="absolute top-2 right-2 z-30 w-9 h-9 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-all shadow-md group/heart"
-              aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              onClick={toggleWishlist}
+              className="absolute top-1.5 right-1.5 z-10 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm border border-neutral-100"
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill={isWishlisted ? "#ef4444" : "none"}
-                xmlns="http://www.w3.org/2000/svg"
-                className={`transition-colors ${isWishlisted ? "text-red-500" : "text-neutral-400 group-hover/heart:text-red-400"}`}
-              >
-                <path
-                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+              <svg width="14" height="14" viewBox="0 0 24 24" fill={isWishlisted ? "#ef4444" : "none"} stroke={isWishlisted ? "#ef4444" : "currentColor"} className="text-neutral-400">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           )}
-
-          {(product.variations?.length || 0) >= 2 && (
-            <div className="absolute bottom-2 left-2 z-10">
-              <span className="text-[10px] font-bold text-neutral-700 bg-white/95 backdrop-blur-sm px-2 py-1 rounded shadow-sm border border-neutral-200">
-                {product.variations?.length} Options
-              </span>
-            </div>
-          )}
         </div>
 
-        {categoryStyle && (
-          <div className="px-2.5 pt-1.5 pb-0">
-            {inCartQty === 0 ? (
-              <div className="flex flex-col items-center w-full">
-                <div className="flex justify-center w-full">
-                  <Button
-                    ref={addButtonRef}
-                    variant="outline"
-                    size="sm"
-                    disabled={((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAdd(e);
-                    }}
-                    className={`w-full border rounded-full font-semibold text-xs h-7 px-3 flex items-center justify-center uppercase tracking-wide ${((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")
-                      ? 'border-neutral-300 text-neutral-400 bg-neutral-50 cursor-not-allowed'
-                      : 'border-primary-dark text-primary-dark bg-transparent hover:bg-yellow-50'
-                      }`}
-                  >
-                    {((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out") ? 'Out of Stock' : 'ADD'}
-                  </Button>
-                </div>
+        <div className="p-2 md:p-3 flex-1 flex flex-col">
+          {/* Delivery Logic Badge */}
+          <div className="flex items-center gap-1 mb-1">
+            {isQuickAvailable ? (
+              <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-yellow-100 rounded-md">
+                <span className="text-[7px] md:text-[8px] font-black text-yellow-700 uppercase tracking-tighter flex items-center gap-0.5">
+                  ⚡ Quick
+                </span>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-1.5 bg-white border border-primary-dark rounded-full px-1.5 py-0.5 h-7 w-full">
-                <Button
-                  variant="default"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDecrease(e);
-                  }}
-                  className="w-5 h-5 p-0 bg-transparent text-primary-dark hover:bg-yellow-50 shadow-none"
-                  aria-label="Decrease quantity"
-                >
-                  −
-                </Button>
-                <span className="text-xs font-bold text-primary-dark min-w-[1rem] text-center">
-                  {inCartQty}
+              <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 rounded-md">
+                <span className="text-[7px] md:text-[8px] font-black text-blue-600 uppercase tracking-tighter">
+                  📦 Standard
                 </span>
-                <Button
-                  variant="default"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleIncrease(e);
-                  }}
-                  className={`w-5 h-5 p-0 bg-transparent text-primary-dark shadow-none hover:bg-yellow-50`}
-                  aria-label="Increase quantity"
-                >
-                  +
-                </Button>
               </div>
             )}
           </div>
-        )}
 
-        <div className={`${compact ? 'p-3 md:p-4' : categoryStyle ? 'px-2.5 md:px-3 pt-1.5 md:pt-2 pb-2 md:pb-3' : 'p-4 md:p-5'} flex-1 flex flex-col`}>
-          {categoryStyle ? (
-            // Category Style Layout: Quantity, Name, Time, % off, Price
-            <>
-              {/* 1. Quantity */}
-              {!showPackBadge && (product.pack || product.variations?.[0]?.value) && (
-                <p className="text-[9px] text-neutral-600 mb-0.5 leading-tight">
-                  {product.variations?.[0]?.value || product.pack}
-                </p>
-              )}
+          <h3 className="text-[11px] md:text-[13px] font-bold text-neutral-900 mb-0.5 line-clamp-1 leading-tight">
+            {product.name || product.productName || ''}
+          </h3>
 
-              {/* 2. Name */}
-              <h3 className="text-[10px] font-bold text-neutral-900 mb-0.5 line-clamp-2 leading-tight min-h-[1.75rem] max-h-[1.75rem] overflow-hidden">
-                {product.name || product.productName || ''}
-              </h3>
-
-              {/* 2.5. Rating */}
-              <div className="mb-0.5">
-                <StarRating
-                  rating={(product.rating || (product as any).rating) || 0}
-                  reviewCount={(product.reviews || (product as any).reviewsCount) || 0}
-                  size="sm"
-                  showCount={true}
-                />
-              </div>
-
-              {/* 3. Time */}
-              {/* Delivery time removed as per user request */}
-
-              {/* 4. % OFF */}
-              {discount > 0 && (
-                <p className="text-[9px] font-semibold text-primary-dark mb-0.5 leading-tight">
-                  {discount}% OFF
-                </p>
-              )}
-
-              {/* 5. Price & Hybrid Delivery Options */}
-              <div className="mt-auto space-y-2">
-                {/* Hybrid Delivery Selection Buttons */}
-                <div className="grid grid-cols-1 gap-1.5">
-                  {(product as any).nearbyAvailable && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddType(e, 'quick');
-                      }}
-                      className="flex items-center justify-between px-2 py-1 bg-yellow-50 border border-yellow-200 rounded-lg hover:border-primary-dark transition-colors group/quick"
-                    >
-                      <div className="flex flex-col items-start">
-                        <span className="text-[8px] font-bold text-primary-dark uppercase flex items-center gap-0.5">
-                          ⚡ Quick
-                        </span>
-                        <span className="text-[8px] text-neutral-500">{(product as any).deliveryTimeQuick || '30 min'}</span>
-                      </div>
-                      <span className="text-[10px] font-black text-neutral-900 group-hover/quick:text-primary-dark">
-                        ₹{(product as any).quickPrice || displayPrice}
-                      </span>
-                    </button>
-                  )}
-
-                  {(product as any).ecommerceAvailable && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddType(e, 'ecommerce');
-                      }}
-                      className="flex items-center justify-between px-2 py-1 bg-blue-50 border border-blue-200 rounded-lg hover:border-blue-500 transition-colors group/ecom"
-                    >
-                      <div className="flex flex-col items-start">
-                        <span className="text-[8px] font-bold text-blue-600 uppercase flex items-center gap-0.5">
-                          📦 Courier
-                        </span>
-                        <span className="text-[8px] text-neutral-500">{(product as any).deliveryTimeEcommerce || '3-5 days'}</span>
-                      </div>
-                      <span className="text-[10px] font-black text-neutral-900 group-hover/ecom:text-blue-600">
-                        ₹{(product as any).ecommercePrice || displayPrice}
-                      </span>
-                    </button>
-                  )}
-
-                  {!(product as any).nearbyAvailable && !(product as any).ecommerceAvailable && (
-                    <div className="text-[9px] text-red-500 font-medium py-1 px-2 bg-red-50 rounded-lg border border-red-100 italic">
-                      Not available at your location
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          ) : (
-            // Non-category style layout (original)
-            <>
-              {!showPackBadge && (
-                <p className={`${compact ? 'text-[10px] md:text-xs' : 'text-xs md:text-sm'} text-neutral-500 mb-1`}>
-                  {product.variations?.[0]?.value || product.pack}
-                </p>
-              )}
-
-              <h3 className={`${compact ? 'text-xs md:text-sm' : 'text-sm md:text-base'} font-semibold text-neutral-900 ${compact ? 'mb-1' : 'mb-2'} line-clamp-2 ${compact ? 'min-h-[2rem]' : 'min-h-[2.5rem]'}`}>
-                {product.name || product.productName || ''}
-              </h3>
-
-              {/* Always show rating */}
-              <div className={`${compact ? 'mb-1' : 'mb-2'}`}>
-                <StarRating
-                  rating={(product.rating || (product as any).rating) || 0}
-                  reviewCount={(product.reviews || (product as any).reviewsCount) || 0}
-                  size={compact ? 'sm' : 'md'}
-                  showCount={true}
-                />
-              </div>
-
-              {showStockInfo && (
-                <p className="text-xs text-primary-dark mb-2 font-medium">
-                  Fast delivery
-                </p>
-              )}
-
-              {showVegetarianIcon && (
-                <div className="flex items-center gap-1 mb-2">
-                  <div className="w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  </div>
-                  <span className="text-xs text-neutral-600">Vegetarian</span>
-                </div>
-              )}
-
-              <div className="mt-auto mb-2">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-base font-bold text-neutral-900">
-                    ₹{displayPrice}
+          <div className="flex items-center justify-between mt-auto pt-1">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1">
+                <span className="text-[13px] md:text-[15px] font-black text-neutral-900">
+                  ₹{displayPrice}
+                </span>
+                {mrp && mrp > displayPrice && (
+                  <span className="text-[9px] md:text-[10px] text-neutral-400 line-through">
+                    ₹{mrp}
                   </span>
-                  {mrp && mrp > displayPrice && (
-                    <span className="text-xs text-neutral-500 line-through">
-                      ₹{mrp}
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
-            </>
-          )}
+              {product.pack && (
+                <span className="text-[9px] text-neutral-400 font-medium">
+                  {product.pack}
+                </span>
+              )}
+            </div>
+
+            {/* Compact Add Button */}
+            {inCartQty === 0 ? (
+              <Button
+                ref={addButtonRef}
+                variant="outline"
+                size="sm"
+                disabled={((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddType(e, isQuickAvailable ? 'quick' : 'ecommerce');
+                }}
+                className="border-neutral-200 text-neutral-900 bg-white font-black text-[9px] md:text-[10px] h-7 px-3 rounded-lg hover:bg-neutral-50 shadow-sm transition-all"
+              >
+                {((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out") ? 'SOLD' : 'ADD'}
+              </Button>
+            ) : (
+              <div className="flex items-center bg-indigo-600 rounded-lg h-7 px-1 shadow-sm">
+                <button
+                  onClick={handleDecrease}
+                  className="w-5 h-5 flex items-center justify-center text-white font-black"
+                >
+                  −
+                </button>
+                <span className="text-[10px] font-black text-white min-w-[1.2rem] text-center">
+                  {inCartQty}
+                </span>
+                <button
+                  onClick={handleIncrease}
+                  className="w-5 h-5 flex items-center justify-center text-white font-black"
+                >
+                  +
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
 
       {!categoryStyle && (
         <div className={`${compact ? 'px-3 pb-3' : 'px-4 pb-4'}`}>

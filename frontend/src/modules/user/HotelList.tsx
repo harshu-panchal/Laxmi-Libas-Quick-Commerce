@@ -15,6 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { getHotels } from '../../services/api/customerHotelService';
 import { useLocation } from '../../hooks/useLocation';
+import GenericLocationAutocomplete from '../../components/GenericLocationAutocomplete';
 
 const HotelList: React.FC = () => {
     const navigate = useNavigate();
@@ -44,9 +45,7 @@ const HotelList: React.FC = () => {
     const fetchHotelsList = async () => {
         setLoading(true);
         try {
-            const queryParams: any = { 
-                status: 'Approved'
-            };
+            const queryParams: any = {};
             
             if (destination && destination.trim() !== '') {
                 queryParams.city = destination.trim();
@@ -188,15 +187,11 @@ const HotelList: React.FC = () => {
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Destination</label>
                                     <div className="relative group">
-                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-600">
-                                            <MapPin size={20} />
-                                        </div>
-                                        <input 
-                                            type="text" 
+                                        <GenericLocationAutocomplete 
                                             value={destination}
-                                            onChange={(e) => setDestination(e.target.value)}
-                                            className="w-full bg-gray-50 border border-transparent focus:border-blue-100 focus:bg-white rounded-2xl py-4 pl-12 pr-4 text-base font-black text-gray-900 focus:outline-none transition-all shadow-sm"
+                                            onSelect={(data) => setDestination(data.city || data.placeName || '')}
                                             placeholder="Where to?"
+                                            hideFindButton={true}
                                         />
                                     </div>
                                 </div>
@@ -624,49 +619,48 @@ const HotelList: React.FC = () => {
                             className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 relative group cursor-pointer active:scale-[0.98] transition-all"
                         >
                             {/* Image Section */}
-                            <div className="relative aspect-[1.3/1] bg-gray-100">
+                            <div className="relative aspect-[1.8/1] bg-gray-100">
                                 <img src={mainImg} alt={hotel.name} className="w-full h-full object-cover" />
                                 
                                 {/* Member Choice Badge */}
                                 {hotel.isMemberChoice && (
-                                    <div className="absolute top-4 left-4 bg-yellow-400 text-gray-900 text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 uppercase tracking-widest border border-yellow-200">
-                                        <Star size={12} fill="currentColor" />
-                                        Member Choice
+                                    <div className="absolute top-3 left-3 bg-yellow-400 text-gray-900 text-[8px] font-black px-2 py-1 rounded-full shadow-lg flex items-center gap-1 uppercase tracking-widest border border-yellow-200">
+                                        <Star size={10} fill="currentColor" />
+                                        Choice
                                     </div>
                                 )}
 
                                 {/* Urgency Tag */}
                                 {hotel.details?.roomsLeft <= 3 && (
-                                    <div className="absolute top-4 right-4 bg-red-600/90 backdrop-blur-md text-white text-[9px] font-black px-3 py-1.5 rounded-full shadow-lg uppercase tracking-tighter">
-                                        Only {hotel.details.roomsLeft} rooms left!
+                                    <div className="absolute top-3 right-3 bg-red-600/90 backdrop-blur-md text-white text-[8px] font-black px-2 py-1 rounded-full shadow-lg uppercase tracking-tighter">
+                                        {hotel.details.roomsLeft} left
                                     </div>
                                 )}
                             </div>
 
                             {/* Content Section */}
-                            <div className="p-4">
-                                <div className="flex items-start justify-between mb-2">
+                            <div className="p-3">
+                                <div className="flex items-start justify-between mb-1">
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1.5 mb-2">
+                                        <div className="flex items-center gap-1.5 mb-1">
                                             {rating > 0 && (
-                                                <div className="bg-blue-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm">
+                                                <div className="bg-blue-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
                                                     {rating}
                                                 </div>
                                             )}
-                                            <span className="text-blue-600 font-[900] text-xs uppercase tracking-tight">{ratingText}</span>
+                                            <span className="text-blue-600 font-black text-[10px] uppercase tracking-tight">{ratingText}</span>
                                             {reviewsCount > 0 && (
-                                                <span className="text-gray-400 text-[10px] font-bold">({reviewsCount})</span>
+                                                <span className="text-gray-400 text-[9px] font-bold">({reviewsCount})</span>
                                             )}
                                         </div>
-                                        <h2 className="text-lg font-[1000] text-gray-900 leading-[1.2] mb-1 truncate">{hotel.name}</h2>
-                                        <div className="flex items-center gap-2 mb-2">
+                                        <h2 className="text-sm font-black text-gray-900 leading-tight mb-0.5 truncate">{hotel.name}</h2>
+                                        <div className="flex items-center gap-2 mb-1">
                                             <div className="flex items-center gap-0.5">
                                                 {[...Array(5)].map((_, i) => (
-                                                    <Star key={i} size={10} fill={i < stars ? "#ffc107" : "#e5e7eb"} className={i < stars ? "text-[#ffc107]" : "text-gray-200"} />
+                                                    <Star key={i} size={8} fill={i < stars ? "#ffc107" : "#e5e7eb"} className={i < stars ? "text-[#ffc107]" : "text-gray-200"} />
                                                 ))}
                                             </div>
-                                            <span className="h-1 w-1 bg-gray-300 rounded-full"></span>
-                                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{hotel.city}</span>
+                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tight">{hotel.city}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -693,53 +687,33 @@ const HotelList: React.FC = () => {
                                 </div>
 
                                 {/* Pricing Section */}
-                                <div className="pt-3 border-t border-gray-50">
-                                    <div className="flex items-end justify-between">
-                                        <div className="space-y-0.5">
-                                            <div className="flex items-center gap-2">
-                                                {hasDiscount && (
-                                                    <span className="bg-green-100 text-green-700 text-[9px] font-[1000] px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                                                        SAVE {discountPercent}%
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="flex items-baseline gap-1.5">
-                                                <span className="text-2xl font-[1000] text-gray-900 leading-none">₹{price.toLocaleString()}</span>
-                                                {hasDiscount && (
-                                                    <span className="text-xs font-bold text-gray-400 line-through">₹{originalPrice.toLocaleString()}</span>
-                                                )}
-                                            </div>
-                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">
-                                                + ₹{(hotel.taxes || 0).toLocaleString()} taxes / night
-                                            </p>
+                                <div className="pt-2 border-t border-gray-50 flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-lg font-black text-gray-900">₹{price.toLocaleString()}</span>
+                                            {hasDiscount && (
+                                                <span className="text-[10px] font-bold text-gray-400 line-through">₹{originalPrice.toLocaleString()}</span>
+                                            )}
                                         </div>
-                                        <button 
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate(`/store/travel/hotels/detail/${hotelId}`);
-                                            }}
-                                            className="bg-gray-900 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all active:scale-[0.98] shadow-xl shadow-gray-200"
-                                        >
-                                            Select
-                                        </button>
+                                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">
+                                            + ₹{(hotel.taxes || 0).toLocaleString()} taxes / night
+                                        </p>
                                     </div>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/store/travel/hotels/detail/${hotelId}`);
+                                        }}
+                                        className="bg-blue-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-sm shadow-blue-100"
+                                    >
+                                        Select
+                                    </button>
                                 </div>
                             </div>
                         </motion.div>
                     );
                 })}
 
-                {/* Benefits Section */}
-                <div className="bg-neutral-900 rounded-[32px] p-8 text-center mt-12 mb-16 relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-transparent opacity-50"></div>
-                    <div className="relative z-10">
-                        <h3 className="text-xl font-black text-white leading-tight mb-3">Laxmart Exclusive</h3>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6">Unlock secret prices up to 30% off</p>
-                        <button className="bg-white text-gray-900 px-8 py-3.5 rounded-full text-[11px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all shadow-2xl">
-                            Join Now
-                        </button>
-                    </div>
-                </div>
             </main>
         </div>
     );

@@ -9,6 +9,7 @@ import busRoutes from "../modules/bus/busRoutes";
 import hotelRoutes from "../modules/hotel/hotelRoutes";
 import { authenticate, requireUserType } from "../middleware/auth";
 import customerRoutes from "./customerRoutes";
+import * as customerController from "../modules/customer/controllers/customerController";
 import sellerRoutes from "./sellerRoutes";
 import uploadRoutes from "./uploadRoutes";
 import productRoutes from "./productRoutes";
@@ -51,6 +52,7 @@ import {
 } from "../modules/customer/controllers/customerOrderController";
 
 import notificationRoutes from "./notificationRoutes";
+import webhookRoutes from "./webhookRoutes";
 
 const router = Router();
 
@@ -96,6 +98,7 @@ router.use("/customer/cart", customerCartRoutes);
 router.use("/customer/wishlist", wishlistRoutes);
 router.use("/customer/reviews", productReviewRoutes);
 router.use("/customer/discounts", customerDiscountRoutes);
+router.get("/customer/reverse-geocode", authenticate, customerController.reverseGeocode);
 router.use("/customer", customerRoutes);
 
 // Seller dashboard routes
@@ -133,6 +136,7 @@ router.use("/hotel-admin", hotelRoutes);
 
 router.use("/customer/notifications", notificationRoutes);
 router.use("/support", supportRoutes);
+router.use("/webhook", webhookRoutes);
 
 // Service & Room Rent routes
 router.post("/seller/services", authenticate, requireUserType("Seller"), serviceController.createService);

@@ -1,19 +1,3 @@
-/**
- * @file phonepeService.ts
- * @description PhonePe Payment Service — Standard Checkout V2 SDK
- *
- * Handles payment lifecycle for ALL booking types:
- *   - product orders (quick + ecommerce, including split/parent orders)
- *   - hotel bookings
- *   - bus bookings
- *
- * Routes handled:
- *   1. initiatePhonePePayment   → Creates a PhonePe checkout session
- *   2. checkPhonePeStatus       → Polls order status from PhonePe
- *   3. handlePhonePeWebhook     → Processes server-to-server payment notifications
- *   4. initiatePhonePeRefund    → Triggers a refund for a completed payment
- */
-
 import {
     StandardCheckoutClient,
     Env,
@@ -24,20 +8,21 @@ import Payment from '../models/Payment';
 import Order from '../models/Order';
 import HotelBooking from '../models/HotelBooking';
 import BusBooking from '../models/BusBooking';
+import BusSchedule from '../models/BusSchedule';
 import { InventoryService } from './inventoryService';
 
 // ─── Environment Config ───────────────────────────────────────────────────────
-const CLIENT_ID      = process.env.PHONEPE_CLIENT_ID?.trim()      || '';
-const CLIENT_SECRET  = process.env.PHONEPE_CLIENT_SECRET?.trim()  || '';
+const CLIENT_ID = process.env.PHONEPE_CLIENT_ID?.trim() || '';
+const CLIENT_SECRET = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
 const CLIENT_VERSION = Number(process.env.PHONEPE_CLIENT_VERSION?.trim()) || 1;
-const MERCHANT_ID    = process.env.PHONEPE_MERCHANT_ID?.trim()    || '';
+const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID?.trim() || '';
 
 const ENV_MODE =
     process.env.PHONEPE_ENV?.trim().toUpperCase() === 'PRODUCTION'
         ? Env.PRODUCTION
         : Env.SANDBOX;
 
-const FRONTEND_URL  = (process.env.FRONTEND_URL?.trim() || 'http://localhost:5173').replace(/\/$/, '');
+const FRONTEND_URL = (process.env.FRONTEND_URL?.trim() || 'http://localhost:5173').replace(/\/$/, '');
 
 // ─── SDK Singleton ────────────────────────────────────────────────────────────
 let _client: StandardCheckoutClient | null = null;
@@ -86,8 +71,10 @@ export const initiatePhonePePayment = async (
         let merchantOrderId = '';
         let bookingRef: any = null;
 
+        console.log(`[PhonePeService] DEBUG | Received paymentType: ${paymentType} | bookingId: ${bookingId}`);
         // ── Resolve booking by type ──────────────────────────────────────────
         if (paymentType === 'hotel') {
+            console.log('[PhonePeService] Branch: HOTEL');
             bookingRef = await HotelBooking.findById(bookingId);
             if (!bookingRef) return { success: false, message: `Hotel booking ${bookingId} not found` };
             if (bookingRef.paymentStatus === 'Success') return { success: false, message: 'Booking already paid' };
@@ -95,21 +82,26 @@ export const initiatePhonePePayment = async (
             customerId = bookingRef.userId;
             const unique = `${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
             merchantOrderId = `MTH${unique}`;
-            // Store merchantOrderId on booking for callback lookup
             await HotelBooking.findByIdAndUpdate(bookingId, { merchantOrderId });
 
         } else if (paymentType === 'bus') {
+            console.log('[PhonePeService] Branch: BUS');
             bookingRef = await BusBooking.findById(bookingId);
             if (!bookingRef) return { success: false, message: `Bus booking ${bookingId} not found` };
             if (bookingRef.paymentStatus === 'Success') return { success: false, message: 'Booking already paid' };
-            amountInPaise = Math.round((bookingRef.totalPrice || bookingRef.amount || 0) * 100);
+
+            // Log the bookingRef to see what fields it has
+            console.log('[PhonePeService] Bus booking found keys:', Object.keys(bookingRef.toObject ? bookingRef.toObject() : bookingRef));
+            console.log('[PhonePeService] Bus booking totalAmount:', bookingRef.totalAmount);
+
+            amountInPaise = Math.round((bookingRef.totalAmount || bookingRef.amount || 0) * 100);
             customerId = bookingRef.userId;
             const unique = `${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
             merchantOrderId = `MTB${unique}`;
             await BusBooking.findByIdAndUpdate(bookingId, { merchantOrderId });
 
         } else {
-            // Product order (quick or ecommerce)
+            console.log(`[PhonePeService] Branch: PRODUCT (type=${paymentType})`);
             bookingRef = await Order.findById(bookingId);
             if (!bookingRef) return { success: false, message: `Order ${bookingId} not found` };
             if (bookingRef.paymentStatus === 'Paid') return { success: false, message: 'Order is already paid' };
@@ -139,21 +131,20 @@ export const initiatePhonePePayment = async (
         const paymentDoc: any = {
             amount: amountInPaise / 100,
             currency: 'INR',
+            paymentMethod: 'PhonePe',
             paymentGateway: 'PhonePe',
-            phonepeMerchantTransactionId: merchantOrderId,
-            status: 'Pending',
+            phonePeOrderId: merchantOrderId,
+            status: 'PENDING',
             paymentType: ['hotel', 'bus'].includes(paymentType) ? paymentType : (bookingRef.orderType || 'quick'),
+            userId: customerId,
         };
-        // Store the right reference
+
         if (paymentType === 'hotel') {
             paymentDoc.hotelBookingId = bookingId;
-            paymentDoc.customer = customerId;
         } else if (paymentType === 'bus') {
             paymentDoc.busBookingId = bookingId;
-            paymentDoc.customer = customerId;
         } else {
-            paymentDoc.order = bookingId;
-            paymentDoc.customer = customerId;
+            paymentDoc.orderId = bookingId;
         }
 
         // Save leniently — Payment model may have required fields; wrap to avoid crash
@@ -201,16 +192,26 @@ export const checkPhonePeStatus = async (merchantOrderId: string) => {
 
         if (state === 'COMPLETED') {
             const result = await _markBookingPaid(merchantOrderId, undefined, paymentType);
-            return { success: true, status: 'success', raw: response, ...result };
+            return {
+                success: true,
+                status: result.success ? 'success' : 'failed',
+                data: response,
+            };
         }
 
-        if (state === 'FAILED') {
-            await _markBookingFailed(merchantOrderId, paymentType);
-            return { success: true, status: 'failed', raw: response };
+        if (state === 'FAILED' || state === 'CANCELLED') {
+            return {
+                success: true,
+                status: 'failed',
+                data: response,
+            };
         }
 
-        return { success: true, status: 'pending', raw: response };
-
+        return {
+            success: true,
+            status: 'pending',
+            data: response,
+        };
     } catch (error: any) {
         console.error('[PhonePeService] checkStatus error:', error?.message || error);
         return { success: false, message: error?.message || 'Status check failed' };
@@ -231,23 +232,22 @@ export const handlePhonePeWebhook = async (body: any) => {
         }
 
         const decoded = JSON.parse(Buffer.from(responseData.response, 'base64').toString('utf-8'));
-        const { merchantTransactionId, state, transactionId } = decoded?.data || {};
-
+        const { merchantTransactionId, state, transactionId } = decoded.data;
         console.log(`[PhonePeService] Webhook | MT: ${merchantTransactionId} | State: ${state}`);
 
-        if (!merchantTransactionId) {
-            throw new Error('Webhook payload missing merchantTransactionId');
-        }
+        const payment = await (Payment as any).findOne({ phonePeOrderId: merchantTransactionId });
+        if (!payment || payment.status === 'SUCCESS') return { success: true };
 
         const paymentType = decodePaymentType(merchantTransactionId);
 
         if (state === 'COMPLETED') {
-            const result = await _markBookingPaid(merchantTransactionId, transactionId, paymentType);
-            return { success: true, justPaid: true, ...result };
+            await _markBookingPaid(merchantTransactionId, transactionId, paymentType);
+            return { success: true };
         }
 
         if (state === 'FAILED') {
             await _markBookingFailed(merchantTransactionId, paymentType);
+            return { success: true };
         }
 
         return { success: true };
@@ -265,39 +265,68 @@ async function _markBookingPaid(
     transactionId?: string,
     paymentType: string = 'product'
 ) {
-    // Idempotency: check Payment audit record
-    const existingPayment = await (Payment as any).findOne({ phonepeMerchantTransactionId: merchantOrderId });
-    if (existingPayment?.status === 'Completed') {
-        console.log(`[PhonePeService] Already processed: ${merchantOrderId}`);
-        return {};
-    }
-
-    // Update Payment audit record
-    if (existingPayment) {
-        existingPayment.status = 'Completed';
+    // ── Update Payment record ──────────────────────────────────────────
+    // Use the core field name phonePeOrderId for merchantOrderId
+    const existingPayment = await (Payment as any).findOne({ phonePeOrderId: merchantOrderId });
+    if (!existingPayment) {
+        console.error(`[PhonePeService] Payment record NOT FOUND for merchantOrderId: ${merchantOrderId}`);
+        // We still continue to mark the booking paid if we found it, but log the error
+    } else {
+        existingPayment.status = 'SUCCESS';
+        existingPayment.transactionId = transactionId || 'webhook';
         existingPayment.paidAt = new Date();
-        if (transactionId) existingPayment.phonepeTransactionId = transactionId;
         await existingPayment.save();
-    }
+        let primaryOrder: any;
+        if (paymentType === 'hotel') {
+            primaryOrder = await HotelBooking.findOneAndUpdate(
+                { merchantOrderId },
+                { paymentStatus: 'Success', bookingStatus: 'Confirmed', transactionId },
+                { new: true }
+            ).populate('hotelId').lean();
 
-    if (paymentType === 'hotel') {
-        const booking = await HotelBooking.findOneAndUpdate(
-            { merchantOrderId },
-            { paymentStatus: 'Success', bookingStatus: 'Confirmed', transactionId },
-            { new: true }
-        );
-        console.log(`[PhonePeService] Hotel booking ${booking?._id} marked PAID`);
-        return { booking };
-    }
+            if (primaryOrder) {
+                // Decrement availableRooms in the room model
+                await HotelRoom.findByIdAndUpdate(primaryOrder.roomId, {
+                    $inc: { availableRooms: -1 }
+                });
+                console.log(`[PhonePeService] Hotel booking ${primaryOrder._id} confirmed & room inventory decremented`);
+            }
+        } else if (paymentType === 'bus') {
+            primaryOrder = await BusBooking.findOneAndUpdate(
+                { merchantOrderId },
+                { paymentStatus: 'Success', status: 'confirmed', transactionId },
+                { new: true }
+            ).lean();
 
-    if (paymentType === 'bus') {
-        const booking = await BusBooking.findOneAndUpdate(
-            { merchantOrderId },
-            { paymentStatus: 'Success', status: 'confirmed', transactionId },
-            { new: true }
-        );
-        console.log(`[PhonePeService] Bus booking ${booking?._id} marked PAID`);
-        return { booking };
+            if (primaryOrder) {
+                // Mark seats as booked in the schedule
+                const schedule = await BusSchedule.findById(primaryOrder.scheduleId);
+                if (schedule) {
+                    primaryOrder.seats.forEach((bookedSeat: any) => {
+                        const seatIndex = schedule.seats.findIndex((s: any) => s.seatNumber === bookedSeat.seatNumber);
+                        if (seatIndex !== -1) {
+                            schedule.seats[seatIndex].isBooked = true;
+                            schedule.seats[seatIndex].bookedFor = bookedSeat.passengerGender?.toLowerCase().startsWith('f') ? 'female' : 'male';
+                        }
+                    });
+                    await schedule.save();
+                }
+                console.log(`[PhonePeService] Bus booking ${primaryOrder._id} seats marked PAID and BOOKED in schedule`);
+            }
+        } else {
+            // Product order (quick or ecommerce)
+            primaryOrder = await Order.findOneAndUpdate(
+                { merchantOrderId },
+                { paymentStatus: 'Paid', status: 'Received', transactionId },
+                { new: true }
+            ).lean();
+        }
+
+        return { 
+            booking: (paymentType === 'hotel' || paymentType === 'bus') ? primaryOrder : null,
+            order: paymentType === 'product' ? primaryOrder : null,
+            justPaid: !!primaryOrder 
+        };
     }
 
     // Product order (quick/ecommerce) — handle split orders via parentOrderId
@@ -346,9 +375,9 @@ async function _markBookingPaid(
 
 async function _markBookingFailed(merchantOrderId: string, paymentType: string = 'product') {
     // Update Payment audit record
-    const payment = await (Payment as any).findOne({ phonepeMerchantTransactionId: merchantOrderId });
-    if (payment && payment.status !== 'Failed') {
-        payment.status = 'Failed';
+    const payment = await (Payment as any).findOne({ phonePeOrderId: merchantOrderId });
+    if (payment && payment.status !== 'FAILED') {
+        payment.status = 'FAILED';
         await payment.save();
     }
 
@@ -387,8 +416,8 @@ export const initiatePhonePeRefund = async (paymentId: string, amount?: number) 
 
         const payment = await (Payment as any).findById(paymentId);
         if (!payment) return { success: false, message: 'Payment record not found' };
-        if (!payment.phonepeMerchantTransactionId) return { success: false, message: 'No PhonePe transaction ID on this payment' };
-        if (payment.status !== 'Completed') return { success: false, message: 'Only completed payments can be refunded' };
+        if (!payment.phonePeOrderId) return { success: false, message: 'No PhonePe transaction ID on this payment' };
+        if (payment.status !== 'SUCCESS') return { success: false, message: 'Only successful payments can be refunded' };
 
         const refundAmountPaise = Math.round((amount || payment.amount) * 100);
         const refundTxnId = `RTX${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
@@ -402,7 +431,7 @@ export const initiatePhonePeRefund = async (paymentId: string, amount?: number) 
         } as any);
 
         if (refundResponse?.success) {
-            payment.status = 'Refunded';
+            payment.status = 'FAILED'; // Using FAILED for refunded in this simple schema
             payment.refundAmount = amount || payment.amount;
             payment.refundedAt = new Date();
             await payment.save();

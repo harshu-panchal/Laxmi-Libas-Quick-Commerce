@@ -99,7 +99,23 @@ export default function Addresses() {
                                     >
                                         Delete
                                     </button>
-                                    <button className="text-xs font-bold text-primary-dark hover:text-yellow-700 uppercase tracking-wider">
+                                    <button 
+                                        onClick={() => navigate('/checkout/address', { state: { editAddress: {
+                                            id: addr._id,
+                                            name: addr.fullName,
+                                            phone: addr.phone,
+                                            flat: addr.address.split(', ')[0] || '',
+                                            street: addr.address.split(', ')[1] || '',
+                                            city: addr.city,
+                                            state: addr.state,
+                                            pincode: addr.pincode,
+                                            landmark: addr.landmark,
+                                            latitude: addr.latitude,
+                                            longitude: addr.longitude,
+                                            type: addr.type
+                                        } } })}
+                                        className="text-xs font-bold text-primary-dark hover:text-yellow-700 uppercase tracking-wider"
+                                    >
                                         Edit
                                     </button>
                                 </div>

@@ -9,6 +9,8 @@ import { useLocation as useLocationContext } from '../hooks/useLocation';
 import LocationPermissionRequest from './LocationPermissionRequest';
 import { useThemeContext } from '../context/ThemeContext';
 import ServiceNotAvailable from './ServiceNotAvailable';
+import CompactLocationHeader from './CompactLocationHeader';
+
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -43,13 +45,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Check if location is required for current route
   const requiresLocation = () => {
-    // If location is not set, we always want to prompt on the home/entry pages
-    if (!userLocation || !userLocation.latitude || !userLocation.longitude) return true;
-    
-    // Modules that strictly require location
-    const strictlyRequired = ['/store/minutes', '/checkout', '/cart'];
-    return strictlyRequired.some(path => location.pathname.startsWith(path));
+    // Prompt immediately on all pages if location is missing for a persistent experience
+    return !isLocationEnabled;
   };
+
 
   // ... (rest of the component logic)
 
@@ -167,6 +166,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Desktop Container Wrapper */}
       <div className="md:w-full md:bg-white md:min-h-screen overflow-x-hidden">
         <div className="md:w-full md:min-h-screen md:flex md:flex-col overflow-x-hidden">
+          {/* Real-time Compact Location Header - Visible on all modules */}
+          <CompactLocationHeader onShowChangeModal={() => setShowLocationChangeModal(true)} />
+
           {/* Top Navigation Bar - Desktop Only */}
           {showFooter && !isOrderAgainPage && (
             <nav
@@ -176,6 +178,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 borderBottom: `1px solid ${currentTheme.primary[0]}`
               }}
             >
+
               {/* Home */}
               <Link
                 to="/user/home"
@@ -310,33 +313,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </div>
               )} */}
 
-              {/* Location line - show detected city prominently */}
-              {!isOrderAgainPage && (
-                <div className="px-4 md:px-6 lg:px-8 py-2 bg-neutral-50 flex items-center justify-between text-sm border-b border-neutral-100">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-orange-600">
-                        <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                    <span className="text-neutral-900 font-medium whitespace-nowrap">
-                      {userLocation?.city ? `Delivering to ${userLocation.city}` : 'Select your location'}
-                    </span>
-                    {userLocation?.address && (
-                      <span className="text-neutral-500 truncate hidden sm:inline" title={userLocation.address}>
-                        • {userLocation.address.length > 40 ? `${userLocation.address.substring(0, 40)}...` : userLocation.address}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setShowLocationChangeModal(true)}
-                    className="text-orange-600 font-bold hover:text-orange-700 transition-colors flex-shrink-0 ml-4 px-2 py-0.5 rounded-md hover:bg-orange-50"
-                  >
-                    Change
-                  </button>
-                </div>
-              )}
+
 
               {/* Header Title Row - Restored with Notification Bell */}
               {!isSearchPage && !isOrderAgainPage && location.pathname !== '/store/travel' && location.pathname !== '/store/minutes' && location.pathname !== '/categories' && (
@@ -358,7 +335,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     onClick={() => navigate('/notifications')}
                     className="p-1"
                   >
-                    <NotificationBell size={22} className="text-neutral-900" />
+                    <NotificationBell size={22} className="text-neutral-900" variant="static" />
                   </button>
                 </div>
               )}

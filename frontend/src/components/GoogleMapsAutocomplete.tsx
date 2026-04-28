@@ -1,9 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useJsApiLoader } from '@react-google-maps/api';
 
+export interface AutocompleteResult {
+  address: string;
+  lat: number;
+  lng: number;
+  placeName: string;
+  city: string;
+  state: string;
+  pincode: string;
+  structuredLocation: {
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    pincode: string;
+    coordinates: {
+      lat: number;
+      lng: number;
+    };
+  };
+}
+
 interface GoogleMapsAutocompleteProps {
   value: string;
-  onChange: (address: string, lat: number, lng: number, placeName: string, components?: { city?: string; state?: string }) => void;
+  onChange: (result: AutocompleteResult) => void;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
@@ -46,6 +67,7 @@ export default function GoogleMapsAutocomplete({
   const autocompleteRef = useRef<any>(null);
   const [error, setError] = useState<string>('');
   const [inputValue, setInputValue] = useState(value);
+  const [lastSelectedValue, setLastSelectedValue] = useState(value);
 
   // Use the same loader configuration as LocationPickerMap
   const { isLoaded, loadError } = useJsApiLoader({
@@ -57,6 +79,7 @@ export default function GoogleMapsAutocomplete({
   // Update local input value when prop changes
   useEffect(() => {
     setInputValue(value);
+    setLastSelectedValue(value);
   }, [value]);
 
   useEffect(() => {
@@ -64,11 +87,6 @@ export default function GoogleMapsAutocomplete({
       setError(`Failed to load Google Maps API: ${loadError.message}`);
     }
   }, [loadError]);
-
-  const onChangeRef = useRef(onChange);
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
 
   const initializeAutocomplete = useCallback(() => {
     if (!inputRef.current || !window.google?.maps?.places || autocompleteRef.current) return;
@@ -84,7 +102,7 @@ export default function GoogleMapsAutocomplete({
       const autocomplete = new places.Autocomplete(inputRef.current, {
         types: ['establishment', 'geocode'],
         componentRestrictions: { country: 'in' },
-        fields: ['address_components', 'formatted_address', 'geometry', 'name', 'place_id'],
+        fields: ['address_components', 'formatted_address', 'geometry', 'name'],
       });
 
       autocompleteRef.current = autocomplete;
@@ -93,7 +111,7 @@ export default function GoogleMapsAutocomplete({
         const place = autocomplete.getPlace();
 
         if (!place.geometry || !place.geometry.location) {
-          setError('No location details found for this place');
+          setError('Please select a location from the list');
           return;
         }
 
@@ -101,49 +119,61 @@ export default function GoogleMapsAutocomplete({
         const lng = place.geometry.location.lng();
         const rawAddress = place.formatted_address || place.name || '';
         const address = cleanAddress(rawAddress);
-        const placeName = place.name || address;
-
+        
         let city = '';
         let state = '';
         let pincode = '';
+        let country = 'India';
 
         if (place.address_components) {
           for (const component of place.address_components) {
-            if (component.types.includes('locality')) {
-              city = component.long_name;
-            } else if (component.types.includes('administrative_area_level_3') && !city) {
-              city = component.long_name;
-            } else if (component.types.includes('administrative_area_level_1')) {
-              state = component.long_name;
-            } else if (component.types.includes('postal_code')) {
-              pincode = component.long_name;
-            }
+            const types = component.types;
+            if (types.includes('locality')) city = component.long_name;
+            else if (types.includes('administrative_area_level_3') && !city) city = component.long_name;
+            else if (types.includes('administrative_area_level_2') && !city) city = component.long_name;
+            
+            if (types.includes('administrative_area_level_1')) state = component.long_name;
+            if (types.includes('postal_code')) pincode = component.long_name;
+            if (types.includes('country')) country = component.long_name;
           }
         }
 
+        const result: AutocompleteResult = {
+          address,
+          lat,
+          lng,
+          placeName: place.name || address,
+          city,
+          state,
+          pincode,
+          structuredLocation: {
+            address,
+            city,
+            state,
+            country,
+            pincode,
+            coordinates: { lat, lng }
+          }
+        };
+
         setInputValue(address);
-        onChangeRef.current(address, lat, lng, placeName, { city, state, pincode } as any);
+        setLastSelectedValue(address);
+        onChange(result);
         setError('');
       });
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       console.error('Autocomplete initialization error:', err);
-      setError(`Failed to initialize autocomplete: ${errorMessage}`);
     }
-  }, []); // Stable since it uses onChangeRef
+  }, [onChange]);
 
   useEffect(() => {
     if (isLoaded && inputRef.current && !autocompleteRef.current) {
       initializeAutocomplete();
     }
 
-    // Fix for Google Autocomplete in modals (event propagation)
-    // ONLY stop propagation for click events to prevent modal closure,
-    // but allow mousedown/mouseup for Google's own processing.
     const handlePacClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (target.closest('.pac-item')) {
-        // Stop bubbling but don't stop capture/target phase for Google's own listeners
         e.stopPropagation();
       }
     };
@@ -152,15 +182,15 @@ export default function GoogleMapsAutocomplete({
 
     return () => {
       document.removeEventListener('click', handlePacClick, true);
-      if (autocompleteRef.current) {
-        try {
-          window.google?.maps?.event?.clearInstanceListeners?.(autocompleteRef.current);
-        } catch {
-          // Ignore
-        }
-      }
     }
-  }, [isLoaded, initializeAutocomplete]); // Removed 'initializeAutocomplete' if possible or ensure stable
+  }, [isLoaded, initializeAutocomplete]);
+
+  const handleBlur = () => {
+    // Revert to last valid selected value if user typed manually without selecting
+    if (inputValue !== lastSelectedValue) {
+      setInputValue(lastSelectedValue);
+    }
+  };
 
   return (
     <div className="w-full">
@@ -168,12 +198,10 @@ export default function GoogleMapsAutocomplete({
         ref={inputRef}
         type="text"
         value={inputValue}
-        onChange={(e) => {
-          setInputValue(e.target.value);
-          onChange(e.target.value, 0, 0, e.target.value);
-        }}
+        onChange={(e) => setInputValue(e.target.value)}
+        onBlur={handleBlur}
         placeholder={placeholder}
-        className={`w-full px-3 py-2 border border-neutral-300 rounded-lg placeholder:text-neutral-400 focus:outline-none focus:border-orange-500 bg-white ${className}`}
+        className={`w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 bg-white ${className}`}
         disabled={disabled || !isLoaded}
         required={required}
         autoComplete="off"

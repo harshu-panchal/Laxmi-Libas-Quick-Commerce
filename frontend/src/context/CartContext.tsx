@@ -97,7 +97,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           categoryId: item.product.category || '',
           description: item.product.description,
           variantId: item.variation, // Preserving variation ID/value
-          sellerId: item.product.sellerId || item.product.seller,
+          sellerId: item.product.sellerId || item.product.seller?._id || item.product.seller,
+          sellerCity: item.product.seller?.city || '',
           type: item.product.type || 'quick',
         },
         quantity: item.quantity,

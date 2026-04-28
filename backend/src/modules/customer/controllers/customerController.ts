@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Customer from "../../../models/Customer";
+import AppSettings from "../../../models/AppSettings";
 import { asyncHandler } from "../../../utils/asyncHandler";
 
 /**
@@ -225,4 +226,49 @@ export const getLocation = asyncHandler(async (req: Request, res: Response) => {
       locationUpdatedAt: customer.locationUpdatedAt,
     },
   });
+});
+
+/**
+ * Reverse geocode coordinates (Backend fallback)
+ */
+export const reverseGeocode = asyncHandler(async (req: Request, res: Response) => {
+  const { latitude, longitude } = req.query;
+  console.log(`[ReverseGeocode] Request received for: ${latitude}, ${longitude}`);
+
+  if (!latitude || !longitude) {
+    return res.status(400).json({
+      success: false,
+      message: "Latitude and longitude are required",
+    });
+  }
+
+  try {
+    const settings = await AppSettings.getSettings();
+    const apiKey = settings.deliveryConfig?.googleMapsKey;
+
+    if (!apiKey) {
+      throw new Error("Google Maps API key not configured in settings");
+    }
+
+    const { reverseGeocode: performReverseGeocode } = await import("../../../services/mapService");
+    const result = await performReverseGeocode(
+      Number(latitude),
+      Number(longitude),
+      apiKey
+    );
+
+    console.log(`[ReverseGeocode] Resolved to: ${result.formatted_address}`);
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error("Backend Reverse Geocode Failed:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to resolve address",
+      error: error.message,
+    });
+  }
 });

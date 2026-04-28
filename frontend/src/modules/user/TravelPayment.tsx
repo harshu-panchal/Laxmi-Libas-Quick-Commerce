@@ -18,6 +18,7 @@ const TravelPayment: React.FC = () => {
     }, []);
 
     const processPayment = async () => {
+        console.log('[TravelPayment] Booking Data:', bookingData);
         if (!selectedMethod || !bookingData?.bookingId) {
             alert('No booking found. Please go back and try again.');
             return;

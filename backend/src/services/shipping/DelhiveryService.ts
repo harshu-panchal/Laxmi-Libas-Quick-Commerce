@@ -136,4 +136,44 @@ export class DelhiveryService {
             throw error;
         }
     }
+
+    /**
+     * Helper to create shipment directly from an Order model
+     */
+    static async createShipmentFromOrder(order: any) {
+        // Need to populate items to find seller
+        const orderItems = await Order.findById(order._id).populate({
+            path: 'items',
+            populate: { path: 'seller' }
+        });
+
+        if (!orderItems || !orderItems.items || orderItems.items.length === 0) {
+            throw new Error('Order has no items or sellers');
+        }
+
+        // Get first seller (assuming one shipment per order for now)
+        const seller = (orderItems.items[0] as any).seller;
+        if (!seller) throw new Error('Seller not found for this order');
+
+        const customerAddress = order.deliveryAddress;
+        const fullAddress = `${customerAddress.address}, ${customerAddress.city}, ${customerAddress.pincode}${customerAddress.landmark ? `, Landmark: ${customerAddress.landmark}` : ''}`;
+
+        const params: DelhiveryShipmentParams = {
+            orderNumber: order.orderNumber,
+            add: fullAddress,
+            phone: order.customerPhone,
+            payment_mode: order.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
+            name: order.customerName,
+            pin: customerAddress.pincode,
+            sellerName: seller.storeName,
+            sellerAddress: seller.address || '',
+            sellerPhone: seller.mobile,
+            sellerCity: seller.city || '',
+            sellerPin: (seller.structuredLocation as any)?.pincode || '', // Try to get pin from structured location
+            weight: order.shipmentWeight || 0.5,
+            totalAmount: order.total
+        };
+
+        return this.createShipment(params);
+    }
 }

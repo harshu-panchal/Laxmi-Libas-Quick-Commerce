@@ -1,3 +1,4 @@
+// RELOAD TRIGGER - PAYMENT FIX
 import express, { Application, Request, Response } from "express";
 import { createServer } from "http";
 import cors from "cors";
@@ -19,6 +20,7 @@ import HotelBooking from "./models/HotelBooking";
 import BusBooking from "./models/BusBooking";
 
 
+import { startCourierSyncJob } from "./jobs/courierSyncJob";
 import path from "path";
 
 // Load environment variables - using absolute path for robustness
@@ -121,8 +123,13 @@ const PORT = process.env.PORT || 5000;
 async function startServer() {
   logStartupEnvChecks();
 
-  // Connect DB then ensure default admin exists
+  // Connect DB 
   await connectDB();
+  
+  // Start Courier Sync Job
+  startCourierSyncJob();
+
+  // Ensure Default Admin exists
   await ensureDefaultAdmin();
   await seedHeaderCategories();
 
