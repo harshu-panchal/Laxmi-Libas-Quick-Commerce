@@ -1,155 +1,108 @@
-import { Request, Response } from "express";
-import { asyncHandler } from "../../../utils/asyncHandler";
-import Return from "../../../models/Return";
-// import Order from "../../../models/Order";
-import OrderItem from "../../../models/OrderItem";
+import { Request, Response } from 'express';
+import { asyncHandler } from '../../../utils/asyncHandler';
+import Order from '../../../models/Order';
+import OrderItem from '../../../models/OrderItem';
+import { sendNotification } from '../../../services/notificationService';
 
-export const getReturnRequests = asyncHandler(
-  async (req: Request, res: Response) => {
-    const sellerId = req.user?.userId;
-    const { status, page = 1, limit = 10 } = req.query;
+/**
+ * Get all return requests for a seller
+ */
+export async function getReturnRequests(req: Request, res: Response) {
+  const sellerId = (req as any).user.userId;
 
-    const query: any = {};
-    if (status && status !== 'All Status') {
-      query.status = status;
-    }
+  // Find all orders that have return status and contain items from this seller
+  const orderItems = await OrderItem.find({ seller: sellerId }).distinct('order');
+  
+  const returns = await Order.find({
+    _id: { $in: orderItems },
+    returnStatus: { $exists: true, $ne: null }
+  }).populate('customer', 'name email phone');
 
-    // Find return requests where the associated OrderItem belongs to this seller
-    // 1. Find OrderItems for this seller
-    const sellerOrderItems = await OrderItem.find({ seller: sellerId }).select('_id');
-    const sellerOrderItemIds = sellerOrderItems.map(item => item._id);
+  res.json({ success: true, data: returns });
+}
 
-    // 2. Filter Returns by these OrderItem IDs
-    query.orderItem = { $in: sellerOrderItemIds };
+/**
+ * Get return request details
+ */
+export async function getReturnRequestById(req: Request, res: Response) {
+  const { id } = req.params;
+  const sellerId = (req as any).user.userId;
 
-    const returns = await Return.find(query)
-      .populate({
-        path: 'orderItem',
-        select: 'productName productImage quantity unitPrice total sku'
-      })
-      .populate({
-        path: 'order',
-        select: 'orderNumber customerName'
-      })
-      .populate('customer', 'name email mobile')
-      .sort({ createdAt: -1 })
-      .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit));
-
-    const total = await Return.countDocuments(query);
-
-    // Map to frontend friendly format
-    const formattedReturns = returns.map(ret => {
-      const item = ret.orderItem as any;
-      const order = ret.order as any;
-      return {
-        id: ret._id,
-        productName: item?.productName || 'Unknown Product',
-        customerName: order?.customerName || 'Unknown Customer',
-        orderId: order?.orderNumber || 'Unknown Order',
-        amount: item?.total || 0,
-        status: ret.status,
-        date: ret.createdAt,
-        returnReason: ret.reason,
-        image: item?.productImage
-      };
+  const order = await Order.findOne({ _id: id, returnStatus: { $exists: true } })
+    .populate('customer', 'name email phone')
+    .populate({
+      path: 'items',
+      match: { seller: sellerId },
+      populate: { path: 'product', select: 'productName mainImage' }
     });
 
-    return res.status(200).json({
-      success: true,
-      data: formattedReturns,
-      pagination: {
-        total,
-        page: Number(page),
-        pages: Math.ceil(total / Number(limit))
-      }
-    });
+  if (!order) {
+    res.status(404).json({ success: false, message: 'Return request not found' });
+    return;
   }
-);
 
-export const getReturnRequestById = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { id } = req.params;
+  res.json({ success: true, data: order });
+}
 
-    const returnRequest = await Return.findById(id)
-      .populate({
-        path: 'orderItem',
-        select: 'productName productImage quantity unitPrice total sku'
-      })
-      .populate({
-        path: 'order',
-        select: 'orderNumber customerName deliveryAddress paymentMethod'
-      })
-      .populate('customer', 'name email mobile');
+/**
+ * Approve or Reject Return Request (Aliased as updateReturnStatus)
+ */
+export async function updateReturnStatus(req: Request, res: Response) {
+  const { id } = req.params;
+  const { status, reason } = req.body; // Approved | Rejected
 
-    if (!returnRequest) {
-      return res.status(404).json({
-        success: false,
-        message: "Return request not found"
-      });
-    }
-
-    const item = returnRequest.orderItem as any;
-    const order = returnRequest.order as any;
-
-    const formattedDetail = {
-      id: returnRequest._id,
-      orderId: order?.orderNumber,
-      orderDate: order?.createdAt, // Or orderDate if available
-      status: returnRequest.status,
-      customerName: order?.customerName,
-      customerEmail: (returnRequest.customer as any)?.email,
-      customerPhone: (returnRequest.customer as any)?.mobile,
-      shippingAddress: order?.deliveryAddress ? `${order.deliveryAddress.address}, ${order.deliveryAddress.city}, ${order.deliveryAddress.pincode}` : 'N/A',
-      paymentMethod: order?.paymentMethod,
-      items: [
-        {
-          id: item?._id,
-          name: item?.productName,
-          sku: item?.sku || 'N/A',
-          price: item?.unitPrice || 0,
-          quantity: returnRequest.quantity, // Return quantity might differ from order item quantity? Using return quantity.
-          total: (item?.unitPrice || 0) * returnRequest.quantity,
-          image: item?.productImage
-        }
-      ],
-      subtotal: (item?.unitPrice || 0) * returnRequest.quantity,
-      tax: 0, // Mock for now
-      total: (item?.unitPrice || 0) * returnRequest.quantity,
-      reason: returnRequest.reason,
-      reasonDescription: returnRequest.description
-    };
-
-
-    return res.status(200).json({
-      success: true,
-      data: formattedDetail,
-    });
+  const order = await Order.findById(id);
+  if (!order) {
+    res.status(404).json({ success: false, message: 'Order not found' });
+    return;
   }
-);
 
-export const updateReturnStatus = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    const returnRequest = await Return.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true }
+  if (status === 'Approved') {
+    order.returnStatus = 'Approved';
+    order.pickupStatus = 'Pending';
+    
+    await sendNotification(
+      'Customer',
+      order.customer.toString(),
+      'Return Approved',
+      `Your return request for order ${order._id} has been approved. A pickup will be scheduled soon.`,
+      { type: 'Order', priority: 'Medium' }
     );
-
-    if (!returnRequest) {
-      return res.status(404).json({
-        success: false,
-        message: "Return request not found"
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Return status updated successfully",
-      data: returnRequest
-    });
+  } else {
+    order.returnStatus = 'Rejected';
+    
+    await sendNotification(
+      'Customer',
+      order.customer.toString(),
+      'Return Rejected',
+      `Your return request for order ${order._id} was not approved. Reason: ${reason}`,
+      { type: 'Order', priority: 'High' }
+    );
   }
-);
+
+  await order.save();
+  res.json({ success: true, message: `Return request ${status}`, data: order });
+}
+
+/**
+ * Update Return Pickup Status
+ */
+export async function updatePickupStatus(req: Request, res: Response) {
+  const { id } = req.params;
+  const { status } = req.body; // Pending | Assigned | Completed
+
+  const order = await Order.findById(id);
+  if (!order) {
+    res.status(404).json({ success: false, message: 'Order not found' });
+    return;
+  }
+
+  order.pickupStatus = status;
+  if (status === 'Completed') {
+    order.returnStatus = 'Picked Up';
+    // Once picked up, it usually moves to refund processing
+  }
+
+  await order.save();
+  res.json({ success: true, message: `Pickup status updated to ${status}`, data: order });
+}

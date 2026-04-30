@@ -11,7 +11,7 @@ export default function CompactLocationHeader({ onShowChangeModal }: CompactLoca
   const { location, isLocationLoading } = useLocation();
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-2.5 bg-white/95 backdrop-blur-md flex items-center justify-between text-sm border-b border-neutral-100 shadow-sm sticky top-0 z-[60]">
+    <div className="px-4 md:px-6 lg:px-8 py-2 bg-transparent flex items-center justify-between text-sm transition-all duration-300">
       <div 
         className="flex items-center gap-3 overflow-hidden cursor-pointer active:scale-95 transition-transform group"
         onClick={onShowChangeModal}

@@ -68,7 +68,7 @@ export const getBusBookings = asyncHandler(async (req: Request, res: Response) =
             path: 'scheduleId',
             populate: { path: 'busId' }
         })
-        .populate('userId', 'name email mobile')
+        .populate('userId', 'name email phone')
         .sort({ createdAt: -1 });
 
     return res.status(200).json({

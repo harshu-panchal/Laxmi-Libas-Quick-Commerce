@@ -90,3 +90,48 @@ export const addBusSchedule = async (scheduleData: any): Promise<ApiResponse<any
 export const getManifestUrl = (busId: string, token: string | null) => {
   return `${import.meta.env.VITE_API_BASE_URL}/bus/${busId}/manifest?token=${token}`;
 };
+
+/**
+ * Get Bus Partner Wallet Stats
+ */
+export const getBusWalletStats = async (): Promise<ApiResponse<any>> => {
+  try {
+    const response = await api.get<ApiResponse<any>>('/bus/wallet/stats');
+    return response.data;
+  } catch (error) {
+    return { success: false, data: { availableBalance: 0, totalEarnings: 0, pendingSettlement: 0, totalWithdrawn: 0 }, message: 'Failed to fetch wallet stats' } as any;
+  }
+};
+
+/**
+ * Get Bus Partner Wallet Transactions
+ */
+export const getBusWalletTransactions = async (): Promise<ApiResponse<any[]>> => {
+  try {
+    const response = await api.get<ApiResponse<any[]>>('/bus/wallet/transactions');
+    return response.data;
+  } catch (error) {
+    return { success: false, data: [], message: 'Failed to fetch transactions' } as any;
+  }
+};
+
+/**
+ * Get Bus Partner Withdrawal Requests
+ */
+export const getBusWithdrawalRequests = async (): Promise<ApiResponse<any[]>> => {
+  try {
+    const response = await api.get<ApiResponse<any[]>>('/bus/wallet/withdrawals');
+    return response.data;
+  } catch (error) {
+    return { success: false, data: [], message: 'Failed to fetch withdrawals' } as any;
+  }
+};
+
+/**
+ * Create Bus Partner Withdrawal Request
+ */
+export const createBusWithdrawalRequest = async (data: { amount: number; accountDetails: string; paymentMethod: string }): Promise<ApiResponse<any>> => {
+  const response = await api.post<ApiResponse<any>>('/bus/wallet/withdraw', data);
+  return response.data;
+};
+

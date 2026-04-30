@@ -533,6 +533,11 @@ ProductSchema.pre("save", function (next) {
   } else {
     doc.discount = 0;
   }
+
+  // Auto-disable if out of stock
+  if (doc.stock <= 0) {
+    doc.status = "Inactive";
+  }
   next();
 });
 

@@ -122,3 +122,48 @@ export const deleteHotel = async (hotelId: string): Promise<ApiResponse<any>> =>
     const response = await api.delete<ApiResponse<any>>(`/hotel/${hotelId}`);
     return response.data;
 };
+
+/**
+ * Get Hotel Partner Wallet Stats (balance, earnings, pending)
+ */
+export const getHotelWalletStats = async (): Promise<ApiResponse<any>> => {
+  try {
+    const response = await api.get<ApiResponse<any>>('/hotel/wallet/stats');
+    return response.data;
+  } catch (error) {
+    return { success: false, data: { availableBalance: 0, totalEarnings: 0, pendingSettlement: 0, totalWithdrawn: 0 }, message: 'Failed to fetch wallet stats' } as any;
+  }
+};
+
+/**
+ * Get Hotel Partner Wallet Transactions
+ */
+export const getHotelWalletTransactions = async (): Promise<ApiResponse<any[]>> => {
+  try {
+    const response = await api.get<ApiResponse<any[]>>('/hotel/wallet/transactions');
+    return response.data;
+  } catch (error) {
+    return { success: false, data: [], message: 'Failed to fetch transactions' } as any;
+  }
+};
+
+/**
+ * Get Hotel Partner Withdrawal Requests
+ */
+export const getHotelWithdrawalRequests = async (): Promise<ApiResponse<any[]>> => {
+  try {
+    const response = await api.get<ApiResponse<any[]>>('/hotel/wallet/withdrawals');
+    return response.data;
+  } catch (error) {
+    return { success: false, data: [], message: 'Failed to fetch withdrawals' } as any;
+  }
+};
+
+/**
+ * Create Hotel Partner Withdrawal Request
+ */
+export const createHotelWithdrawalRequest = async (data: { amount: number; accountDetails: string; paymentMethod: string }): Promise<ApiResponse<any>> => {
+  const response = await api.post<ApiResponse<any>>('/hotel/wallet/withdraw', data);
+  return response.data;
+};
+

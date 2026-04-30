@@ -160,6 +160,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   const [isLocationLoading, setIsLocationLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locationPermissionStatus, setLocationPermissionStatus] = useState<'granted' | 'denied' | 'prompt' | 'session_granted'>('prompt');
+  const [showChangeModal, setShowChangeModal] = useState(false);
 
   // Constants for storage
   const SESSION_PERMISSION_KEY = 'location_permission_granted_session';
@@ -582,6 +583,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     requestLocation,
     updateLocation,
     refreshLocation,
+    showChangeModal,
+    setShowChangeModal,
     clearLocation,
     reverseGeocode: (lat: number, lng: number) => reverseGeocode(lat, lng),
     calculateDistance: (lat: number, lng: number) => {

@@ -18,6 +18,8 @@ export interface LocationContextType {
   requestLocation: () => Promise<void>;
   updateLocation: (location: Location) => Promise<void>;
   reverseGeocode: (lat: number, lng: number) => Promise<any>;
+  showChangeModal: boolean;
+  setShowChangeModal: (show: boolean) => void;
   clearLocation: () => void;
 }
 

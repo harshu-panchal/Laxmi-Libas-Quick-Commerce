@@ -115,12 +115,12 @@ const AddHotel: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <InputField label="Hotel Name" placeholder="e.g. Grand Palace Resort" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+            <InputField label="Hotel Name" placeholder="e.g. Grand Palace Resort" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
             <div className="space-y-1.5 flex flex-col">
               <label className="text-sm font-semibold text-neutral-700 ml-1">Property Type</label>
-              <select 
+              <select
                 value={formData.propertyType}
-                onChange={(e) => setFormData({...formData, propertyType: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}
                 className="bg-neutral-50 border-none rounded-xl p-3 text-sm focus:ring-2 focus:ring-teal-500 font-medium"
               >
                 <option value="Hotel">Hotel</option>
@@ -129,7 +129,6 @@ const AddHotel: React.FC = () => {
                 <option value="Guest House">Guest House</option>
               </select>
             </div>
-          </div>
 
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-neutral-700 mb-2 ml-1 uppercase tracking-wider">
@@ -161,30 +160,30 @@ const AddHotel: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="text-sm font-semibold text-neutral-700 ml-1">City (Auto-filled)</label>
-              <input 
-                type="text" 
-                value={formData.city} 
-                readOnly 
+              <input
+                type="text"
+                value={formData.city}
+                readOnly
                 placeholder="Select location above"
                 className="w-full bg-neutral-100 border-none rounded-xl p-3 text-sm font-medium text-neutral-500 cursor-not-allowed mt-1.5"
               />
             </div>
             <div>
               <label className="text-sm font-semibold text-neutral-700 ml-1">State (Auto-filled)</label>
-              <input 
-                type="text" 
-                value={formData.state} 
-                readOnly 
+              <input
+                type="text"
+                value={formData.state}
+                readOnly
                 placeholder="Select location above"
                 className="w-full bg-neutral-100 border-none rounded-xl p-3 text-sm font-medium text-neutral-500 cursor-not-allowed mt-1.5"
               />
             </div>
             <div>
               <label className="text-sm font-semibold text-neutral-700 ml-1">Pincode (Auto-filled)</label>
-              <input 
-                type="text" 
-                value={formData.pincode} 
-                readOnly 
+              <input
+                type="text"
+                value={formData.pincode}
+                readOnly
                 placeholder="Select location above"
                 className="w-full bg-neutral-100 border-none rounded-xl p-3 text-sm font-medium text-neutral-500 cursor-not-allowed mt-1.5"
               />

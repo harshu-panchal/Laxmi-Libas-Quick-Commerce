@@ -107,7 +107,7 @@ export default function GoogleMapsAutocomplete({
 
       autocompleteRef.current = autocomplete;
 
-      autocomplete.addListener('place_changed', () => {
+      autocomplete.addListener('place_changed', async () => {
         const place = autocomplete.getPlace();
 
         if (!place.geometry || !place.geometry.location) {
@@ -125,8 +125,8 @@ export default function GoogleMapsAutocomplete({
         let pincode = '';
         let country = 'India';
 
-        if (place.address_components) {
-          for (const component of place.address_components) {
+        const extractFromComponents = (components: any[]) => {
+          for (const component of components) {
             const types = component.types;
             if (types.includes('locality')) city = component.long_name;
             else if (types.includes('administrative_area_level_3') && !city) city = component.long_name;
@@ -135,6 +135,34 @@ export default function GoogleMapsAutocomplete({
             if (types.includes('administrative_area_level_1')) state = component.long_name;
             if (types.includes('postal_code')) pincode = component.long_name;
             if (types.includes('country')) country = component.long_name;
+          }
+        };
+
+        if (place.address_components) {
+          extractFromComponents(place.address_components);
+        }
+
+        // If pincode is still missing, attempt reverse geocoding for more precision
+        if (!pincode && window.google?.maps?.Geocoder) {
+          try {
+            const geocoder = new window.google.maps.Geocoder();
+            const results = await new Promise<any[]>((resolve, reject) => {
+              geocoder.geocode({ location: { lat, lng } }, (res: any, status: any) => {
+                if (status === 'OK') resolve(res);
+                else reject(status);
+              });
+            });
+
+            // Search results for a postal code
+            for (const res of results) {
+              const pc = res.address_components.find((c: any) => c.types.includes('postal_code'));
+              if (pc) {
+                pincode = pc.long_name;
+                break;
+              }
+            }
+          } catch (geocodingError) {
+            console.warn('Geocoding fallback failed:', geocodingError);
           }
         }
 

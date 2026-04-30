@@ -7,14 +7,16 @@ import {
   getAllSubcategories,
   getSubSubCategories,
 } from "../modules/seller/controllers/categoryController";
+import { noCache } from "../middleware/cache";
 
 const router = Router();
 
-// Category routes - Public for retrieval
-// Admin/Seller specific management routes are in their respective route files
+// Apply no-cache to all category retrieval routes
+router.use(noCache);
 
 // Get all categories (parent categories only by default)
 router.get("/", getCategories);
+
 
 // Get all subcategories (across all categories)
 router.get("/subcategories", getAllSubcategories);

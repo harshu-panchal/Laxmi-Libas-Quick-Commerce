@@ -7,11 +7,13 @@ import {
     deleteHeaderCategory,
 } from '../modules/admin/controllers/headerCategoryController';
 import { authenticate, requireUserType } from '../middleware/auth';
+import { noCache } from '../middleware/cache';
 
 const router = Router();
 
 // Public route to get published categories
-router.get('/', getHeaderCategories);
+router.get('/', noCache, getHeaderCategories);
+
 
 // Protected Admin routes
 router.get('/admin', authenticate, requireUserType('Admin'), getAdminHeaderCategories);

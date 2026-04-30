@@ -2,6 +2,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getOrderById, updateOrderStatus, shipOrder, markAsPacked, readyForPickup, OrderDetail } from '../../../services/api/orderService';
 import jsPDF from 'jspdf';
+import { Truck, Package, RefreshCw, CheckCircle, ExternalLink, MapPin, Clock, Navigation, ChevronLeft } from 'lucide-react';
+import LiveTrackingMap from '../../../components/LiveTrackingMap';
+import { useDeliveryTracking } from '../../../hooks/useDeliveryTracking';
+import { motion } from 'framer-motion';
 
 export default function SellerOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -408,6 +412,29 @@ export default function SellerOrderDetail() {
         </div>
 
         <div className="p-6">
+          {/* Live Tracking Card (Quick Commerce) */}
+          {orderDetail.orderType === 'quick' && (orderStatus === 'Out for Delivery' || orderStatus === 'Picked up' || orderStatus === 'Delivered') && (
+            <div className="mb-8 bg-neutral-50 rounded-2xl border border-neutral-200 overflow-hidden">
+              <div className="p-4 border-b border-neutral-200 flex items-center justify-between bg-white">
+                 <div className="flex items-center gap-2">
+                    <Navigation className="text-teal-600" size={20} />
+                    <h2 className="text-base font-bold text-neutral-900">Live Delivery Progress</h2>
+                 </div>
+                 <div className="flex items-center gap-2 px-3 py-1 bg-teal-50 text-teal-600 rounded-full text-[10px] font-black uppercase tracking-wider">
+                    <motion.div 
+                      animate={{ opacity: [1, 0.4, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      className="w-1.5 h-1.5 rounded-full bg-teal-500"
+                    />
+                    Live Tracking Enabled
+                 </div>
+              </div>
+              <div className="h-[250px] relative">
+                <SellerLiveTrackingWrapper id={id!} orderDetail={orderDetail} />
+              </div>
+            </div>
+          )}
+
           {/* Progress Steps for Ecommerce */}
           {orderDetail.orderType === 'ecommerce' && (
             <div className="mb-8 relative">
@@ -714,6 +741,27 @@ export default function SellerOrderDetail() {
         </p>
       </footer>
     </div>
+  );
+}
+
+/**
+ * Specialized Wrapper for Seller Tracking to isolate socket hook
+ */
+function SellerLiveTrackingWrapper({ id, orderDetail }: { id: string, orderDetail: any }) {
+  const { 
+    deliveryLocation, 
+    isConnected 
+  } = useDeliveryTracking(id);
+
+  return (
+    <LiveTrackingMap 
+      deliveryLocation={deliveryLocation || (orderDetail.currentLocation ? { lat: orderDetail.currentLocation.lat, lng: orderDetail.currentLocation.lng } : undefined)}
+      customerLocation={{ 
+        lat: orderDetail.deliveryAddress?.latitude || 0, 
+        lng: orderDetail.deliveryAddress?.longitude || 0 
+      }}
+      isTracking={isConnected}
+    />
   );
 }
 

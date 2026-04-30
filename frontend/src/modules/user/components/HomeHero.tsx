@@ -10,6 +10,7 @@ import { getCategories } from '../../../services/api/customerProductService';
 import { Category } from '../../../types/domain';
 import CategoryTabBar from '../../../components/CategoryTabBar';
 import { isClothingRelated } from '../../../utils/clothingUtils';
+import CompactLocationHeader from '../../../components/CompactLocationHeader';
 
 
 gsap.registerPlugin(ScrollTrigger);
@@ -37,7 +38,7 @@ export default function HomeHero({
   headerCategories = []
 }: HomeHeroProps) {
   const navigate = useNavigate();
-  const { location: userLocation, requestLocation, isLocationLoading } = useLocation();
+  const { location: userLocation, requestLocation, isLocationLoading, setShowChangeModal } = useLocation();
   const heroRef = useRef<HTMLDivElement>(null);
   const topSectionRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
@@ -186,9 +187,9 @@ export default function HomeHero({
     >
       {/* Top section with delivery info and buttons - NOT sticky */}
       {!hideTopContent && (
-        <div className="pt-3 px-3">
+        <div className="pt-1.5 px-3">
           {/* Row 1: App Icons / Service Tiles - Simplified to 3 Modules */}
-          <div className="flex justify-center gap-4 pb-3 scrollbar-hide px-1">
+          <div className="flex justify-center gap-2 pb-1 px-1">
             {[
               { 
                 id: 'laxmart', 
@@ -196,7 +197,7 @@ export default function HomeHero({
                 icon: '/assets/laxmartlogo-removebg-preview.png', 
                 path: '/user/home',
                 activeBg: 'bg-[#ffec00]',
-                activeBorder: 'border-yellow-300',
+                activeBorder: 'border-yellow-400',
               },
               { 
                 id: 'travel', 
@@ -217,60 +218,33 @@ export default function HomeHero({
             ].map((store) => (
               <div 
                 key={store.id} 
-                className="flex flex-col items-center flex-shrink-0" 
+                className="flex flex-col items-center flex-1 max-w-[75px]" 
                 onClick={() => {
                   if (store.path.startsWith('/')) {
                     navigate(store.path);
                   }
                 }}
               >
-                <div className={`w-[84px] h-[58px] rounded-2xl p-1 shadow-sm active:scale-95 transition-all cursor-pointer flex flex-col items-center justify-between border-2 ${activeStore === store.id ? `${store.activeBg} ${store.activeBorder}` : 'bg-white border-neutral-100'
+                <div className={`w-full aspect-square rounded-[14px] p-1 shadow-sm active:scale-95 transition-all cursor-pointer flex flex-col items-center justify-center border-2 ${activeStore === store.id ? `${store.activeBg} ${store.activeBorder}` : 'bg-white border-neutral-100'
                   }`}>
-                  <div className="flex-1 flex items-center justify-center">
-                    <img src={store.icon} alt={store.name} className="w-[30px] h-[30px] object-contain" />
-                  </div>
-                  <span className="text-[10px] font-black text-gray-900 pb-0.5 uppercase tracking-tighter">{store.name}</span>
+                  <img src={store.icon} alt={store.name} className="w-[20px] h-[20px] object-contain mb-0.5" />
+                  <span className="text-[8px] font-black text-gray-900 uppercase tracking-tighter">{store.name}</span>
                 </div>
               </div>
             ))}
           </div>
 
-
-          {/* Row 2: Location and Rewards Bar */}
-          {!hideLocationBar && (
-            <div className="flex items-center justify-between gap-2 mb-0">
-              <div 
-                onClick={() => requestLocation()}
-                className="flex-1 min-w-0 bg-[#dff1ff] rounded-full px-3 py-1.5 flex items-center gap-2 shadow-sm border border-[#c5e4ff] cursor-pointer active:scale-[0.98] transition-transform"
-              >
-                <div className="bg-gray-800 rounded-md p-1 flex-shrink-0">
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-                  </svg>
-                </div>
-                <span className="text-[12px] font-[900] text-gray-800 uppercase tracking-tight flex-shrink-0">HOME</span>
-                <span className="text-[11px] font-bold text-gray-600 truncate">
-                  {isLocationLoading ? "Locating..." : (locationDisplayText || "Set precise location...")}
-                </span>
-                <svg className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform ${isLocationLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {isLocationLoading ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
-                  )}
+          {/* Row 2: Rewards and Points Bar - Minimalist */}
+          <div className="flex items-center justify-end pr-2 -mt-1 mb-1">
+            <div className="bg-white/80 backdrop-blur-sm rounded-full px-2 py-0.5 flex items-center gap-1 shadow-sm border border-gray-100 h-[22px]">
+              <div className="w-3.5 h-3.5 bg-yellow-400 rounded-full flex items-center justify-center shadow-inner">
+                <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M13 3l-1 5h4L7 21l1-8H4l9-10z" />
                 </svg>
               </div>
-
-              <div className="flex-shrink-0 bg-white rounded-full px-2 py-0.5 flex items-center gap-1 shadow-sm border border-gray-100 h-[32px]">
-                <div className="w-4.5 h-4.5 bg-yellow-400 rounded-full flex items-center justify-center shadow-inner flex-shrink-0">
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M13 3l-1 5h4L7 21l1-8H4l9-10z" />
-                  </svg>
-                </div>
-                <span className="text-[13px] font-black text-gray-800 leading-none">23</span>
-              </div>
+              <span className="text-[10px] font-black text-gray-800">23</span>
             </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -290,13 +264,20 @@ export default function HomeHero({
           }),
         }}
       >
-        <div className="px-4 md:px-6 lg:px-8 pt-2 md:pt-2 pb-2">
+        <div className="px-3 md:px-6 lg:px-8 pt-1.5 md:pt-2 pb-1.5">
+          {/* Location Bar above Search Bar */}
+          {!hideLocationBar && (
+            <div className="mb-1.5 -mx-3 md:-mx-6 lg:-mx-8">
+              <CompactLocationHeader onShowChangeModal={() => setShowChangeModal(true)} />
+            </div>
+          )}
+
           {/* Search Bar Row */}
           {!hideSearchBar && (
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <div
                 onClick={() => navigate('/search')}
-                className="flex-1 rounded-[14px] border-2 border-[#1e90ff] px-3 py-2 md:py-2.5 flex items-center gap-2 bg-white shadow-sm active:scale-[0.99] transition-all cursor-pointer h-[42px] md:h-[46px]"
+                className="flex-1 rounded-[12px] border-2 border-[#1e90ff] px-3 py-1.5 md:py-2 flex items-center gap-2 bg-white shadow-sm active:scale-[0.99] transition-all cursor-pointer h-[38px] md:h-[44px]"
               >
                 <svg className="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

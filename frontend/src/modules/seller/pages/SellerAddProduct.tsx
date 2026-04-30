@@ -412,28 +412,74 @@ export default function SellerAddProduct() {
   const categoryType = getCategoryType(categoryName);
   const isProduce = categoryName.toLowerCase().includes("fruit") || categoryName.toLowerCase().includes("vegetable");
 
-  // Clear category and subcategory when header category changes
+  // Auto-sync header category when category changes
+  useEffect(() => {
+    if (formData.category) {
+      const selectedCat = categories.find((cat: any) => (cat._id || cat.id) === formData.category);
+      if (selectedCat) {
+        setCategoryName(selectedCat.name);
+        const headerId = (typeof selectedCat.headerCategoryId === 'string' ? selectedCat.headerCategoryId : selectedCat.headerCategoryId?._id)?.toString();
+        if (headerId && formData.headerCategory !== headerId) {
+          setFormData(prev => ({ ...prev, headerCategory: headerId }));
+        }
+      }
+    }
+  }, [formData.category, categories]);
+
+  // Handle category and subcategory changes when header category changes
   useEffect(() => {
     if (formData.headerCategory) {
-      // Header category selected - check if current category belongs to it
+      // 1. Check if current category belongs to selected header
       const currentCategory = categories.find(
         (cat: any) => (cat._id || cat.id) === formData.category
       );
+
+      const headerId = formData.headerCategory;
+      const availableCats = categories.filter((cat: any) => {
+        const catHeaderId = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString();
+        return catHeaderId === headerId;
+      });
+
       if (currentCategory) {
-        const catHeaderId =
-          typeof currentCategory.headerCategoryId === "string"
-            ? currentCategory.headerCategoryId
-            : currentCategory.headerCategoryId?._id;
+        const catHeaderId = (typeof currentCategory.headerCategoryId === "string"
+          ? currentCategory.headerCategoryId
+          : currentCategory.headerCategoryId?._id)?.toString();
+
         // If current category doesn't belong to selected header category, clear it
-        if (catHeaderId !== formData.headerCategory) {
+        if (catHeaderId !== headerId) {
+          // IMPORTANT: If there's only ONE category in the new header, auto-select it instead of clearing
+          if (availableCats.length === 1) {
+            const cat = availableCats[0];
+            const catId = (cat._id || cat.id)?.toString();
+            setFormData((prev) => ({
+              ...prev,
+              category: catId,
+              subcategory: "",
+              subSubCategory: "",
+            }));
+            setCategoryName(cat.name);
+          } else {
+            setFormData((prev) => ({
+              ...prev,
+              category: "",
+              subcategory: "",
+              subSubCategory: "",
+            }));
+            setCategoryName("");
+            setSubcategories([]);
+            setSubSubCategories([]);
+          }
+        }
+      } else {
+        // No category selected yet - auto-select if only one available
+        if (availableCats.length === 1) {
+          const cat = availableCats[0];
+          const catId = (cat._id || cat.id)?.toString();
           setFormData((prev) => ({
             ...prev,
-            category: "",
-            subcategory: "",
-            subSubCategory: "",
+            category: catId,
           }));
-          setSubcategories([]);
-          setSubSubCategories([]);
+          setCategoryName(cat.name);
         }
       }
     } else {
@@ -442,8 +488,11 @@ export default function SellerAddProduct() {
         ...prev,
         category: "",
         subcategory: "",
+        subSubCategory: "",
       }));
+      setCategoryName("");
       setSubcategories([]);
+      setSubSubCategories([]);
     }
   }, [formData.headerCategory, categories]);
 
@@ -957,14 +1006,7 @@ export default function SellerAddProduct() {
                   <select
                     name="category"
                     value={formData.category}
-                    onChange={(e) => {
-                      handleChange(e);
-                      // Update categoryName for dynamic fields 
-                      const selectedCat = categories.find((cat: any) => (cat._id || cat.id) === e.target.value);
-                      if (selectedCat) {
-                        setCategoryName(selectedCat.name);
-                      }
-                    }}
+                    onChange={handleChange}
                     disabled={!isSuperSeller && user?.userType !== "Admin" && !!(user && (!user.categories || user.categories.length <= 1) && (user.category || user.categoryId) && formData.category)}
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed">
                     <option value="">Select Category</option>

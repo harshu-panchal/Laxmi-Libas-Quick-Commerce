@@ -167,6 +167,20 @@ export const createProduct = asyncHandler(
       newProductData.shopId = null;
     }
 
+    // Auto-populate location from seller if missing
+    if (!newProductData.city || !newProductData.pincode) {
+      newProductData.city = seller.city;
+      newProductData.pincode = (seller.structuredLocation as any)?.pincode || seller.pincode;
+      
+      // Also sync lat/lng if available in seller but missing in product
+      if (!newProductData.latitude && seller.latitude) {
+        newProductData.latitude = parseFloat(seller.latitude);
+      }
+      if (!newProductData.longitude && seller.longitude) {
+        newProductData.longitude = parseFloat(seller.longitude);
+      }
+    }
+
     const product = await Product.create(newProductData);
 
     return res.status(201).json({

@@ -282,6 +282,7 @@ export const createWithdrawalRequest = async (
   userType: "SELLER" | "DELIVERY_BOY",
   amount: number,
   paymentMethod: "Bank Transfer" | "UPI",
+  manualAccountDetails?: string,
 ) => {
   try {
     // Validate withdrawal
@@ -298,8 +299,9 @@ export const createWithdrawalRequest = async (
       throw new Error("User not found");
     }
 
-    // Create account details string
-    const accountDetails = `${user.bankName} - ${user.accountNumber} (${user.ifscCode})`;
+    // Create account details string: Manual override OR from Profile
+    const accountDetails = manualAccountDetails || 
+      (paymentMethod === "UPI" ? (user as any).upiId || "UPI" : `${user.bankName} - ${user.accountNumber} (${user.ifscCode})`);
 
     // Create withdrawal request
     const withdrawRequest = new WithdrawRequest({

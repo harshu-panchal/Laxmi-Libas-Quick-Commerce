@@ -9,6 +9,9 @@ import Hotel from '../models/Hotel';
 import Bus from '../models/Bus';
 import { sendNotification } from './notificationService';
 import { processBookingSettlement } from './settlementService';
+import { InventoryService } from './inventoryService';
+import HotelRoom from '../models/HotelRoom';
+import BusSchedule from '../models/BusSchedule';
 
 const CLIENT_ID = process.env.PHONEPE_CLIENT_ID?.trim() || '';
 const CLIENT_SECRET = process.env.PHONEPE_CLIENT_SECRET?.trim() || '';
@@ -130,6 +133,13 @@ export const verifyUnifiedPaymentStatus = async (merchantOrderId: string) => {
                     { type: 'Payment', priority: 'High' }
                 );
                 
+                // RELEASE RESOURCES ON FAILURE
+                if (payment.paymentType === 'bus') {
+                    await InventoryService.releaseSeatLocks(payment.userId.toString());
+                } else if (payment.paymentType === 'quick' || payment.paymentType === 'ecommerce') {
+                    await InventoryService.releaseProductLocks(payment.userId.toString());
+                }
+                
                 return { success: true, status: 'FAILED', data: response };
             }
         }
@@ -182,6 +192,27 @@ const updatePaymentSuccess = async (payment: any, transactionId: string) => {
             booking.transactionId = transactionId;
             await booking.save();
 
+            // --- NEW: ROOM AVAILABILITY LAYER ---
+            try {
+                await InventoryService.confirmRoomBooking(
+                    booking.hotelId.toString(),
+                    booking.roomId.toString(),
+                    booking.checkIn,
+                    booking.checkOut,
+                    1
+                );
+                
+                // Primary schema update (for backward compatibility)
+                const room = await HotelRoom.findById(booking.roomId);
+                if (room) {
+                    room.availableRooms = Math.max(0, room.availableRooms - 1);
+                    await room.save();
+                }
+            } catch (err) {
+                console.error('[UnifiedPayment] Room commitment failed:', err);
+            }
+            // ------------------------------------
+
             // Settlement Logic for Hotel Partner
             try {
                 const hotel = await Hotel.findById(booking.hotelId);
@@ -213,10 +244,27 @@ const updatePaymentSuccess = async (payment: any, transactionId: string) => {
             booking.transactionId = transactionId;
             await booking.save();
 
+            // --- NEW: SEAT LOCKING LAYER ---
+            try {
+                const schedule = await BusSchedule.findById(booking.scheduleId);
+                if (schedule) {
+                    const seatNums = booking.seats.map(s => s.seatNumber);
+                    schedule.seats = schedule.seats.map(s => {
+                        if (seatNums.includes(s.seatNumber)) return { ...s, isBooked: true };
+                        return s;
+                    });
+                    await schedule.save();
+                }
+                await InventoryService.releaseSeatLocks(payment.userId.toString());
+            } catch (err) {
+                console.error('[UnifiedPayment] Bus commitment failed:', err);
+            }
+            // -------------------------------
+
             // Settlement Logic for Bus Partner
             try {
-                const { default: BusSchedule } = await import('../models/BusSchedule');
-                const schedule = await BusSchedule.findById(booking.scheduleId);
+                const { default: BusScheduleModel } = await import('../models/BusSchedule');
+                const schedule = await BusScheduleModel.findById(booking.scheduleId);
                 const bus = schedule ? await Bus.findById(schedule.busId) : null;
                 
                 if (bus && bus.sellerId) {

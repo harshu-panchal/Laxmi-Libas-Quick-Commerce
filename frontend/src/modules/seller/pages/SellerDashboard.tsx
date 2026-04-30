@@ -7,6 +7,8 @@ import AlertCard from '../components/AlertCard';
 import { getSellerDashboardStats, DashboardStats, NewOrder } from '../../../services/api/dashboardService';
 import { getInventoryInsights, InventoryInsights } from '../../../services/api/productService';
 import { getSellerProfile, toggleShopStatus } from '../../../services/api/auth/sellerAuthService';
+import { getSellerAnalytics } from '../../../services/api/analyticsService';
+import Chart from 'react-apexcharts';
 import { 
   ShoppingBag, 
   Hotel, 
@@ -36,6 +38,9 @@ export default function SellerDashboard() {
     user?.businessTypes?.[0] || 'commerce'
   );
 
+  const [analyticsPeriod, setAnalyticsPeriod] = useState("7days");
+  const [advancedAnalytics, setAdvancedAnalytics] = useState<any>(null);
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -55,13 +60,18 @@ export default function SellerDashboard() {
         }
 
         if (user?.status === 'Approved') {
-          const statsResponse = await getSellerDashboardStats();
+          const [statsResponse, inventoryRes, analyticsRes] = await Promise.all([
+            getSellerDashboardStats(),
+            getInventoryInsights(),
+            getSellerAnalytics(analyticsPeriod)
+          ]);
+
           if (statsResponse.success) {
             setStats(statsResponse.data.stats);
             setNewOrders(statsResponse.data.newOrders);
-            const inventoryRes = await getInventoryInsights();
-            if (inventoryRes.success) setInventoryInsights(inventoryRes.data);
           }
+          if (inventoryRes.success) setInventoryInsights(inventoryRes.data);
+          if (analyticsRes.success) setAdvancedAnalytics(analyticsRes.data);
         }
       } catch (err: any) {
         console.error('Error loading dashboard data:', err);
@@ -71,7 +81,7 @@ export default function SellerDashboard() {
       }
     };
     fetchDashboardData();
-  }, [user?.status]);
+  }, [user?.status, analyticsPeriod]);
 
   const handleToggleShop = async () => {
     try {
@@ -224,6 +234,49 @@ export default function SellerDashboard() {
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
               <div className="xl:col-span-2 space-y-6">
+                {/* Revenue & Orders Chart */}
+                <div className="bg-white rounded-[2.5rem] border border-neutral-100 shadow-sm p-8">
+                  <div className="flex justify-between items-center mb-8">
+                    <h2 className="text-xl font-black text-neutral-900 tracking-tight">Performance Trends</h2>
+                    <div className="flex gap-2 bg-neutral-50 p-1 rounded-2xl border border-neutral-100">
+                      {["7days", "30days"].map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => setAnalyticsPeriod(p)}
+                          className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                            analyticsPeriod === p ? "bg-white text-teal-600 shadow-md" : "text-neutral-400"
+                          }`}
+                        >
+                          {p === "7days" ? "7D" : "30D"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="h-[300px] w-full">
+                    {advancedAnalytics?.charts && (
+                      <Chart
+                        type="area"
+                        series={[
+                          { name: 'Revenue', data: advancedAnalytics.charts.map((d: any) => d.revenue) },
+                          { name: 'Orders', data: advancedAnalytics.charts.map((d: any) => d.orders) }
+                        ]}
+                        options={{
+                          chart: { toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+                          colors: ['#0d9488', '#a855f7'],
+                          stroke: { curve: 'smooth', width: 3 },
+                          fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0 } },
+                          xaxis: { categories: advancedAnalytics.charts.map((d: any) => d._id), labels: { style: { colors: '#94a3b8' } } },
+                          yaxis: { labels: { style: { colors: '#94a3b8' } } },
+                          grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
+                          dataLabels: { enabled: false }
+                        }}
+                        width="100%"
+                        height="100%"
+                      />
+                    )}
+                  </div>
+                </div>
+
                 <div className="bg-white rounded-[2.5rem] border border-neutral-100 shadow-sm overflow-hidden">
                   <div className="p-8 border-b border-neutral-50 flex justify-between items-center">
                     <h2 className="text-xl font-black text-neutral-900 tracking-tight">Recent Orders</h2>
@@ -283,33 +336,63 @@ export default function SellerDashboard() {
         ) : activeBusinessTab === 'hotel' ? (
           <motion.div 
             key="hotel-hero"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-white p-12 rounded-[3rem] text-center border border-neutral-100 shadow-xl"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="space-y-8"
           >
-            <div className="w-20 h-20 bg-teal-50 text-teal-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-              <Hotel size={40} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
+                <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mb-4">
+                  <Hotel size={24} />
+                </div>
+                <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Active Bookings</p>
+                <h3 className="text-3xl font-black text-neutral-900">{advancedAnalytics?.hotel?.roomsBooked || 0}</h3>
+              </div>
+              <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
+                <div className="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-4">
+                  <TrendingUp size={24} />
+                </div>
+                <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Hotel Earnings</p>
+                <h3 className="text-3xl font-black text-neutral-900">₹{(advancedAnalytics?.hotel?.totalEarnings || 0).toLocaleString()}</h3>
+              </div>
             </div>
-            <h2 className="text-3xl font-black text-neutral-900 mb-4">Hotel Partner Console</h2>
-            <p className="text-neutral-500 font-medium mb-10">You are in the Hotel Management view. Access specific operations below.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-              <button onClick={() => navigate('/seller/hotel/dashboard')} className="p-8 bg-neutral-900 text-white rounded-3xl font-black text-lg hover:scale-105 transition-all shadow-2xl shadow-neutral-900/20">Open Operations</button>
-              <button onClick={() => navigate('/seller/hotel/add')} className="p-8 bg-teal-600 text-white rounded-3xl font-black text-lg hover:scale-105 transition-all shadow-2xl shadow-teal-600/20">Add New Property</button>
+            <div className="bg-white p-12 rounded-[3rem] text-center border border-neutral-100 shadow-xl">
+              <h2 className="text-3xl font-black text-neutral-900 mb-4">Property Management</h2>
+              <p className="text-neutral-500 font-medium mb-10">Access your properties, room availability, and guest check-ins.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                <button onClick={() => navigate('/seller/hotel/dashboard')} className="p-8 bg-neutral-900 text-white rounded-3xl font-black text-lg hover:scale-105 transition-all shadow-2xl shadow-neutral-900/20">Open Operations</button>
+                <button onClick={() => navigate('/seller/hotel/add')} className="p-8 bg-teal-600 text-white rounded-3xl font-black text-lg hover:scale-105 transition-all shadow-2xl shadow-teal-600/20">Add Property</button>
+              </div>
             </div>
           </motion.div>
         ) : (
           <motion.div 
             key="bus-hero"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-white p-12 rounded-[3rem] text-center border border-neutral-100 shadow-xl"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="space-y-8"
           >
-            <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-              <Bus size={40} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
+                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4">
+                  <Bus size={24} />
+                </div>
+                <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Tickets Sold</p>
+                <h3 className="text-3xl font-black text-neutral-900">{advancedAnalytics?.bus?.ticketsSold || 0}</h3>
+              </div>
+              <div className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm">
+                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-4">
+                  <TrendingUp size={24} />
+                </div>
+                <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Trip Revenue</p>
+                <h3 className="text-3xl font-black text-neutral-900">₹{(advancedAnalytics?.bus?.revenue || 0).toLocaleString()}</h3>
+              </div>
             </div>
-            <h2 className="text-3xl font-black text-neutral-900 mb-4">Transport Partner Console</h2>
-            <p className="text-neutral-500 font-medium mb-10">Manage your fleet and routes with real-time tracking.</p>
-            <button onClick={() => navigate('/seller/transport')} className="px-12 py-5 bg-blue-600 text-white rounded-[2rem] font-black text-xl hover:scale-105 transition-all shadow-2xl shadow-blue-600/20">Manage Fleet</button>
+            <div className="bg-white p-12 rounded-[3rem] text-center border border-neutral-100 shadow-xl">
+              <h2 className="text-3xl font-black text-neutral-900 mb-4">Fleet Operations</h2>
+              <p className="text-neutral-500 font-medium mb-10">Manage your fleet, routes, and real-time trip tracking.</p>
+              <button onClick={() => navigate('/seller/transport')} className="px-12 py-5 bg-blue-600 text-white rounded-[2rem] font-black text-xl hover:scale-105 transition-all shadow-2xl shadow-blue-600/20">Manage Fleet</button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -18,7 +18,11 @@ import {
   getStayInvoice,
   saveOnboardingStep,
   getCurrentLocation,
-  getHotelCities
+  getHotelCities,
+  getHotelWalletStats,
+  getHotelWalletTransactions,
+  getHotelWithdrawalRequests,
+  createHotelWithdrawalRequest
 } from './hotelController';
 import { authenticate, checkSellerAccess, checkPermission } from '../../middleware/auth';
 
@@ -40,6 +44,12 @@ router.post('/add', authenticate, checkSellerAccess('hotel'), addHotel);
 router.patch('/rooms/:roomId/status', authenticate, checkSellerAccess('hotel'), updateRoomStatus);
 router.patch('/bookings/:bookingId/status', authenticate, checkSellerAccess('hotel'), updateBookingStatus);
 router.get('/bookings/:bookingId/invoice', authenticate, checkSellerAccess('hotel'), getStayInvoice);
+
+// --- Hotel Partner Wallet Routes ---
+router.get('/wallet/stats', authenticate, checkSellerAccess('hotel'), getHotelWalletStats);
+router.get('/wallet/transactions', authenticate, checkSellerAccess('hotel'), getHotelWalletTransactions);
+router.get('/wallet/withdrawals', authenticate, checkSellerAccess('hotel'), getHotelWithdrawalRequests);
+router.post('/wallet/withdraw', authenticate, checkSellerAccess('hotel'), createHotelWithdrawalRequest);
 
 // --- Static admin routes (MUST be before /:hotelId) ---
 router.get('/admin/all', authenticate, checkPermission('hotel'), getHotels);

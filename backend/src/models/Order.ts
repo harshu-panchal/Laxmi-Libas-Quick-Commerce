@@ -40,7 +40,7 @@ export interface IOrder extends Document {
 
   // Payment
   paymentMethod: string;
-  paymentStatus: "Pending" | "Paid" | "Failed" | "Refunded";
+  paymentStatus: "Pending" | "Paid" | "Failed" | "Refunded" | "settled";
   paymentId?: string;
 
   // PhonePe-specific payment fields
@@ -75,6 +75,13 @@ export interface IOrder extends Document {
   | "Failed";
   assignedAt?: Date;
 
+  // Real-time Tracking (Quick Commerce)
+  currentLocation?: {
+    lat: number;
+    lng: number;
+    updatedAt: Date;
+  };
+
   // Tracking
   trackingNumber?: string;
   estimatedDeliveryDate?: Date;
@@ -102,10 +109,18 @@ export interface IOrder extends Document {
   deliveryInstructions?: string;
   specialRequests?: string;
 
-  // Cancellation/Return
+  // Cancellation/Refund
   cancellationReason?: string;
   cancelledAt?: Date;
   cancelledBy?: mongoose.Types.ObjectId;
+  refundStatus?: "Pending" | "Processing" | "Completed" | "Failed";
+  refundAmount?: number;
+  refundedAt?: Date;
+
+  // Return System
+  returnStatus?: "Requested" | "Approved" | "Rejected" | "Picked Up" | "Refunded";
+  returnReason?: string;
+  pickupStatus?: "Pending" | "Assigned" | "Completed";
 
   // Order Flow
   parentOrderId?: string; // Links split orders for unified payment
@@ -113,8 +128,13 @@ export interface IOrder extends Document {
   deliveryType: "instant" | "courier";
   courierPartner?: string;
   trackingId?: string;
-  trackingStatus?: string;
-  trackingHistory?: any[];
+  trackingStatus?: "assigned" | "picked" | "on_the_way" | "delivered";
+  trackingHistory?: Array<{
+    status: string;
+    location?: string;
+    description?: string;
+    timestamp: Date;
+  }>;
   shipmentWeight?: number;
 
   // Unified System Type
@@ -261,7 +281,7 @@ const OrderSchema = new Schema<IOrder>(
     },
     paymentStatus: {
       type: String,
-      enum: ["Pending", "Paid", "Failed", "Refunded"],
+      enum: ["Pending", "Paid", "Failed", "Refunded", "settled"],
       default: "Pending",
     },
     paymentId: {
@@ -391,13 +411,38 @@ const OrderSchema = new Schema<IOrder>(
       trim: true,
     },
 
-    // Cancellation/Return
+    // Cancellation/Refund
     cancellationReason: {
       type: String,
       trim: true,
     },
     cancelledAt: {
       type: Date,
+    },
+    refundStatus: {
+      type: String,
+      enum: ["Pending", "Processing", "Completed", "Failed"],
+    },
+    refundAmount: {
+      type: Number,
+      min: 0,
+    },
+    refundedAt: {
+      type: Date,
+    },
+
+    // Return System
+    returnStatus: {
+      type: String,
+      enum: ["Requested", "Approved", "Rejected", "Picked Up", "Refunded"],
+    },
+    returnReason: {
+      type: String,
+      trim: true,
+    },
+    pickupStatus: {
+      type: String,
+      enum: ["Pending", "Assigned", "Completed"],
     },
     // Order Flow
     parentOrderId: {
@@ -426,11 +471,20 @@ const OrderSchema = new Schema<IOrder>(
     },
     trackingStatus: {
       type: String,
-      trim: true,
+      enum: ["assigned", "picked", "on_the_way", "delivered"],
     },
-    trackingHistory: {
-      type: [Schema.Types.Mixed],
-      default: [],
+    trackingHistory: [
+      {
+        status: String,
+        location: String,
+        description: String,
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
+    currentLocation: {
+      lat: Number,
+      lng: Number,
+      updatedAt: { type: Date, default: Date.now },
     },
     shipmentWeight: {
       type: Number,

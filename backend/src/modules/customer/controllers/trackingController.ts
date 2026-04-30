@@ -191,6 +191,24 @@ export const updateDeliveryLocation = asyncHandler(
 
     await tracking.save();
 
+    // Sync tracking status and location back to Order model for unified tracking
+    const orderTrackingStatusMap: Record<string, "assigned" | "picked" | "on_the_way" | "delivered"> = {
+      'idle': 'assigned',
+      'picked_up': 'picked',
+      'in_transit': 'on_the_way',
+      'nearby': 'on_the_way',
+      'delivered': 'delivered'
+    };
+
+    await Order.findByIdAndUpdate(orderId, {
+      currentLocation: {
+        lat: latitude,
+        lng: longitude,
+        updatedAt: new Date()
+      },
+      trackingStatus: orderTrackingStatusMap[tracking.status] || 'assigned'
+    });
+
     // Also update the delivery partner's general location
     await Delivery.findByIdAndUpdate(deliveryBoyId, {
       location: {
@@ -199,9 +217,10 @@ export const updateDeliveryLocation = asyncHandler(
       },
     });
 
-    // Emit update via Socket.io (will be handled in socket service)
+    // Emit update via Socket.io
     const io = (req.app as any).get("io");
     if (io) {
+      // Standard location update
       io.to(`order-${orderId}`).emit("location-update", {
         orderId,
         location: tracking.currentLocation,
@@ -209,7 +228,28 @@ export const updateDeliveryLocation = asyncHandler(
         distance: tracking.distance,
         status: tracking.status,
       });
+
+      // Specific live tracking event
+      io.to(`order-${orderId}`).emit("delivery:location", {
+        orderId,
+        lat: latitude,
+        lng: longitude,
+        eta: tracking.eta,
+        distance: tracking.distance,
+        status: tracking.status
+      });
+
+      // Direct customer notification
+      if (order.customer) {
+        io.to(order.customer.toString()).emit("delivery:location", {
+          orderId,
+          lat: latitude,
+          lng: longitude,
+          eta: tracking.eta
+        });
+      }
     }
+
 
     return res.status(200).json({
       success: true,

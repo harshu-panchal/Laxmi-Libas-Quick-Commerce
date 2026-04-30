@@ -22,6 +22,7 @@ export default function SellerWallet() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'Bank Transfer' | 'UPI'>('Bank Transfer');
+  const [accountDetails, setAccountDetails] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -62,8 +63,13 @@ export default function SellerWallet() {
         return;
       }
 
+      if (!accountDetails.trim()) {
+        showToast('Please provide account details or UPI ID', 'error');
+        return;
+      }
+
       setIsSubmitting(true);
-      const response = await requestSellerWithdrawal(amount, paymentMethod);
+      const response = await requestSellerWithdrawal(amount, paymentMethod, accountDetails);
       if (response.success) {
         showToast('Withdrawal request submitted successfully', 'success');
         setShowWithdrawModal(false);
@@ -309,11 +315,25 @@ export default function SellerWallet() {
                   <option value="UPI">UPI</option>
                 </select>
               </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {paymentMethod === 'UPI' ? 'UPI ID' : 'Bank Account Details'}
+                </label>
+                <textarea
+                  value={accountDetails}
+                  onChange={(e) => setAccountDetails(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder={paymentMethod === 'UPI' ? 'Enter UPI ID (e.g. name@bank)' : 'Enter Account No, IFSC, Bank Name'}
+                  rows={2}
+                />
+              </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => {
                     setShowWithdrawModal(false);
                     setWithdrawAmount('');
+                    setAccountDetails('');
                   }}
                   className="flex-1 border border-gray-300 rounded-lg py-2.5 font-semibold hover:bg-gray-50 transition"
                   disabled={isSubmitting}

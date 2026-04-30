@@ -44,33 +44,51 @@ interface Location {
 }
 
 interface LiveTrackingMapProps {
-    storeLocation: Location
+    storeLocation?: Location
     customerLocation: Location
     deliveryLocation?: Location
-    isTracking: boolean
+    route?: Array<{ lat: number; lng: number }>
+    isTracking?: boolean
+}
+
+import { useMap } from 'react-leaflet'
+
+interface MapUpdaterProps {
+    center: [number, number]
+}
+
+function MapUpdater({ center }: MapUpdaterProps) {
+    const map = useMap()
+    useEffect(() => {
+        map.setView(center, map.getZoom())
+    }, [center, map])
+    return null
 }
 
 export default function LiveTrackingMap({
     storeLocation,
     customerLocation,
     deliveryLocation,
+    route = [],
     isTracking = false
 }: LiveTrackingMapProps) {
     const [isFullscreen, setIsFullscreen] = useState(false)
     const mapContainerRef = useRef<HTMLDivElement>(null)
 
-    // Calculate center point between store and customer
-    const defaultCenter: Location = {
-        lat: (storeLocation.lat + customerLocation.lat) / 2,
-        lng: (storeLocation.lng + customerLocation.lng) / 2
-    }
+    // Calculate center point
+    const centerLat = deliveryLocation?.lat || (storeLocation?.lat ? (storeLocation.lat + customerLocation.lat) / 2 : customerLocation.lat);
+    const centerLng = deliveryLocation?.lng || (storeLocation?.lng ? (storeLocation.lng + customerLocation.lng) / 2 : customerLocation.lng);
+    const defaultCenter: [number, number] = [centerLat, centerLng];
 
-    // Create route between store and customer (or delivery partner)
-    const routePoints: Array<[number, number]> = [
-        [storeLocation.lat, storeLocation.lng] as [number, number],
-        ...(deliveryLocation ? [[deliveryLocation.lat, deliveryLocation.lng] as [number, number]] : []),
-        [customerLocation.lat, customerLocation.lng] as [number, number]
-    ]
+    // Create route points for the polyline
+    const routePoints: Array<[number, number]> = route.length > 0 
+        ? route.map(p => [p.lat, p.lng] as [number, number])
+        : [
+            ...(storeLocation ? [[storeLocation.lat, storeLocation.lng] as [number, number]] : []),
+            ...(deliveryLocation ? [[deliveryLocation.lat, deliveryLocation.lng] as [number, number]] : []),
+            [customerLocation.lat, customerLocation.lng] as [number, number]
+        ];
+
 
     const handleFullscreen = () => {
         if (!document.fullscreenElement && mapContainerRef.current) {
@@ -93,7 +111,7 @@ export default function LiveTrackingMap({
     return (
         <div ref={mapContainerRef} className="relative h-64 overflow-hidden rounded-lg">
             <MapContainer
-                center={[defaultCenter.lat, defaultCenter.lng]}
+                center={defaultCenter}
                 zoom={13}
                 style={{ height: '100%', width: '100%' }}
                 className="z-0"
@@ -102,16 +120,21 @@ export default function LiveTrackingMap({
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
+                
+                <MapUpdater center={defaultCenter} />
 
                 {/* Store Marker */}
-                <Marker position={[storeLocation.lat, storeLocation.lng]} icon={storeIcon}>
-                    <Popup>
-                        <div className="text-center">
-                            <p className="font-semibold">Store Location</p>
-                            <p className="text-xs text-gray-600">Pickup point</p>
-                        </div>
-                    </Popup>
-                </Marker>
+                {storeLocation && (
+                    <Marker position={[storeLocation.lat, storeLocation.lng]} icon={storeIcon}>
+                        <Popup>
+                            <div className="text-center">
+                                <p className="font-semibold">Store Location</p>
+                                <p className="text-xs text-gray-600">Pickup point</p>
+                            </div>
+                        </Popup>
+                    </Marker>
+                )}
+
 
                 {/* Customer Marker */}
                 <Marker position={[customerLocation.lat, customerLocation.lng]} icon={customerIcon}>

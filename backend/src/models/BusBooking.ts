@@ -29,7 +29,7 @@ const BusBookingSchema = new Schema<IBusBooking>(
     },
     userId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'Customer',
       required: true,
     },
     seats: [

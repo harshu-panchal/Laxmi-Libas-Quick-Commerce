@@ -484,6 +484,7 @@ function App() {
                 <Route path="/store/minutes" element={<MinutesStore />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/track-order/:id" element={<TrackOrder />} />
+                <Route path="/order/:id" element={<TrackOrder />} />
                 <Route path="/search" element={<Search />} />
                                     <Route
                                       path="/orders"

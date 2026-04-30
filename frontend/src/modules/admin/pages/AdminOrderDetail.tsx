@@ -2,7 +2,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getOrderById, updateOrderStatus, assignDeliveryBoy, generateCourierLabel, trackCourierOrder, Order } from '../../../services/api/admin/adminOrderService';
 import { getDeliveryBoys, DeliveryBoy } from '../../../services/api/admin/adminDeliveryService';
-import { Truck, Package, RefreshCw, CheckCircle, ExternalLink } from 'lucide-react'; // Added icons
+import { Truck, Package, RefreshCw, CheckCircle, ExternalLink, MapPin, Clock, Navigation, ChevronLeft } from 'lucide-react';
+import LiveTrackingMap from '../../../components/LiveTrackingMap';
+import { useDeliveryTracking } from '../../../hooks/useDeliveryTracking';
+import { motion } from 'framer-motion';
 
 export default function AdminOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +17,15 @@ export default function AdminOrderDetail() {
   const [labelLoading, setLabelLoading] = useState(false);
   const [trackingInfo, setTrackingInfo] = useState<any>(null);
   const [trackingLoading, setTrackingLoading] = useState(false);
+
+  // Real-time tracking hook for quick commerce
+  const { 
+    deliveryLocation, 
+    eta, 
+    distance, 
+    status: trackingStatus, 
+    isConnected 
+  } = useDeliveryTracking(order?.orderType === 'quick' ? id : undefined);
 
   // Fetch order detail from API
   useEffect(() => {
@@ -191,6 +203,52 @@ export default function AdminOrderDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
+          
+          {/* Live Tracking Card (Quick Commerce) */}
+          {order.orderType === 'quick' && (order.status === 'Out for Delivery' || order.status === 'Picked up' || order.status === 'Delivered') && (
+            <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+              <div className="p-4 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
+                 <div className="flex items-center gap-2">
+                    <Navigation className="text-blue-600" size={20} />
+                    <h2 className="text-lg font-black text-neutral-900">Live Delivery Tracking</h2>
+                 </div>
+                 {isConnected && (
+                   <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-wider border border-emerald-100">
+                      <motion.div 
+                        animate={{ opacity: [1, 0.4, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                        className="w-1.5 h-1.5 rounded-full bg-emerald-500"
+                      />
+                      Live Connection
+                   </div>
+                 )}
+              </div>
+              <div className="h-[300px] relative">
+                <LiveTrackingMap 
+                  deliveryLocation={deliveryLocation || (order.currentLocation ? { lat: order.currentLocation.lat, lng: order.currentLocation.lng } : undefined)}
+                  customerLocation={{ 
+                    lat: order.deliveryAddress?.latitude || 0, 
+                    lng: order.deliveryAddress?.longitude || 0 
+                  }}
+                  isTracking={isConnected}
+                />
+              </div>
+              <div className="p-4 grid grid-cols-3 gap-4 border-t border-neutral-100">
+                 <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">ETA</span>
+                    <span className="text-lg font-black text-blue-600">{eta || 'N/A'} mins</span>
+                 </div>
+                 <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Distance</span>
+                    <span className="text-lg font-black text-neutral-900">{distance ? `${(distance/1000).toFixed(2)} km` : 'N/A'}</span>
+                 </div>
+                 <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Rider Status</span>
+                    <span className="text-lg font-black text-neutral-900 capitalize">{trackingStatus || order.deliveryBoyStatus || 'Idle'}</span>
+                 </div>
+              </div>
+            </div>
+          )}
           {/* Order Status */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Order Status</h2>

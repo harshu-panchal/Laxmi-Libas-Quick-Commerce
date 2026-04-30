@@ -11,4 +11,8 @@ router.use(requireUserType("Seller"));
 // Get seller's dashboard statistics
 router.get("/stats", getDashboardStats);
 
+// Analytics
+import * as sellerAnalyticsController from "../modules/seller/controllers/sellerAnalyticsController";
+router.get("/analytics", sellerAnalyticsController.getSellerAnalytics);
+
 export default router;

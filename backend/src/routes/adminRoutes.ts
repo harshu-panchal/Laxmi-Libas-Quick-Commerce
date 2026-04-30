@@ -131,6 +131,10 @@ router.get(
   dashboardController.getOrderAnalyticsController
 );
 
+// ==================== Analytics Routes ====================
+import * as adminAnalyticsController from "../modules/admin/controllers/adminAnalyticsController";
+router.get("/analytics", adminAnalyticsController.getAdminAnalytics);
+
 // ==================== Category Routes ====================
 router.post("/categories", checkPermission('commerce'), productController.createCategory);
 router.get("/categories", productController.getCategories);

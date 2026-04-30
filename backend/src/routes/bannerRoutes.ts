@@ -1,6 +1,6 @@
-
 import { Router } from "express";
 import { authenticate, requireUserType } from "../middleware/auth";
+import { noCache } from "../middleware/cache";
 import {
     getBanners,
     createBanner,
@@ -12,7 +12,8 @@ import {
 const router = Router();
 
 // Public route to get active banners
-router.get("/active", getActiveBanners);
+router.get("/active", noCache, getActiveBanners);
+
 
 // Admin routes
 router.use(authenticate, requireUserType("Admin"));

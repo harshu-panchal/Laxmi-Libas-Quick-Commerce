@@ -2,7 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IWithdrawRequest extends Document {
     userId: mongoose.Types.ObjectId; // Generic user reference (seller or delivery boy)
-    userType: 'SELLER' | 'DELIVERY_BOY'; // Type of user
+    userType: 'SELLER' | 'DELIVERY_BOY' | 'HOTEL' | 'BUS'; // Type of user
     amount: number;
     status: 'Pending' | 'Approved' | 'Rejected' | 'Completed';
     paymentMethod: 'Bank Transfer' | 'UPI';
@@ -24,9 +24,10 @@ const WithdrawRequestSchema = new Schema<IWithdrawRequest>(
         },
         userType: {
             type: String,
-            enum: ['SELLER', 'DELIVERY_BOY'],
+            enum: ['SELLER', 'DELIVERY_BOY', 'HOTEL', 'BUS'],
             required: [true, 'User type is required'],
         },
+
         amount: {
             type: Number,
             required: [true, 'Amount is required'],

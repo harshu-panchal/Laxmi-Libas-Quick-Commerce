@@ -143,6 +143,8 @@ export const createOrder = async (req: Request, res: Response) => {
         const productIds = items.map((i: any) => i.product.id || i.product._id);
         const productsMap = new Map((await Product.find({ _id: { $in: productIds } })).map(p => [p._id.toString(), p]));
 
+        const normalizeCity = (city: string) => city.toLowerCase().trim().replace(/\s+/g, '');
+
         for (const item of items) {
             const prodId = item.product.id || item.product._id;
             const product = productsMap.get(prodId.toString());
@@ -154,16 +156,15 @@ export const createOrder = async (req: Request, res: Response) => {
             const customerCity = address.city ? normalizeCity(address.city) : '';
 
             // Decision: If same city, it's quick. Otherwise ecommerce.
-            // Also check if product type allows it (if product is 'ecommerce' only, it stays ecommerce)
             let decidedType: 'quick' | 'ecommerce' = 'ecommerce';
             
             if (product.type === 'ecommerce') {
                 decidedType = 'ecommerce';
             } else if (product.type === 'quick') {
-                decidedType = (sellerCity === customerCity) ? 'quick' : 'ecommerce';
+                decidedType = (sellerCity && customerCity && sellerCity === customerCity) ? 'quick' : 'ecommerce';
             } else {
                 // Type is 'both'
-                decidedType = (sellerCity === customerCity) ? 'quick' : 'ecommerce';
+                decidedType = (sellerCity && customerCity && sellerCity === customerCity) ? 'quick' : 'ecommerce';
             }
 
             if (decidedType === 'quick') quickItems.push(item);
@@ -474,6 +475,13 @@ export const cancelOrder = async (req: Request, res: Response) => {
         order.cancelledAt = new Date();
         order.cancelledBy = new mongoose.Types.ObjectId(userId);
 
+        // --- NEW: REFUND TRACKING ---
+        if (order.paymentStatus === 'Paid') {
+            order.refundStatus = 'Pending';
+            order.refundAmount = order.total;
+        }
+        // -----------------------------
+
         if (session) {
             await order.save({ session });
             await session.commitTransaction();
@@ -498,5 +506,54 @@ export const cancelOrder = async (req: Request, res: Response) => {
         return res.status(500).json({ success: false, message: "Error cancelling order", error: error.message });
     } finally {
         if (session) session.endSession();
+    }
+};
+
+/**
+ * Request Return for delivered item
+ */
+export const requestReturn = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+        const userId = req.user!.userId;
+
+        if (!reason) return res.status(400).json({ success: false, message: "Reason for return is required" });
+
+        const order = await Order.findOne({ _id: id, customer: userId });
+        if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+
+        if (order.status !== 'Delivered') {
+            return res.status(400).json({ success: false, message: "Only delivered orders can be returned" });
+        }
+
+        // Check if return window is active
+        const deliveredAt = order.updatedAt; // Or specific delivery timestamp
+        const daysSinceDelivery = Math.floor((Date.now() - new Date(deliveredAt).getTime()) / (1000 * 60 * 60 * 24));
+
+        if (daysSinceDelivery > 7) {
+            return res.status(400).json({ success: false, message: "Return window (7 days) has expired" });
+        }
+
+        order.status = 'Returned';
+        order.returnStatus = 'Requested';
+        order.returnReason = reason;
+        
+        await order.save();
+
+        // Notify Seller
+        const io = (req.app as any).get("io");
+        if (io) {
+            await notifySellersOfOrderUpdate(io, order, 'RETURN_REQUESTED');
+        }
+
+        return res.status(200).json({ 
+            success: true, 
+            message: "Return request submitted successfully. Our team will review it.", 
+            data: order 
+        });
+
+    } catch (error: any) {
+        return res.status(500).json({ success: false, message: "Error requesting return", error: error.message });
     }
 };

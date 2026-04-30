@@ -63,7 +63,7 @@ export const getTransactions = async (req: Request, res: Response) => {
 export const requestWithdrawal = async (req: Request, res: Response) => {
     try {
         const sellerId = req.user!.userId;
-        const { amount, paymentMethod } = req.body;
+        const { amount, paymentMethod, accountDetails } = req.body;
 
         if (!amount || amount <= 0) {
             return res.status(400).json({
@@ -83,7 +83,8 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
             sellerId,
             'SELLER',
             amount,
-            paymentMethod
+            paymentMethod,
+            accountDetails
         );
 
         if (!result.success) {

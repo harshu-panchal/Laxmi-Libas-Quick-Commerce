@@ -386,6 +386,12 @@ const Seller = (mongoose.models.Seller as mongoose.Model<ISeller>) || mongoose.m
 if (!(mongoose.models.SELLER as mongoose.Model<ISeller>)) {
   mongoose.model<ISeller>('SELLER', SellerSchema, 'sellers');
 }
+if (!(mongoose.models.HOTEL as mongoose.Model<ISeller>)) {
+  mongoose.model<ISeller>('HOTEL', SellerSchema, 'sellers');
+}
+if (!(mongoose.models.BUS as mongoose.Model<ISeller>)) {
+  mongoose.model<ISeller>('BUS', SellerSchema, 'sellers');
+}
 
 export default Seller;
 

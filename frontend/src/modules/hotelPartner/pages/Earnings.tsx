@@ -1,10 +1,11 @@
-import React from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { getMyHotels, getHotelBookings, HotelBooking } from '../../../services/api/hotelPartnerService';
 
 const Earnings: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = React.useState(true);
   const [stats, setStats] = React.useState({
     monthlySales: 0,
@@ -72,7 +73,10 @@ const Earnings: React.FC = () => {
               <h3 className="text-5xl font-black mt-2 tracking-tighter">₹{totalBalance.toLocaleString()}</h3>
             </div>
             <div className="flex gap-4">
-              <button className="flex-1 bg-teal-500 text-white font-black py-4 rounded-2xl hover:bg-teal-400 transition-all flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30">
+              <button 
+                onClick={() => navigate('/seller/wallet')}
+                className="flex-1 bg-teal-500 text-white font-black py-4 rounded-2xl hover:bg-teal-400 transition-all flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30"
+              >
                 Withdraw Funds
               </button>
             </div>

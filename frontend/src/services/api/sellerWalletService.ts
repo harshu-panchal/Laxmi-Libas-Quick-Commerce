@@ -31,11 +31,12 @@ export const getSellerWalletTransactions = async (page: number = 1, limit: numbe
 /**
  * Request withdrawal (for sellers)
  */
-export const requestSellerWithdrawal = async (amount: number, paymentMethod: 'Bank Transfer' | 'UPI') => {
+export const requestSellerWithdrawal = async (amount: number, paymentMethod: 'Bank Transfer' | 'UPI', accountDetails: string) => {
     try {
         const response = await api.post('/seller/wallet-new/withdraw', {
             amount,
             paymentMethod,
+            accountDetails,
         });
         return response.data;
     } catch (error: any) {

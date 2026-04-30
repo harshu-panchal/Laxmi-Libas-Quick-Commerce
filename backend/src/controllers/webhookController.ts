@@ -67,6 +67,7 @@ export const handleCourierWebhook = asyncHandler(
             case 'DL':
             case 'DELIVERED':
                 systemStatus = 'Delivered';
+                order.paymentStatus = 'settled';
                 break;
             case 'CAN':
             case 'CANCELLED':
@@ -91,10 +92,6 @@ export const handleCourierWebhook = asyncHandler(
         const previousStatus = order.status;
         order.status = systemStatus as any;
         
-        if (systemStatus === 'Delivered') {
-            order.paymentStatus = 'Paid';
-        }
-
         await order.save();
         console.log(`[Webhook] Updated Order ${order.orderNumber} status: ${previousStatus} -> ${systemStatus}`);
 

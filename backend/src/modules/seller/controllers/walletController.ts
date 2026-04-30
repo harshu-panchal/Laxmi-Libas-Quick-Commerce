@@ -17,15 +17,15 @@ export const getWalletStats = asyncHandler(async (req: Request, res: Response) =
         return res.status(404).json({ success: false, message: 'Seller not found' });
     }
 
-    // Calculate total earnings (sum of all credit transactions from orders)
+    // Calculate total earnings (sum of all credit transactions)
     const earningsData = await WalletTransaction.aggregate([
-        { $match: { sellerId: new mongoose.Types.ObjectId(sellerId), type: 'Credit', description: { $regex: /Order/i } } },
+        { $match: { userId: new mongoose.Types.ObjectId(sellerId), userType: 'SELLER', type: 'Credit' } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
 
     // Calculate total withdrawn (sum of all completed withdrawal requests)
     const withdrawnData = await WithdrawRequest.aggregate([
-        { $match: { sellerId: new mongoose.Types.ObjectId(sellerId), status: 'Completed' } },
+        { $match: { userId: new mongoose.Types.ObjectId(sellerId), userType: 'SELLER', status: 'Completed' } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
 
@@ -60,7 +60,7 @@ export const getTransactions = asyncHandler(async (req: Request, res: Response) 
     const sellerId = (req as any).user.userId;
     const { page = 1, limit = 10, type, status, searchQuery, fromDate, toDate } = req.query;
 
-    const query: any = { sellerId };
+    const query: any = { userId: sellerId, userType: 'SELLER' };
 
     if (type) query.type = type;
     if (status) query.status = status;
@@ -105,7 +105,7 @@ export const getWithdrawalRequests = asyncHandler(async (req: Request, res: Resp
     const sellerId = (req as any).user.userId;
     const { page = 1, limit = 10, status } = req.query;
 
-    const query: any = { sellerId };
+    const query: any = { userId: sellerId, userType: 'SELLER' };
     if (status && status !== 'All') query.status = status;
 
     const requests = await WithdrawRequest.find(query)
@@ -156,7 +156,8 @@ export const createWithdrawalRequest = asyncHandler(async (req: Request, res: Re
     // Start transaction session if needed, but for now simple update
     // Create the request
     const withdrawRequest = await WithdrawRequest.create({
-        sellerId,
+        userId: sellerId,
+        userType: 'SELLER',
         amount,
         paymentMethod,
         accountDetails,
@@ -170,7 +171,8 @@ export const createWithdrawalRequest = asyncHandler(async (req: Request, res: Re
 
     // Log as a debit transaction
     await WalletTransaction.create({
-        sellerId,
+        userId: sellerId,
+        userType: 'SELLER',
         amount,
         type: 'Debit',
         description: `Withdrawal Request - ${withdrawRequest._id}`,
@@ -192,7 +194,7 @@ export const getOrderEarnings = asyncHandler(async (req: Request, res: Response)
     const sellerId = (req as any).user.userId;
     const { page = 1, limit = 10, status } = req.query;
 
-    const query: any = { sellerId };
+    const query: any = { userId: sellerId, userType: 'SELLER' };
     if (status && status !== 'All') {
         if (status === 'Settled') query.status = 'Delivered';
         else query.status = { $in: ['Confirmed', 'Shipped', 'On the way'] };

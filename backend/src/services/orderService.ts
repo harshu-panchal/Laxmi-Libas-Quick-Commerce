@@ -50,15 +50,26 @@ export const processOrderStatusTransition = async (
  */
 const reserveInventory = async (items: IOrderItem[]) => {
   for (const item of items) {
-    const inventory = await Inventory.findOne({ product: item.product });
-    if (inventory) {
-      inventory.reservedStock += item.quantity;
-      inventory.availableStock = Math.max(
-        0,
-        inventory.currentStock - inventory.reservedStock
-      );
-      await inventory.save();
-    }
+    await Inventory.findOneAndUpdate(
+      { product: item.product },
+      [
+        {
+          $set: {
+            reservedStock: { $add: ["$reservedStock", item.quantity] },
+          },
+        },
+        {
+          $set: {
+            availableStock: {
+              $max: [
+                0,
+                { $subtract: ["$currentStock", "$reservedStock"] }
+              ]
+            }
+          }
+        }
+      ]
+    );
   }
 };
 
@@ -67,16 +78,25 @@ const reserveInventory = async (items: IOrderItem[]) => {
  */
 const restoreInventory = async (items: IOrderItem[]) => {
   for (const item of items) {
-    const inventory = await Inventory.findOne({ product: item.product });
-    if (inventory) {
-      inventory.reservedStock = Math.max(
-        0,
-        inventory.reservedStock - item.quantity
-      );
-      inventory.availableStock =
-        inventory.currentStock - inventory.reservedStock;
-      await inventory.save();
-    }
+    await Inventory.findOneAndUpdate(
+      { product: item.product },
+      [
+        {
+          $set: {
+            reservedStock: {
+              $max: [0, { $subtract: ["$reservedStock", item.quantity] }]
+            }
+          }
+        },
+        {
+          $set: {
+            availableStock: {
+              $subtract: ["$currentStock", "$reservedStock"]
+            }
+          }
+        }
+      ]
+    );
   }
 };
 

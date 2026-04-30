@@ -39,8 +39,8 @@ export default function BannerSlider() {
     if (loading || banners.length === 0) return null;
 
     return (
-        <div className="relative w-full h-40 md:h-64 overflow-hidden rounded-xl bg-neutral-100 mb-6 px-4 md:px-6 lg:px-8">
-            <div className="relative w-full h-full overflow-hidden rounded-xl">
+        <div className="relative w-full h-40 md:h-64 overflow-hidden rounded-[20px] bg-neutral-100 mb-2">
+            <div className="relative w-full h-full overflow-hidden">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={currentIndex}

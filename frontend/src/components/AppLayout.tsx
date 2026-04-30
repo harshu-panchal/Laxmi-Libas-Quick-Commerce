@@ -25,9 +25,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [categoriesRotation, setCategoriesRotation] = useState(0);
   const [prevCategoriesActive, setPrevCategoriesActive] = useState(false);
-  const { isLocationEnabled, isLocationLoading, location: userLocation } = useLocationContext();
+  const { isLocationEnabled, isLocationLoading, location: userLocation, showChangeModal, setShowChangeModal } = useLocationContext();
   const [showLocationRequest, setShowLocationRequest] = useState(false);
-  const [showLocationChangeModal, setShowLocationChangeModal] = useState(false);
   const { currentTheme } = useThemeContext();
 
   // State to track if service is available at user's location
@@ -166,8 +165,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Desktop Container Wrapper */}
       <div className="md:w-full md:bg-white md:min-h-screen overflow-x-hidden">
         <div className="md:w-full md:min-h-screen md:flex md:flex-col overflow-x-hidden">
-          {/* Real-time Compact Location Header - Visible on all modules */}
-          <CompactLocationHeader onShowChangeModal={() => setShowLocationChangeModal(true)} />
+          {/* Real-time Compact Location Header - Removed from top as per request */}
 
           {/* Top Navigation Bar - Desktop Only */}
           {showFooter && !isOrderAgainPage && (
@@ -360,7 +358,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     // If we have a location but service is NOT available, show the unavailable screen
                     // We check the component state 'isServiceAvailable' which is updated by useEffect
                     if (isLocationEnabled && userLocation && !isServiceAvailable && !showLocationRequest) {
-                      return <ServiceNotAvailable onChangeLocation={() => setShowLocationChangeModal(true)} />;
+                      return <ServiceNotAvailable onChangeLocation={() => setShowChangeModal(true)} />;
                     }
                     return children;
                   })()
@@ -383,9 +381,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
           )}
 
           {/* Location Change Modal */}
-          {showLocationChangeModal && (
+          {showChangeModal && (
             <LocationPermissionRequest
-              onLocationGranted={() => setShowLocationChangeModal(false)}
+              onLocationGranted={() => setShowChangeModal(false)}
               skipable={true}
               title="Change Location"
               description="Update your location to see products available near you."

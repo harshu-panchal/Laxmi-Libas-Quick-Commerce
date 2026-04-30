@@ -71,7 +71,7 @@ export const getHotelBookings = asyncHandler(async (req: Request, res: Response)
     const bookings = await HotelBooking.find(query)
         .populate('hotelId', 'name address city')
         .populate('roomId', 'roomType price')
-        .populate('userId', 'name email mobile')
+        .populate('userId', 'name email phone')
         .sort({ createdAt: -1 });
 
     return res.status(200).json({

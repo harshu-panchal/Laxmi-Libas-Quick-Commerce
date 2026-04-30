@@ -108,7 +108,10 @@ export class OrderSettlementService {
             // 6. Finalize order status if needed (though webhook usually does this)
             if (order.status !== 'Delivered') {
                 order.status = 'Delivered';
-                order.paymentStatus = 'Paid';
+                order.paymentStatus = 'settled';
+                await order.save({ session });
+            } else {
+                order.paymentStatus = 'settled';
                 await order.save({ session });
             }
 

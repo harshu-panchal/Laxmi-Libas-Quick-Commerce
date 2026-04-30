@@ -46,13 +46,14 @@ export const processBookingSettlement = async (
 
     // 3. Create Wallet Transaction for Seller
     const transaction = new WalletTransaction({
-      seller: seller._id,
+      userId: seller._id,
+      userType: 'SELLER',
       amount: sellerShare,
-      type: "credit",
-      status: "completed",
+      type: "Credit",
+      status: "Completed",
       description: `Earning from ${type === 'hotel' ? 'Hotel' : 'Bus'} Booking: ${bookingId}`,
       relatedCommission: commission._id,
-      balanceAfter: seller.balance
+      reference: `SETTLE-${type.toUpperCase()}-${bookingId}-${Date.now()}`
     });
     await transaction.save({ session });
 

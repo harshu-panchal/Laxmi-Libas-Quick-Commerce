@@ -6,6 +6,7 @@ const router = express.Router();
 
 // Delivery partner tracking routes
 router.post('/location', authenticate, updateDeliveryLocation);
+router.post('/location-update', authenticate, updateDeliveryLocation);
 router.post('/location/general', authenticate, updateGeneralLocation);
 router.get('/location/sellers-in-radius', authenticate, getSellersInRadius);
 router.get('/active-orders', authenticate, getActiveOrdersTracking);

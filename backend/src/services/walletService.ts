@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Seller from "../models/Seller";
 import Customer from "../models/Customer";
 import Commission from "../models/Commission";
@@ -10,33 +11,44 @@ export const processSellerCommission = async (
   sellerId: string,
   commissionId: string
 ) => {
-  const commission = await Commission.findById(commissionId);
-  if (!commission || !commission.seller || commission.seller.toString() !== sellerId) {
-    throw new Error("Commission not found or does not belong to seller");
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const commission = await Commission.findById(commissionId).session(session);
+    if (!commission || !commission.seller || commission.seller.toString() !== sellerId) {
+      throw new Error("Commission not found or does not belong to seller");
+    }
+
+    if (commission.status !== "Pending") {
+      throw new Error("Commission already processed");
+    }
+
+    const seller = await Seller.findById(sellerId).session(session);
+    if (!seller) {
+      throw new Error("Seller not found");
+    }
+
+    // Add commission to seller balance
+    seller.balance += commission.commissionAmount;
+    await seller.save({ session });
+
+    // Update commission status
+    commission.status = "Paid";
+    commission.paidAt = new Date();
+    await commission.save({ session });
+
+    await session.commitTransaction();
+    return {
+      seller,
+      commission,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
-
-  if (commission.status !== "Pending") {
-    throw new Error("Commission already processed");
-  }
-
-  const seller = await Seller.findById(sellerId);
-  if (!seller) {
-    throw new Error("Seller not found");
-  }
-
-  // Add commission to seller balance
-  seller.balance += commission.commissionAmount;
-  await seller.save();
-
-  // Update commission status
-  commission.status = "Paid";
-  commission.paidAt = new Date();
-  await commission.save();
-
-  return {
-    seller,
-    commission,
-  };
 };
 
 /**
@@ -47,43 +59,54 @@ export const processWithdrawal = async (
   amount: number,
   paymentReference?: string
 ) => {
-  const seller = await Seller.findById(sellerId);
-  if (!seller) {
-    throw new Error("Seller not found");
-  }
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (seller.balance < amount) {
-    throw new Error("Insufficient balance");
-  }
-
-  // Deduct from seller balance
-  seller.balance -= amount;
-  await seller.save();
-
-  // Mark pending commissions as paid (if withdrawal covers them)
-  const pendingCommissions = await Commission.find({
-    seller: sellerId,
-    status: "Pending",
-  }).sort({ createdAt: 1 });
-
-  let remainingAmount = amount;
-  for (const commission of pendingCommissions) {
-    if (remainingAmount >= commission.commissionAmount) {
-      commission.status = "Paid";
-      commission.paidAt = new Date();
-      commission.paymentReference = paymentReference;
-      await commission.save();
-      remainingAmount -= commission.commissionAmount;
-    } else {
-      break;
+  try {
+    const seller = await Seller.findById(sellerId).session(session);
+    if (!seller) {
+      throw new Error("Seller not found");
     }
-  }
 
-  return {
-    seller,
-    withdrawalAmount: amount,
-    paymentReference,
-  };
+    if (seller.balance < amount) {
+      throw new Error("Insufficient balance");
+    }
+
+    // Deduct from seller balance
+    seller.balance -= amount;
+    await seller.save({ session });
+
+    // Mark pending commissions as paid (if withdrawal covers them)
+    const pendingCommissions = await Commission.find({
+      seller: sellerId,
+      status: "Pending",
+    }).sort({ createdAt: 1 }).session(session);
+
+    let remainingAmount = amount;
+    for (const commission of pendingCommissions) {
+      if (remainingAmount >= commission.commissionAmount) {
+        commission.status = "Paid";
+        commission.paidAt = new Date();
+        commission.paymentReference = paymentReference;
+        await commission.save({ session });
+        remainingAmount -= commission.commissionAmount;
+      } else {
+        break;
+      }
+    }
+
+    await session.commitTransaction();
+    return {
+      seller,
+      withdrawalAmount: amount,
+      paymentReference,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 };
 
 /**
@@ -165,55 +188,70 @@ export const processFundTransfer = async (
   toId: string,
   amount: number
 ) => {
-  // Get from account
-  let fromAccount: any;
-  if (fromType === "seller") {
-    fromAccount = await Seller.findById(fromId);
-  } else {
-    fromAccount = await Customer.findById(fromId);
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // Get from account
+    let fromAccount: any;
+    if (fromType === "seller") {
+      fromAccount = await Seller.findById(fromId).session(session);
+    } else {
+      fromAccount = await Customer.findById(fromId).session(session);
+    }
+
+    if (!fromAccount) {
+      throw new Error("From account not found");
+    }
+
+    const fromBalanceField = fromType === "seller" ? "balance" : "walletAmount";
+    if (fromAccount[fromBalanceField] < amount) {
+      throw new Error("Insufficient balance");
+    }
+
+    // Get to account
+    let toAccount: any;
+    if (toType === "seller") {
+      toAccount = await Seller.findById(toId).session(session);
+    } else {
+      toAccount = await Customer.findById(toId).session(session);
+    }
+
+    if (!toAccount) {
+      throw new Error("To account not found");
+    }
+
+    // Process transfer
+    fromAccount[fromBalanceField] -= amount;
+    const toBalanceField = toType === "seller" ? "balance" : "walletAmount";
+    toAccount[toBalanceField] += amount;
+
+    // Use session for both saves to ensure atomicity
+    await fromAccount.save({ session });
+    await toAccount.save({ session });
+
+    await session.commitTransaction();
+
+    return {
+      from: {
+        type: fromType,
+        id: fromId,
+        previousBalance: fromAccount[fromBalanceField] + amount,
+        newBalance: fromAccount[fromBalanceField],
+      },
+      to: {
+        type: toType,
+        id: toId,
+        previousBalance: toAccount[toBalanceField] - amount,
+        newBalance: toAccount[toBalanceField],
+      },
+      amount,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
-
-  if (!fromAccount) {
-    throw new Error("From account not found");
-  }
-
-  const fromBalanceField = fromType === "seller" ? "balance" : "walletAmount";
-  if (fromAccount[fromBalanceField] < amount) {
-    throw new Error("Insufficient balance");
-  }
-
-  // Get to account
-  let toAccount: any;
-  if (toType === "seller") {
-    toAccount = await Seller.findById(toId);
-  } else {
-    toAccount = await Customer.findById(toId);
-  }
-
-  if (!toAccount) {
-    throw new Error("To account not found");
-  }
-
-  // Process transfer
-  fromAccount[fromBalanceField] -= amount;
-  const toBalanceField = toType === "seller" ? "balance" : "walletAmount";
-  toAccount[toBalanceField] += amount;
-
-  await Promise.all([fromAccount.save(), toAccount.save()]);
-
-  return {
-    from: {
-      type: fromType,
-      id: fromId,
-      previousBalance: fromAccount[fromBalanceField] + amount,
-      newBalance: fromAccount[fromBalanceField],
-    },
-    to: {
-      type: toType,
-      id: toId,
-      previousBalance: toAccount[toBalanceField] - amount,
-      newBalance: toAccount[toBalanceField],
-    },
-    amount,
-  };
 };
+

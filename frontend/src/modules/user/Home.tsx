@@ -318,52 +318,9 @@ export default function Home() {
       {/* Premium Home Banner Carousel - Restored as per request */}
       <HomeBannerCarousel />
 
-      {/* LaxMart Services Grid */}
-      <div className="px-4 py-3 bg-white">
-        <div className="grid grid-cols-4 gap-3">
-          <div 
-            onClick={() => setActiveTab('minutes')}
-            className="flex flex-col items-center gap-1.5 cursor-pointer group"
-          >
-            <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:shadow-md transition-all">
-              ⚡
-            </div>
-            <span className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight">Quick</span>
-          </div>
-          <div 
-            onClick={() => setActiveTab('all')}
-            className="flex flex-col items-center gap-1.5 cursor-pointer group"
-          >
-            <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:shadow-md transition-all">
-              🛒
-            </div>
-            <span className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight">Shop</span>
-          </div>
-          <div 
-            onClick={() => navigate('/store/travel/hotels')}
-            className="flex flex-col items-center gap-1.5 cursor-pointer group"
-          >
-            <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:shadow-md transition-all">
-              🏨
-            </div>
-            <span className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight">Hotels</span>
-          </div>
-          <div 
-            onClick={() => navigate('/store/travel/buses')}
-            className="flex flex-col items-center gap-1.5 cursor-pointer group"
-          >
-            <div className="w-14 h-14 bg-teal-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:shadow-md transition-all">
-              🚌
-            </div>
-            <span className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight">Buses</span>
-          </div>
-        </div>
-      </div>
-
-
-      {/* Main content */}
+      {/* Main content area */}
       <div
-        className="transition-colors duration-500 -mt-2 pt-1 space-y-5 md:space-y-8 md:pt-4"
+        className="transition-colors duration-500 space-y-2 md:space-y-6"
         style={{
           backgroundColor: theme.surfaceColor || '#f8fafc'
         }}
@@ -445,7 +402,7 @@ export default function Home() {
 
         {/* Filtered Products Section - Only show if no dynamic homeSections are present for the active category */}
         {activeTab !== "all" && (!homeData.homeSections || homeData.homeSections.length === 0) && (
-          <div data-products-section className="mt-6 mb-6 md:mt-8 md:mb-8 min-h-[40vh]">
+          <div data-products-section className="mt-4 mb-8 min-h-[40vh]">
             <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight capitalize">
               {activeTab === "grocery" ? "Grocery Items" : activeTab}
             </h2>

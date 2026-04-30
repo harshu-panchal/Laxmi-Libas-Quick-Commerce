@@ -12,13 +12,16 @@ import {
     Map as MapIcon, 
     IndianRupee 
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation as useRouterLocation } from 'react-router-dom';
 import { getHotels } from '../../services/api/customerHotelService';
 import { useLocation } from '../../hooks/useLocation';
 import GenericLocationAutocomplete from '../../components/GenericLocationAutocomplete';
 
 const HotelList: React.FC = () => {
     const navigate = useNavigate();
+    const routerLocation = useRouterLocation();
+    const searchState = routerLocation.state as any;
+
     const [fetchedHotels, setFetchedHotels] = React.useState<any[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [showEditOverlay, setShowEditOverlay] = React.useState(false);
@@ -34,15 +37,20 @@ const HotelList: React.FC = () => {
 
     const { location: userLocation } = useLocation();
 
-    // Search States
-    const [destination, setDestination] = React.useState(userLocation?.city || '');
+    // Search States - Hydrate from router state if available
+    const [destination, setDestination] = React.useState(
+        searchState?.destination || userLocation?.city || ''
+    );
     const [dates, setDates] = React.useState({
-        checkIn: new Date().toISOString().split('T')[0],
-        checkOut: new Date(Date.now() + 86400000).toISOString().split('T')[0]
+        checkIn: searchState?.dates?.checkIn || new Date().toISOString().split('T')[0],
+        checkOut: searchState?.dates?.checkOut || new Date(Date.now() + 86400000).toISOString().split('T')[0]
     });
-    const [guestConfig, setGuestConfig] = React.useState([{ adults: 2, children: 0 }]);
+    const [guestConfig, setGuestConfig] = React.useState(
+        searchState?.guestConfig || [{ adults: 2, children: 0 }]
+    );
 
     const fetchHotelsList = async () => {
+
         setLoading(true);
         try {
             const queryParams: any = {};

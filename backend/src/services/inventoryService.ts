@@ -2,6 +2,10 @@ import mongoose from 'mongoose';
 import Product from '../models/Product';
 import HotelBooking from '../models/HotelBooking';
 import BusBooking from '../models/BusBooking';
+import SeatLock from '../models/SeatLock';
+import RoomAvailability from '../models/RoomAvailability';
+import HotelRoom from '../models/HotelRoom';
+import BusSchedule from '../models/BusSchedule';
 
 export class InventoryService {
   /**
@@ -104,13 +108,102 @@ export class InventoryService {
   }
 
   /**
-   * Bus Seat Locking
+   * Bus Seat Locking Layer (Non-breaking)
    */
-  static async lockBusSeats(bookingId: string, durationMinutes: number = 10) {
+  static async createSeatLocks(scheduleId: string, seatNumbers: string[], userId: string, durationMinutes: number = 15) {
     const expiresAt = new Date(Date.now() + durationMinutes * 60000);
-    return await BusBooking.findByIdAndUpdate(bookingId, {
-      status: 'LOCKED',
-      expiresAt: expiresAt
-    }, { new: true });
+    
+    // Check if any seat is already locked
+    const existingLocks = await SeatLock.find({
+      scheduleId: new mongoose.Types.ObjectId(scheduleId),
+      seatNumber: { $in: seatNumbers },
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (existingLocks.length > 0) {
+      const lockedSeats = existingLocks.map(l => l.seatNumber).join(', ');
+      throw new Error(`Seats ${lockedSeats} are already temporarily locked by another user.`);
+    }
+
+    // Check if any seat is already booked in the schedule
+    const schedule = await BusSchedule.findById(scheduleId);
+    if (!schedule) throw new Error('Bus schedule not found');
+
+    const bookedSeats = schedule.seats
+      .filter(s => seatNumbers.includes(s.seatNumber) && s.isBooked)
+      .map(s => s.seatNumber);
+
+    if (bookedSeats.length > 0) {
+      throw new Error(`Seats ${bookedSeats.join(', ')} are already booked.`);
+    }
+
+    // Create locks
+    const locks = seatNumbers.map(seatNumber => ({
+      scheduleId: new mongoose.Types.ObjectId(scheduleId),
+      seatNumber,
+      userId: new mongoose.Types.ObjectId(userId),
+      expiresAt
+    }));
+
+    await SeatLock.insertMany(locks);
+    return locks;
+  }
+
+  static async releaseSeatLocks(userId: string) {
+    await SeatLock.deleteMany({ userId: new mongoose.Types.ObjectId(userId) });
+  }
+
+  /**
+   * Hotel Room Availability Layer (Non-breaking)
+   */
+  static async checkAndLockRoomAvailability(hotelId: string, roomId: string, checkIn: Date, checkOut: Date, count: number) {
+    const dates = [];
+    let curr = new Date(checkIn);
+    while (curr < checkOut) {
+      dates.push(new Date(curr));
+      curr.setDate(curr.getDate() + 1);
+    }
+
+    for (const date of dates) {
+      let availability = await RoomAvailability.findOne({ roomId: new mongoose.Types.ObjectId(roomId), date });
+      
+      if (!availability) {
+        const room = await HotelRoom.findById(roomId);
+        if (!room) throw new Error('Room type not found');
+        
+        availability = new RoomAvailability({
+          hotelId: new mongoose.Types.ObjectId(hotelId),
+          roomId: new mongoose.Types.ObjectId(roomId),
+          date,
+          totalRooms: room.totalRooms || room.availableRooms || 10, // Fallback if schema differs
+          bookedRooms: 0
+        });
+        await availability.save();
+      }
+
+      if (availability.bookedRooms + count > availability.totalRooms) {
+        throw new Error(`Room not available for date ${date.toLocaleDateString()}`);
+      }
+    }
+
+    // We don't increment bookedRooms yet, that happens on payment success
+    return true;
+  }
+
+  static async confirmRoomBooking(hotelId: string, roomId: string, checkIn: Date, checkOut: Date, count: number) {
+    const dates = [];
+    let curr = new Date(checkIn);
+    while (curr < checkOut) {
+      dates.push(new Date(curr));
+      curr.setDate(curr.getDate() + 1);
+    }
+
+    for (const date of dates) {
+      await RoomAvailability.findOneAndUpdate(
+        { roomId: new mongoose.Types.ObjectId(roomId), date },
+        { $inc: { bookedRooms: count } },
+        { upsert: true, new: true }
+      );
+    }
   }
 }

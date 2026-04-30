@@ -431,13 +431,20 @@ const HotelBooking: React.FC = () => {
                 {/* Search Button Between Card and Offers */}
                 <div className="mt-6 flex justify-center px-2">
                     <button 
-                        onClick={() => navigate('/store/travel/hotels/list')}
+                        onClick={() => navigate('/store/travel/hotels/list', { 
+                            state: { 
+                                destination, 
+                                dates: { checkIn, checkOut },
+                                guestConfig: rooms
+                            } 
+                        })}
                         className="w-full bg-yellow-400 text-[#001b3d] font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2.5 text-sm tracking-tight active:scale-[0.98] transition-all"
                     >
                         <Search size={20} className="stroke-[3]" />
                         <span>Search hotels</span>
                     </button>
                 </div>
+
 
                 {/* Offers & Banners Section */}
                 <div className="mt-10 px-0.5 space-y-6">

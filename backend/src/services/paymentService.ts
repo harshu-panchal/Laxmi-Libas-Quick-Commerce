@@ -198,6 +198,8 @@ export const getPhonePePaymentStatus = async (merchantTransactionId: string) => 
                     await HotelBooking.findByIdAndUpdate(payment.orderId, { bookingStatus: 'Cancelled', paymentStatus: 'Failed' });
                 } else if (payment.paymentType === 'bus') {
                     await BusBooking.findByIdAndUpdate(payment.orderId, { status: 'cancelled' });
+                    // RELEASE SEAT LOCKS
+                    await InventoryService.releaseSeatLocks(payment.userId.toString());
                 }
             }
         }
@@ -344,17 +346,25 @@ async function commitBookingResources(payment: any) {
             const booking = await HotelBooking.findById(payment.orderId);
             if (!booking) return;
 
+            // --- NEW: ROOM AVAILABILITY LAYER ---
+            await InventoryService.confirmRoomBooking(
+                booking.hotelId.toString(),
+                booking.roomId.toString(),
+                booking.checkIn,
+                booking.checkOut,
+                1 // Assuming 1 room per booking for now or update booking schema
+            );
+            // ------------------------------------
+
             // Decrement rooms for each room type booked
-            for (const item of booking.rooms) {
-                const room = await HotelRoom.findById(item.roomId);
-                if (room) {
-                    room.availableRooms = Math.max(0, room.availableRooms - item.count);
-                    if (room.availableRooms === 0) {
-                        room.status = 'Full';
-                    }
-                    await room.save();
-                    console.log(`[Hotel] Room ${room.roomType} availability reduced. Remaining: ${room.availableRooms}`);
+            const room = await HotelRoom.findById(booking.roomId);
+            if (room) {
+                room.availableRooms = Math.max(0, room.availableRooms - 1);
+                if (room.availableRooms === 0) {
+                    room.status = 'Full';
                 }
+                await room.save();
+                console.log(`[Hotel] Room ${room.roomType} availability reduced. Remaining: ${room.availableRooms}`);
             }
 
         } else if (payment.paymentType === 'bus') {
@@ -375,6 +385,11 @@ async function commitBookingResources(payment: any) {
             });
 
             await schedule.save();
+            
+            // --- NEW: SEAT LOCKING LAYER ---
+            await InventoryService.releaseSeatLocks(payment.userId.toString());
+            // -------------------------------
+
             console.log(`[Bus] Schedule ${booking.scheduleId} seats locked: ${seatNums.join(', ')}`);
         }
     } catch (err) {

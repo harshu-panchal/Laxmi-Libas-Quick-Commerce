@@ -120,6 +120,13 @@ const HotelDashboard: React.FC = () => {
               <RefreshCw size={20} />
             </button>
             <button 
+              onClick={() => navigate('/seller/hotel/wallet')}
+              className="px-6 py-4 bg-white/10 border border-white/20 text-white rounded-2xl font-bold flex items-center gap-2 hover:bg-white/20 transition-all"
+            >
+              <IndianRupee size={20} />
+              Wallet
+            </button>
+            <button 
               onClick={() => navigate('/seller/hotel/add')}
               className="px-8 py-4 bg-teal-500 text-white rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-teal-500/20 hover:scale-105 active:scale-95 transition-all"
             >
@@ -127,6 +134,7 @@ const HotelDashboard: React.FC = () => {
               Add Property
             </button>
           </div>
+
         </div>
 
         {/* Property Selector Hub */}

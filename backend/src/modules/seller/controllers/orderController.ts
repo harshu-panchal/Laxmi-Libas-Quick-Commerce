@@ -30,7 +30,13 @@ export const getOrders = asyncHandler(
     const orderItems = await OrderItem.find({ seller: sellerId }).distinct("order");
 
     // Build query - filter by orders containing this seller's items
-    const query: any = { _id: { $in: orderItems } };
+    const query: any = { 
+      _id: { $in: orderItems },
+      $or: [
+        { paymentStatus: "Paid" },
+        { paymentMethod: "COD" }
+      ]
+    };
 
     // Date range filter
     if (dateFrom || dateTo) {
@@ -144,14 +150,20 @@ export const getOrderById = asyncHandler(
     }
 
     // Get order with populated data
-    const order = await Order.findById(id)
+    const order = await Order.findOne({
+      _id: id,
+      $or: [
+        { paymentStatus: "Paid" },
+        { paymentMethod: "COD" }
+      ]
+    })
       .populate("customer", "name email phone")
       .populate("deliveryBoy", "name mobile email");
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Order not found",
+        message: "Order not found or not yet confirmed",
       });
     }
 

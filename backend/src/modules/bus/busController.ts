@@ -7,6 +7,7 @@ import { PDFService } from '../../services/PDFService';
 import { asyncHandler } from '../../utils/asyncHandler';
 import mongoose from 'mongoose';
 import { normalizeCity, calculateDistance } from '../../utils/locationUtils';
+import { InventoryService } from '../../services/inventoryService';
 // --- Customer Features ---
 
 /**
@@ -167,7 +168,7 @@ export const createBusBooking = asyncHandler(async (req: Request, res: Response)
     return;
   }
 
-  // Check if seats are still available
+  // Check if seats are still available (Checking permanent bookings)
   const seatNumbersToBook = seats.map((s: any) => s.seatNumber);
   const alreadyBooked = schedule.seats.filter(s => s.isBooked && seatNumbersToBook.includes(s.seatNumber));
 
@@ -175,6 +176,15 @@ export const createBusBooking = asyncHandler(async (req: Request, res: Response)
     res.status(400).json({ success: false, message: 'Some seats are already booked' });
     return;
   }
+
+  // --- NEW: SEAT LOCKING LAYER ---
+  try {
+    await InventoryService.createSeatLocks(scheduleId, seatNumbersToBook, userId);
+  } catch (lockError: any) {
+    res.status(409).json({ success: false, message: lockError.message });
+    return;
+  }
+  // -------------------------------
 
   // Create booking record
   const booking = new BusBooking({
@@ -331,3 +341,135 @@ export const getBusCities = asyncHandler(async (_req: Request, res: Response) =>
     data: allCities
   });
 });
+
+// ─── Bus Partner Wallet System ───────────────────────────────────────────────
+
+/**
+ * @desc    Get wallet stats for the bus partner (earnings from bookings)
+ */
+export const getBusWalletStats = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = new mongoose.Types.ObjectId((req as any).user.userId);
+
+  const buses = await Bus.find({ sellerId }).select('_id');
+  const busIds = buses.map(b => b._id);
+  const scheduleIds = await BusSchedule.find({ busId: { $in: busIds } }).distinct('_id');
+
+  const bookings = await BusBooking.find({
+    scheduleId: { $in: scheduleIds },
+    paymentStatus: 'Paid'
+  });
+
+  const totalEarnings = bookings.reduce((sum, b) => sum + ((b as any).totalAmount || 0), 0);
+  const commissionRate = 0.10;
+  const netEarnings = totalEarnings * (1 - commissionRate);
+
+  const pendingBookings = await BusBooking.find({
+    scheduleId: { $in: scheduleIds },
+    paymentStatus: 'Paid',
+    status: { $in: ['LOCKED', 'Confirmed'] }
+  });
+  const pendingSettlement = pendingBookings.reduce((sum, b) => sum + ((b as any).totalAmount || 0) * (1 - commissionRate), 0);
+
+  let totalWithdrawn = 0;
+  try {
+    const WithdrawRequest = mongoose.models['WithdrawRequest'];
+    if (WithdrawRequest) {
+      const approved = await WithdrawRequest.find({ userId: sellerId, userType: 'BUS', status: 'Completed' });
+      totalWithdrawn = approved.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
+    }
+  } catch (e) { /* ignore */ }
+
+  res.json({
+    success: true,
+    data: {
+      availableBalance: Math.max(0, netEarnings - totalWithdrawn - pendingSettlement),
+      totalEarnings: netEarnings,
+      pendingSettlement,
+      totalWithdrawn,
+      totalBookings: bookings.length,
+      commissionRate: commissionRate * 100
+    }
+  });
+});
+
+/**
+ * @desc    Get wallet transactions for bus partner
+ */
+export const getBusWalletTransactions = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = new mongoose.Types.ObjectId((req as any).user.userId);
+  const buses = await Bus.find({ sellerId }).select('_id busName');
+  const busIds = buses.map(b => b._id);
+  const scheduleIds = await BusSchedule.find({ busId: { $in: busIds } }).distinct('_id');
+
+  const bookings = await BusBooking.find({
+    scheduleId: { $in: scheduleIds },
+    paymentStatus: { $in: ['Paid', 'Pending'] }
+  })
+    .populate('userId', 'name')
+    .sort({ createdAt: -1 })
+    .limit(50)
+    .lean();
+
+  const transactions = bookings.map((b: any) => ({
+    _id: b._id,
+    type: 'Credit',
+    title: `Bus Ticket — ${(b.userId as any)?.name || 'Passenger'} (${b.seats?.length || 1} seat${(b.seats?.length || 1) > 1 ? 's' : ''})`,
+    amount: (b.totalAmount || 0) * 0.9,
+    grossAmount: b.totalAmount,
+    status: b.paymentStatus === 'Paid' ? 'Completed' : 'Pending',
+    reference: `TK-${String(b._id).slice(-6).toUpperCase()}`,
+    bookingStatus: b.status,
+    createdAt: b.createdAt
+  }));
+
+  res.json({ success: true, data: transactions });
+});
+
+/**
+ * @desc    Get withdrawal requests for bus partner
+ */
+export const getBusWithdrawalRequests = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+  let requests: any[] = [];
+  try {
+    const WithdrawRequest = mongoose.models['WithdrawRequest'];
+    if (WithdrawRequest) {
+      requests = await WithdrawRequest.find({ userId: sellerId, userType: 'BUS' })
+        .sort({ createdAt: -1 }).limit(20).lean();
+    }
+  } catch (e) { /* ignore */ }
+  res.json({ success: true, data: requests });
+});
+
+/**
+ * @desc    Create withdrawal request for bus partner
+ */
+export const createBusWithdrawalRequest = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+  const { amount, accountDetails, paymentMethod } = req.body;
+
+  if (!amount || amount <= 0) {
+    res.status(400).json({ success: false, message: 'Invalid withdrawal amount' });
+    return;
+  }
+
+  let request: any = {
+    _id: new mongoose.Types.ObjectId(),
+    sellerId, userType: 'BUS', amount, accountDetails,
+    paymentMethod: paymentMethod || 'Bank Transfer',
+    status: 'Pending', createdAt: new Date()
+  };
+
+  try {
+    const WithdrawRequest = mongoose.models['WithdrawRequest'];
+    if (WithdrawRequest) {
+      request = await WithdrawRequest.create({
+        userId: sellerId, userType: 'BUS', amount, accountDetails,
+        paymentMethod: paymentMethod || 'Bank Transfer', status: 'Pending'
+      });
+    }
+  } catch (e) { console.error('Bus withdraw request error:', e); }
+
+  res.status(201).json({ success: true, data: request, message: 'Withdrawal request submitted successfully' });
+});
+

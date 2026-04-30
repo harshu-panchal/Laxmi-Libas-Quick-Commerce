@@ -20,6 +20,8 @@ import {
   type SalesAnalytics,
   type TodaySales,
 } from "../../../services/api/admin/adminDashboardService";
+import { getAdminAnalytics } from "../../../services/api/analyticsService";
+import Chart from 'react-apexcharts';
 
 export default function AdminDashboard() {
   const { isAuthenticated, token } = useAuth();
@@ -41,6 +43,9 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [analyticsPeriod, setAnalyticsPeriod] = useState("7days");
+  const [advancedAnalytics, setAdvancedAnalytics] = useState<any>(null);
 
   // Fetch dashboard data on component mount
   useEffect(() => {
@@ -65,64 +70,39 @@ export default function AdminDashboard() {
           orderAnalyticsResponse,
           orderAnalyticsDailyResponse,
           todaySalesResponse,
+          advancedAnalyticsResponse,
         ] = await Promise.all([
           getDashboardStats(),
           getRecentOrders(10),
           getTopSellers(10),
           getSalesByLocation(),
-          getSalesAnalytics("day"), // Use daily data for the sales line chart
+          getSalesAnalytics("day"),
           getOrderAnalytics("month"),
           getOrderAnalytics("day"),
           getTodaySales(),
+          getAdminAnalytics(analyticsPeriod)
         ]);
 
-        if (statsResponse.success) {
-          console.log("Dashboard stats received:", statsResponse.data);
-          setStats(statsResponse.data);
-        } else {
-          console.error("Failed to fetch dashboard stats:", statsResponse);
-        }
+        if (statsResponse.success) setStats(statsResponse.data);
+        if (ordersResponse.success) setNewOrders(ordersResponse.data);
+        if (sellersResponse.success) setTopSellers(sellersResponse.data);
+        if (locationResponse.success) setSalesByLocation(locationResponse.data);
+        if (analyticsResponse.success) setSalesAnalytics(analyticsResponse.data);
+        if (orderAnalyticsResponse.success) setOrderAnalytics(orderAnalyticsResponse.data);
+        if (orderAnalyticsDailyResponse.success) setOrderAnalyticsDaily(orderAnalyticsDailyResponse.data);
+        if (todaySalesResponse.success) setTodaySales(todaySalesResponse.data);
+        if (advancedAnalyticsResponse.success) setAdvancedAnalytics(advancedAnalyticsResponse.data);
 
-        if (ordersResponse.success) {
-          setNewOrders(ordersResponse.data);
-        }
-
-        if (sellersResponse.success) {
-          setTopSellers(sellersResponse.data);
-        }
-
-        if (locationResponse.success) {
-          setSalesByLocation(locationResponse.data);
-        }
-
-        if (analyticsResponse.success) {
-          setSalesAnalytics(analyticsResponse.data);
-        }
-
-        if (orderAnalyticsResponse.success) {
-          setOrderAnalytics(orderAnalyticsResponse.data);
-        }
-
-        if (orderAnalyticsDailyResponse.success) {
-          setOrderAnalyticsDaily(orderAnalyticsDailyResponse.data);
-        }
-
-        if (todaySalesResponse.success) {
-          setTodaySales(todaySalesResponse.data);
-        }
       } catch (err: any) {
         console.error("Error fetching dashboard data:", err);
-        setError(
-          err.response?.data?.message ||
-          "Failed to load dashboard data. Please try again."
-        );
+        setError(err.response?.data?.message || "Failed to load dashboard data.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, analyticsPeriod]);
 
   // Icons for KPI cards
   const userIcon = (
@@ -442,7 +422,30 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* KPI Cards Grid - 2 columns on mobile, 4 on desktop */}
+      {/* Header with Filters */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-neutral-200">
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">Dashboard Overview</h1>
+          <p className="text-sm text-neutral-500">Real-time system health and performance tracking</p>
+        </div>
+        <div className="flex items-center gap-2 bg-neutral-100 p-1 rounded-lg">
+          {["today", "7days", "30days"].map((period) => (
+            <button
+              key={period}
+              onClick={() => setAnalyticsPeriod(period)}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                analyticsPeriod === period
+                  ? "bg-white text-teal-600 shadow-sm"
+                  : "text-neutral-600 hover:text-neutral-900"
+              }`}
+            >
+              {period === "today" ? "Today" : period === "7days" ? "7 Days" : "30 Days"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
         <DashboardCard
           icon={userIcon}
@@ -473,6 +476,27 @@ export default function AdminDashboard() {
           title="Total Orders"
           value={stats.totalOrders}
           accentColor="#3b82f6"
+        />
+        <DashboardCard
+          icon={
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          }
+          title="Total Revenue"
+          value={`₹${(advancedAnalytics?.global?.totalRevenue || 0).toLocaleString()}`}
+          accentColor="#10b981"
+        />
+        <DashboardCard
+          icon={
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          }
+          title="Total Bookings"
+          value={advancedAnalytics?.global?.totalBookings || 0}
+          accentColor="#f59e0b"
         />
         <DashboardCard
           icon={completedOrdersIcon}
@@ -583,20 +607,77 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <ErrorBoundary fallback={<div className="text-sm text-red-600 p-4">Chart failed to load</div>}>
           <OrderChart
-            title="Order - Dec 2025"
-            data={orderDataDec2025}
-            maxValue={3}
+            title={`Orders - ${analyticsPeriod === 'today' ? 'Today' : analyticsPeriod === '7days' ? 'Last 7 Days' : 'Last 30 Days'}`}
+            data={advancedAnalytics?.dailyStats?.map((d: any) => ({ date: d._id, value: d.orderCount })) || []}
+            maxValue={Math.max(...(advancedAnalytics?.dailyStats?.map((d: any) => d.orderCount) || [10])) + 5}
             height={400}
           />
         </ErrorBoundary>
         <ErrorBoundary fallback={<div className="text-sm text-red-600 p-4">Chart failed to load</div>}>
-          <OrderChart
-            title="Order - 2025"
-            data={orderData2025}
-            maxValue={80}
-            height={400}
-          />
+          <div className="bg-white rounded-xl shadow-lg border border-neutral-200 p-4">
+            <h3 className="text-xl font-bold text-neutral-900 mb-2">Revenue Growth</h3>
+            <Chart
+              type="line"
+              series={[{ name: 'Revenue', data: advancedAnalytics?.dailyStats?.map((d: any) => d.revenue) || [] }]}
+              options={{
+                chart: { toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+                stroke: { curve: 'smooth', width: 4 },
+                colors: ['#10b981'],
+                xaxis: { categories: advancedAnalytics?.dailyStats?.map((d: any) => d._id) || [] },
+                yaxis: { labels: { formatter: (val) => `₹${val.toLocaleString()}` } },
+                grid: { borderColor: '#f1f5f9' },
+                markers: { size: 4 }
+              }}
+              height={340}
+            />
+          </div>
         </ErrorBoundary>
+      </div>
+
+      {/* Advanced Analytics Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Order Type Split (Quick vs Standard) */}
+        <div className="bg-white rounded-xl shadow-lg border border-neutral-200 p-6">
+          <h3 className="text-xl font-bold text-neutral-900 mb-6">Order Type Split</h3>
+          <div className="flex justify-center h-[300px] w-full">
+            {advancedAnalytics?.typeSplit && (
+              <Chart
+                type="donut"
+                series={advancedAnalytics.typeSplit.map((s: any) => s.count)}
+                options={{
+                  labels: advancedAnalytics.typeSplit.map((s: any) => s._id || 'Standard'),
+                  colors: ['#0d9488', '#0ea5e9', '#f59e0b'],
+                  legend: { position: 'bottom' },
+                  plotOptions: { pie: { donut: { size: '65%' } } },
+                  chart: { fontFamily: 'Inter, sans-serif' }
+                }}
+                width="100%"
+                height="100%"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Module Distribution */}
+        <div className="bg-white rounded-xl shadow-lg border border-neutral-200 p-6">
+          <h3 className="text-xl font-bold text-neutral-900 mb-6">Module Distribution</h3>
+          <div className="flex justify-center h-[300px] w-full">
+            {advancedAnalytics?.moduleDistribution && (
+              <Chart
+                type="pie"
+                series={advancedAnalytics.moduleDistribution.map((s: any) => s.count)}
+                options={{
+                  labels: advancedAnalytics.moduleDistribution.map((s: any) => s._id || 'Products'),
+                  colors: ['#6366f1', '#ec4899', '#14b8a6'],
+                  legend: { position: 'bottom' },
+                  chart: { fontFamily: 'Inter, sans-serif' }
+                }}
+                width="100%"
+                height="100%"
+              />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Tables Row */}

@@ -114,6 +114,13 @@ const TransportDashboard: React.FC = () => {
               <RefreshCw size={20} />
             </button>
             <button 
+              onClick={() => navigate('/seller/transport/earnings')}
+              className="px-6 py-4 bg-white/10 border border-white/20 text-white rounded-2xl font-bold flex items-center gap-2 hover:bg-white/20 transition-all"
+            >
+              <IndianRupee size={20} />
+              Earnings
+            </button>
+            <button 
               onClick={() => navigate('/seller/transport/add')}
               className="px-8 py-4 bg-blue-500 text-white rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all"
             >
@@ -121,6 +128,7 @@ const TransportDashboard: React.FC = () => {
               Register New Bus
             </button>
           </div>
+
         </div>
 
         {/* Fleet Selector */}

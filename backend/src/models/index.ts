@@ -50,3 +50,12 @@ export { default as HeaderCategory } from "./HeaderCategory";
 export { default as BestsellerCard } from "./BestsellerCard";
 export { default as WalletTransaction } from "./WalletTransaction";
 export { default as PlatformWallet } from "./PlatformWallet";
+
+// Hotel & Bus Models
+export { default as Hotel } from './Hotel';
+export { default as HotelBooking } from './HotelBooking';
+export { default as HotelRoom } from './HotelRoom';
+export { default as Bus } from './Bus';
+export { default as BusBooking } from './BusBooking';
+export { default as BusRoute } from './BusRoute';
+export { default as BusSchedule } from './BusSchedule';

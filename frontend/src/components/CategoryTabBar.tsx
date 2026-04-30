@@ -133,7 +133,7 @@ export default function CategoryTabBar({
         <div className="w-full">
             <div
                 ref={scrollContainerRef}
-                className="flex overflow-x-auto scrollbar-hide px-3 py-0.5 gap-[10px] items-end"
+                className="flex overflow-x-auto scrollbar-hide px-3 py-0 gap-2 items-end"
                 style={{
                     scrollbarWidth: 'none',
                     msOverflowStyle: 'none',
@@ -154,17 +154,17 @@ export default function CategoryTabBar({
                             className="flex flex-col items-center justify-end min-w-[50px] group flex-shrink-0 outline-none"
                         >
                             {/* Icon Wrapper */}
-                            <div className={`w-[42px] h-[42px] sm:w-[48px] sm:h-[48px] flex items-center justify-center rounded-full transition-all duration-300 ${isActive ? 'bg-[#eef8ff]/60 border border-[#eef8ff]' : 'bg-transparent'}`}>
+                            <div className={`w-[36px] h-[36px] sm:w-[42px] sm:h-[42px] flex items-center justify-center rounded-full transition-all duration-300 ${isActive ? 'bg-[#eef8ff]/60 border border-[#eef8ff]' : 'bg-transparent'}`}>
                                 {typeof Icon === 'function' ? (
-                                    <Icon className={`w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] ${isActive ? 'text-gray-900' : 'text-gray-700'}`} />
+                                    <Icon className={`w-[26px] h-[26px] sm:w-[30px] sm:h-[30px] ${isActive ? 'text-gray-900' : 'text-gray-700'}`} />
                                 ) : (
-                                    <div className={`w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] ${isActive ? 'text-gray-900' : 'text-gray-700'}`}>{Icon}</div>
+                                    <div className={`w-[26px] h-[26px] sm:w-[30px] sm:h-[30px] ${isActive ? 'text-gray-900' : 'text-gray-700'}`}>{Icon}</div>
                                 )}
                             </div>
 
                             {/* Text and Underline Wrapper */}
-                            <div className="flex flex-col items-center mt-0.5">
-                                <span className={`text-[10px] sm:text-[11px] whitespace-nowrap text-center leading-[14px] ${isActive ? 'font-bold text-gray-900' : 'font-medium text-gray-500'}`}>
+                            <div className="flex flex-col items-center mt-0">
+                                <span className={`text-[9px] sm:text-[10px] whitespace-nowrap text-center leading-[12px] ${isActive ? 'font-bold text-gray-900' : 'font-medium text-gray-500'}`}>
                                     {category.name}
                                 </span>
                                 {/* Blue underline for active state */}

@@ -39,8 +39,8 @@ export default function HomeBannerCarousel() {
   if (loading || banners.length === 0) return null;
 
   return (
-    <div className="px-3 pb-3 pt-2 relative overflow-hidden">
-      <div className="relative h-[160px] sm:h-[180px] w-full max-w-[500px] mx-auto overflow-hidden rounded-[16px]">
+    <div className="px-3 pb-2 pt-1 relative overflow-hidden">
+      <div className="relative h-[150px] sm:h-[180px] md:h-[220px] w-full mx-auto overflow-hidden rounded-[16px] shadow-sm">
         {banners.map((banner, index) => (
           <div
             key={banner._id}

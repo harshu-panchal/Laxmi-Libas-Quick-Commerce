@@ -16,6 +16,13 @@ router.get('/:busId/bookings', authenticate, busController.getBusBookings);
 router.patch('/bookings/:bookingId/status', authenticate, busController.updateBookingStatus);
 router.get('/:busId/manifest', authenticate, busController.getManifest);
 
+// --- Bus Partner Wallet Routes ---
+router.get('/wallet/stats', authenticate, busController.getBusWalletStats);
+router.get('/wallet/transactions', authenticate, busController.getBusWalletTransactions);
+router.get('/wallet/withdrawals', authenticate, busController.getBusWithdrawalRequests);
+router.post('/wallet/withdraw', authenticate, busController.createBusWithdrawalRequest);
+
+
 // --- Customer Routes ---
 router.get('/', busController.searchBuses);
 router.get('/bookings/:bookingId/ticket', authenticate, busController.getTicket);

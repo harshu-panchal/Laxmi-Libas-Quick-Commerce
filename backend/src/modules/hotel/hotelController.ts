@@ -7,6 +7,7 @@ import { PDFService } from '../../services/PDFService';
 import { asyncHandler } from '../../utils/asyncHandler';
 import axios from 'axios';
 import { normalizeCity, calculateDistance } from '../../utils/locationUtils';
+import { InventoryService } from '../../services/inventoryService';
 
 // --- Seller Features ---
 
@@ -309,9 +310,17 @@ export const createBooking = async (req: Request, res: Response) => {
     }
 
     if (room.availableRooms <= 0) {
-      console.warn('⚠️ Room not available:', roomId);
+      console.warn('⚠️ Room not available (Primary check):', roomId);
       return res.status(400).json({ success: false, message: 'No rooms available for this type' });
     }
+
+    // --- NEW: ROOM AVAILABILITY LAYER (Date-wise check) ---
+    try {
+      await InventoryService.checkAndLockRoomAvailability(hotelId, roomId, new Date(checkIn), new Date(checkOut), 1);
+    } catch (availError: any) {
+      return res.status(409).json({ success: false, message: availError.message });
+    }
+    // -----------------------------------------------------
 
     const userId = new mongoose.Types.ObjectId(userIdStr);
 
@@ -427,3 +436,164 @@ export const getHotelCities = asyncHandler(async (_req: Request, res: Response) 
     data: sortedCities
   });
 });
+
+// ─── Hotel Partner Wallet System ───────────────────────────────────────────────
+
+/**
+ * @desc    Get wallet stats for the hotel partner (earnings from bookings)
+ */
+export const getHotelWalletStats = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = new mongoose.Types.ObjectId((req as any).user.userId);
+
+  // Get all hotels for this partner
+  const hotels = await Hotel.find({ sellerId }).select('_id');
+  const hotelIds = hotels.map(h => h._id);
+
+  // Get all confirmed/paid bookings across all hotels
+  const bookings = await HotelBooking.find({
+    hotelId: { $in: hotelIds },
+    paymentStatus: 'Paid'
+  });
+
+  const totalEarnings = bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+  
+  // Platform commission: 10%
+  const commissionRate = 0.10;
+  const platformCut = totalEarnings * commissionRate;
+  const netEarnings = totalEarnings - platformCut;
+
+  // Pending settlement = bookings that are Locked/Confirmed but not yet Checked In/Out
+  const pendingBookings = await HotelBooking.find({
+    hotelId: { $in: hotelIds },
+    paymentStatus: 'Paid',
+    bookingStatus: { $in: ['LOCKED', 'Confirmed'] }
+  });
+  const pendingSettlement = pendingBookings.reduce((sum, b) => sum + (b.totalAmount || 0) * (1 - commissionRate), 0);
+
+  // Get withdrawal requests (using WithdrawRequest model)
+  let totalWithdrawn = 0;
+  try {
+    const WithdrawRequest = mongoose.models['WithdrawRequest'];
+    if (WithdrawRequest) {
+      const approved = await WithdrawRequest.find({
+        userId: sellerId,
+        userType: 'HOTEL',
+        status: 'Completed'
+      });
+      totalWithdrawn = approved.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
+    }
+  } catch (e) { /* WithdrawRequest model may not exist yet, ignore */ }
+
+  const availableBalance = netEarnings - totalWithdrawn - pendingSettlement;
+
+  res.json({
+    success: true,
+    data: {
+      availableBalance: Math.max(0, availableBalance),
+      totalEarnings: netEarnings,
+      pendingSettlement,
+      totalWithdrawn,
+      totalBookings: bookings.length,
+      commissionRate: commissionRate * 100
+    }
+  });
+});
+
+/**
+ * @desc    Get wallet transactions (booking earnings) for hotel partner
+ */
+export const getHotelWalletTransactions = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = new mongoose.Types.ObjectId((req as any).user.userId);
+  const hotels = await Hotel.find({ sellerId }).select('_id name');
+  const hotelIds = hotels.map(h => h._id);
+  const hotelNameMap: Record<string, string> = {};
+  hotels.forEach((h: any) => { hotelNameMap[h._id.toString()] = h.name; });
+
+  const bookings = await HotelBooking.find({
+    hotelId: { $in: hotelIds },
+    paymentStatus: { $in: ['Paid', 'Pending'] }
+  })
+    .populate('userId', 'name')
+    .sort({ createdAt: -1 })
+    .limit(50)
+    .lean();
+
+  const transactions = bookings.map((b: any) => ({
+    _id: b._id,
+    type: 'Credit',
+    title: `Booking from ${(b.userId as any)?.name || 'Guest'} — ${hotelNameMap[b.hotelId?.toString()] || 'Hotel'}`,
+    amount: b.totalAmount * 0.9, // After 10% commission
+    grossAmount: b.totalAmount,
+    status: b.paymentStatus === 'Paid' ? 'Completed' : 'Pending',
+    reference: `BK-${String(b._id).slice(-6).toUpperCase()}`,
+    bookingStatus: b.bookingStatus,
+    checkIn: b.checkIn,
+    checkOut: b.checkOut,
+    createdAt: b.createdAt
+  }));
+
+  res.json({ success: true, data: transactions });
+});
+
+/**
+ * @desc    Get withdrawal requests for hotel partner
+ */
+export const getHotelWithdrawalRequests = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+
+  let requests: any[] = [];
+  try {
+    const WithdrawRequest = mongoose.models['WithdrawRequest'];
+    if (WithdrawRequest) {
+      requests = await WithdrawRequest.find({ userId: sellerId, userType: 'HOTEL' })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean();
+    }
+  } catch (e) { /* ignore if model not set up */ }
+
+  res.json({ success: true, data: requests });
+});
+
+/**
+ * @desc    Create a withdrawal request for hotel partner
+ */
+export const createHotelWithdrawalRequest = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+  const { amount, accountDetails, paymentMethod } = req.body;
+
+  if (!amount || amount <= 0) {
+    res.status(400).json({ success: false, message: 'Invalid withdrawal amount' });
+    return;
+  }
+
+  let request: any = {
+    _id: new mongoose.Types.ObjectId(),
+    sellerId,
+    userType: 'HOTEL',
+    amount,
+    accountDetails,
+    paymentMethod: paymentMethod || 'Bank Transfer',
+    status: 'Pending',
+    createdAt: new Date()
+  };
+
+  try {
+    const WithdrawRequest = mongoose.models['WithdrawRequest'];
+    if (WithdrawRequest) {
+      request = await WithdrawRequest.create({
+        userId: sellerId,
+        userType: 'HOTEL',
+        amount,
+        accountDetails,
+        paymentMethod: paymentMethod || 'Bank Transfer',
+        status: 'Pending'
+      });
+    }
+  } catch (e) {
+    console.error('WithdrawRequest creation error:', e);
+  }
+
+  res.status(201).json({ success: true, data: request, message: 'Withdrawal request submitted successfully' });
+});
+

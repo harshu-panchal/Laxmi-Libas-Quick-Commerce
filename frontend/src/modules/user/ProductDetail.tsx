@@ -400,6 +400,43 @@ export default function ProductDetail() {
     });
   };
 
+  const renderDeliveryBadge = () => {
+    if (!location?.city || !product?.seller?.city) return null;
+
+    const normalize = (c: string) => c.toLowerCase().trim().replace(/\s+/g, "");
+    const isQuick = normalize(location.city) === normalize(product.seller.city);
+
+    if (isQuick) {
+      return (
+        <div className="flex items-center gap-1.5 bg-yellow-50 border border-yellow-100 px-2.5 py-1 rounded-lg">
+          <span className="text-lg">⚡</span>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-yellow-800 uppercase tracking-wider leading-none">
+              In your city
+            </span>
+            <span className="text-xs font-bold text-yellow-900">
+              Quick Delivery
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg">
+        <span className="text-lg">🚚</span>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider leading-none">
+            Standard
+          </span>
+          <span className="text-xs font-bold text-blue-900">
+            Courier Delivery
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-white pb-24">
       {/* Header with back button and action icons */}
@@ -786,6 +823,11 @@ export default function ProductDetail() {
                 )}
               </>
             )}
+          </div>
+
+          {/* Delivery Type Badge (Quick vs Courier) */}
+          <div className="flex items-center gap-2 mb-3">
+            {renderDeliveryBadge()}
           </div>
 
           {/* Stock Status */}
