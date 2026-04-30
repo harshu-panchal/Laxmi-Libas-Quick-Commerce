@@ -951,19 +951,25 @@ export default function SellerAddProduct() {
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
                     <option value="">Select Category</option>
-                    {categories
-                      .filter(cat => {
-                        if (!formData.headerCategory) return true;
-                        const catHeaderId = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString().trim();
-                        return catHeaderId === formData.headerCategory.toString().trim();
-                      })
-                      .map((cat: any) => (
-                        <option
-                          key={cat._id || cat.id}
-                          value={cat._id || cat.id}>
-                          {cat.name === 'Room Rent' ? 'Rent' : cat.name}
-                        </option>
-                      ))}
+                    {(() => {
+                      const selectedHeader = formData.headerCategory?.toString().trim();
+                      const filtered = categories.filter(cat => {
+                        if (!selectedHeader) return true;
+                        // Handle multiple possible formats for headerCategoryId
+                        const catHeaderId = (cat.headerCategoryId?._id || cat.headerCategoryId || (cat as any).headerId)?.toString().trim();
+                        return catHeaderId === selectedHeader;
+                      });
+                      
+                      // Fallback: If filtering by header results in nothing, show all categories
+                      // This prevents the "empty dropdown" issue if data links are missing in the DB
+                      return filtered.length > 0 ? filtered : categories;
+                    })().map((cat: any) => (
+                      <option
+                        key={cat._id || cat.id}
+                        value={cat._id || cat.id}>
+                        {cat.name === 'Room Rent' ? 'Rent' : cat.name}
+                      </option>
+                    ))}
                   </select>
                   <p className="text-[10px] text-teal-600 mt-1 italic font-medium">
                     Select any category for your product
