@@ -114,7 +114,7 @@ export async function uploadImageFromBuffer(
   return new Promise((resolve, reject) => {
     const uploadOptions = {
       folder: options.folder || CLOUDINARY_FOLDERS.PRODUCTS,
-      resource_type: options.resourceType || "image",
+      resource_type: options.resourceType || "auto",
       transformation: options.transformation,
       overwrite: options.overwrite || false,
       invalidate: options.invalidate || true,
@@ -124,6 +124,7 @@ export async function uploadImageFromBuffer(
       uploadOptions,
       (error: any, result: any) => {
         if (error) {
+          console.error("Cloudinary Upload Stream Error:", error);
           reject(new Error(`Cloudinary upload failed: ${error.message}`));
         } else if (result) {
           resolve({
