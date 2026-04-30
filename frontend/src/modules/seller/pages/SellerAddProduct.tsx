@@ -319,6 +319,27 @@ export default function SellerAddProduct() {
       fetchProduct();
     }
   }, [id]);
+  
+  // Auto-fill delivery location from seller profile for new products
+  useEffect(() => {
+    if (!id && user && !formData.latitude && !formData.longitude) {
+      // Check for lat/long in user profile
+      const userLat = (user as any).latitude;
+      const userLng = (user as any).longitude;
+      const userAddress = (user as any).address || (user as any).city || "";
+      const userRadius = (user as any).serviceRadiusKm || (user as any).radius || "40";
+
+      if (userLat && userLng) {
+        setFormData(prev => ({
+          ...prev,
+          latitude: userLat.toString(),
+          longitude: userLng.toString(),
+          shopAddress: userAddress,
+          radius: userRadius.toString()
+        }));
+      }
+    }
+  }, [id, user, formData.latitude, formData.longitude]);
 
   useEffect(() => {
     const fetchSubs = async () => {
