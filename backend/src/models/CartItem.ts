@@ -5,7 +5,7 @@ export interface ICartItem extends Document {
   product: mongoose.Types.ObjectId;
   quantity: number;
   variation?: string;
-  selectedDeliveryType: "quick" | "ecommerce";
+  selectedDeliveryType: "quick" | "standard";
   discountPercent?: number;
   discountAmount?: number;
   appliedDiscountRuleId?: mongoose.Types.ObjectId;
@@ -36,7 +36,7 @@ const CartItemSchema = new Schema<ICartItem>(
     },
     selectedDeliveryType: {
       type: String,
-      enum: ["quick", "ecommerce"],
+      enum: ["quick", "standard"],
       default: "quick",
       required: true,
     },

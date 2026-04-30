@@ -156,17 +156,16 @@ export const createOrder = async (req: Request, res: Response) => {
             const customerCity = address.city ? normalizeCity(address.city) : '';
 
             // Decision: If same city, it's quick. Otherwise ecommerce.
-            let decidedType: 'quick' | 'ecommerce' = 'ecommerce';
+            let decidedType: string = item.selectedDeliveryType || 'quick';
+            if (decidedType === 'ecommerce') decidedType = 'standard';
             
-            if (product.type === 'ecommerce') {
-                decidedType = 'ecommerce';
-            } else if (product.type === 'quick') {
-                decidedType = (sellerCity && customerCity && sellerCity === customerCity) ? 'quick' : 'ecommerce';
-            } else {
-                // Type is 'both'
-                decidedType = (sellerCity && customerCity && sellerCity === customerCity) ? 'quick' : 'ecommerce';
+            // If it's still 'quick', verify if cities match (safety check)
+            if (decidedType === 'quick') {
+                if (sellerCity && customerCity && sellerCity !== customerCity) {
+                    decidedType = 'standard';
+                }
             }
-
+            
             if (decidedType === 'quick') quickItems.push(item);
             else ecommerceItems.push(item);
         }

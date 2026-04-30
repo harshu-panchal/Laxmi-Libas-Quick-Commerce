@@ -21,7 +21,7 @@ export interface IOrderItem extends Document {
 
   // Status
   status: "Pending" | "Shipped" | "Delivered" | "Cancelled" | "Returned";
-  deliveryType: "quick" | "ecommerce";
+  deliveryType: "quick" | "standard";
   subtotal: number;
   orderId?: string;
   commissionRate: number;
@@ -99,7 +99,7 @@ const OrderItemSchema = new Schema<IOrderItem>(
     },
     deliveryType: {
       type: String,
-      enum: ["quick", "ecommerce"],
+      enum: ["quick", "standard"],
       default: "quick",
       required: true,
     },
