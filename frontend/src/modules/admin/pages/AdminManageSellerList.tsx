@@ -16,7 +16,7 @@ interface Seller {
     logo?: string;
     balance: number;
     commission: number;
-    categories: string[];
+    categories: (string | { _id: string; name: string })[];
     status: 'Approved' | 'Pending' | 'Rejected';
     needApproval: boolean;
     // Additional fields from signup
@@ -746,7 +746,7 @@ export default function AdminManageSellerList() {
                         <div className="p-6 overflow-y-auto flex-1">
                             {selectedSeller.categories.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {selectedSeller.categories.map((category, index) => (
+                                    {selectedSeller.categories.map((category: any, index) => (
                                         <div
                                             key={index}
                                             className="flex items-center gap-2 px-4 py-3 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors"
@@ -755,7 +755,9 @@ export default function AdminManageSellerList() {
                                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
                                             </svg>
-                                            <span className="text-sm font-medium text-teal-900">{category}</span>
+                                            <span className="text-sm font-medium text-teal-900">
+                                                {typeof category === 'string' ? category : category.name}
+                                            </span>
                                         </div>
                                     ))}
                                 </div>

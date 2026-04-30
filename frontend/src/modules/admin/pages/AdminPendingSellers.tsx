@@ -9,7 +9,7 @@ interface Seller {
     mobile: string;
     storeName: string;
     category: string | { _id: string; name: string };
-    categories: string[];
+    categories: (string | { _id: string; name: string })[];
     address: string;
     city: string;
     idProof?: string;
@@ -203,7 +203,7 @@ export default function AdminPendingSellers() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="text-xs text-neutral-600">
-                                                {seller.categories?.join(', ') || 'N/A'}
+                                                {seller.categories?.map((cat: any) => typeof cat === 'string' ? cat : cat.name).join(', ') || 'N/A'}
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">
@@ -319,7 +319,7 @@ export default function AdminPendingSellers() {
 
                                 <div>
                                     <label className="text-xs font-medium text-neutral-600">Categories</label>
-                                    <p className="text-sm text-neutral-900">{selectedSeller.categories?.join(', ') || 'N/A'}</p>
+                                    <p className="text-sm text-neutral-900">{selectedSeller.categories?.map((cat: any) => typeof cat === 'string' ? cat : cat.name).join(', ') || 'N/A'}</p>
                                 </div>
 
                                 <div>

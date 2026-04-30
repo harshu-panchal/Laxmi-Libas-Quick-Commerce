@@ -10,6 +10,7 @@ export const getPendingSellers = async (_req: Request, res: Response) => {
         const sellers = await Seller.find({ status: 'Pending' })
             .select('-password')
             .populate('category', 'name')
+            .populate('categories', 'name')
             .sort({ createdAt: -1 });
 
         return res.status(200).json({
@@ -44,6 +45,7 @@ export const getSellersByStatus = async (req: Request, res: Response) => {
         const sellers = await Seller.find({ status })
             .select('-password')
             .populate('category', 'name')
+            .populate('categories', 'name')
             .sort({ createdAt: -1 });
 
         return res.status(200).json({
@@ -327,6 +329,7 @@ export const getSellerDetails = async (req: Request, res: Response) => {
         const seller = await Seller.findById(id)
             .select('-password')
             .populate('category', 'name')
+            .populate('categories', 'name')
             .populate('approvedBy', 'name email');
 
         if (!seller) {

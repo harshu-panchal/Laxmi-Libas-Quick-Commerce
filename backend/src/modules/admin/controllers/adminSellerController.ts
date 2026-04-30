@@ -13,7 +13,9 @@ export const getAllSellers = asyncHandler(async (req: Request, res: Response) =>
     if (status) query.status = status;
 
     const sellers = await Seller.find(query)
-        .select("sellerName storeName profile email mobile status businessType businessDetails createdAt")
+        .select("sellerName storeName profile email mobile status businessType businessDetails createdAt categories category")
+        .populate("categories", "name")
+        .populate("category", "name")
         .sort({ createdAt: -1 });
 
     return res.status(200).json({
