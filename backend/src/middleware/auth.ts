@@ -108,21 +108,29 @@ export const requireUserType = (...userTypes: AuthUserType[]) => {
     }
 
     // Case-insensitive check for better resilience
-    const normalizedUserType = String(req.user.userType || '').toLowerCase();
+    const userTypeInToken = req.user.userType;
+    const normalizedUserType = String(userTypeInToken || '').toLowerCase();
     const isAllowed = userTypes.some(t => String(t).toLowerCase() === normalizedUserType);
 
     if (!isAllowed) {
       console.warn(`🚫 Access Denied: User type mismatch.`, {
         expected: userTypes,
-        actual: req.user.userType,
+        actual: userTypeInToken,
         userId: req.user.userId,
         path: req.path,
-        fullUser: req.user
       });
+
+      // Special case: If userType is missing but it's a customer-only route, 
+      // we might want to check if the ID belongs to a Customer.
+      // For now, we'll just return a clearer error message.
       res.status(403).json({
         success: false,
-        message: 'Access denied. Required user type: ' + userTypes.join(' or '),
-        details: process.env.NODE_ENV === 'development' ? { actual: req.user.userType } : undefined
+        message: `Access denied. Required user type: ${userTypes.join(' or ')}. Your current type: ${userTypeInToken || 'None'}`,
+        details: { 
+          actual: userTypeInToken, 
+          expected: userTypes,
+          suggestion: "Please logout and login again to refresh your session."
+        }
       });
       return;
     }

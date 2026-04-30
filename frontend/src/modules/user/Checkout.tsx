@@ -192,6 +192,10 @@ export default function Checkout() {
   const isPlaceholderUser =
     user?.name === "User" || user?.email?.endsWith("@laxmart.temp");
 
+  // Check if user is logged in as a non-customer (e.g. Seller or Admin)
+  // This helps prevent 403 Forbidden errors when placing orders
+  const isNonCustomer = user && user.userType && user.userType !== "Customer";
+
   // Redirect if empty
   useEffect(() => {
     if (!cartLoading && cart.items.length === 0 && !showOrderSuccess) {
@@ -592,10 +596,15 @@ export default function Checkout() {
       console.error("Order placement failed", error);
       
       // Extract the most descriptive error message
-      const errorMessage =
-        error.response?.data?.message || 
-        error.message || 
-        "Failed to place order. Please try again.";
+      const backendMessage = error.response?.data?.message;
+      const backendDetails = error.response?.data?.details;
+      
+      let errorMessage = backendMessage || error.message || "Failed to place order. Please try again.";
+      
+      // If it's an authorization error, add the suggestion from backend if available
+      if (error.response?.status === 403 && backendDetails?.suggestion) {
+        errorMessage = `${errorMessage} ${backendDetails.suggestion}`;
+      }
       
       // Use the global toast system for a premium experience
       showGlobalToast(errorMessage, "error");
@@ -1204,6 +1213,30 @@ export default function Checkout() {
         </div>
       )}
 
+      {/* Non-Customer Warning */}
+      {isNonCustomer && (
+        <div className="px-4 md:px-6 lg:px-8 py-3 bg-amber-50 border-b border-amber-200 flex gap-3">
+          <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <Zap size={20} className="text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-bold text-amber-900 mb-1">Switch to Customer Account</h4>
+            <p className="text-xs text-amber-700 mb-2">
+              You are currently logged in as a <strong>{user?.userType}</strong>. To place an order, please logout and login again as a Customer.
+            </p>
+            <button 
+              onClick={() => {
+                logout();
+                navigate('/login');
+              }}
+              className="text-xs font-bold text-amber-900 underline underline-offset-2"
+            >
+              Logout and Login
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Product Card */}
       <div className="px-4 md:px-6 lg:px-8 py-2 md:py-3 bg-white border-b border-neutral-200">
         <div className="bg-white rounded-lg border border-neutral-200 p-2.5">
@@ -1547,7 +1580,6 @@ export default function Checkout() {
                       <span className="text-[8px] text-neutral-500">(85)</span>
                     </div>
 
-                    {/* Delivery Time */}
                     <div className="text-[9px] text-neutral-600 mb-0.5">
                       20 MINS
                     </div>
