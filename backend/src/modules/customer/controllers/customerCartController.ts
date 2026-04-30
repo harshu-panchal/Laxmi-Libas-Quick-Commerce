@@ -67,13 +67,22 @@ const calculateDeliveryStuff = async (total: number, items: any[], userLat: numb
                     // Get all sellers involved in the cart
                     const sellerIds = new Set<string>();
                     items.forEach((item: any) => {
-                        if (item.product?.seller) {
-                            sellerIds.add(item.product.seller.toString());
+                        const seller = item.product?.seller;
+                        if (seller) {
+                            const id = typeof seller === 'object' ? (seller._id || seller.id) : seller;
+                            if (id) sellerIds.add(id.toString());
                         }
                     });
 
                     if (sellerIds.size > 0) {
-                        const uniqueSellerIds = Array.from(sellerIds).map(id => new mongoose.Types.ObjectId(id));
+                        const uniqueSellerIds = Array.from(sellerIds)
+                            .filter(id => mongoose.Types.ObjectId.isValid(id))
+                            .map(id => new mongoose.Types.ObjectId(id));
+                        
+                        if (uniqueSellerIds.length === 0) {
+                            return { estimatedDeliveryFee, platformFee, freeDeliveryThreshold };
+                        }
+                        
                         const sellers = await Seller.find({ _id: { $in: uniqueSellerIds } }).select('location latitude longitude');
 
                         const sellerLocations: { lat: number; lng: number }[] = [];

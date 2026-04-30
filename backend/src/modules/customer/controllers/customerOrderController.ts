@@ -178,8 +178,8 @@ export const createOrder = async (req: Request, res: Response) => {
 
         const createdOrders: any[] = [];
         const splitConfigs = [
-            { type: 'quick', items: quickItems, flow: 'auto' },
-            { type: 'ecommerce', items: ecommerceItems, flow: 'courier' }
+            { type: 'quick', items: quickItems, flow: 'instant' },
+            { type: 'standard', items: ecommerceItems, flow: 'courier' }
         ].filter(config => config.items.length > 0);
 
         for (const config of splitConfigs) {
@@ -208,8 +208,8 @@ export const createOrder = async (req: Request, res: Response) => {
                 total: 0,
                 items: [],
                 parentOrderId: parentOrderId,
-                orderType: config.type,
-                deliveryFlow: config.flow,
+                orderType: config.type as 'quick' | 'standard',
+                deliveryType: config.flow as 'instant' | 'courier',
                 type: 'product',
                 deliveryInstructions: deliveryInstructions || '',
             });
