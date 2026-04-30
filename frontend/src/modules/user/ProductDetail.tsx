@@ -47,6 +47,7 @@ export default function ProductDetail() {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showSizeChart, setShowSizeChart] = useState(false);
 
   // Sharing hook
   const {
@@ -761,7 +762,10 @@ export default function ProductDetail() {
                 <span className="text-sm font-semibold text-neutral-900">
                   Selected Size: <span className="bg-neutral-100 px-2 py-0.5 rounded text-xs ml-1">{variantTitle}</span>
                 </span>
-                <button className="text-primary-dark text-xs font-bold hover:underline">
+                <button 
+                  onClick={() => setShowSizeChart(true)}
+                  className="text-primary-dark text-xs font-bold hover:underline"
+                >
                   Size Chart
                 </button>
               </div>
@@ -984,51 +988,55 @@ export default function ProductDetail() {
                 </svg>
               </button>
               {isHighlightsExpanded && (
-                <div className="bg-white px-2 py-2">
-                  <div className="space-y-1.5">
+                <div className="bg-white px-3 py-3">
+                  <div className="space-y-3">
+                    {/* Primary Product Attributes */}
+                    {[
+                      { label: "Fabric", value: product.fabric },
+                      { label: "Material", value: product.material },
+                      { label: "Gender", value: product.gender },
+                      { label: "Pattern", value: product.pattern },
+                      { label: "Fit", value: product.fit },
+                      { label: "Occasion", value: product.occasion },
+                      { label: "Sleeve", value: product.sleeve },
+                      { label: "Neck", value: product.neck },
+                      { label: "Weight", value: product.weight },
+                      { label: "Age Group", value: product.ageGroup },
+                    ].filter(item => item.value).map((item, idx) => (
+                      <div key={idx} className="flex items-start border-b border-neutral-50 pb-1.5 last:border-0">
+                        <span className="text-xs font-semibold text-neutral-500 w-28 flex-shrink-0">
+                          {item.label}:
+                        </span>
+                        <span className="text-xs text-neutral-800 font-medium">
+                          {item.value}
+                        </span>
+                      </div>
+                    ))}
+
                     {product.tags && product.tags.length > 0 && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
+                      <div className="flex items-start border-b border-neutral-50 pb-1.5">
+                        <span className="text-xs font-semibold text-neutral-500 w-28 flex-shrink-0">
                           Key Features:
                         </span>
-                        <span className="text-xs text-neutral-600">
+                        <span className="text-xs text-neutral-800 font-medium">
                           {product.tags.map((tag: string, index: number) => (
                             <span key={tag}>
-                              {tag
-                                .replace(/-/g, " ")
-                                .split(" ")
-                                .map(
-                                  (word: string) =>
-                                    word.charAt(0).toUpperCase() +
-                                    word.slice(1),
-                                )
-                                .join(" ")}
-                              {index < (product.tags?.length || 0) - 1
-                                ? ", "
-                                : ""}
+                              {tag.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                              {index < (product.tags?.length || 0) - 1 ? ", " : ""}
                             </span>
                           ))}
                         </span>
                       </div>
                     )}
+                    
                     <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
+                      <span className="text-xs font-semibold text-neutral-500 w-28 flex-shrink-0">
                         Source:
                       </span>
-                      <span className="text-xs text-neutral-600">
+                      <span className="text-xs text-neutral-800 font-medium">
                         {product.madeIn || "From India"}
                       </span>
                     </div>
-                    {category && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          Category:
-                        </span>
-                        <span className="text-xs text-neutral-600">
-                          {category.name}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -1062,106 +1070,63 @@ export default function ProductDetail() {
                 </svg>
               </button>
               {isInfoExpanded && (
-                <div className="bg-white px-2 py-2">
-                  <div className="space-y-1.5">
+                <div className="bg-white px-3 py-3">
+                  <div className="space-y-3">
                     {product.description && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
+                      <div className="flex flex-col gap-1.5 border-b border-neutral-50 pb-3">
+                        <span className="text-xs font-semibold text-neutral-500">
                           Description:
                         </span>
-                        <span className="text-xs text-neutral-600 leading-relaxed flex-1">
+                        <span className="text-xs text-neutral-800 leading-relaxed">
                           {product.description}
                         </span>
                       </div>
                     )}
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Unit:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        {product.pack}
-                      </span>
-                    </div>
-                    {product.fssaiLicNo && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          FSSAI License:
+                    
+                    {/* Dynamic Category-Specific Fields */}
+                    {[
+                      { label: "Model Name", value: product.modelName },
+                      { label: "Manufacturer", value: product.manufacturer },
+                      { label: "FSSAI License", value: product.fssaiLicNo },
+                      { label: "Unit", value: product.pack },
+                      { label: "Prep Time", value: product.prepTime },
+                      { label: "Ingredients", value: product.ingredients },
+                      { label: "Warranty", value: product.warranty },
+                      { label: "BHK", value: product.bhk },
+                      { label: "Area Size", value: product.areaSize },
+                      { label: "Experience", value: product.experience },
+                      { label: "Contact", value: product.contactNumber },
+                    ].filter(item => item.value).map((item, idx) => (
+                      <div key={idx} className="flex items-start border-b border-neutral-50 pb-1.5 last:border-0">
+                        <span className="text-xs font-semibold text-neutral-500 w-28 flex-shrink-0">
+                          {item.label}:
                         </span>
-                        <span className="text-xs text-neutral-600">
-                          {product.fssaiLicNo}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Shelf Life:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        Refer to package
-                      </span>
-                    </div>
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Disclaimer:
-                      </span>
-                      <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                        Every effort is made to maintain accuracy of all
-                        Information. However, actual product packaging and
-                        materials may contain more and/or different information.
-                        It is recommended not to solely rely on the information
-                        presented.
-                      </span>
-                    </div>
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Customer Care Details:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        Email: help@laxmart.com
-                      </span>
-                    </div>
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Country of Origin:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        {product.madeIn || "India"}
-                      </span>
-                    </div>
-                    {product.manufacturer && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          Manufacturer:
-                        </span>
-                        <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                          {product.manufacturer}
+                        <span className="text-xs text-neutral-800 font-medium">
+                          {item.value}
                         </span>
                       </div>
-                    )}
-                    {/* Marketer same as manufacturer if not present, or hidden */}
+                    ))}
 
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
+                    <div className="flex items-start pt-1">
+                      <span className="text-xs font-semibold text-neutral-500 w-28 flex-shrink-0">
                         Return Policy:
                       </span>
-                      <span className="text-xs text-neutral-600 leading-relaxed flex-1">
+                      <span className="text-xs text-neutral-800 font-medium">
                         {product.isReturnable
-                          ? `This product is returnable within ${product.maxReturnDays || 2
-                          } days.`
+                          ? `Returnable within ${product.maxReturnDays || 2} days.`
                           : "This product is non-returnable."}
                       </span>
                     </div>
-                    {product.sellerId && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          Seller:
-                        </span>
-                        <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                          LaxMart Partner (
-                          {product.sellerId.slice(-6).toUpperCase()})
-                        </span>
-                      </div>
-                    )}
+
+                    <div className="flex items-start pt-1">
+                      <span className="text-xs font-semibold text-neutral-500 w-28 flex-shrink-0">
+                        Disclaimer:
+                      </span>
+                      <span className="text-[10px] text-neutral-500 italic leading-relaxed">
+                        Actual product packaging and materials may contain more or different information. 
+                        It is recommended not to solely rely on the information presented.
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1462,6 +1427,84 @@ export default function ProductDetail() {
         shareData={shareData}
         onCopyPath={copyToClipboard}
       />
+      {/* Size Chart Modal */}
+      <AnimatePresence>
+        {showSizeChart && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSizeChart(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl relative z-10"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-neutral-100">
+                <h3 className="text-lg font-bold text-neutral-900">Standard Size Chart</h3>
+                <button
+                  onClick={() => setShowSizeChart(false)}
+                  className="w-8 h-8 flex items-center justify-center bg-neutral-100 rounded-full text-neutral-500"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-6">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left border-collapse">
+                    <thead>
+                      <tr className="bg-neutral-50 text-neutral-600 font-bold">
+                        <th className="p-3 border border-neutral-200">Size</th>
+                        <th className="p-3 border border-neutral-200">Chest (in)</th>
+                        <th className="p-3 border border-neutral-200">Length (in)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="p-3 border border-neutral-200 font-bold">S</td>
+                        <td className="p-3 border border-neutral-200">38</td>
+                        <td className="p-3 border border-neutral-200">27</td>
+                      </tr>
+                      <tr className="bg-neutral-50/30">
+                        <td className="p-3 border border-neutral-200 font-bold">M</td>
+                        <td className="p-3 border border-neutral-200">40</td>
+                        <td className="p-3 border border-neutral-200">28</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 border border-neutral-200 font-bold">L</td>
+                        <td className="p-3 border border-neutral-200">42</td>
+                        <td className="p-3 border border-neutral-200">29</td>
+                      </tr>
+                      <tr className="bg-neutral-50/30">
+                        <td className="p-3 border border-neutral-200 font-bold">XL</td>
+                        <td className="p-3 border border-neutral-200">44</td>
+                        <td className="p-3 border border-neutral-200">30</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 border border-neutral-200 font-bold">XXL</td>
+                        <td className="p-3 border border-neutral-200">46</td>
+                        <td className="p-3 border border-neutral-200">31</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-4 text-xs text-neutral-500 italic text-center">
+                  * Measurements may vary slightly by ±0.5 inches.
+                </p>
+              </div>
+              <div className="p-4 bg-neutral-50">
+                <Button onClick={() => setShowSizeChart(false)} className="w-full">
+                  Close Chart
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
