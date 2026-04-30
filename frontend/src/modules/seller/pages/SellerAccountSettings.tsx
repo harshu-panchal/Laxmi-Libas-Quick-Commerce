@@ -381,8 +381,8 @@ const SellerAccountSettings = () => {
                                                                 name="category"
                                                                 value={sellerData.category}
                                                                 onChange={handleInputChange}
-                                                                disabled={true} // Locked as per category-locked registration rule
-                                                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none bg-gray-50/50 text-gray-500 cursor-not-allowed transition-all appearance-none"
+                                                                disabled={!isEditing} // Unlocked to allow sellers to update their primary category
+                                                                className={`w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all appearance-none ${!isEditing ? 'bg-gray-50/50 text-gray-500 cursor-default' : 'bg-white'}`}
                                                             >
                                                                 <option value="">Select Category</option>
                                                                 {categories.map(cat => (

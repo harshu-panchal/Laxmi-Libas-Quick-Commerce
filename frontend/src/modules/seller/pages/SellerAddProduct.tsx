@@ -143,38 +143,6 @@ export default function SellerAddProduct() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [variations, setVariations] = useState<ProductVariation[]>([]);
 
-  // Separate useEffect to handle auto-fill when categories and user profile are ready
-  useEffect(() => {
-    if (id || !user || categories.length === 0) return;
-
-    if (sellerCatId || isSuperSeller) {
-      const allowedCatIds = (Array.isArray(user.categories) ? user.categories : [sellerCatId])
-        .map(c => typeof c === 'string' ? c : (c?._id || (c as any).id))
-        .filter(Boolean);
-      
-      // Filter available categories to only those allowed for this seller
-      const sellerAllowedCats = categories.filter((c: any) => 
-        allowedCatIds.includes(c._id || (c as any).id)
-      );
-
-      if (sellerAllowedCats.length > 0) {
-        // If only one category, auto-select it
-        if (sellerAllowedCats.length === 1 && !formData.category) {
-          const sellerCat = sellerAllowedCats[0];
-          setCategoryName(sellerCat.name);
-          const headerId = typeof sellerCat.headerCategoryId === 'string'
-            ? sellerCat.headerCategoryId
-            : (sellerCat.headerCategoryId?._id || sellerCat.headerCategoryId?.id);
-
-          setFormData(prev => ({
-            ...prev,
-            category: (sellerCat._id || (sellerCat as any).id)?.toString() || '',
-            headerCategory: headerId?.toString() || prev.headerCategory || ''
-          }));
-        }
-      }
-    }
-  }, [user, categories, isSuperSeller, id, sellerCatId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -956,42 +924,16 @@ export default function SellerAddProduct() {
                     name="headerCategory"
                     value={formData.headerCategory}
                     onChange={handleChange}
-                    disabled={!isSuperSeller && user?.userType !== "Admin" && !!(user && (!user.categories || user.categories.length <= 1) && (user.category || user.categoryId) && formData.headerCategory)}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed">
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
                     <option value="">Select Header Category</option>
-                    {(() => {
-                        if (!user || isSuperSeller || user?.userType === "Admin") return headerCategories;
-
-                        // 1. Get seller's allowed category IDs
-                        const allowedCatIds = (Array.isArray(user.categories) ? user.categories : [user.category || (user as any).categoryId])
-                          .map(c => typeof c === 'string' ? c : (c?._id || (c as any).id))
-                          .filter(Boolean);
-
-                        // 2. Find which header IDs are linked to these categories
-                        const linkedHeaderIds = new Set<string>();
-                        categories.forEach(cat => {
-                          const catId = (cat._id || (cat as any).id)?.toString();
-                          if (catId && allowedCatIds.some(id => id?.toString() === catId)) {
-                            const hid = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString();
-                            if (hid) linkedHeaderIds.add(hid);
-                          }
-                        });
-
-                        // 3. Filter the headers
-                        const filtered = headerCategories.filter(hc => 
-                          linkedHeaderIds.has((hc._id || (hc as any).id)?.toString() || "")
-                        );
-
-                        // Fallback: If no match found (due to missing links in DB), show all to avoid blocking the user
-                        return filtered.length > 0 ? filtered : headerCategories;
-                      })().map((headerCat) => (
+                    {headerCategories.map((headerCat) => (
                         <option key={headerCat._id || (headerCat as any).id} value={headerCat._id || (headerCat as any).id}>
                           {headerCat.name}
                         </option>
                       ))}
                   </select>
                   <p className="text-[10px] text-teal-600 mt-1 italic font-medium">
-                    {user?.categories?.length > 1 ? "Select from your assigned business headers" : "Auto-filled from your store profile"}
+                    Select the business header for your product
                   </p>
                 </div>
                 <div>
@@ -1007,94 +949,24 @@ export default function SellerAddProduct() {
                     name="category"
                     value={formData.category}
                     onChange={handleChange}
-                    disabled={!isSuperSeller && user?.userType !== "Admin" && !!(user && (!user.categories || user.categories.length <= 1) && (user.category || user.categoryId) && formData.category)}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed">
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
                     <option value="">Select Category</option>
-                    {(() => {
-                      // DEBUG: Log all data to find the mismatch
-                      console.log('[CategoryDropdown] user:', user?.userType, 'isSuperSeller:', isSuperSeller);
-                      console.log('[CategoryDropdown] user.categories:', user?.categories);
-                      console.log('[CategoryDropdown] user.category:', user?.category, 'user.categoryId:', (user as any)?.categoryId);
-                      console.log('[CategoryDropdown] formData.headerCategory:', formData.headerCategory);
-                      console.log('[CategoryDropdown] Total categories from API:', categories.length);
-                      categories.forEach((cat: any) => {
-                        const hid = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString();
-                        console.log(`  [Cat] ${cat.name} | _id: ${cat._id} | headerCategoryId: ${hid}`);
-                      });
-
-                      // 1. Admin/SuperSeller — just filter by header
-                      if (!user || isSuperSeller || user?.userType === "Admin") {
-                        const result = categories.filter(cat => {
-                          if (!formData.headerCategory) return true;
-                          const catHeaderId = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString().trim();
-                          return catHeaderId === formData.headerCategory.toString().trim();
-                        });
-                        console.log('[CategoryDropdown] Admin/Super path, result count:', result.length);
-                        return result;
-                      }
-
-                      // 2. Seller path
-                      const rawCats = user.categories || [];
-                      const singleCat = user.category || (user as any).categoryId;
-                      const catSource = Array.isArray(rawCats) && rawCats.length > 0 ? rawCats : (singleCat ? [singleCat] : []);
-                      const allowedCatIds = catSource
-                        .map((c: any) => typeof c === 'string' ? c : (c?._id || c?.id))
-                        .filter(Boolean)
-                        .map((id: any) => id.toString().trim());
-
-                      console.log('[CategoryDropdown] Seller allowedCatIds:', allowedCatIds);
-
-                      // If seller has NO category restrictions at all, show everything for the selected header
-                      if (allowedCatIds.length === 0) {
-                        console.log('[CategoryDropdown] No restrictions, showing all for header');
-                        if (!formData.headerCategory) return categories;
-                        const headerMatch = formData.headerCategory.toString().trim();
-                        return categories.filter(cat => {
-                          const catHeaderId = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString().trim();
-                          return catHeaderId === headerMatch;
-                        });
-                      }
-
-                      // Seller HAS restrictions — filter by allowed + header
-                      let filtered = categories.filter(cat => {
-                        const catId = (cat._id || (cat as any).id)?.toString().trim();
-                        if (!allowedCatIds.includes(catId)) return false;
+                    {categories
+                      .filter(cat => {
                         if (!formData.headerCategory) return true;
                         const catHeaderId = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString().trim();
                         return catHeaderId === formData.headerCategory.toString().trim();
-                      });
-
-                      // FAIL-SAFE: If strict filtering gives 0 results, just show seller's allowed categories (ignore header mismatch)
-                      if (filtered.length === 0 && allowedCatIds.length > 0) {
-                        console.warn('[CategoryDropdown] FAIL-SAFE: Strict filter gave 0, showing all allowed categories');
-                        filtered = categories.filter(cat => {
-                          const catId = (cat._id || (cat as any).id)?.toString().trim();
-                          return allowedCatIds.includes(catId);
-                        });
-                      }
-
-                      // ULTIMATE FAIL-SAFE: If STILL 0, show all categories for the selected header
-                      if (filtered.length === 0 && formData.headerCategory) {
-                        console.warn('[CategoryDropdown] ULTIMATE FAIL-SAFE: Showing ALL categories for header');
-                        const headerMatch = formData.headerCategory.toString().trim();
-                        filtered = categories.filter(cat => {
-                          const catHeaderId = (typeof cat.headerCategoryId === 'string' ? cat.headerCategoryId : cat.headerCategoryId?._id)?.toString().trim();
-                          return catHeaderId === headerMatch;
-                        });
-                      }
-
-                      console.log('[CategoryDropdown] Final result count:', filtered.length);
-                      return filtered;
-                    })().map((cat: any) => (
-                      <option
-                        key={cat._id || cat.id}
-                        value={cat._id || cat.id}>
-                        {cat.name === 'Room Rent' ? 'Rent' : cat.name}
-                      </option>
-                    ))}
+                      })
+                      .map((cat: any) => (
+                        <option
+                          key={cat._id || cat.id}
+                          value={cat._id || cat.id}>
+                          {cat.name === 'Room Rent' ? 'Rent' : cat.name}
+                        </option>
+                      ))}
                   </select>
                   <p className="text-[10px] text-teal-600 mt-1 italic font-medium">
-                    {user?.categories?.length > 1 ? "Select from your assigned categories" : "Your assigned business category"}
+                    Select any category for your product
                   </p>
                 </div>
                 <div>

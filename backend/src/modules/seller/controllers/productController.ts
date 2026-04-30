@@ -32,7 +32,7 @@ export const createProduct = asyncHandler(
       productVideoUrl: productData.productVideoUrl, // Map productVideoUrl
     };
 
-    // Strict Category Validation: Ensure product category matches one of seller's assigned categories
+    // Fetch seller for status check and auto-population
     const SellerModel = require("../../../models/Seller").default;
     const seller = await SellerModel.findById(sellerId);
     
@@ -47,20 +47,7 @@ export const createProduct = asyncHandler(
       });
     }
 
-    const isSuperSeller = seller.mobile === "9111966732";
-    const requestedCategoryId = newProductData.category;
-
-    if (!isSuperSeller) {
-      const allowedCategories = seller.categories || (seller.category ? [seller.category] : []);
-      const isAllowed = allowedCategories.some((id: any) => id.toString() === requestedCategoryId?.toString());
-
-      if (!isAllowed) {
-        return res.status(403).json({
-          success: false,
-          message: "You can only upload products for your assigned categories",
-        });
-      }
-    }
+    // Category Restriction Removed: Sellers can now upload products for any category
 
     // Auto-populate headerCategoryId from Category if missing
     if (!newProductData.headerCategoryId && newProductData.category) {
@@ -368,7 +355,7 @@ export const updateProduct = asyncHandler(
       updateData.productVideoUrl = null;
     }
 
-    // Strict Category Validation for updates
+    // Fetch seller for status check
     const SellerModel = require("../../../models/Seller").default;
     const seller = await SellerModel.findById(sellerId);
     
@@ -383,20 +370,7 @@ export const updateProduct = asyncHandler(
       });
     }
 
-    const isSuperSeller = seller.mobile === "9111966732";
-    const requestedCategoryId = updateData.category;
-
-    if (requestedCategoryId && !isSuperSeller) {
-      const allowedCategories = seller.categories || (seller.category ? [seller.category] : []);
-      const isAllowed = allowedCategories.some((id: any) => id.toString() === requestedCategoryId.toString());
-
-      if (!isAllowed) {
-        return res.status(403).json({
-          success: false,
-          message: "You cannot change the product category to one outside your assignment",
-        });
-      }
-    }
+    // Category Restriction Removed: Sellers can now update products to any category
 
     // Auto-populate headerCategoryId from Category if missing or empty
     if (!updateData.headerCategoryId && (updateData.category || seller.category)) {
