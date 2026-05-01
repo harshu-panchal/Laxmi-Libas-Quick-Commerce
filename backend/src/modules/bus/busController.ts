@@ -3,7 +3,7 @@ import Bus from '../../models/Bus';
 import BusRoute from '../../models/BusRoute';
 import BusSchedule from '../../models/BusSchedule';
 import BusBooking from '../../models/BusBooking';
-import { PDFService } from '../../services/PDFService';
+import { PDFService } from '../../services/pdfService';
 import { asyncHandler } from '../../utils/asyncHandler';
 import mongoose from 'mongoose';
 import { normalizeCity, calculateDistance } from '../../utils/locationUtils';

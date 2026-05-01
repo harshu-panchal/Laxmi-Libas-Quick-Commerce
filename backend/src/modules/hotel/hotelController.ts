@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import Hotel from '../../models/Hotel';
 import HotelRoom from '../../models/HotelRoom';
 import HotelBooking from '../../models/HotelBooking';
-import { PDFService } from '../../services/PDFService';
+import { PDFService } from '../../services/pdfService';
 import { asyncHandler } from '../../utils/asyncHandler';
 import axios from 'axios';
 import { normalizeCity, calculateDistance } from '../../utils/locationUtils';
