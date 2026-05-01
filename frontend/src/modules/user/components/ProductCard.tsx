@@ -42,12 +42,9 @@ export default function ProductCard({
   compact = false,
   categoryStyle = false,
 }: ProductCardProps) {
-  // Global check to hide mock/placeholder products (like the 'jeans' 200/50 card or truck icon)
+  // Global check to hide placeholder products
   const isMockProduct = 
-    ((product.name?.toLowerCase() === 'jeans' || (product as any).productName?.toLowerCase() === 'jeans') && 
-     (Number(product.price) === 200 || Number(product.price) === 50 || Number((product as any).originalPrice) === 200)) ||
-    ((product.imageUrl || "").includes('10mins_icon_pink') || (product.mainImage || "").includes('10mins_icon_pink') || 
-     (product.imageUrl || "").includes('truck') || (product.mainImage || "").includes('truck'));
+    ((product.imageUrl || "").includes('10mins_icon_pink') || (product.mainImage || "").includes('10mins_icon_pink'));
 
   if (isMockProduct) return null;
 
@@ -316,6 +313,12 @@ export default function ProductCard({
 
           <div className="flex items-center justify-between mt-auto pt-1">
             <div className="flex flex-col">
+              {/* Seller Name */}
+              {(product.seller?.storeName || (product.seller as any)?.name) && (
+                <span className="text-[8px] text-indigo-500 font-bold uppercase tracking-tight mb-0.5">
+                  Sold by: {product.seller?.storeName || (product.seller as any)?.name}
+                </span>
+              )}
               <div className="flex items-center gap-1">
                 <span className="text-[13px] md:text-[15px] font-black text-neutral-900">
                   ₹{displayPrice}
@@ -326,9 +329,14 @@ export default function ProductCard({
                   </span>
                 )}
               </div>
-              {product.pack && (
+              {(product.pack || product.variations?.[0]?.title) && (
                 <span className="text-[9px] text-neutral-400 font-medium">
-                  {product.pack}
+                  {product.pack || product.variations?.[0]?.title || product.variations?.[0]?.value}
+                </span>
+              )}
+              {product.variations && product.variations.length > 1 && (
+                <span className="text-[8px] font-black text-indigo-600 uppercase tracking-tighter mt-0.5">
+                  {product.variations.length} Options
                 </span>
               )}
             </div>

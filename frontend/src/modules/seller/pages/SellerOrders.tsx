@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getOrders, Order, GetOrdersParams } from '../../../services/api/orderService';
+import { useSellerSocket } from '../hooks/useSellerSocket';
 
 
 type SortField = 'orderId' | 'deliveryDate' | 'orderDate' | 'status' | 'amount';
@@ -10,6 +11,14 @@ export default function SellerOrders() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Listen for real-time notifications
+  useSellerSocket((notification) => {
+    if (notification.type === 'NEW_ORDER') {
+      setRefreshTrigger(prev => prev + 1);
+    }
+  });
   const [error, setError] = useState<string>('');
   const [dateRange, setDateRange] = useState('');
   const [status, setStatus] = useState('All Status');
@@ -67,7 +76,7 @@ export default function SellerOrders() {
     };
 
     fetchOrders();
-  }, [dateRange, status, entriesPerPage, searchQuery, currentPage, sortField, sortDirection, activeTab]);
+  }, [dateRange, status, entriesPerPage, searchQuery, currentPage, sortField, sortDirection, activeTab, refreshTrigger]);
 
   const handleClearDate = () => {
     setDateRange('');

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getOrderDetails, updateOrderStatus, getSellerLocationsForOrder, sendDeliveryOtp, verifyDeliveryOtp, updateDeliveryLocation, checkSellerProximity, confirmSellerPickup, checkCustomerProximity } from '../../../services/api/delivery/deliveryService';
+import { getOrderDetails, updateOrderStatus, getSellerLocationsForOrder, sendDeliveryOtp, verifyDeliveryOtp, updateDeliveryLocation, checkSellerProximity, confirmSellerPickup, checkCustomerProximity, acceptOrder, rejectOrder } from '../../../services/api/delivery/deliveryService';
 import deliveryIcon from '@assets/deliveryboy/deliveryIcon.png';
 import GoogleMapsTracking from '../../../components/GoogleMapsTracking';
+import { toast } from 'react-hot-toast';
 
 // Helper to get delivery icon URL (works in both dev and production)
 const getDeliveryIconUrl = () => {
@@ -515,25 +516,67 @@ export default function DeliveryOrderDetail() {
         );
     }
 
-    const statusFlow: DeliveryOrderStatus[] = ['Received', 'Accepted', 'Picked up', 'Out for Delivery', 'Delivered'];
+    const statusFlow: DeliveryOrderStatus[] = ['Received', 'Accepted', 'Assigned', 'Ready for pickup', 'Picked up', 'Out for Delivery', 'Delivered'];
 
     let currentStatusIndex = statusFlow.indexOf(order.status as DeliveryOrderStatus);
-    // Handle cases where status might not be in the flow (e.g. Cancelled)
-    if (currentStatusIndex === -1 && (order.status === 'Cancelled' || order.status === 'Returned')) {
-        // Maybe show a different UI for cancelled/returned orders
+    
+    // Fallback/Correction for Assigned vs Accepted
+    if (order.status === 'Accepted' && order.deliveryBoy) {
+        currentStatusIndex = statusFlow.indexOf('Assigned');
+    }
+    
+    if (currentStatusIndex === -1 && (order.status === 'Cancelled' || order.status === 'Returned' || order.status === 'Rejected')) {
         currentStatusIndex = -1;
     }
 
-    const handleStatusChange = async (newStatus: DeliveryOrderStatus) => {
+    const handleAcceptOrder = async () => {
         if (!id) return;
         try {
-            setLoading(true); // Or use a separate loading state for the action
+            setLoading(true);
+            const result = await acceptOrder(id);
+            if (result.success) {
+                toast.success('Order accepted successfully!');
+                await fetchOrder();
+            } else {
+                toast.error(result.message || 'Failed to accept order');
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'Error accepting order');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRejectOrder = async () => {
+        if (!id) return;
+        if (!window.confirm('Are you sure you want to reject this order?')) return;
+        try {
+            setLoading(true);
+            const result = await rejectOrder(id);
+            toast.success('Order rejected');
+            navigate('/delivery/dashboard');
+        } catch (err: any) {
+            toast.error(err.message || 'Error rejecting order');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleStatusChange = async (newStatus: DeliveryOrderStatus) => {
+        if (!id) return;
+        
+        // Special case for accepting if status is Accepted but no delivery boy assigned
+        if (newStatus === 'Assigned' || (order.status === 'Accepted' && !order.deliveryBoy)) {
+            await handleAcceptOrder();
+            return;
+        }
+
+        try {
+            setLoading(true);
             const updatedOrder = await updateOrderStatus(id, newStatus);
-            // Verify the update was successful and update local state
             if (updatedOrder && updatedOrder.data) {
                 setOrder(updatedOrder.data);
             } else {
-                // Fallback - re-fetch everything
                 await fetchOrder();
             }
         } catch (err: any) {
@@ -575,7 +618,7 @@ export default function DeliveryOrderDetail() {
                 <div className="ml-auto">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.status === 'Delivered' ? 'bg-yellow-100 text-yellow-700' :
                         order.status === 'Picked up' ? 'bg-indigo-100 text-indigo-700' :
-                            order.status === 'Accepted' || order.status === 'Ready for pickup' ? 'bg-yellow-100 text-yellow-700' :
+                            order.status === 'Accepted' || order.status === 'Assigned' || order.status === 'Ready for pickup' ? 'bg-yellow-100 text-yellow-700' :
                                 order.status === 'Received' ? 'bg-blue-100 text-blue-700' :
                                     'bg-orange-100 text-orange-700'
                         }`}>
@@ -848,18 +891,44 @@ export default function DeliveryOrderDetail() {
                 {/* Main Action Button - Now much more prominent below goal */}
                 {nextStatus && order.status !== 'Out for Delivery' && !showOtpInput && (
                     <div className="pt-2">
-                        <button
-                            onClick={() => handleStatusChange(nextStatus)}
-                            className="w-full py-5 rounded-3xl bg-neutral-900 text-white font-bold text-xl shadow-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all hover:bg-black ring-offset-2 ring-2 ring-black/5"
-                            disabled={loading}
-                        >
-                            {loading ? 'Updating...' :
-                                nextStatus === 'Accepted' ? 'Accept Order' :
-                                    nextStatus === 'Picked up' ? 'Mark as Picked Up' :
-                                        nextStatus === 'Out for Delivery' ? 'Start Delivery Journey' :
-                                            `Set to ${nextStatus}`}
-                            {!loading && <Icons.ChevronLeft className="rotate-180" size={20} />}
-                        </button>
+                        {order.status === 'Accepted' && !order.deliveryBoy ? (
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={handleRejectOrder}
+                                    className="flex-1 py-5 rounded-3xl bg-red-100 text-red-600 font-bold text-xl shadow-lg flex items-center justify-center gap-3 active:scale-[0.98] transition-all hover:bg-red-200"
+                                    disabled={loading}
+                                >
+                                    Reject
+                                </button>
+                                <button
+                                    onClick={handleAcceptOrder}
+                                    className="flex-[2] py-5 rounded-3xl bg-neutral-900 text-white font-bold text-xl shadow-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all hover:bg-black ring-offset-2 ring-2 ring-black/5"
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Accepting...' : 'Accept Order'}
+                                    {!loading && <Icons.ChevronLeft className="rotate-180" size={20} />}
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => handleStatusChange(nextStatus)}
+                                className={`w-full py-5 rounded-3xl font-bold text-xl shadow-2xl flex items-center justify-center gap-3 transition-all ring-offset-2 ring-2 ring-black/5 ${
+                                    nextStatus === 'Ready for pickup' 
+                                    ? 'bg-neutral-200 text-neutral-500 cursor-not-allowed' 
+                                    : 'bg-neutral-900 text-white hover:bg-black active:scale-[0.98]'
+                                }`}
+                                disabled={loading || nextStatus === 'Ready for pickup'}
+                            >
+                                {loading ? 'Updating...' :
+                                    nextStatus === 'Accepted' || nextStatus === 'Assigned' ? 'Accept Order' :
+                                        nextStatus === 'Ready for pickup' ? 'Waiting for Seller to Pack' :
+                                        nextStatus === 'Picked up' ? 'Mark as Picked Up' :
+                                            nextStatus === 'Out for Delivery' ? 'Start Delivery Journey' :
+                                                `Set to ${nextStatus}`}
+                                {!loading && nextStatus !== 'Ready for pickup' && <Icons.ChevronLeft className="rotate-180" size={20} />}
+                                {!loading && nextStatus === 'Ready for pickup' && <Icons.Clock size={20} />}
+                            </button>
+                        )}
                     </div>
                 )}
 

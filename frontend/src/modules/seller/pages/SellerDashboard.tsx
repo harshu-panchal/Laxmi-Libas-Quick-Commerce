@@ -23,6 +23,8 @@ import {
   LayoutDashboard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSellerSocket } from '../hooks/useSellerSocket';
+import { toast } from 'react-hot-toast';
 
 export default function SellerDashboard() {
   const navigate = useNavigate();
@@ -31,6 +33,18 @@ export default function SellerDashboard() {
   const [newOrders, setNewOrders] = useState<NewOrder[]>([]);
   const [inventoryInsights, setInventoryInsights] = useState<InventoryInsights | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Listen for real-time notifications
+  useSellerSocket((notification) => {
+    if (notification.type === 'NEW_ORDER') {
+      toast.success(`New Order Received! #${notification.orderNumber || notification.orderId}`, {
+        duration: 5000,
+        position: 'top-right',
+      });
+      setRefreshTrigger(prev => prev + 1);
+    }
+  });
   const [error, setError] = useState<string | null>(null);
   const [isShopOpen, setIsShopOpen] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
@@ -81,7 +95,7 @@ export default function SellerDashboard() {
       }
     };
     fetchDashboardData();
-  }, [user?.status, analyticsPeriod]);
+  }, [user?.status, analyticsPeriod, refreshTrigger]);
 
   const handleToggleShop = async () => {
     try {

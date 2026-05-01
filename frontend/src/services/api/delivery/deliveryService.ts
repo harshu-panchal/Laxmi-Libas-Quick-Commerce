@@ -87,6 +87,24 @@ export const updateOrderStatus = async (id: string, status: string) => {
   }
 };
 
+export const acceptOrder = async (id: string) => {
+  try {
+    const response = await api.post(`${BASE_URL}/orders/${id}/accept`);
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+export const rejectOrder = async (id: string) => {
+  try {
+    const response = await api.post(`${BASE_URL}/orders/${id}/reject`);
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
 export const getSellerLocationsForOrder = async (id: string) => {
   try {
     const response = await api.get(`${BASE_URL}/orders/${id}/seller-locations`);

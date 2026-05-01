@@ -871,7 +871,11 @@ export default function AdminManageSellerList() {
                                         </div>
                                         <div>
                                             <label className="text-xs text-neutral-500">Category</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.category || 'N/A'}</p>
+                                            <p className="text-sm font-medium text-neutral-900">
+                                                {typeof editingSeller.category === 'object' 
+                                                    ? (editingSeller.category as any).name 
+                                                    : (editingSeller.category || 'N/A')}
+                                            </p>
                                         </div>
                                         <div>
                                             <label className="text-xs text-neutral-500 mb-1 block">Commission Rate (%)</label>
@@ -1086,7 +1090,7 @@ export default function AdminManageSellerList() {
                                                     key={index}
                                                     className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800"
                                                 >
-                                                    {category}
+                                                    {typeof category === 'object' ? (category as any).name : category}
                                                 </span>
                                             ))}
                                         </div>

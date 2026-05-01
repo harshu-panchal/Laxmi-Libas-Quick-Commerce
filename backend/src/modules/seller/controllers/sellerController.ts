@@ -24,8 +24,10 @@ export const getAllSellers = asyncHandler(
     }
 
     const sellers = await Seller.find(query)
-      .select("-password") // Exclude password
-      .sort({ createdAt: -1 }); // Sort by newest first
+      .select("-password")
+      .populate("category", "name")
+      .populate("categories", "name")
+      .sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
@@ -42,7 +44,10 @@ export const getSellerById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    const seller = await Seller.findById(id).select("-password");
+    const seller = await Seller.findById(id)
+      .select("-password")
+      .populate("category", "name")
+      .populate("categories", "name");
 
     if (!seller) {
       return res.status(404).json({
@@ -78,7 +83,10 @@ export const updateSellerStatus = asyncHandler(
       id,
       { status },
       { new: true, runValidators: true }
-    ).select("-password");
+    )
+      .select("-password")
+      .populate("category", "name")
+      .populate("categories", "name");
 
     if (!seller) {
       return res.status(404).json({
@@ -153,7 +161,10 @@ export const updateSeller = asyncHandler(
     const seller = await Seller.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
-    }).select("-password");
+    })
+      .select("-password")
+      .populate("category", "name")
+      .populate("categories", "name");
 
     if (!seller) {
       return res.status(404).json({

@@ -32,8 +32,8 @@ export default function ProductDetail() {
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const [isProductDetailsExpanded, setIsProductDetailsExpanded] =
     useState(false);
-  const [isHighlightsExpanded, setIsHighlightsExpanded] = useState(false);
-  const [isInfoExpanded, setIsInfoExpanded] = useState(false);
+  const [isHighlightsExpanded, setIsHighlightsExpanded] = useState(true);
+  const [isInfoExpanded, setIsInfoExpanded] = useState(true);
 
   const [product, setProduct] = useState<any>(null);
   const [similarProducts, setSimilarProducts] = useState<any[]>([]);
@@ -715,6 +715,13 @@ export default function ProductDetail() {
             {product.name}
           </h2>
 
+          {/* Seller Name */}
+          {(product.seller?.storeName || (product.seller as any)?.name) && (
+            <p className="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-2">
+              Sold by: {product.seller?.storeName || (product.seller as any)?.name}
+            </p>
+          )}
+
           {/* Color Variations Section - Thumbnails like Flipkart */}
           {((product.colorVariations && product.colorVariations.length > 0) || product.color) && (
             <div className="mb-4 mt-4">
@@ -764,9 +771,9 @@ export default function ProductDetail() {
                 </span>
                 <button 
                   onClick={() => setShowSizeChart(true)}
-                  className="text-primary-dark text-xs font-bold hover:underline"
+                  className="bg-primary-light/30 text-primary-dark px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-primary-dark/20 hover:bg-primary-light/50 transition-colors shadow-sm"
                 >
-                  Size Chart
+                  📏 Size Chart
                 </button>
               </div>
               <div className="flex flex-wrap gap-2.5">
@@ -994,6 +1001,7 @@ export default function ProductDetail() {
                     {[
                       { label: "Fabric", value: product.fabric },
                       { label: "Material", value: product.material },
+                      { label: "Color", value: product.color },
                       { label: "Gender", value: product.gender },
                       { label: "Pattern", value: product.pattern },
                       { label: "Fit", value: product.fit },

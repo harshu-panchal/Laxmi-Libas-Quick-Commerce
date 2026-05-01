@@ -7,12 +7,23 @@ import DeliveryBottomNav from "../components/DeliveryBottomNav";
 import { getDashboardStats } from "../../../services/api/delivery/deliveryService";
 import { useDeliveryStatus } from "../context/DeliveryStatusContext";
 
+import { useDeliverySocket } from "../hooks/useDeliverySocket";
+import { toast } from "react-hot-toast";
+
 export default function DeliveryDashboard() {
   const navigate = useNavigate();
   const { isOnline, sellersInRangeCount, locationError } = useDeliveryStatus();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Listen for real-time delivery notifications
+  useDeliverySocket((notification) => {
+    if (notification.type === 'NEW_ORDER') {
+      setRefreshTrigger(prev => prev + 1);
+    }
+  });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -27,7 +38,7 @@ export default function DeliveryDashboard() {
     };
 
     fetchStats();
-  }, []);
+  }, [refreshTrigger]);
 
   // Icons for dashboard cards (Keep existing SVGs)
   const pendingOrderIcon = (

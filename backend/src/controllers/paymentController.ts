@@ -102,15 +102,16 @@ export const getPaymentStatus = async (req: Request, res: Response) => {
                 const io: SocketIOServer = req.app.get('io') as SocketIOServer;
 
                 // Product orders
-                if (result.order) {
-                    if (io) await notifySellersOfOrderUpdate(io, result.order, 'NEW_ORDER');
-                    const custId = result.order.customer?.toString();
+                const ordersToNotify = result.allOrders || (result.order ? [result.order] : []);
+                for (const order of ordersToNotify) {
+                    if (io) await notifySellersOfOrderUpdate(io, order, 'NEW_ORDER');
+                    const custId = order.customer?.toString();
                     if (custId) {
                         await sendNotification(
                             'Customer', custId,
                             '✅ Payment Confirmed!',
-                            `Your order ${result.order.orderNumber} has been placed successfully.`,
-                            { type: 'Order', link: `/orders/${result.order._id}` }
+                            `Your order ${order.orderNumber} has been placed successfully.`,
+                            { type: 'Order', link: `/orders/${order._id}` }
                         );
                     }
                 }
@@ -160,10 +161,11 @@ export const phonePeCallback = async (req: Request, res: Response) => {
             try {
                 const io: SocketIOServer = req.app.get('io') as SocketIOServer;
 
-                if (result.order && io) {
-                    await notifySellersOfOrderUpdate(io, result.order, 'NEW_ORDER');
-                    io.to(`order-${result.order._id}`).emit('payment-confirmed', {
-                        orderId: result.order._id,
+                const ordersToNotify = result.allOrders || (result.order ? [result.order] : []);
+                for (const order of ordersToNotify) {
+                    if (io) await notifySellersOfOrderUpdate(io, order, 'NEW_ORDER');
+                    io.to(`order-${order._id}`).emit('payment-confirmed', {
+                        orderId: order._id,
                         status: 'Paid',
                     });
                 }

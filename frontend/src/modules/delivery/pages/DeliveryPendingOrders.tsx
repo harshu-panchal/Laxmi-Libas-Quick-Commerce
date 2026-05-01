@@ -3,12 +3,21 @@ import { useEffect, useState } from 'react';
 import DeliveryHeader from '../components/DeliveryHeader';
 import DeliveryBottomNav from '../components/DeliveryBottomNav';
 import { getPendingOrders } from '../../../services/api/delivery/deliveryService';
+import { useDeliverySocket } from '../hooks/useDeliverySocket';
 
 export default function DeliveryPendingOrders() {
   const navigate = useNavigate();
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Listen for real-time delivery notifications
+  useDeliverySocket((notification) => {
+    if (notification.type === 'NEW_ORDER') {
+      setRefreshTrigger(prev => prev + 1);
+    }
+  });
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -23,7 +32,7 @@ export default function DeliveryPendingOrders() {
     };
 
     fetchOrders();
-  }, []);
+  }, [refreshTrigger]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

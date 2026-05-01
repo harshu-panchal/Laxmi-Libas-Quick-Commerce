@@ -37,6 +37,14 @@ export default function ProtectedRoute({
         return <Navigate to="/" replace />;
       }
     } else if (userType && userType !== requiredUserType) {
+      // ALLOW ALL AUTHENTICATED USERS TO ACCESS CUSTOMER ROUTES
+      // This prevents the redirect loop where a Seller/Admin/Delivery boy 
+      // clicking "Profile" in the customer app is sent to /login and then 
+      // bounced back to their respective dashboard.
+      if (requiredUserType === "Customer") {
+        return <>{children}</>;
+      }
+
       if (requiredUserType === "Seller")
         return <Navigate to="/seller/login" replace />;
       if (requiredUserType === "Delivery")

@@ -194,8 +194,11 @@ export const checkPhonePeStatus = async (merchantOrderId: string) => {
             const result = await _markBookingPaid(merchantOrderId, undefined, paymentType);
             return {
                 success: true,
-                status: result.success ? 'success' : 'failed',
+                status: (result.justPaid || result.order || result.booking) ? 'success' : 'failed',
                 data: response,
+                justPaid: result.justPaid,
+                order: result.order,
+                booking: result.booking
             };
         }
 
@@ -319,56 +322,49 @@ async function _markBookingPaid(
                 { merchantOrderId },
                 { paymentStatus: 'Paid', status: 'Received', transactionId },
                 { new: true }
-            ).lean();
-        }
-
-        return { 
-            booking: (paymentType === 'hotel' || paymentType === 'bus') ? primaryOrder : null,
-            order: paymentType === 'product' ? primaryOrder : null,
-            justPaid: !!primaryOrder 
-        };
-    }
-
-    // Product order (quick/ecommerce) — handle split orders via parentOrderId
-    const primaryOrder = await Order.findOneAndUpdate(
-        { merchantOrderId },
-        {
-            paymentStatus: 'Paid',
-            status: 'Received',
-            transactionId,
-            merchantOrderId,
-        },
-        { new: true }
-    );
-
-    let paidOrders: any[] = [];
-    if (primaryOrder) {
-        paidOrders.push(primaryOrder);
-
-        // Mark ALL split siblings paid via parentOrderId
-        if (primaryOrder.parentOrderId) {
-            const siblings = await Order.updateMany(
-                {
-                    parentOrderId: primaryOrder.parentOrderId,
-                    _id: { $ne: primaryOrder._id },
-                    paymentStatus: { $ne: 'Paid' }
-                },
-                { paymentStatus: 'Paid', status: 'Received', transactionId }
             );
-            console.log(`[PhonePeService] Marked ${siblings.modifiedCount} sibling order(s) paid for parent ${primaryOrder.parentOrderId}`);
-        }
 
-        // Confirm inventory lock (reduce actual stock permanently)
-        try {
-            await InventoryService.confirmProductLocks(primaryOrder.customer.toString());
-        } catch (invErr) {
-            console.warn('[PhonePeService] Inventory confirm warning:', (invErr as any).message);
-        }
+            let allAffectedOrders: any[] = [];
+            if (primaryOrder) {
+                allAffectedOrders.push(primaryOrder);
+                // Mark ALL split siblings paid via parentOrderId
+                if (primaryOrder.parentOrderId) {
+                    const siblings = await Order.find({
+                        parentOrderId: primaryOrder.parentOrderId,
+                        _id: { $ne: primaryOrder._id },
+                        paymentStatus: { $ne: 'Paid' }
+                    });
 
-        console.log(`[PhonePeService] Order ${primaryOrder.orderNumber} marked PAID and RECEIVED`);
+                    if (siblings.length > 0) {
+                        await Order.updateMany(
+                            { _id: { $in: siblings.map(s => s._id) } },
+                            { paymentStatus: 'Paid', status: 'Received', transactionId }
+                        );
+                        allAffectedOrders.push(...siblings);
+                        console.log(`[PhonePeService] Marked ${siblings.length} sibling order(s) paid for parent ${primaryOrder.parentOrderId}`);
+                    }
+                }
+
+                // Confirm inventory lock (reduce actual stock permanently)
+                try {
+                    await InventoryService.confirmProductLocks(primaryOrder.customer.toString());
+                } catch (invErr) {
+                    console.warn('[PhonePeService] Inventory confirm warning:', (invErr as any).message);
+                }
+
+                console.log(`[PhonePeService] Order ${primaryOrder.orderNumber} marked PAID and RECEIVED`);
+            }
+            
+            const primaryOrderObj = primaryOrder?.toObject() || primaryOrder;
+
+            return { 
+                booking: (paymentType === 'hotel' || paymentType === 'bus') ? primaryOrderObj : null,
+                order: paymentType === 'product' ? primaryOrderObj : null,
+                allOrders: paymentType === 'product' ? allAffectedOrders : [primaryOrderObj],
+                justPaid: !!primaryOrder 
+            };
+        }
     }
-
-    return { order: primaryOrder, justPaid: !!primaryOrder };
 }
 
 // ─── Internal: Mark Booking Failed ───────────────────────────────────────────
