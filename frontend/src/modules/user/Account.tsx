@@ -25,7 +25,7 @@ export default function Account() {
         }
       } catch (err: any) {
         setError(err.response?.data?.message || 'Failed to load profile');
-        if (err.response?.status === 401) {
+        if (err.response?.status === 401 || err.response?.status === 404) {
           authLogout();
         }
       } finally {

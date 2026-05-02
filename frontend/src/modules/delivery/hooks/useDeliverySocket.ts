@@ -28,9 +28,21 @@ export const useDeliverySocket = (onNotification?: (notification: any) => void) 
       socket.emit('join', 'delivery-notifications');
     });
 
+    const playNotificationSound = () => {
+      try {
+        const audio = new Audio('/assets/sound/delivery-alert.mp3');
+        audio.play().catch(e => console.warn('🔊 Delivery sound play failed:', e.message));
+      } catch (err) {
+        console.error('🔊 Error playing delivery sound:', err);
+      }
+    };
+
     socket.on('new-order', (orderData) => {
       console.log('New order received:', orderData);
       
+      // Play sound
+      playNotificationSound();
+
       // Show toast notification
       toast.success(`New Delivery Request! ₹${orderData.deliveryBoyEarning}`, {
         duration: 10000,

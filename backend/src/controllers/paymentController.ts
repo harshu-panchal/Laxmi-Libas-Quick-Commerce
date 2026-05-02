@@ -38,8 +38,8 @@ export const initiatePayment = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: 'orderId is required' });
         }
 
-        // For product orders validate ObjectId format; hotel/bus may use same format
-        if (!mongoose.Types.ObjectId.isValid(orderId)) {
+        // Validate format: must be either a valid ObjectId OR start with 'MT' (for PaymentIntent)
+        if (!mongoose.Types.ObjectId.isValid(orderId) && !orderId.startsWith('MT')) {
             return res.status(400).json({ success: false, message: 'Invalid orderId format' });
         }
 
@@ -82,10 +82,10 @@ export const initiatePayment = async (req: Request, res: Response) => {
  */
 export const getPaymentStatus = async (req: Request, res: Response) => {
     try {
-        const { orderId } = req.params;
+        const orderId = req.params.orderId || req.body.merchantOrderId || req.body.transactionId;
 
         if (!orderId) {
-            return res.status(400).json({ success: false, message: 'merchantOrderId is required in path' });
+            return res.status(400).json({ success: false, message: 'merchantOrderId or transactionId is required' });
         }
 
         console.log(`[PaymentController] Status check: ${orderId}`);

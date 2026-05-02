@@ -102,14 +102,25 @@ export const initiatePhonePePayment = async (
 
         } else {
             console.log(`[PhonePeService] Branch: PRODUCT (type=${paymentType})`);
-            bookingRef = await Order.findById(bookingId);
-            if (!bookingRef) return { success: false, message: `Order ${bookingId} not found` };
-            if (bookingRef.paymentStatus === 'Paid') return { success: false, message: 'Order is already paid' };
-            amountInPaise = Math.round(bookingRef.total * 100);
-            customerId = bookingRef.customer;
-            const unique = `${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
-            merchantOrderId = `MT${unique}`;
-            await Order.findByIdAndUpdate(bookingId, { paymentStatus: 'Pending', merchantOrderId });
+            
+            // Check if bookingId is a merchantOrderId or a MongoDB ID
+            if (typeof bookingId === 'string' && bookingId.startsWith('MT')) {
+                const intent = await (mongoose.models.PaymentIntent || mongoose.model('PaymentIntent')).findOne({ merchantOrderId: bookingId });
+                if (!intent) return { success: false, message: `Payment intent ${bookingId} not found` };
+                
+                amountInPaise = Math.round(intent.total * 100);
+                customerId = intent.userId;
+                merchantOrderId = bookingId;
+            } else {
+                bookingRef = await Order.findById(bookingId);
+                if (!bookingRef) return { success: false, message: `Order ${bookingId} not found` };
+                if (bookingRef.paymentStatus === 'Paid') return { success: false, message: 'Order is already paid' };
+                amountInPaise = Math.round(bookingRef.total * 100);
+                customerId = bookingRef.customer;
+                const unique = `${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+                merchantOrderId = `MT${unique}`;
+                await Order.findByIdAndUpdate(bookingId, { paymentStatus: 'Pending', merchantOrderId });
+            }
         }
 
         if (amountInPaise <= 0) {
@@ -318,6 +329,39 @@ async function _markBookingPaid(
             }
         } else {
             // Product order (quick or ecommerce)
+            
+            // Check for PaymentIntent first (New flow)
+            const intent = await (mongoose.models.PaymentIntent || mongoose.model('PaymentIntent')).findOne({ merchantOrderId });
+            if (intent && intent.status === 'Pending') {
+                const { finalizeOrderCreation } = require('./orderService');
+                const io = (global as any).io; // We'll need a way to get IO, maybe global for now or pass it down
+                
+                const createdOrders = await finalizeOrderCreation(intent.userId.toString(), {
+                    items: intent.items,
+                    address: intent.address,
+                    paymentMethod: 'Online',
+                    fees: intent.fees,
+                    deliveryInstructions: intent.deliveryInstructions,
+                    tip: intent.tip
+                }, io, 'Paid');
+
+                intent.status = 'Completed';
+                await intent.save();
+
+                primaryOrder = createdOrders[0];
+                let allAffectedOrders = createdOrders;
+
+                console.log(`[PhonePeService] Order created from PaymentIntent | Parent: ${primaryOrder.parentOrderId}`);
+
+                return {
+                    booking: null,
+                    order: primaryOrder.toObject ? primaryOrder.toObject() : primaryOrder,
+                    allOrders: allAffectedOrders.map(o => o.toObject ? o.toObject() : o),
+                    justPaid: true
+                };
+            }
+
+            // Legacy flow (order already exists)
             primaryOrder = await Order.findOneAndUpdate(
                 { merchantOrderId },
                 { paymentStatus: 'Paid', status: 'Received', transactionId },

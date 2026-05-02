@@ -91,6 +91,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Initialize Socket.io
 const io = initializeSocket(httpServer);
+(global as any).io = io;
 setIo(io);
 app.set("io", io);
 

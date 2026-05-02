@@ -59,6 +59,12 @@ router.get(
     getPaymentStatus,
 );
 
+router.post(
+    '/phonepe/verify',
+    authenticate,
+    getPaymentStatus, // Reusing getPaymentStatus logic which handles verification
+);
+
 // ─── POST /api/payments/phonepe/callback ─────────────────────────────────────
 /**
  * Public webhook endpoint for PhonePe server-to-server callbacks.

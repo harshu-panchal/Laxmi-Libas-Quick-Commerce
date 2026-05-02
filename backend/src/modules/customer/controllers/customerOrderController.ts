@@ -15,315 +15,107 @@ import { Server as SocketIOServer } from "socket.io";
 import { getOrderItemCommissionRate } from "../../../services/commissionService";
 import { DiscountService } from "../../../services/discountService";
 import { InventoryService } from "../../../services/inventoryService";
+import PaymentIntent from "../../../models/PaymentIntent";
+import { finalizeOrderCreation } from "../../../services/orderService";
 
-// Create a new order
+// Create a new order or payment intent
 export const createOrder = async (req: Request, res: Response) => {
-    let session: mongoose.ClientSession | null = null;
     try {
-        // Only start session if we are on a replica set (required for transactions)
-        try {
-            session = await mongoose.startSession();
-            session.startTransaction();
-        } catch (sessionError) {
-            console.warn("MongoDB Transactions not supported or failed to start. Proceeding without transaction.");
-            session = null;
-        }
-
         const { items, address, paymentMethod, fees, deliveryInstructions, tip } = req.body;
         const userId = req.user!.userId;
 
-        // Log incoming request for debugging
-        console.log("DEBUG: Order creation request:", {
-            userId,
-            itemsCount: items?.length,
-            hasAddress: !!address,
-            paymentMethod,
-        });
+        console.log("DEBUG: Order request received:", { userId, paymentMethod, itemsCount: items?.length });
 
         if (!items || items.length === 0) {
-            if (session) await session.abortTransaction();
             return res.status(400).json({ success: false, message: "Order must have at least one item" });
         }
 
-        // ── Duplicate Order Guard (prevent double-tapping Place Order) ────────
-        const tenSecondsAgo = new Date(Date.now() - 10000);
-        const recentProductIds = items.map((i: any) => i.product.id || i.product._id).filter(Boolean);
-        const duplicateCheck = await Order.findOne({
-            customer: new mongoose.Types.ObjectId(userId),
-            status: { $in: ['Pending', 'Received'] },
-            paymentMethod: paymentMethod || 'COD',
-            createdAt: { $gte: tenSecondsAgo },
-        }).lean();
-
-        if (duplicateCheck) {
-            if (session) await session.abortTransaction();
-            return res.status(409).json({
-                success: false,
-                message: "Duplicate order detected. Your previous order was just placed.",
-                existingOrderId: duplicateCheck._id,
-            });
+        if (!address) {
+            return res.status(400).json({ success: false, message: "Delivery address is required" });
         }
 
-        // Validate Quantity-Based Discounts before proceeding
+        // Validate items and discounts
         try {
-            const itemsForValidation = await Promise.all(items.map(async (item: any) => {
-                const prodId = item.product.id || item.product._id;
-                if (!mongoose.Types.ObjectId.isValid(prodId)) {
-                    throw new Error(`Invalid Product ID: ${prodId}`);
-                }
-                const product = await Product.findById(prodId).select('category seller price discPrice');
-                if (!product) throw new Error(`Product ${prodId} not found`);
-
-                const itemPrice = (product.discPrice && product.discPrice > 0)
-                    ? product.discPrice
-                    : (product.price || 0);
-
-                return {
-                    productId: product._id.toString(),
-                    categoryId: product.category?.toString(),
-                    sellerId: product.seller?.toString(),
-                    quantity: Number(item.quantity),
-                    price: itemPrice,
-                    claimedDiscountPercent: item.claimedDiscountPercent,
-                    claimedDiscountAmount: item.claimedDiscountAmount
-                };
+            const itemsForValidation = items.map((item: any) => ({
+                productId: item.product.id || item.product._id,
+                quantity: Number(item.quantity),
+                claimedDiscountPercent: item.claimedDiscountPercent,
+                claimedDiscountAmount: item.claimedDiscountAmount
             }));
-
             const validation = await DiscountService.validateOrderDiscount(itemsForValidation);
             if (!validation.valid) {
-                if (session) await session.abortTransaction();
-                return res.status(400).json({
-                    success: false,
-                    message: validation.message || "Invalid discount claimed",
-                });
+                return res.status(400).json({ success: false, message: validation.message });
             }
-        } catch (discountErr: any) {
-            if (session) await session.abortTransaction();
-            return res.status(400).json({
-                success: false,
-                message: discountErr.message || "Failed to validate discounts",
-            });
+        } catch (err: any) {
+            return res.status(400).json({ success: false, message: err.message });
         }
 
-        if (!address) {
-            if (session) await session.abortTransaction();
-            return res.status(400).json({
-                success: false,
-                message: "Delivery address is required",
-            });
-        }
-
-        // Validate required address fields
-        if (!address.city || (typeof address.city === 'string' && address.city.trim() === '')) {
-            if (session) await session.abortTransaction();
-            return res.status(400).json({
-                success: false,
-                message: "City is required in delivery address",
-            });
-        }
-
-        // Fetch customer details
-        const customer = await Customer.findById(userId);
-        if (!customer) {
-            if (session) await session.abortTransaction();
-            return res.status(404).json({
-                success: false,
-                message: "Customer not found",
-            });
-        }
-
-        const deliveryLat = address.latitude != null ? Number(address.latitude) : 0;
-        const deliveryLng = address.longitude != null ? Number(address.longitude) : 0;
-
-        // Determing split groups
-        const quickItems: any[] = [];
-        const ecommerceItems: any[] = [];
-
-        // Check for inventory before processing
-        const productIds = items.map((i: any) => i.product.id || i.product._id);
-        const productsMap = new Map((await Product.find({ _id: { $in: productIds } })).map(p => [p._id.toString(), p]));
-
-        const normalizeCity = (city: string) => city.toLowerCase().trim().replace(/\s+/g, '');
-
-        for (const item of items) {
-            const prodId = item.product.id || item.product._id;
-            const product = productsMap.get(prodId.toString());
-            if (!product) throw new Error(`Product ${prodId} not found`);
-
-            // Fetch seller to get their city
-            const seller = await Seller.findById(product.seller).select('city location');
-            const sellerCity = seller?.city ? normalizeCity(seller.city) : '';
-            const customerCity = address.city ? normalizeCity(address.city) : '';
-
-            // Decision: If same city, it's quick. Otherwise ecommerce.
-            let decidedType: string = item.selectedDeliveryType || 'quick';
-            if (decidedType === 'ecommerce') decidedType = 'standard';
-            
-            // If it's still 'quick', verify if cities match (safety check)
-            if (decidedType === 'quick') {
-                if (sellerCity && customerCity && sellerCity !== customerCity) {
-                    decidedType = 'standard';
-                }
-            }
-            
-            if (decidedType === 'quick') quickItems.push(item);
-            else ecommerceItems.push(item);
-        }
-
-        const parentOrderId = `PARENT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-        // Implementation Step 2: Lock Inventory
-        await InventoryService.lockProductStock(userId, items);
-
-        const createdOrders: any[] = [];
-        const splitConfigs = [
-            { type: 'quick', items: quickItems, flow: 'instant' },
-            { type: 'standard', items: ecommerceItems, flow: 'courier' }
-        ].filter(config => config.items.length > 0);
-
-        for (const config of splitConfigs) {
-            const newOrder = new Order({
-                customer: new mongoose.Types.ObjectId(userId),
-                customerName: customer.name,
-                customerEmail: customer.email,
-                customerPhone: customer.phone,
-                deliveryAddress: {
-                    address: address.address || address.street || 'N/A',
-                    city: address.city || 'N/A',
-                    state: address.state || '',
-                    pincode: address.pincode || '000000',
-                    landmark: address.landmark || '',
-                    latitude: deliveryLat,
-                    longitude: deliveryLng,
-                },
-                paymentMethod: paymentMethod || 'COD',
-                paymentStatus: 'Pending',
-                status: 'Pending',
-                subtotal: 0,
-                tax: 0,
-                shipping: config.type === 'quick' ? (fees?.deliveryFee || 0) : (fees?.ecomShippingFee || 40),
-                platformFee: config.type === 'quick' ? (fees?.platformFee || 0) : 0,
-                discount: 0,
-                total: 0,
-                items: [],
-                parentOrderId: parentOrderId,
-                orderType: config.type as 'quick' | 'standard',
-                deliveryType: config.flow as 'instant' | 'courier',
-                type: 'product',
-                deliveryInstructions: deliveryInstructions || '',
-            });
-
-            let calculatedSubtotal = 0;
-            let totalQuantityDiscount = 0;
-            const orderItemIds: mongoose.Types.ObjectId[] = [];
-
-            for (const item of config.items) {
-                const qty = Number(item.quantity) || 0;
-                const product = productsMap.get((item.product.id || item.product._id).toString());
-                if (!product) continue;
-
-                const itemPrice = (product.discPrice && product.discPrice > 0) ? product.discPrice : product.price;
-
-                // Calculate Discount
-                let itemDiscountPercent = 0;
-                let itemDiscountAmount = 0;
-                let appliedRuleId = null;
-
-                try {
-                    const calculation = await DiscountService.calculateDiscount({
-                        productId: product._id.toString(),
-                        categoryId: product.category?.toString(),
-                        sellerId: product.seller?.toString(),
-                        quantity: qty,
-                        price: itemPrice
-                    });
-                    itemDiscountPercent = calculation.discountPercent;
-                    itemDiscountAmount = calculation.discountAmount;
-                    appliedRuleId = calculation.appliedRuleId;
-                } catch (err) { }
-
-                const itemTotal = itemPrice * qty;
-                calculatedSubtotal += itemTotal;
-                totalQuantityDiscount += itemDiscountAmount;
-
-                const commRate = await getOrderItemCommissionRate(product._id.toString(), product.seller.toString());
-                const commAmount = (itemTotal * commRate) / 100;
-
-                const newOrderItem = new OrderItem({
-                    order: newOrder._id,
-                    product: product._id,
-                    seller: product.seller,
-                    productName: product.productName,
-                    productImage: product.mainImage,
-                    sku: product.sku,
-                    unitPrice: itemPrice,
-                    quantity: qty,
-                    total: itemTotal - itemDiscountAmount,
-                    discountPercent: itemDiscountPercent,
-                    discountAmount: itemDiscountAmount,
-                    appliedDiscountRuleId: appliedRuleId,
-                    commissionRate: commRate,
-                    commissionAmount: commAmount,
-                    variation: item.variant || item.variation || null,
-                    deliveryType: config.type,
-                    status: 'Pending'
-                });
-
-                if (session) await newOrderItem.save({ session });
-                else await newOrderItem.save();
-                
-                orderItemIds.push(newOrderItem._id as mongoose.Types.ObjectId);
-            }
-
-            const finalTotal = calculatedSubtotal + newOrder.shipping + newOrder.platformFee - totalQuantityDiscount;
-            newOrder.subtotal = Number(calculatedSubtotal.toFixed(2));
-            newOrder.discount = Number(totalQuantityDiscount.toFixed(2));
-            newOrder.total = Number(finalTotal.toFixed(2));
-            newOrder.items = orderItemIds;
-
-            if (session) await newOrder.save({ session });
-            else await newOrder.save();
-
-            createdOrders.push(newOrder);
-        }
-
-        if (session) await session.commitTransaction();
-
-        // Trigger notifications for the first order if it's COD
+        // ── Case 1: COD ────────
         if (paymentMethod === 'COD') {
-            for (const order of createdOrders) {
-                try {
-                    const io = req.app.get("io");
-                    if (io) {
-                        const savedOrder = await Order.findById(order._id).lean();
-                        if (savedOrder) await notifySellersOfOrderUpdate(io, savedOrder, 'NEW_ORDER');
-                    }
-                    await sendNotification('Customer', userId, 'Order Placed!', `Your ${order.orderType} order ${order.orderNumber} is placed.`, { type: 'Order', link: `/orders/${order._id}` });
-                } catch (e) { }
-            }
+            const io = req.app.get("io");
+            const createdOrders = await finalizeOrderCreation(userId, req.body, io, 'Pending');
+            
+            return res.status(201).json({
+                success: true,
+                message: "Order placed successfully",
+                data: {
+                    parentOrderId: createdOrders[0].parentOrderId,
+                    orders: createdOrders,
+                    primaryOrderId: createdOrders[0]._id
+                },
+            });
         }
 
-        return res.status(201).json({
+        // ── Case 2: Online (Delayed Order Creation) ────────
+        // Calculate total for payment
+        const subtotal = items.reduce((sum: number, item: any) => {
+            const price = item.product.discPrice || item.product.price || 0;
+            return sum + price * item.quantity;
+        }, 0);
+        
+        const total = subtotal + (fees?.deliveryFee || 0) + (fees?.platformFee || 0) + (fees?.ecomShippingFee || 0) + (tip || 0);
+
+        // Create PaymentIntent
+        const merchantOrderId = `MT${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        const intent = new PaymentIntent({
+            userId,
+            items,
+            address,
+            fees,
+            deliveryInstructions,
+            tip,
+            total,
+            merchantOrderId,
+            status: 'Pending'
+        });
+        await intent.save();
+
+        return res.status(200).json({
             success: true,
-            message: createdOrders.length > 1 ? "Your items will be delivered in multiple shipments" : "Order placed successfully",
+            message: "Payment intent created",
             data: {
-                parentOrderId: parentOrderId,
-                orders: createdOrders,
-                primaryOrderId: createdOrders[0]._id // For backward compatibility with PhonePe trigger
-            },
+                paymentRequired: true,
+                merchantOrderId,
+                total,
+                // Backward compatibility for frontend
+                primaryOrderId: merchantOrderId 
+            }
         });
 
     } catch (error: any) {
-        if (session) await session.abortTransaction().catch(err => console.error("Abort failed", err));
-        console.error("Order Creation Error:", error);
+        console.error("DEBUG: Order creation error:", error);
+        try {
+            require('fs').writeFileSync('order_error_log.txt', String(error.stack || error.message));
+        } catch (e) {}
+        
         return res.status(500).json({
             success: false,
-            message: error.message || "Error creating order",
+            message: "Failed to place order",
+            error: error.message
         });
-    } finally {
-        if (session) session.endSession();
     }
 };
+
 
 // Get authenticated customer's orders
 export const getMyOrders = async (req: Request, res: Response) => {
@@ -543,7 +335,7 @@ export const requestReturn = async (req: Request, res: Response) => {
         // Notify Seller
         const io = (req.app as any).get("io");
         if (io) {
-            await notifySellersOfOrderUpdate(io, order, 'RETURN_REQUESTED');
+            await notifySellersOfOrderUpdate(io, order, 'STATUS_UPDATE');
         }
 
         return res.status(200).json({ 

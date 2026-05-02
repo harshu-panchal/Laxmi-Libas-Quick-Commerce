@@ -64,8 +64,23 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
             console.log('📦 Joined seller notification room:', data.sellerId);
         });
 
+        const playNotificationSound = () => {
+            try {
+                const audio = new Audio('/assets/sound/seller_alert.mp3');
+                audio.play().catch(e => console.warn('🔊 Sound play failed (user interaction required):', e.message));
+            } catch (err) {
+                console.error('🔊 Error playing notification sound:', err);
+            }
+        };
+
         newSocket.on('seller-notification', (notification: SellerNotification) => {
             console.log('🔔 New seller notification received:', notification);
+            
+            // Play sound for new orders
+            if (notification.type === 'NEW_ORDER') {
+                playNotificationSound();
+            }
+
             if (onNotificationReceived) {
                 onNotificationReceived(notification);
             }
