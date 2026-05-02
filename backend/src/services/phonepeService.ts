@@ -10,6 +10,8 @@ import HotelBooking from '../models/HotelBooking';
 import BusBooking from '../models/BusBooking';
 import BusSchedule from '../models/BusSchedule';
 import { InventoryService } from './inventoryService';
+import mongoose from 'mongoose';
+import PaymentIntent from '../models/PaymentIntent';
 
 // ─── Environment Config ───────────────────────────────────────────────────────
 const CLIENT_ID = process.env.PHONEPE_CLIENT_ID?.trim() || '';
@@ -105,7 +107,7 @@ export const initiatePhonePePayment = async (
             
             // Check if bookingId is a merchantOrderId or a MongoDB ID
             if (typeof bookingId === 'string' && bookingId.startsWith('MT')) {
-                const intent = await (mongoose.models.PaymentIntent || mongoose.model('PaymentIntent')).findOne({ merchantOrderId: bookingId });
+                const intent = await PaymentIntent.findOne({ merchantOrderId: bookingId });
                 if (!intent) return { success: false, message: `Payment intent ${bookingId} not found` };
                 
                 amountInPaise = Math.round(intent.total * 100);
@@ -330,9 +332,9 @@ async function _markBookingPaid(
         } else {
             // Product order (quick or ecommerce)
             
-            // Check for PaymentIntent first (New flow)
-            const intent = await (mongoose.models.PaymentIntent || mongoose.model('PaymentIntent')).findOne({ merchantOrderId });
-            if (intent && intent.status === 'Pending') {
+            if (typeof merchantOrderId === 'string' && merchantOrderId.startsWith('MT')) {
+                const intent = await PaymentIntent.findOne({ merchantOrderId });
+                if (intent && intent.status === 'Pending') {
                 const { finalizeOrderCreation } = require('./orderService');
                 const io = (global as any).io; // We'll need a way to get IO, maybe global for now or pass it down
                 
