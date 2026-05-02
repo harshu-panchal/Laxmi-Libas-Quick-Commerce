@@ -9,8 +9,8 @@ import { Product, Category } from '../../types/domain';
 
 const MinutesStore = () => {
     const { location } = useLocation();
-    const [products, setProducts] = useState<Product[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
+    const [products, setProducts] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [timeLeft, setTimeLeft] = useState({ minutes: 9, seconds: 54 });
 
@@ -102,7 +102,7 @@ const MinutesStore = () => {
                     {categories.map((cat, idx) => (
                         <div key={idx} className="flex flex-col items-center gap-1.5 flex-shrink-0 w-16">
                             <div className="w-16 h-16 rounded-xl bg-neutral-50 border border-neutral-100 p-2 flex items-center justify-center">
-                                <img src={cat.image || cat.icon || '/minutes_fruits.png'} alt={cat.name} className="w-full h-full object-contain" />
+                                <img src={cat.imageUrl || cat.icon || '/minutes_fruits.png'} alt={cat.name} className="w-full h-full object-contain" />
                             </div>
                             <span className="text-[10px] font-bold text-neutral-800 text-center line-clamp-1">{cat.name}</span>
                         </div>

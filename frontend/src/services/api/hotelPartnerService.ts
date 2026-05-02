@@ -21,6 +21,7 @@ export interface HotelBooking {
   totalAmount: number;
   paymentStatus: string;
   bookingStatus: 'LOCKED' | 'Confirmed' | 'Cancelled' | 'CheckedIn' | 'CheckedOut';
+  rooms?: any[];
 }
 
 export interface HotelRoom {
@@ -33,6 +34,11 @@ export interface HotelRoom {
   totalRooms: number;
   availabilityStatus: 'Available' | 'Full' | 'Maintenance';
   amenities: string[];
+  // Convenience aliases used in UI
+  status?: string;
+  description?: string;
+  pricePerNight?: number;
+  capacity?: number;
 }
 
 /**

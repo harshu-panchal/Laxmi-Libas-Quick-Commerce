@@ -13,6 +13,7 @@ interface TransportPartner {
   storeName: string;
   status: 'Pending' | 'Approved' | 'Rejected' | 'Blocked';
   businessDetails?: any;
+  commission?: number;
   createdAt: string;
 }
 

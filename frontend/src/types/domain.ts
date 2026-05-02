@@ -14,7 +14,7 @@ export interface Product {
   productName?: string;
   description?: string;
   smallDescription?: string;
-  pack: string;
+  pack?: string;
   price: number;
   mrp?: number;
   discPrice?: number;
@@ -47,6 +47,16 @@ export interface Product {
   isReturnable?: boolean;
   maxReturnDays?: number;
   sellerId?: string;
+  sellerCity?: string;
+  seller?: {
+    _id?: string;
+    storeName?: string;
+    name?: string;
+    city?: string;
+    distance?: number;
+  };
+  distance?: number;
+  type?: "quick" | "ecommerce" | "both";
   isAvailable?: boolean;
   rentAmount?: number;
   securityDeposit?: number;

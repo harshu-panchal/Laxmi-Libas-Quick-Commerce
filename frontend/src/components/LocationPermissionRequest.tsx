@@ -58,14 +58,15 @@ export default function LocationPermissionRequest({
     }
   };
 
-  const handleManualLocationSelect = (address: string, lat: number, lng: number, placeName: string, components?: { city?: string; state?: string; pincode?: string }) => {
-    console.log("[LocationPermissionRequest] Manual location selected:", { address, lat, lng, city: components?.city });
+  const handleManualLocationSelect = (result: any) => {
+    const { address, lat, lng, city, state, pincode } = result;
+    console.log("[LocationPermissionRequest] Manual location selected:", { address, lat, lng, city });
     setManualAddress(address);
     setManualLat(lat);
     setManualLng(lng);
-    setManualCity(components?.city || '');
-    setManualState(components?.state || '');
-    setManualPincode(components?.pincode || '');
+    setManualCity(city || '');
+    setManualState(state || '');
+    setManualPincode(pincode || '');
 
     // Auto-save if we have full coordinates (meaning user clicked a suggestion)
     if (lat && lng && address) {
@@ -74,9 +75,9 @@ export default function LocationPermissionRequest({
         address,
         lat,
         lng,
-        city: components?.city || '',
-        state: components?.state || '',
-        pincode: components?.pincode || ''
+        city: city || '',
+        state: state || '',
+        pincode: pincode || ''
       });
     }
   };

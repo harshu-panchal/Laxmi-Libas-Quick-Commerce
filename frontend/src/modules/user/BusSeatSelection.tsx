@@ -32,7 +32,7 @@ const BusSeatSelection: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState('Seat');
     const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
-    const [bookingStep, setBookingStep] = useState<'seats' | 'pickup' | 'dropoff' | 'passengers' | 'review'>('seats');
+    const [bookingStep, setBookingStep] = useState<'seats' | 'pickup' | 'dropoff' | 'passengers' | 'review' | 'payment'>('seats');
     const [selectedPickup, setSelectedPickup] = useState<string | null>(null);
     const [selectedDropoff, setSelectedDropoff] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');

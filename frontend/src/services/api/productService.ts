@@ -183,6 +183,7 @@ export interface CreateProductData {
   latitude?: number;
   longitude?: number;
   radius?: number;
+  shopAddress?: string;
 }
 
 export interface Shop {

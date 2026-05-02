@@ -128,6 +128,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
           activeTab,
           location?.latitude,
           location?.longitude,
+          undefined,
           true,
           5 * 60 * 1000
         );

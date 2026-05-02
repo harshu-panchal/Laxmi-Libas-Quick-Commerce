@@ -127,7 +127,7 @@ export default function Checkout() {
   const { addOrder } = useOrders();
   const { location: userLocation } = useLocationContext();
   const { showToast: showGlobalToast } = useToast();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const navigate = useNavigate();
   const [tipAmount, setTipAmount] = useState<number | null>(null);
   const [customTipAmount, setCustomTipAmount] = useState<number>(0);

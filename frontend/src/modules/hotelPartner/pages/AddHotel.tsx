@@ -80,8 +80,8 @@ const AddHotel: React.FC = () => {
     try {
       const payload = {
         ...formData,
-        latitude: parseFloat(formData.latitude) || 0,
-        longitude: parseFloat(formData.longitude) || 0
+        latitude: formData.latitude || 0,
+        longitude: formData.longitude || 0
       };
       const res = await addHotel(payload);
       if (res.success) {

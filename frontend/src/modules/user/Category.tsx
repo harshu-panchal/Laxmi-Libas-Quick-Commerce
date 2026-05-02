@@ -13,7 +13,7 @@ export default function CategoryPage() {
   const { location: userLocation } = useLocationContext();
 
   const [category, setCategory] = useState<ApiCategory | null>(null);
-  const [subcategories, setSubcategories] = useState<ApiCategory[]>([]);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
   const [selectedSubcategory, setSelectedSubcategory] = useState("all");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);

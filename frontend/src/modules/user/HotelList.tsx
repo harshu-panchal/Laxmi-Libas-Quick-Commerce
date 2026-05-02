@@ -86,12 +86,12 @@ const HotelList: React.FC = () => {
 
     const getGuestSummary = () => {
         const totalRooms = guestConfig.length;
-        const totalAdults = guestConfig.reduce((acc, r) => acc + r.adults, 0);
+        const totalAdults = guestConfig.reduce((acc: number, r: any) => acc + r.adults, 0);
         return `${totalRooms.toString().padStart(2, '0')} Room${totalRooms > 1 ? 's' : ''}, ${totalAdults.toString().padStart(2, '0')} Adult${totalAdults > 1 ? 's' : ''}`;
     };
 
     const updateGuestCount = (roomIdx: number, type: 'adults' | 'children', delta: number) => {
-        setGuestConfig(prev => prev.map((room, idx) => {
+        setGuestConfig((prev: any[]) => prev.map((room: any, idx: number) => {
             if (idx === roomIdx) {
                 const newVal = room[type] + delta;
                 if (type === 'adults' && newVal < 1) return room;
@@ -102,7 +102,7 @@ const HotelList: React.FC = () => {
         }));
     };
 
-    const addRoom = () => setGuestConfig(prev => [...prev, { adults: 1, children: 0 }]);
+    const addRoom = () => setGuestConfig((prev: any[]) => [...prev, { adults: 1, children: 0 }]);
 
     const handleUpdateSearch = () => {
         setIsUpdating(true);
@@ -255,13 +255,13 @@ const HotelList: React.FC = () => {
                                     </div>
                                     
                                     <div className="space-y-3">
-                                        {guestConfig.map((room, idx) => (
+                                        {guestConfig.map((room: any, idx: number) => (
                                             <div key={idx} className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100 space-y-4">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs font-black text-gray-900 uppercase tracking-wider">Room {idx + 1}</span>
                                                     {guestConfig.length > 1 && (
                                                         <button 
-                                                            onClick={() => setGuestConfig(prev => prev.filter((_, i) => i !== idx))}
+                                                            onClick={() => setGuestConfig((prev: any[]) => prev.filter((_: any, i: number) => i !== idx))}
                                                             className="text-[10px] font-bold text-red-500 uppercase"
                                                         >
                                                             Remove

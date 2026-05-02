@@ -86,7 +86,7 @@ const Icons = {
     )
 };
 
-type DeliveryOrderStatus = 'Received' | 'Accepted' | 'Pending' | 'Ready for pickup' | 'Picked up' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Returned';
+type DeliveryOrderStatus = 'Received' | 'Accepted' | 'Assigned' | 'Pending' | 'Ready for pickup' | 'Picked up' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Returned';
 
 export default function DeliveryOrderDetail() {
     const { id } = useParams();

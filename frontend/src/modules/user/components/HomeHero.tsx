@@ -19,7 +19,7 @@ interface HomeHeroProps {
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
   hideTopContent?: boolean;
-  activeStore?: 'laxmart' | 'minutes' | 'travel' | 'grocery' | 'none';
+  activeStore?: 'laxmart' | 'minutes' | 'travel' | 'grocery' | 'quick' | 'none';
   hideLocationBar?: boolean;
   hideSearchBar?: boolean;
   hideCategoryTabs?: boolean;

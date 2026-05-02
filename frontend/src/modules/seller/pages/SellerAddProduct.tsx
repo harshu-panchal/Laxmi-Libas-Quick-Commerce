@@ -404,7 +404,7 @@ export default function SellerAddProduct() {
   // Auto-sync header category when category changes
   useEffect(() => {
     if (formData.category) {
-      const selectedCat = categories.find((cat: any) => (cat._id || cat.id) === formData.category);
+      const selectedCat = categories.find((cat: any) => (cat._id?.toString() || cat.id?.toString()) === formData.category);
       if (selectedCat) {
         setCategoryName(selectedCat.name);
         const headerId = (typeof selectedCat.headerCategoryId === 'string' ? selectedCat.headerCategoryId : selectedCat.headerCategoryId?._id)?.toString();
@@ -420,7 +420,7 @@ export default function SellerAddProduct() {
     if (formData.headerCategory) {
       // 1. Check if current category belongs to selected header
       const currentCategory = categories.find(
-        (cat: any) => (cat._id || cat.id) === formData.category
+        (cat: any) => (cat._id?.toString() || cat.id?.toString()) === formData.category
       );
 
       const headerId = formData.headerCategory;
@@ -439,7 +439,7 @@ export default function SellerAddProduct() {
           // IMPORTANT: If there's only ONE category in the new header, auto-select it instead of clearing
           if (availableCats.length === 1) {
             const cat = availableCats[0];
-            const catId = (cat._id || cat.id)?.toString();
+            const catId = cat._id.toString();
             setFormData((prev) => ({
               ...prev,
               category: catId,
@@ -463,7 +463,7 @@ export default function SellerAddProduct() {
         // No category selected yet - auto-select if only one available
         if (availableCats.length === 1) {
           const cat = availableCats[0];
-          const catId = (cat._id || cat.id)?.toString();
+          const catId = cat._id.toString();
           setFormData((prev) => ({
             ...prev,
             category: catId,
@@ -772,7 +772,7 @@ export default function SellerAddProduct() {
         colorGroupId: formData.colorGroupId || undefined,
 
         // Hybrid Delivery Configuration
-        type: formData.deliveryType || "quick",
+        type: (formData.deliveryType as "quick" | "ecommerce" | "both") || "quick",
         availablePincodes: formData.availablePincodes 
           ? formData.availablePincodes.split(",").map(p => p.trim()).filter(Boolean) 
           : [],
@@ -828,6 +828,13 @@ export default function SellerAddProduct() {
               galleryImageUrls: [],
               productVideoUrl: "",
               isShopByStoreOnly: "No",
+              deliveryType: "quick",
+              availablePincodes: "",
+              latitude: "",
+              longitude: "",
+              radius: "40",
+              shopAddress: "",
+              colorGroupId: "",
 
               shopId: "",
               // Category Specific Fields
@@ -862,7 +869,6 @@ export default function SellerAddProduct() {
               serviceName: "",
               experience: "",
               availability: "",
-              colorGroupId: "",
             });
             setVariations([]);
             setMainImageFile(null);

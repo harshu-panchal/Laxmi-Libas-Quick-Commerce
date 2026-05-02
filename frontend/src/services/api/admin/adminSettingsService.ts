@@ -74,6 +74,7 @@ export interface AppSettings {
   paymentGateways?: PaymentGateways;
   smsGateway?: SMSGatewaySettings;
   defaultCommission: number;
+  globalCommissionRate?: number;
   deliveryCharges: number;
   platformFee?: number;
   freeDeliveryThreshold?: number;

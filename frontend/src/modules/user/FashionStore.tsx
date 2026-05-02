@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../../components/ui/button';
 import { Product } from '../../types/domain';
 import { useEffect, useState } from 'react';
-import { getProducts } from '../../services/api/customerProductService';
+import { getProducts, getCategoryById } from '../../services/api/customerProductService';
 import WishlistButton from '../../components/WishlistButton';
 import { calculateProductPrice } from '../../utils/priceUtils';
 
@@ -13,7 +13,7 @@ export default function FashionStore() {
   const navigate = useNavigate();
   const { cart, addToCart, updateQuantity } = useCart();
   const { location: userLocation } = useLocation();
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);

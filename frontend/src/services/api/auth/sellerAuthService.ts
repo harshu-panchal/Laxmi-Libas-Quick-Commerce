@@ -21,6 +21,7 @@ export interface VerifyOTPResponse {
       address?: string;
       city?: string;
       categories?: string[];
+      businessTypes?: string[];
     };
   };
 }
@@ -43,6 +44,8 @@ export interface RegisterData {
   businessLicense?: string;
   businessType: 'product' | 'hotel' | 'bus';
   businessDetails: any;
+  pincode?: string;
+  structuredLocation?: any;
 }
 
 export interface RegisterResponse {

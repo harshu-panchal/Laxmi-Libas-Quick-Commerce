@@ -169,7 +169,7 @@ const RoomsManagement: React.FC = () => {
 
                             <div className="flex gap-2">
                                 <button 
-                                    onClick={() => toggleStatus(room._id, room.status)}
+                                    onClick={() => toggleStatus(room._id, room.status || 'Available')}
                                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${room.status === 'Available' ? 'border-red-100 text-red-500 hover:bg-red-50' : 'border-green-100 text-green-500 hover:bg-green-50'}`}
                                 >
                                     {room.availabilityStatus === 'Available' ? <X size={14} /> : <Check size={14} />}

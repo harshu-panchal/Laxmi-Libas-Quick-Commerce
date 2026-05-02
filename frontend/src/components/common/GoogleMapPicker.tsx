@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, Circle, Autocomplete } from '@react-google-maps/api';
 
-const libraries: ("places" | "drawing" | "geometry" | "localContext" | "visualization")[] = ["places"];
+const libraries: any[] = ["places"];
 
 interface GoogleMapPickerProps {
   initialLat?: number;
@@ -78,7 +78,7 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({
   };
 
   const onLoad = (autocomplete: google.maps.places.Autocomplete) => {
-    autocompleteRef.ref = autocomplete;
+    autocompleteRef.current = autocomplete;
   };
 
   const onPlaceChanged = () => {

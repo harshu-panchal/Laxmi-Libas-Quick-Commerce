@@ -76,7 +76,7 @@ export default function AdminOrderDetail() {
     if (!order) return;
     setLabelLoading(true);
     try {
-      const response = await generateCourierLabel(order._id);
+      const response = await generateCourierLabel(order._id) as any;
       if (response.success) {
         setOrder(prev => prev ? { ...prev, trackingId: response.awb, status: 'Shipped' } : null);
         alert('Delhivery Waybill generated: ' + response.awb);
@@ -320,9 +320,6 @@ export default function AdminOrderDetail() {
                   })}
                 </tbody>
               </table>
-            </div>
-          </div>
-
             </div>
           </div>
 

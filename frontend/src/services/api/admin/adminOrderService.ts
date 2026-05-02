@@ -53,11 +53,13 @@ export interface Order {
   | "Processed"
   | "Packed"
   | "Shipped"
+  | "Picked up"
   | "Out for Delivery"
   | "Delivered"
   | "Cancelled"
   | "Rejected"
   | "Returned";
+  currentLocation?: { lat: number; lng: number };
   deliveryBoy?: string | { _id: string; name: string; mobile: string; email?: string };
   deliveryBoyStatus?:
   | "Assigned"
