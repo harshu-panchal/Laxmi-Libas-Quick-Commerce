@@ -1,7 +1,9 @@
-// RELOAD TRIGGER - PAYMENT FIX
+// RELOAD TRIGGER - GEOFENCING BYPASSED FOR TESTING
 import express, { Application, Request, Response } from "express";
 import { createServer } from "http";
 import cors from "cors";
+import mongoose from "mongoose";
+import "./models/PaymentIntent"; // Force register schema on startup
 import dotenv from "dotenv";
 import connectDB from "./config/db";
 import routes from "./routes";

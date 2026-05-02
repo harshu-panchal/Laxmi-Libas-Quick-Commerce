@@ -12,6 +12,7 @@ import BusSchedule from '../models/BusSchedule';
 import { InventoryService } from './inventoryService';
 import mongoose from 'mongoose';
 import PaymentIntent from '../models/PaymentIntent';
+import HotelRoom from '../models/HotelRoom';
 
 // ─── Environment Config ───────────────────────────────────────────────────────
 const CLIENT_ID = process.env.PHONEPE_CLIENT_ID?.trim() || '';
@@ -204,7 +205,8 @@ export const checkPhonePeStatus = async (merchantOrderId: string) => {
         const paymentType = decodePaymentType(merchantOrderId);
 
         if (state === 'COMPLETED') {
-            const result = await _markBookingPaid(merchantOrderId, undefined, paymentType);
+            const txnId = (response as any)?.data?.transactionId || (response as any)?.transactionId || merchantOrderId;
+            const result = await _markBookingPaid(merchantOrderId, txnId, paymentType);
             return {
                 success: true,
                 status: (result.justPaid || result.order || result.booking) ? 'success' : 'failed',
@@ -344,7 +346,9 @@ async function _markBookingPaid(
                     paymentMethod: 'Online',
                     fees: intent.fees,
                     deliveryInstructions: intent.deliveryInstructions,
-                    tip: intent.tip
+                    tip: intent.tip,
+                    transactionId: transactionId,
+                    merchantOrderId: merchantOrderId
                 }, io, 'Paid');
 
                 intent.status = 'Completed';
@@ -358,10 +362,11 @@ async function _markBookingPaid(
                 return {
                     booking: null,
                     order: primaryOrder.toObject ? primaryOrder.toObject() : primaryOrder,
-                    allOrders: allAffectedOrders.map(o => o.toObject ? o.toObject() : o),
+                    allOrders: allAffectedOrders.map((o: any) => o.toObject ? o.toObject() : o),
                     justPaid: true
                 };
             }
+            } // Close the 'if (merchantOrderId.startsWith("MT"))' block
 
             // Legacy flow (order already exists)
             primaryOrder = await Order.findOneAndUpdate(

@@ -883,7 +883,7 @@ export default function OrderDetail() {
           </motion.div>
 
           {/* Delivery OTP - Header Display */}
-          {(orderStatus === "On the way" || orderStatus === "Out for Delivery") && (order?.deliveryOtp || socketOtp) && (
+          {!['Delivered', 'Cancelled', 'Returned'].includes(orderStatus) && (order?.deliveryOtp || socketOtp) && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1009,11 +1009,18 @@ export default function OrderDetail() {
               <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
                 <span className="text-2xl">👨‍🍳</span>
               </div>
-              <p className="font-semibold text-gray-900">
-                {order?.status === 'Received' || order?.status === 'Accepted'
-                  ? "Assigning delivery partner shortly"
-                  : "Preparing your order"}
-              </p>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-900">
+                  {order?.status === 'Received' || order?.status === 'Accepted'
+                    ? "Assigning delivery partner shortly"
+                    : "Preparing your order"}
+                </p>
+                {(order?.deliveryOtp || socketOtp) && (
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Your delivery OTP: <span className="font-bold text-primary-dark">{socketOtp || order?.deliveryOtp}</span>
+                  </p>
+                )}
+              </div>
             </div>
           </motion.div>
         )}

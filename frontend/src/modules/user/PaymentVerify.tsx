@@ -99,7 +99,10 @@ const PaymentVerify: React.FC = () => {
                                     localStorage.removeItem('laxmart_pending_payment_id');
                                     setStatus('success');
                                     setMessage('Payment Successful! 🎉');
-                                    setTimeout(() => navigate('/orders'), 2500);
+                                    const targetPath = result.order?._id 
+                                        ? `/order/${result.order._id}` 
+                                        : '/orders';
+                                    setTimeout(() => navigate(targetPath), 2500);
                                 }
                             }
                             return;

@@ -64,9 +64,10 @@ export const finalizeOrderCreation = async (
 
     const parentOrderId = `PARENT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     
-    // Inventory lock was already done during preparation, or we do it now
-    // For online payment, we might want to confirm the lock
-    await InventoryService.lockProductStock(userId, items);
+    // For COD, lock stock now. For Online, it was locked during PaymentIntent creation.
+    if (paymentMethod === 'COD') {
+        await InventoryService.lockProductStock(userId, items);
+    }
 
     const createdOrders: any[] = [];
     const splitConfigs = [
@@ -91,7 +92,7 @@ export const finalizeOrderCreation = async (
         },
         paymentMethod: paymentMethod || 'COD',
         paymentStatus: paymentStatus,
-        status: paymentStatus === 'Paid' ? 'Received' : 'Pending',
+        status: 'Received',
         subtotal: 0,
         tax: 0,
         shipping: config.type === 'quick' ? (fees?.deliveryFee || 0) : (fees?.ecomShippingFee || 40),
@@ -105,6 +106,8 @@ export const finalizeOrderCreation = async (
         type: 'product',
         deliveryInstructions: deliveryInstructions || '',
         tip: tip || 0,
+        transactionId: orderData.transactionId,
+        merchantOrderId: orderData.merchantOrderId,
       });
 
       let calculatedSubtotal = 0;
@@ -159,7 +162,7 @@ export const finalizeOrderCreation = async (
           commissionAmount: commAmount,
           variation: item.variant || item.variation || null,
           deliveryType: config.type,
-          status: paymentStatus === 'Paid' ? 'Received' : 'Pending'
+          status: 'Received'
         });
 
         if (session) await newOrderItem.save({ session });
@@ -202,6 +205,13 @@ export const finalizeOrderCreation = async (
           await sendNotification('Customer', userId, 'Order Placed!', `Your ${order.orderType} order ${order.orderNumber} is placed.`, { type: 'Order', link: `/orders/${order._id}` });
         } catch (e) { }
       }
+    }
+
+    // Finalize inventory (convert locks to actual stock deductions)
+    try {
+        await InventoryService.confirmProductLocks(userId);
+    } catch (invErr) {
+        console.warn('[OrderService] Inventory confirmation warning:', (invErr as any).message);
     }
 
     return createdOrders;

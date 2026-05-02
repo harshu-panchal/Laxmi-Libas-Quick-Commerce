@@ -21,7 +21,7 @@ router.post('/create', authenticate, requireUserType('Customer'), async (req: Re
     try {
         const { orderId, paymentType = 'quick' } = req.body;
         
-        if (!mongoose.Types.ObjectId.isValid(orderId)) {
+        if (!mongoose.Types.ObjectId.isValid(orderId) && !(typeof orderId === 'string' && orderId.startsWith('MT'))) {
             return res.status(400).json({ success: false, message: 'Invalid format for Order/Booking ID' });
         }
 

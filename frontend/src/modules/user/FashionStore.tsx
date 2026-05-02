@@ -15,21 +15,42 @@ export default function FashionStore() {
   const { location: userLocation } = useLocation();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchFashionData = async () => {
       try {
         setLoading(true);
-        const response = await getProducts({ category: 'fashion' });
-        setProducts(response.data as unknown as Product[]);
+        // 1. Fetch category "fashion" to get subcategories (Mens Wear, Womens Wear etc)
+        const catResponse = await getCategoryById('fashion');
+        
+        if (catResponse.success && catResponse.data.category) {
+          const mainCat = catResponse.data.category;
+          const subs = catResponse.data.subcategories || [];
+          
+          setCategories(subs);
+          
+          // 2. Fetch products for this main category
+          const response = await getProducts({ category: mainCat._id });
+          if (response.success) {
+            setProducts(response.data as unknown as Product[]);
+          }
+        } else {
+          // Fallback if "fashion" category not found
+          const response = await getProducts({ search: 'fashion' });
+          if (response.success) {
+            setProducts(response.data as unknown as Product[]);
+          }
+        }
       } catch (error) {
-        console.error('Failed to fetch fashion products:', error);
+        console.error('Failed to fetch fashion data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    fetchFashionData();
   }, []);
 
   return (
@@ -92,7 +113,62 @@ export default function FashionStore() {
       </div>
 
       <div className="px-4 py-4">
-        <h3 className="text-lg font-semibold text-neutral-900 mb-4">Top buys</h3>
+        {/* Dynamic Category Buttons */}
+        {categories.length > 0 && (
+          <div className="flex overflow-x-auto pb-4 gap-2 no-scrollbar scroll-smooth">
+            <button
+              onClick={() => {
+                setSelectedCategory(null);
+                setLoading(true);
+                getCategoryById('fashion').then(res => {
+                  if (res.success && res.data.category) {
+                    getProducts({ category: res.data.category._id }).then(pRes => {
+                      if (pRes.success) setProducts(pRes.data as unknown as Product[]);
+                      setLoading(false);
+                    });
+                  } else {
+                    setLoading(false);
+                  }
+                });
+              }}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border ${
+                selectedCategory === null
+                  ? 'bg-primary-dark text-white border-primary-dark shadow-sm'
+                  : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300'
+              }`}
+            >
+              All Fashion
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat._id}
+                onClick={() => {
+                  setSelectedCategory(cat._id);
+                  setLoading(true);
+                  getProducts({ category: cat._id }).then(res => {
+                    if (res.success) {
+                      setProducts(res.data as unknown as Product[]);
+                    }
+                    setLoading(false);
+                  });
+                }}
+                className={`px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border ${
+                  selectedCategory === cat._id
+                    ? 'bg-primary-dark text-white border-primary-dark shadow-sm'
+                    : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <h3 className="text-lg font-semibold text-neutral-900 mb-4">
+          {selectedCategory 
+            ? categories.find(c => c._id === selectedCategory)?.name 
+            : 'Top buys'}
+        </h3>
 
         {loading ? (
           <div className="flex justify-center p-8">

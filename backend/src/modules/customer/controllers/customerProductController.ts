@@ -17,6 +17,8 @@ export const getProducts = async (req: Request, res: Response) => {
       longitude,
       pincode,
       categoryId,
+      category: categoryParam,
+      subcategory: subcategoryParam,
       city: userCityParam,
       limit = 20,
       page = 1
@@ -32,8 +34,16 @@ export const getProducts = async (req: Request, res: Response) => {
 
     // ── Base query for active, published, approved-seller products ──────────
     const baseQuery: any = { status: 'Active', publish: true };
-    if (categoryId && mongoose.Types.ObjectId.isValid(categoryId as string)) {
-      baseQuery.category = new mongoose.Types.ObjectId(categoryId as string);
+    
+    // Use categoryId (legacy) or category parameter
+    const activeCategoryId = categoryId || categoryParam;
+    if (activeCategoryId && mongoose.Types.ObjectId.isValid(activeCategoryId as string)) {
+      baseQuery.category = new mongoose.Types.ObjectId(activeCategoryId as string);
+    }
+    
+    // Handle subcategory filtering
+    if (subcategoryParam && mongoose.Types.ObjectId.isValid(subcategoryParam as string)) {
+      baseQuery.subcategory = new mongoose.Types.ObjectId(subcategoryParam as string);
     }
 
     // ── Fetch Quick (location-based) products ───────────────────────────────

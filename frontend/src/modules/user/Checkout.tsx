@@ -595,11 +595,11 @@ export default function Checkout() {
     } catch (error: any) {
       console.error("Order placement failed", error);
       
-      // Extract the most descriptive error message
       const backendMessage = error.response?.data?.message;
+      const backendError = error.response?.data?.error;
       const backendDetails = error.response?.data?.details;
       
-      let errorMessage = backendMessage || error.message || "Failed to place order. Please try again.";
+      let errorMessage = backendError || backendMessage || error.message || "Failed to place order. Please try again.";
       
       // If it's an authorization error, add the suggestion from backend if available
       if (error.response?.status === 403 && backendDetails?.suggestion) {

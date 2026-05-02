@@ -2,14 +2,8 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useMemo, useEffect } from "react";
 import ProductCard from "./components/ProductCard";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  getProducts,
-  getCategoryById,
-  Category as ApiCategory,
-} from "../../services/api/customerProductService";
+import { getProducts, getCategoryById, Category as ApiCategory } from "../../services/api/customerProductService";
 import { useLocation as useLocationContext } from "../../hooks/useLocation";
-import { isClothingRelated } from "../../utils/clothingUtils";
-import { CLOTHING_MOCK_DATA } from "../../utils/clothingMockData";
 
 
 export default function CategoryPage() {
@@ -36,23 +30,7 @@ export default function CategoryPage() {
       setCategoryLoading(true);
       setError(null);
       
-      // Handle mock Clothing-related categories
-      if (isClothingRelated(id)) {
-        const mockName = id?.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') || "Category";
-        setCategory({ _id: id, id: id, name: mockName } as any);
-        setSubcategories([
-          {
-            _id: "all",
-            id: "all",
-            name: "All",
-            icon: "📦",
-            isActive: true,
-          } as any,
-          ...CLOTHING_MOCK_DATA.subcategories.map(s => ({ ...s, _id: s.id } as any))
-        ]);
-        setCategoryLoading(false);
-        return;
-      }
+      // API-based flow for all categories
 
       try {
         const response = await getCategoryById(id!);
@@ -125,45 +103,12 @@ export default function CategoryPage() {
 
         const response = await getProducts(params);
         if (response.success) {
-          const isMockProduct = (p: any) => 
-            ((p.name?.toLowerCase() === 'jeans' || p.productName?.toLowerCase() === 'jeans') && 
-             (p.price === 200 || p.price === 50 || p.originalPrice === 200)) ||
-            (p.imageUrl?.includes('10mins_icon_pink') || (p.mainImage || "").includes('10mins_icon_pink') || 
-             p.imageUrl?.includes('truck') || (p.mainImage || "").includes('truck'));
-
-          let safeProducts = (response.data || [])
+          const safeProducts = (response.data || [])
             .map((p: any) => ({
               ...p,
               tags: Array.isArray(p.tags) ? p.tags : [],
               nameParts: (p.productName || p.name || "").toLowerCase().split(" "),
             }));
-
-          // Fallback to mock data if empty and it's a clothing-related category
-          const isClothingCat = 
-            isClothingRelated(id) || 
-            isClothingRelated(category?.name) || 
-            isClothingRelated(selectedSubcategory) ||
-            (subcategories.find(s => (s.id || s._id) === selectedSubcategory)?.name?.toLowerCase().includes('men'));
-
-          if (safeProducts.length === 0 && isClothingCat) {
-            const activeId = category?._id || category?.id || id;
-            safeProducts = CLOTHING_MOCK_DATA.products
-              .filter(p => {
-                const productCatId = (p.category as any)?._id || p.category || (p as any).categoryId;
-                const isMainCatMatch = productCatId?.toString() === activeId?.toString();
-                
-                if (selectedSubcategory !== 'all') {
-                  return isMainCatMatch && (p.subcategoryId === selectedSubcategory || p._id === selectedSubcategory);
-                }
-                return isMainCatMatch;
-              })
-              .map(p => ({
-                ...p,
-                category: activeId,
-                categoryId: activeId,
-                subcategoryId: selectedSubcategory !== 'all' ? selectedSubcategory : p.subcategoryId
-              }));
-          }
           
           setProducts(safeProducts);
         } else {
@@ -534,69 +479,93 @@ export default function CategoryPage() {
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto scrollbar-hide bg-white pb-10">
-          {/* Quick Commerce Section */}
-          <div className="px-4 md:px-6 lg:px-8 pt-4 md:pt-6">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-xl">⚡</span>
-              <h2 className="text-lg font-bold text-neutral-900">Nearby Delivery</h2>
-              <span className="text-xs font-medium text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full">
-                {quickProducts.length} items
-              </span>
+          {(quickProducts.length === 0 && ecommerceProducts.length === 0) ? (
+            <div className="flex flex-col items-center justify-center py-20 px-4 bg-white rounded-2xl shadow-sm border border-neutral-100 mt-10 mx-4">
+              <div className="w-20 h-20 bg-neutral-50 rounded-full flex items-center justify-center mb-6">
+                <svg className="w-10 h-10 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-neutral-900 mb-2">No products found</h3>
+              <p className="text-neutral-500 mb-8 max-w-sm text-center">
+                We couldn't find any products in this {selectedSubcategory === 'all' ? 'category' : 'subcategory'} right now.
+              </p>
+              {selectedSubcategory !== 'all' ? (
+                <button
+                  onClick={() => setSelectedSubcategory('all')}
+                  className="px-8 py-3 bg-primary-dark text-white rounded-full font-semibold hover:bg-yellow-700 transition-all shadow-md active:scale-95"
+                >
+                  View all items in {category?.name || 'this category'}
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate('/')}
+                  className="px-8 py-3 border-2 border-primary-dark text-primary-dark rounded-full font-semibold hover:bg-yellow-50 transition-all active:scale-95"
+                >
+                  Explore other categories
+                </button>
+              )}
             </div>
-            
-            {quickProducts.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-4">
-                {quickProducts.map((product) => (
-                  <ProductCard
-                    key={product.id || product._id}
-                    product={product}
-                    showHeartIcon={false}
-                    showStockInfo={false}
-                    showBadge={true}
-                    showOptionsText={true}
-                    categoryStyle={true}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="py-10 text-center bg-neutral-50 rounded-2xl border border-dashed border-neutral-200">
-                <p className="text-neutral-400 text-sm">No quick delivery products available nearby.</p>
-              </div>
-            )}
-          </div>
+          ) : (
+            <>
+              {/* Quick Commerce Section */}
+              {quickProducts.length > 0 && (
+                <div className="px-4 md:px-6 lg:px-8 pt-4 md:pt-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">⚡</span>
+                    <h2 className="text-lg font-bold text-neutral-900">Nearby Delivery</h2>
+                    <span className="text-xs font-medium text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full">
+                      {quickProducts.length} items
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
+                    {quickProducts.map((product, idx) => (
+                      <motion.div
+                        key={product._id || idx}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: idx * 0.05 }}
+                      >
+                        <ProductCard product={product} categoryStyle={true} />
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-          <div className="h-4 bg-neutral-50 my-6"></div>
+              {quickProducts.length > 0 && ecommerceProducts.length > 0 && (
+                <div className="h-4 bg-neutral-50 my-6"></div>
+              )}
 
-          {/* National Ecommerce Section */}
-          <div className="px-4 md:px-6 lg:px-8">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-xl">📦</span>
-              <h2 className="text-lg font-bold text-neutral-900">Ships to your location</h2>
-              <span className="text-xs font-medium text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full">
-                {ecommerceProducts.length} items
-              </span>
-            </div>
-            
-            {ecommerceProducts.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-4">
-                {ecommerceProducts.map((product) => (
-                  <ProductCard
-                    key={product.id || product._id}
-                    product={product}
-                    showHeartIcon={false}
-                    showStockInfo={false}
-                    showBadge={true}
-                    showOptionsText={true}
-                    categoryStyle={true}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="py-10 text-center bg-neutral-50 rounded-2xl border border-dashed border-neutral-200">
-                <p className="text-neutral-400 text-sm">No products available for shipping to your location.</p>
-              </div>
-            )}
-          </div>
+              {/* National Ecommerce Section */}
+              {ecommerceProducts.length > 0 && (
+                <div className="px-4 md:px-6 lg:px-8 py-4 md:py-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">📦</span>
+                    <h2 className="text-lg font-bold text-neutral-900">Ships to your location</h2>
+                    <span className="text-xs font-medium text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full">
+                      {ecommerceProducts.length} items
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-4">
+                    {ecommerceProducts.map((product) => (
+                      <ProductCard
+                        key={product.id || product._id}
+                        product={product}
+                        showHeartIcon={false}
+                        showStockInfo={false}
+                        showBadge={true}
+                        showOptionsText={true}
+                        categoryStyle={true}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 

@@ -77,6 +77,13 @@ export const createOrder = async (req: Request, res: Response) => {
 
         // Create PaymentIntent
         const merchantOrderId = `MT${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        // Lock stock now so it's reserved while user is paying
+        try {
+            await InventoryService.lockProductStock(userId, items);
+        } catch (stockErr: any) {
+            return res.status(400).json({ success: false, message: stockErr.message });
+        }
+
         const intent = new PaymentIntent({
             userId,
             items,
@@ -183,7 +190,14 @@ export const getOrderById = async (req: Request, res: Response) => {
 
         if (!order) return res.status(404).json({ success: false, message: "Order not found" });
 
-        const customer = await Customer.findById(userId).select('deliveryOtp');
+        let customer = await Customer.findById(userId).select('deliveryOtp');
+        
+        // Generate OTP if missing (for legacy customers)
+        if (customer && !customer.deliveryOtp) {
+            customer.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+            await customer.save();
+        }
+
         const orderObj = order.toObject();
         const transformedOrder = {
             ...orderObj,

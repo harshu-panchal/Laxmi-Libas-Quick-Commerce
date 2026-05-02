@@ -34,6 +34,7 @@ export interface Order {
   status: OrderStatus;
   paymentMethod?: string;
   createdAt: string;
+  deliveryOtp?: string;
   tipAmount?: number;
   donationAmount?: number;
   gstin?: string;

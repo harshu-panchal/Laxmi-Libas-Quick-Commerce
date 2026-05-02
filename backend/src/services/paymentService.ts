@@ -55,17 +55,26 @@ export const createPhonePeOrder = async (
 
         // Fetch total from correct model
         if (paymentType === 'quick' || paymentType === 'ecommerce') {
-            const order = await Order.findById(orderId);
-            if (!order) throw new Error('Order not found');
-            
-            // Check if it's a parent link
-            if (order.parentOrderId) {
-                const siblingOrders = await Order.find({ parentOrderId: order.parentOrderId });
-                amount = siblingOrders.reduce((sum, o) => sum + o.total, 0);
+            if (typeof orderId === 'string' && orderId.startsWith('MT')) {
+                const mongoose = require('mongoose');
+                const PaymentIntent = mongoose.models.PaymentIntent || mongoose.model('PaymentIntent');
+                const intent = await PaymentIntent.findOne({ merchantOrderId: orderId });
+                if (!intent) throw new Error('Payment intent not found');
+                amount = intent.total;
+                userId = intent.userId;
             } else {
-                amount = order.total;
+                const order = await Order.findById(orderId);
+                if (!order) throw new Error('Order not found');
+                
+                // Check if it's a parent link
+                if (order.parentOrderId) {
+                    const siblingOrders = await Order.find({ parentOrderId: order.parentOrderId });
+                    amount = siblingOrders.reduce((sum, o) => sum + o.total, 0);
+                } else {
+                    amount = order.total;
+                }
+                userId = order.customer;
             }
-            userId = order.customer;
         } else if (paymentType === 'hotel') {
             const booking = await HotelBooking.findById(orderId);
             if (!booking) throw new Error('Hotel booking not found');
@@ -79,7 +88,9 @@ export const createPhonePeOrder = async (
         }
 
         const amountInPaise = Math.round(amount * 100);
-        const merchantTransactionId = `MT${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+        const merchantTransactionId = (typeof orderId === 'string' && orderId.startsWith('MT')) 
+            ? orderId 
+            : `MT${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
 
         const baseFrontendUrl = customFrontendUrl || FRONTEND_URL;
         const request = StandardCheckoutPayRequest.builder()
@@ -92,8 +103,9 @@ export const createPhonePeOrder = async (
 
         const response = await client.pay(request);
 
+        const isMT = typeof orderId === 'string' && orderId.startsWith('MT');
         const payment = new Payment({
-            orderId: orderId as any, 
+            orderId: isMT ? undefined : orderId as any, 
             userId,
             paymentType,
             paymentMethod: 'Online',
@@ -103,7 +115,12 @@ export const createPhonePeOrder = async (
             currency: 'INR',
             status: 'PENDING'
         });
-        await payment.save();
+        
+        try {
+            await payment.save();
+        } catch (saveErr: any) {
+            console.warn('[PaymentService] Non-fatal error saving payment audit:', saveErr.message);
+        }
 
         return {
             success: true,

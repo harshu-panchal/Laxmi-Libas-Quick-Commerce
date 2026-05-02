@@ -98,7 +98,7 @@ export async function findAvailableDeliveryBoys(): Promise<mongoose.Types.Object
     try {
         const deliveryBoys = await Delivery.find({
             isOnline: true,
-            status: 'Active',
+            status: 'Approved',
         }).select('_id');
 
         return deliveryBoys.map(db => db._id);
@@ -124,7 +124,7 @@ export async function findDeliveryBoysNearLocation(
 
         const deliveryBoysWithLocation = await Delivery.find({
             isOnline: true,
-            status: 'Active',
+            status: 'Approved',
             location: {
                 $near: {
                     $geometry: {
@@ -158,7 +158,7 @@ export async function findDeliveryBoysNearLocation(
         // Get all active and online delivery boys
         const allDeliveryBoys = await Delivery.find({
             isOnline: true,
-            status: 'Active',
+            status: 'Approved',
         }).select('_id');
 
         if (allDeliveryBoys.length === 0) {
