@@ -42,7 +42,7 @@ export default function ProductDetail() {
   const [isAvailableAtLocation, setIsAvailableAtLocation] =
     useState<boolean>(true);
 
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState<number>(0);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState<number | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -166,18 +166,18 @@ export default function ProductDetail() {
 
   // Reset selected variant and image when product changes (color switch)
   useEffect(() => {
-    setSelectedVariantIndex(0);
+    setSelectedVariantIndex(null);
     setSelectedImageIndex(0);
   }, [id]);
 
   // Get selected variant
-  const selectedVariant = product?.variations?.[selectedVariantIndex] || null;
+  const selectedVariant = selectedVariantIndex !== null ? product?.variations?.[selectedVariantIndex] : null;
   const {
     displayPrice: variantPrice,
     mrp: variantMrp,
     discount,
     hasDiscount,
-  } = calculateProductPrice(product, selectedVariantIndex);
+  } = calculateProductPrice(product, selectedVariantIndex !== null ? selectedVariantIndex : 0);
 
   const variantStock =
     selectedVariant?.stock !== undefined
@@ -346,7 +346,12 @@ export default function ProductDetail() {
   const handleAddToCart = () => {
     // Location check removed as per user request
 
-    if (!isVariantAvailable && variantStock !== 0) {
+    if (product.variations && product.variations.length > 0 && selectedVariantIndex === null) {
+      showToast("Please select a size", "error");
+      return;
+    }
+
+    if (!isVariantAvailable && variantStock !== 0 && selectedVariantIndex !== null) {
       alert("This variant is currently out of stock.");
       return;
     }
@@ -359,6 +364,11 @@ export default function ProductDetail() {
       selectedVariant: selectedVariant,
       variantId: selectedVariant?._id,
       variantTitle: variantTitle,
+      // For backend support
+      selectedVariantData: selectedVariant ? {
+        size: selectedVariant.title || selectedVariant.value,
+        color: product.color
+      } : null
     };
     addToCart(productWithVariant, addButtonRef.current);
   };

@@ -188,6 +188,8 @@ export const getOrderById = asyncHandler(
         productImage: item.productImage || populatedProduct?.mainImage || '',
         soldBy: (item.seller as any)?.storeName || 'N/A',
         unit: item.variation || item.variantTitle || populatedProduct?.pack || 'N/A',
+        size: item.selectedVariant?.size || '-',
+        color: item.selectedVariant?.color || '-',
         price: item.unitPrice || 0,
         tax: itemTax,
         taxPercent: itemSubtotal > 0 ? Number(((itemTax / itemSubtotal) * 100).toFixed(2)) : 0,

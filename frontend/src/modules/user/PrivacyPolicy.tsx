@@ -33,7 +33,7 @@ export default function PrivacyPolicy() {
                     </h2>
                     <div className="space-y-4 text-[13px] text-neutral-600 leading-relaxed">
                         <p>
-                            This Privacy Policy describes how <strong>LAXMI ENTERPRISES</strong> (collectively & LAXMI ENTERPRISES, we, our, us) collect, use, share, protect or otherwise process your information/ personal data through our website <a href="https://laxmart.store/" className="text-blue-600 hover:underline">https://laxmart.store/</a> (hereinafter referred to as Platform).
+                            This Privacy Policy describes how <strong>LaxMart</strong> (collectively & LaxMart, we, our, us) collect, use, share, protect or otherwise process your information/ personal data through our website <a href="https://laxmart.store/" className="text-blue-600 hover:underline">https://laxmart.store/</a> (hereinafter referred to as Platform).
                         </p>
                         <p>
                             Please note that you may be able to browse certain sections of the Platform without registering with us. We do not offer any product/service under this Platform outside India and your personal data will primarily be stored and processed in India.
@@ -67,7 +67,7 @@ export default function PrivacyPolicy() {
                             We will also collect your information related to your transactions on Platform and such third-party business partner platforms. When such a third-party business partner collects your personal data directly from you, you will be governed by their privacy policies. We shall not be responsible for the third-party business partner’s privacy practices or the content of their privacy policies, and we request you to read their privacy policies prior to disclosing any information.
                         </p>
                         <p className="bg-red-50 p-3 rounded-lg border border-red-100 text-red-700">
-                            If you receive an email, a call from a person/association claiming to be <strong>LAXMI ENTERPRISES</strong> seeking any personal data like debit/credit card PIN, net-banking or mobile banking password, we request you to never provide such information. If you have already revealed such information, report it immediately to an appropriate law enforcement agency.
+                            If you receive an email, a call from a person/association claiming to be <strong>LaxMart</strong> seeking any personal data like debit/credit card PIN, net-banking or mobile banking password, we request you to never provide such information. If you have already revealed such information, report it immediately to an appropriate law enforcement agency.
                         </p>
                     </div>
                 </div>
@@ -215,7 +215,7 @@ export default function PrivacyPolicy() {
                                 This document is published in accordance with the provisions of Rule 3 (1) of the Information Technology (Intermediaries guidelines) Rules, 2011 that require publishing the rules and regulations, privacy policy and Terms of Use for access or usage of domain name <a href="https://laxmart.store/" className="text-blue-600 hover:underline">https://laxmart.store/</a> ('Website'), including the related mobile site and mobile application (hereinafter referred to as 'Platform').
                             </p>
                             <p>
-                                The Platform is owned by <strong>LAXMI ENTERPRISES</strong>, a company incorporated under the Companies Act, 1956 with its registered office at House No. 313, Laxmi Niwas, Railway Station Road, Near Petrol Pump, Noamundi, Kotgarh, West Singhbhum, Jharkhand, 833218 (hereinafter referred to as ‘Platform Owner’, 'we', 'us', 'our').
+                                The Platform is owned by <strong>LaxMart</strong>, a company incorporated under the Companies Act, 1956 with its registered office at House No. 313, Laxmi Niwas, Railway Station Road, Near Petrol Pump, Noamundi, Kotgarh, West Singhbhum, Jharkhand, 833218 (hereinafter referred to as ‘Platform Owner’, 'we', 'us', 'our').
                             </p>
                             <p>
                                 Your use of the Platform and services and tools are governed by the following terms and conditions (“Terms of Use”) as applicable to the Platform including the applicable policies which are incorporated herein by way of reference. If You transact on the Platform, You shall be subject to the policies that are applicable to the Platform for such transaction. By mere use of the Platform, You shall be contracting with the Platform Owner and these terms and conditions including the policies constitute Your binding obligations, with Platform Owner. These Terms of Use relate to your use of our website, goods (as applicable) or services (as applicable) (collectively, 'Services'). Any terms and conditions proposed by You which are in addition to or which conflict with these Terms of Use are expressly rejected by the Platform Owner and shall be of no force or effect. These Terms of Use can be modified at any time without assigning any reason. It is your responsibility to periodically review these Terms of Use to stay informed of updates.
@@ -363,7 +363,7 @@ export default function PrivacyPolicy() {
                             In accordance with Information Technology Act 2000 and rules made there under and the Consumer Protection (E-Commerce) Rules, 2020, the name and contact details of the Grievance Officer are provided below:
                         </p>
                         <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100 space-y-2">
-                            <p><strong>Name:</strong> Laxmi Libas Support Team</p>
+                            <p><strong>Name:</strong> LaxMart Support Team</p>
                             <p><strong>Address:</strong> House No. 313, Laxmi Niwas, Railway Station Road, Near Petrol Pump, Noamundi, Kotgarh, West Singhbhum, Jharkhand, 833218</p>
                             <p>
                                 <strong>Email:</strong> <a href="mailto:Laxmilibas2@gmail.com" className="text-teal-600 font-medium hover:underline">Laxmilibas2@gmail.com</a>

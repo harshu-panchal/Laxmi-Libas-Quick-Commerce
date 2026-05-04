@@ -17,6 +17,10 @@ export interface IOrderItem extends Document {
   // Variation
   variation?: string;
   variantTitle?: string;
+  selectedVariant?: {
+    size?: string;
+    color?: string;
+  };
   // Status
   status: "Received" | "Pending" | "Shipped" | "Delivered" | "Cancelled" | "Returned";
   deliveryType: "quick" | "standard" | "ecommerce";
@@ -85,6 +89,10 @@ const OrderItemSchema = new Schema<IOrderItem>(
     variantTitle: {
       type: String,
       trim: true,
+    },
+    selectedVariant: {
+      size: { type: String, trim: true },
+      color: { type: String, trim: true },
     },
 
     // Status

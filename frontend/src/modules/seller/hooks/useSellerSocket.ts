@@ -73,6 +73,17 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
             }
         };
 
+        const handleNewOrder = (notification: any) => {
+            console.log('🔔 New order notification received:', notification);
+            playNotificationSound();
+            if (onNotificationReceived) {
+                onNotificationReceived({
+                    type: 'NEW_ORDER',
+                    ...notification
+                });
+            }
+        };
+
         newSocket.on('seller-notification', (notification: SellerNotification) => {
             console.log('🔔 New seller notification received:', notification);
             
@@ -85,6 +96,8 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
                 onNotificationReceived(notification);
             }
         });
+
+        newSocket.on('order:new', handleNewOrder);
 
         newSocket.on('disconnect', () => {
             console.log('❌ Seller disconnected from socket server');

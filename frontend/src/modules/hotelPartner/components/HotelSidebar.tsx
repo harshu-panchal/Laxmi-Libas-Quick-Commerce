@@ -71,8 +71,8 @@ const HotelSidebar: React.FC<HotelSidebarProps> = ({ onClose }) => {
     <aside className="w-64 h-full bg-neutral-900 text-white flex flex-col">
       <div className="p-6">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center font-black text-sm">LL</div>
-          <span className="text-xl font-bold tracking-tight">Laxmi Libas</span>
+          <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center font-black text-sm">LM</div>
+          <span className="text-xl font-bold tracking-tight">LaxMart</span>
         </div>
       </div>
 

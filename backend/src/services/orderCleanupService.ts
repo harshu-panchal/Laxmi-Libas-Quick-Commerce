@@ -93,12 +93,17 @@ export class OrderCleanupService {
      */
     private static async rejectOrder(order: any, reason: string) {
         try {
-            order.status = 'Rejected';
-            order.adminNotes = (order.adminNotes ? order.adminNotes + '\n' : '') + `[${new Date().toISOString()}] ${reason}`;
-            await order.save();
+            // DO NOT change status as per instructions
+            // order.status = 'Rejected';
+            // order.adminNotes = (order.adminNotes ? order.adminNotes + '\n' : '') + `[${new Date().toISOString()}] ${reason}`;
+            // await order.save();
 
             const orderId = order._id.toString();
+            
+            // Send reminder only
+            console.log(`⏰ [Cleanup] REMINDER sent for Order ${order.orderNumber}: ${reason}`);
 
+            /*
             // Notify Customer via Socket
             this.io?.to(`order-${orderId}`).emit('order-rejected', {
                 orderId,
@@ -116,10 +121,11 @@ export class OrderCleanupService {
                 orderId,
                 acceptedBy: 'SYSTEM_REJECTED'
             });
+            */
 
-            debugLog(`🚫 [Cleanup] Order ${order.orderNumber} auto-rejected: ${reason}`);
+            debugLog(`⏰ [Cleanup] Order ${order.orderNumber} reminder sent: ${reason}`);
         } catch (err) {
-            console.error(`❌ [OrderCleanup] Failed to reject order ${order._id}:`, err);
+            console.error(`❌ [OrderCleanup] Failed to process reminder for order ${order._id}:`, err);
         }
     }
 }

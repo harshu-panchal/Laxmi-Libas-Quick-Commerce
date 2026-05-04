@@ -190,7 +190,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
         socket.on('join-seller-room', (sellerId: string) => {
             const normalizedSellerId = String(sellerId).trim();
             console.log(`🏪 Seller ${normalizedSellerId} joined notifications room`);
-            socket.join(`seller-${normalizedSellerId}`);
+            socket.join(`seller:${normalizedSellerId}`);
 
             socket.emit('joined-seller-room', {
                 success: true,

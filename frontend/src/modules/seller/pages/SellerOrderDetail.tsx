@@ -641,6 +641,8 @@ export default function SellerOrderDetail() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Sr. No.</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Product</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Unit</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Size</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Color</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Price</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Tax ? (%)</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Qty</th>
@@ -669,6 +671,12 @@ export default function SellerOrderDetail() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-neutral-900">{formatUnit(item.unit, item.qty)}</td>
+                    <td className="px-4 py-3 text-sm text-neutral-900">
+                      <span className="px-2 py-0.5 bg-neutral-100 rounded text-xs font-bold">{item.size || '-'}</span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-neutral-900">
+                      <span className="px-2 py-0.5 bg-neutral-100 rounded text-xs font-bold">{item.color || '-'}</span>
+                    </td>
                     <td className="px-4 py-3 text-sm text-neutral-900">?{item.price.toFixed(2)}</td>
                     <td className="px-4 py-3 text-sm text-neutral-600">
                       {item.tax.toFixed(2)} ({item.taxPercent.toFixed(2)}%)

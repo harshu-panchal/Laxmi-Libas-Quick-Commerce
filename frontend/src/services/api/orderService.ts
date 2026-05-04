@@ -25,6 +25,8 @@ export interface OrderItem {
   productImage?: string;
   soldBy: string;
   unit: string;
+  size?: string;
+  color?: string;
   price: number;
   tax: number;
   taxPercent: number;

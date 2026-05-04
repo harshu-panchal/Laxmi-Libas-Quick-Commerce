@@ -63,8 +63,14 @@ export async function notifySellersOfOrderUpdate(
             };
 
             // Emit to seller-specific room
-            io.to(`seller-${sellerId}`).emit('seller-notification', notificationData);
-            console.log(`📤 Emitted notification to seller-${sellerId}`);
+            io.to(`seller:${sellerId}`).emit('seller-notification', notificationData);
+            
+            // For new orders, emit 'order:new' specifically as requested
+            if (type === 'NEW_ORDER') {
+                io.to(`seller:${sellerId}`).emit('order:new', notificationData);
+            }
+            
+            console.log(`📤 Emitted notification to seller:${sellerId}`);
         }
     } catch (error) {
         console.error('Error in notifySellersOfOrderUpdate:', error);

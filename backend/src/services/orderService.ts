@@ -161,6 +161,7 @@ export const finalizeOrderCreation = async (
           commissionRate: commRate,
           commissionAmount: commAmount,
           variation: item.variant || item.variation || null,
+          selectedVariant: item.selectedVariant || (item.variant ? { size: item.variant } : null),
           deliveryType: config.type,
           status: 'Received'
         });
