@@ -156,12 +156,12 @@ export default function SellerLogin() {
             <div className="space-y-4">
               <div className="text-center">
                 <p className="text-sm text-neutral-600 mb-2">
-                  Enter the 6-digit OTP sent to
+                  Enter the 4-digit OTP sent to
                 </p>
                 <p className="text-sm font-semibold text-neutral-800">+91 {mobileNumber}</p>
               </div>
 
-              <OTPInput length={6} onComplete={handleOTPComplete} disabled={loading} />
+              <OTPInput length={4} onComplete={handleOTPComplete} disabled={loading} />
 
               {error && (
                 <div className="text-sm text-red-600 bg-red-50 p-2 rounded text-center">

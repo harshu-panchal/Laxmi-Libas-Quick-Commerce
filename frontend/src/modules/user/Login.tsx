@@ -348,7 +348,7 @@ export default function Login() {
                         assuming OTPInput accepts classNames or styles. If not, wrapping it. 
                         For now, assuming it inherits roughly or we style the wrapper. */}
                   <div className="flex justify-center [&_input]:bg-white/10 [&_input]:text-white [&_input]:border-white/20">
-                    <OTPInput length={6} onComplete={handleOTPComplete} disabled={loading} />
+                    <OTPInput length={4} onComplete={handleOTPComplete} disabled={loading} />
                   </div>
 
                   {error && <div className="text-red-300 text-xs text-center">{error}</div>}

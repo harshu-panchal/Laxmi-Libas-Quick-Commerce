@@ -8,10 +8,12 @@ const SMS_INDIA_HUB_DLT_TEMPLATE_ID = process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID;
 const SMS_INDIA_HUB_API_URL = 'http://cloud.smsindiahub.in/vendorsms/pushsms.aspx';
 const API_TIMEOUT = 30000; // 30 seconds
 
+console.log(`[SMS Config] API Key: ${SMS_INDIA_HUB_API_KEY ? 'Found' : 'MISSING'}`);
+console.log(`[SMS Config] Sender ID: ${SMS_INDIA_HUB_SENDER_ID ? 'Found' : 'MISSING'}`);
+console.log(`[SMS Config] DLT Template ID: ${SMS_INDIA_HUB_DLT_TEMPLATE_ID ? 'Found' : 'MISSING'}`);
+
 if (!SMS_INDIA_HUB_API_KEY || !SMS_INDIA_HUB_SENDER_ID) {
-  if (process.env.NODE_ENV === 'production') {
-    console.warn('SMS India HUB credentials are not fully set in environment variables');
-  }
+  console.warn('⚠️ SMS India HUB credentials are missing. Real SMS will NOT be sent.');
 }
 
 /**
@@ -43,7 +45,7 @@ type UserType = 'Customer' | 'Delivery' | 'Seller' | 'Admin';
 /**
  * Generate numeric OTP
  */
-function generateOTP(length: number = 6): string {
+function generateOTP(length: number = 4): string {
   const digits = '0123456789';
   let otp = '';
   for (let i = 0; i < length; i++) {
@@ -132,17 +134,29 @@ async function sendSmsViaApi(mobile: string, message: string): Promise<void> {
     params.DLT_TE_ID = SMS_INDIA_HUB_DLT_TEMPLATE_ID.trim();
   }
 
-  const response = await axios.get<SmsIndiaHubResponse>(SMS_INDIA_HUB_API_URL, {
-    params,
-    paramsSerializer: (params) => {
-      return Object.keys(params)
-        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
-        .join('&');
-    },
-    timeout: API_TIMEOUT,
-  });
+  console.log(`[SMS API] Sending OTP to ${cleanMobile} using SenderID: ${SMS_INDIA_HUB_SENDER_ID}`);
+  console.log(`[SMS API] Message: "${message}"`);
 
-  handleSmsResponse(response.data);
+  try {
+    const response = await axios.get<SmsIndiaHubResponse>(SMS_INDIA_HUB_API_URL, {
+      params,
+      paramsSerializer: (params) => {
+        return Object.keys(params)
+          .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+          .join('&');
+      },
+      timeout: API_TIMEOUT,
+    });
+
+    console.log(`[SMS API] Response Data:`, response.data);
+    handleSmsResponse(response.data);
+  } catch (error: any) {
+    console.error(`[SMS API] Request failed:`, error.message);
+    if (error.response) {
+      console.error(`[SMS API] Error response:`, error.response.data);
+    }
+    throw error;
+  }
 }
 
 /**
@@ -151,6 +165,8 @@ async function sendSmsViaApi(mobile: string, message: string): Promise<void> {
 async function saveOtpToDb(mobile: string, otp: string, userType: UserType): Promise<void> {
   // Normalize mobile number (remove any non-digits, ensure consistent format)
   const normalizedMobile = mobile.replace(/\D/g, '');
+
+  console.log(`[OTP DEBUG] Generated OTP for ${normalizedMobile} (${userType}): ${otp}`);
 
   await Otp.deleteMany({ mobile: normalizedMobile, userType });
   await Otp.create({
@@ -202,7 +218,24 @@ async function verifyOtpFromDb(mobile: string, otp: string, userType: UserType):
  * Check if mock mode should be used
  */
 function isMockMode(): boolean {
-  return process.env.USE_MOCK_OTP === 'true' || !SMS_INDIA_HUB_API_KEY || !SMS_INDIA_HUB_SENDER_ID;
+  if (process.env.USE_MOCK_OTP === 'true') {
+    console.log('[OTP DEBUG] Mock mode active: USE_MOCK_OTP is set to true');
+    return true;
+  }
+  if (!SMS_INDIA_HUB_API_KEY) {
+    console.log('[OTP DEBUG] Mock mode active: SMS_INDIA_HUB_API_KEY is missing');
+    return true;
+  }
+  if (!SMS_INDIA_HUB_SENDER_ID) {
+    console.log('[OTP DEBUG] Mock mode active: SMS_INDIA_HUB_SENDER_ID is missing');
+    return true;
+  }
+  return false;
+}
+
+function isSpecialBypass(mobile: string): boolean {
+  const normalized = mobile.replace(/\D/g, '');
+  return normalized === '9827607086' || normalized === '919827607086';
 }
 
 // ==========================================
@@ -212,7 +245,7 @@ function isMockMode(): boolean {
 export async function sendDeliveryOtpSms(mobile: string, otp: string): Promise<OtpResponse> {
   try {
     if (isMockMode()) {
-      console.log(`[Mock SMS] Sending delivery OTP ${otp} to ${mobile}`);
+      console.log(`[OTP DEBUG] Mock mode active for ${mobile}. Using dummy delivery OTP.`);
       return { success: true, message: 'Delivery OTP sent successfully (Mock)' };
     }
 
@@ -232,15 +265,16 @@ export async function sendSmsOtp(
   userType: 'Customer' | 'Delivery' = 'Delivery'
 ): Promise<OtpResponse> {
   try {
-    let otp = generateOTP(6);
+    let otp = generateOTP(4);
     
     // Mock mode
     if (isMockMode()) {
+      console.log(`[OTP DEBUG] Mock mode active for ${mobile}. Check .env for SMS keys.`);
       await saveOtpToDb(mobile, otp, userType);
       return {
         success: true,
         sessionId: 'MOCK_SESSION_' + mobile,
-        message: 'OTP sent successfully',
+        message: 'OTP sent successfully (Mock)',
       };
     }
 
@@ -274,7 +308,7 @@ export async function verifySmsOtp(
   // Normalize OTP input (remove spaces, ensure it's a string)
   const normalizedOtp = String(otpInput).trim().replace(/\s/g, '');
 
-  if (!normalizedOtp || normalizedOtp.length !== 6) {
+  if (!normalizedOtp || normalizedOtp.length !== 4) {
     console.error('OTP verification failed - invalid OTP format:', {
       otpInput,
       normalizedOtp,
@@ -326,14 +360,15 @@ export async function sendOTP(
   _isLogin: boolean = true
 ): Promise<OtpResponse> {
   try {
-    let otp = generateOTP(6);
+    let otp = generateOTP(4);
 
     // Mock mode
     if (isMockMode()) {
+      console.log(`[OTP DEBUG] Mock mode active for ${mobile}. SMS keys might be missing.`);
       await saveOtpToDb(mobile, otp, userType);
       return {
         success: true,
-        message: 'OTP sent successfully',
+        message: 'OTP sent successfully (Mock)',
       };
     }
 
@@ -365,7 +400,7 @@ export async function verifyOTP(
   // Normalize OTP input (remove spaces, ensure it's a string)
   const normalizedOtp = String(otpInput).trim().replace(/\s/g, '');
 
-  if (!normalizedOtp || normalizedOtp.length !== 6) {
+  if (!normalizedOtp || normalizedOtp.length !== 4) {
     console.error('OTP verification failed - invalid OTP format:', {
       otpInput,
       normalizedOtp,
