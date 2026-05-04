@@ -21,8 +21,8 @@ import { checkPhonePePaymentStatus } from '../../services/api/paymentService';
 
 type VerifyStatus = 'verifying' | 'success' | 'failed';
 
-const MAX_POLL_ATTEMPTS = 10;
-const POLL_INTERVAL_MS  = 3000;
+const MAX_POLL_ATTEMPTS = 15; // More attempts but faster
+const POLL_INTERVAL_MS  = 2000; // 2 seconds instead of 3
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -102,7 +102,7 @@ const PaymentVerify: React.FC = () => {
                                     const targetPath = result.order?._id 
                                         ? `/order/${result.order._id}` 
                                         : '/orders';
-                                    setTimeout(() => navigate(targetPath), 2500);
+                                    setTimeout(() => navigate(targetPath), 1000); // 1 second instead of 2.5
                                 }
                             }
                             return;

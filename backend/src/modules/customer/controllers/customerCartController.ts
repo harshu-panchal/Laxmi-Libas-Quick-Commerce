@@ -63,7 +63,7 @@ const calculateDeliveryStuff = async (total: number, items: any[], userLat: numb
                 // Default to base charge to ensure we don't accidentally give free delivery
                 estimatedDeliveryFee = config.baseCharge || 0;
 
-                if (userLat && userLng) {
+                if (userLat !== null && userLng !== null) {
                     // Get all sellers involved in the cart
                     const sellerIds = new Set<string>();
                     items.forEach((item: any) => {
@@ -146,8 +146,8 @@ export const getCart = async (req: Request, res: Response) => {
         const { latitude, longitude } = req.query;
 
         // Parse location
-        const userLat = latitude ? parseFloat(latitude as string) : null;
-        const userLng = longitude ? parseFloat(longitude as string) : null;
+        const userLat = (latitude !== undefined && latitude !== null) ? parseFloat(latitude as string) : null;
+        const userLng = (longitude !== undefined && longitude !== null) ? parseFloat(longitude as string) : null;
 
         let cart = await Cart.findOne({ customer: userId }).populate({
             path: 'items',
@@ -223,8 +223,8 @@ export const addToCart = async (req: Request, res: Response) => {
         }
 
         // Parse location
-        const userLat = latitude ? parseFloat(latitude as string) : null;
-        const userLng = longitude ? parseFloat(longitude as string) : null;
+        const userLat = (latitude !== undefined && latitude !== null) ? parseFloat(latitude as string) : null;
+        const userLng = (longitude !== undefined && longitude !== null) ? parseFloat(longitude as string) : null;
 
         // Verify product exists
         const product = await Product.findOne({ _id: productId, status: 'Active', publish: true }).populate('seller');
@@ -324,8 +324,8 @@ export const updateCartItem = async (req: Request, res: Response) => {
         }
 
         // Parse location
-        const userLat = latitude ? parseFloat(latitude as string) : null;
-        const userLng = longitude ? parseFloat(longitude as string) : null;
+        const userLat = (latitude !== undefined && latitude !== null) ? parseFloat(latitude as string) : null;
+        const userLng = (longitude !== undefined && longitude !== null) ? parseFloat(longitude as string) : null;
 
         const cart = await Cart.findOne({ customer: userId });
         if (!cart) {
@@ -391,8 +391,8 @@ export const removeFromCart = async (req: Request, res: Response) => {
         const { latitude, longitude } = req.query;
 
         // Parse location
-        const userLat = latitude ? parseFloat(latitude as string) : null;
-        const userLng = longitude ? parseFloat(longitude as string) : null;
+        const userLat = (latitude !== undefined && latitude !== null) ? parseFloat(latitude as string) : null;
+        const userLng = (longitude !== undefined && longitude !== null) ? parseFloat(longitude as string) : null;
 
         const cart = await Cart.findOne({ customer: userId });
         if (!cart) {

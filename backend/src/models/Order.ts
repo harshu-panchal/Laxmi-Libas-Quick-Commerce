@@ -124,7 +124,7 @@ export interface IOrder extends Document {
 
   // Order Flow
   parentOrderId?: string; // Links split orders for unified payment
-  orderType: "quick" | "standard";
+  orderType: "quick" | "standard" | "ecommerce";
   deliveryType: "instant" | "courier";
   courierPartner?: string;
   trackingId?: string;
@@ -451,7 +451,7 @@ const OrderSchema = new Schema<IOrder>(
     },
     orderType: {
       type: String,
-      enum: ["quick", "standard"],
+      enum: ["quick", "standard", "ecommerce"],
       required: true,
       default: "quick",
     },

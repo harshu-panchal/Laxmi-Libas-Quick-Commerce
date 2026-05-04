@@ -23,6 +23,7 @@ import BusBooking from "./models/BusBooking";
 
 
 import { startCourierSyncJob } from "./jobs/courierSyncJob";
+import { OrderCleanupService } from "./services/orderCleanupService";
 import path from "path";
 
 // Load environment variables - using absolute path for robustness
@@ -138,6 +139,9 @@ async function startServer() {
 
   // Initialize Firebase Admin SDK for push notifications
   initializeFirebaseAdmin();
+
+  // Start Order Cleanup Service (Auto-rejection for seller/delivery timeouts)
+  if (io) OrderCleanupService.start(io);
 
   // Handle server errors gracefully (e.g., port already in use)
   httpServer.on('error', (error: NodeJS.ErrnoException) => {
