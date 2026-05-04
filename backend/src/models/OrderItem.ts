@@ -14,11 +14,9 @@ export interface IOrderItem extends Document {
   unitPrice: number;
   quantity: number;
   total: number;
-
   // Variation
   variation?: string;
   variantTitle?: string;
-
   // Status
   status: "Received" | "Pending" | "Shipped" | "Delivered" | "Cancelled" | "Returned";
   deliveryType: "quick" | "standard" | "ecommerce";
@@ -30,7 +28,6 @@ export interface IOrderItem extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
-
 const OrderItemSchema = new Schema<IOrderItem>(
   {
     order: {
@@ -48,7 +45,6 @@ const OrderItemSchema = new Schema<IOrderItem>(
       ref: "Seller",
       required: [true, "Seller is required"],
     },
-
     // Product Details (snapshot)
     productName: {
       type: String,

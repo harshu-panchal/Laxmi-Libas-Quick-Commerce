@@ -26,7 +26,6 @@ const ArrowLeftIcon = ({ className }: { className?: string }) => (
     <path d="M19 12H5M12 19l-7-7 7-7" />
   </svg>
 );
-
 const Share2Icon = ({ className }: { className?: string }) => (
   <svg
     width="24"
