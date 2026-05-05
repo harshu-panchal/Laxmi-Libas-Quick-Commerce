@@ -65,6 +65,26 @@ export async function notifySellersOfOrderUpdate(
             // Emit to seller-specific room
             io.to(`seller:${sellerId}`).emit('seller-notification', notificationData);
             
+            // Send real Push Notification via FCM
+            try {
+                const { sendNotificationToUser } = await import('./firebaseAdmin');
+                if (type === 'NEW_ORDER') {
+                    sendNotificationToUser(sellerId, 'Seller', {
+                        title: '🛍️ New Order Received!',
+                        body: `You have a new order #${order.orderNumber}. Open the app to accept it.`,
+                        data: { type: 'NEW_ORDER', orderId: order._id.toString() }
+                    });
+                } else if (type === 'ORDER_CANCELLED') {
+                    sendNotificationToUser(sellerId, 'Seller', {
+                        title: '❌ Order Cancelled',
+                        body: `Order #${order.orderNumber} has been cancelled by the customer.`,
+                        data: { type: 'ORDER_CANCELLED', orderId: order._id.toString() }
+                    });
+                }
+            } catch (fcmError) {
+                console.error(`Error sending FCM to seller ${sellerId}:`, fcmError);
+            }
+            
             // For new orders, emit 'order:new' specifically as requested
             if (type === 'NEW_ORDER') {
                 io.to(`seller:${sellerId}`).emit('order:new', notificationData);

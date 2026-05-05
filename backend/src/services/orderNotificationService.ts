@@ -414,6 +414,23 @@ export async function notifyDeliveryBoysOfNewOrder(
             
             notifiedIds.add(idString);
             io.to(roomName).emit('new-order', orderData);
+            
+            // Also send a real Push Notification via FCM
+            try {
+                const { sendNotificationToUser } = await import('./firebaseAdmin');
+                sendNotificationToUser(idString, 'Delivery', {
+                    title: '📦 New Order Nearby!',
+                    body: `New order #${order.orderNumber} is available. Potential Earning: ₹${deliveryBoyEarning}`,
+                    data: {
+                        type: 'NEW_ORDER',
+                        orderId: order._id.toString(),
+                        orderNumber: order.orderNumber
+                    }
+                });
+            } catch (fcmError) {
+                console.error(`Error sending FCM to delivery boy ${idString}:`, fcmError);
+            }
+
             debugLog(`📤 Emitted new-order to delivery boy ID: ${idString} via room: ${roomName}`);
         }
 

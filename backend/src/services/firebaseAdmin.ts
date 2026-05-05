@@ -84,7 +84,27 @@ export async function sendPushNotification(
             },
             data: {
                 ...(payload.data || {}),
-                ...(payload.icon && { icon: payload.icon })
+                ...(payload.icon && { icon: payload.icon }),
+                title: payload.title, // Include in data as well for background handling
+                body: payload.body
+            },
+            android: {
+                priority: 'high' as const,
+                notification: {
+                    sound: 'default',
+                    channelId: 'default', // Make sure this channel exists on Android side
+                    clickAction: 'FLUTTER_NOTIFICATION_CLICK', // Common for many cross-platform apps
+                    icon: 'notification_icon' // Should match an icon resource on Android
+                }
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        sound: 'default',
+                        badge: 1,
+                        contentAvailable: true
+                    }
+                }
             },
             tokens: tokens
         };

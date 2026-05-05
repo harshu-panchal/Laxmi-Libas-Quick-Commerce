@@ -44,6 +44,23 @@ export const sendNotification = async (
   // Emit socket event
   emitToUser(recipientId, 'notification', notification);
 
+  // Send real Push Notification via FCM
+  try {
+    const { sendNotificationToUser } = await import('./firebaseAdmin');
+    await sendNotificationToUser(recipientId, recipientType, {
+      title: title,
+      body: message,
+      data: {
+        id: notification._id.toString(),
+        type: options?.type || "Info",
+        link: options?.link || "",
+        priority: options?.priority || "Medium"
+      }
+    });
+  } catch (error) {
+    console.error('Failed to send FCM push notification:', error);
+  }
+
   return notification;
 };
 
