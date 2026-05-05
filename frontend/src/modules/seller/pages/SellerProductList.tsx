@@ -275,21 +275,21 @@ export default function SellerProductList() {
   const categories = allCategories.map((cat) => cat.name);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full max-w-full overflow-hidden px-2 sm:px-0">
       {/* Page Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-neutral-800">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-800 truncate">
           Product List
         </h1>
-        <div className="text-sm text-blue-500">
-          <span className="cursor-pointer hover:underline">Home</span>{" "}
+        <div className="text-xs sm:text-sm text-blue-500 whitespace-nowrap">
+          <span className="cursor-pointer hover:underline" onClick={() => navigate('/seller')}>Home</span>{" "}
           <span className="text-neutral-400">/</span>{" "}
           <span className="text-neutral-600">Dashboard</span>
         </div>
       </div>
 
       {/* Content Card */}
-      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex-1 flex flex-col">
+      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex-1 flex flex-col min-w-0 overflow-hidden">
         <div className="p-4 border-b border-neutral-100 font-medium text-neutral-700">
           View Product List
         </div>
@@ -462,89 +462,51 @@ export default function SellerProductList() {
 
         {/* Table */}
         {!loading && !error && (
-          <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left border-collapse border border-neutral-200">
+          <div className="overflow-x-auto w-full border border-neutral-200 rounded-b-lg min-h-0 flex-1 relative">
+            <table className="w-full min-w-[1200px] text-left border-separate border-spacing-0 bg-white">
               <thead>
                 <tr className="bg-neutral-50 text-xs font-bold text-neutral-800">
-                  <th className="p-4 w-16 border border-neutral-200">
+                  <th className="p-3 border border-neutral-200 whitespace-nowrap">
                     <div className="flex items-center justify-between">
                       Product Id
                     </div>
                   </th>
-                  <th
-                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                    onClick={() => handleSort("variationId")}>
-                    <div className="flex items-center justify-between">
-                      Variation Id <SortIcon column="variationId" />
-                    </div>
+                  <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort("variationId")}>
+                    <div className="flex items-center justify-between">Variation Id <SortIcon column="variationId" /></div>
                   </th>
-                  <th
-                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                    onClick={() => handleSort("productName")}>
-                    <div className="flex items-center justify-between">
-                      Product Name <SortIcon column="productName" />
-                    </div>
+                  <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort("productName")}>
+                    <div className="flex items-center justify-between">Product Name <SortIcon column="productName" /></div>
                   </th>
-                  <th
-                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                    onClick={() => handleSort("sellerName")}>
-                    <div className="flex items-center justify-between">
-                      Seller Name <SortIcon column="sellerName" />
-                    </div>
+                  <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort("sellerName")}>
+                    <div className="flex items-center justify-between">Seller Name <SortIcon column="sellerName" /></div>
                   </th>
-                  <th className="p-4 border border-neutral-200">
-                    <div className="flex items-center justify-between">
-                      product Image
-                    </div>
+                  <th className="p-3 border border-neutral-200">
+                    <div className="flex items-center justify-between">Image</div>
                   </th>
-                  <th
-                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                    onClick={() => handleSort("brandName")}>
-                    <div className="flex items-center justify-between">
-                      Brand Name <SortIcon column="brandName" />
-                    </div>
+                  <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort("brandName")}>
+                    <div className="flex items-center justify-between">Brand <SortIcon column="brandName" /></div>
                   </th>
-                  <th
-                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                    onClick={() => handleSort("category")}>
-                    <div className="flex items-center justify-between">
-                      Category <SortIcon column="category" />
-                    </div>
+                  <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort("category")}>
+                    <div className="flex items-center justify-between">Category <SortIcon column="category" /></div>
                   </th>
-                  <th
-                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                    onClick={() => handleSort("subCategory")}>
-                    <div className="flex items-center justify-between">
-                      SubCategory <SortIcon column="subCategory" />
-                    </div>
+                  <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort("subCategory")}>
+                    <div className="flex items-center justify-between">SubCat <SortIcon column="subCategory" /></div>
                   </th>
-                  <th
-                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                    onClick={() => handleSort("price")}>
-                    <div className="flex items-center justify-between">
-                      Price <SortIcon column="price" />
-                    </div>
+                  <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort("price")}>
+                    <div className="flex items-center justify-between">Price <SortIcon column="price" /></div>
                   </th>
-                  <th
-                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                    onClick={() => handleSort("discPrice")}>
-                    <div className="flex items-center justify-between">
-                      Disc Price <SortIcon column="discPrice" />
-                    </div>
+                  <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort("discPrice")}>
+                    <div className="flex items-center justify-between">Disc Price <SortIcon column="discPrice" /></div>
                   </th>
-                  <th
-                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                    onClick={() => handleSort("variation")}>
-                    <div className="flex items-center justify-between">
-                      Variation <SortIcon column="variation" />
-                    </div>
+                  <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort("variation")}>
+                    <div className="flex items-center justify-between">Variation <SortIcon column="variation" /></div>
                   </th>
-                  <th className="p-4 border border-neutral-200">
+                  <th className="p-3 border-b border-r border-neutral-200 sticky right-0 bg-neutral-50 shadow-[-2px_0_5px_rgba(0,0,0,0.05)] z-20 min-w-[120px]">
                     <div className="flex items-center justify-center">Action</div>
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="bg-white">
                 {displayedVariations.map((variation, index) => {
                   const isFirstVariation =
                     index === 0 ||
@@ -561,112 +523,83 @@ export default function SellerProductList() {
                     <tr
                       key={`${variation.productId}-${variation.variationId}`}
                       className="hover:bg-neutral-50 transition-colors text-sm text-neutral-700">
-                      <td className="p-4 align-middle border border-neutral-200">
+                      <td className="p-3 align-middle border-b border-r border-neutral-200 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           {isFirstVariation && hasMultipleVariations && (
                             <button
                               onClick={() => toggleProduct(variation.productId)}
                               className="text-blue-600 hover:text-blue-700">
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round">
-                                {isExpanded ? (
-                                  <polyline points="6 9 12 15 18 9"></polyline>
-                                ) : (
-                                  <polyline points="9 18 15 12 9 6"></polyline>
-                                )}
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                {isExpanded ? <polyline points="6 9 12 15 18 9"></polyline> : <polyline points="9 18 15 12 9 6"></polyline>}
                               </svg>
                             </button>
                           )}
-                          <span>{variation.productId}</span>
+                          <span title={variation.productId} className="font-mono text-xs bg-neutral-50 px-2 py-1 rounded border border-neutral-200 shadow-sm">
+                            {variation.productId.slice(0, 4)}...{variation.productId.slice(-4)}
+                          </span>
                         </div>
                       </td>
-                      <td className="p-4 align-middle border border-neutral-200">
-                        {variation.variationId}
+                      <td className="p-3 align-middle border-b border-r border-neutral-200">
+                        <span title={variation.variationId} className="font-mono text-[10px] text-neutral-400">
+                          {variation.variationId.slice(0, 4)}...{variation.variationId.slice(-4)}
+                        </span>
                       </td>
-                      <td className="p-4 align-middle border border-neutral-200">
-                        <div className="flex flex-col gap-1">
-                          <span>{variation.productName}</span>
-                        </div>
+                      <td className="p-3 align-middle border-b border-r border-neutral-200 max-w-[200px] truncate">
+                        {variation.productName}
                       </td>
-                      <td className="p-4 align-middle border border-neutral-200">
+                      <td className="p-3 align-middle border-b border-r border-neutral-200">
                         {variation.sellerName}
                       </td>
-                      <td className="p-4 border border-neutral-200">
-                        <div className="w-16 h-12 bg-white border border-neutral-200 rounded p-1 flex items-center justify-center mx-auto">
+                      <td className="p-3 border-b border-r border-neutral-200">
+                        <div className="w-12 h-10 bg-white border border-neutral-200 rounded p-0.5 flex items-center justify-center mx-auto">
                           <img
                             src={variation.productImage}
                             alt={variation.productName}
                             className="max-w-full max-h-full object-contain"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                "https://placehold.co/60x40?text=Img";
+                              (e.target as HTMLImageElement).src = "https://placehold.co/60x40?text=Img";
                             }}
                           />
                         </div>
                       </td>
-                      <td className="p-4 align-middle border border-neutral-200">
+                      <td className="p-3 align-middle border-b border-r border-neutral-200">
                         {variation.brandName || "-"}
                       </td>
-                      <td className="p-4 align-middle border border-neutral-200">
+                      <td className="p-3 align-middle border-b border-r border-neutral-200">
                         {variation.category}
                       </td>
-                      <td className="p-4 align-middle border border-neutral-200">
+                      <td className="p-3 align-middle border-b border-r border-neutral-200">
                         {variation.subCategory}
                       </td>
-                      <td className="p-4 align-middle border border-neutral-200">
+                      <td className="p-3 align-middle border-b border-r border-neutral-200 font-medium">
                         ₹{variation.price.toFixed(2)}
                       </td>
-                      <td className="p-4 align-middle border border-neutral-200">
-                        {variation.discPrice > 0
-                          ? `₹${variation.discPrice.toFixed(2)}`
-                          : "-"}
+                      <td className="p-3 align-middle border-b border-r border-neutral-200 text-teal-600">
+                        {variation.discPrice > 0 ? `₹${variation.discPrice.toFixed(2)}` : "-"}
                       </td>
-                      <td className="p-4 align-middle border border-neutral-200">
-                        {variation.variation}
+                      <td className="p-3 align-middle border-b border-r border-neutral-200">
+                        <span className="px-2 py-0.5 bg-neutral-100 rounded text-xs">{variation.variation}</span>
                       </td>
-                      <td className="p-4 align-middle border border-neutral-200">
+                      <td className="p-3 align-middle border-b border-neutral-200 sticky right-0 bg-white shadow-[-2px_0_5px_rgba(0,0,0,0.05)] z-10">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleEdit(variation.productId)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded transition-all text-xs font-medium border border-blue-100"
                             title="Edit Product">
-                            <svg
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
                             </svg>
+                            Edit
                           </button>
                           <button
                             onClick={() => handleDeleteClick(variation.productId)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded transition-all text-xs font-medium border border-red-100"
                             title="Delete Product">
-                            <svg
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="3 6 5 6 21 6"></polyline>
                               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                              <line x1="10" y1="11" x2="10" y2="17"></line>
-                              <line x1="14" y1="11" x2="14" y2="17"></line>
                             </svg>
+                            Delete
                           </button>
                         </div>
                       </td>

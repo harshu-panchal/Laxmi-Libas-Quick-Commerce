@@ -119,7 +119,20 @@ export const finalizeOrderCreation = async (
         const product = productsMap.get((item.product.id || item.product._id).toString());
         if (!product) continue;
 
-        const itemPrice = (product.discPrice && product.discPrice > 0) ? product.discPrice : product.price;
+        const variantValue = item.variant || item.variation || null;
+        let itemPrice = (product.discPrice && product.discPrice > 0) ? product.discPrice : product.price;
+
+        if (variantValue && product.variations && product.variations.length > 0) {
+          const variant = product.variations.find((v: any) => 
+            v._id?.toString() === variantValue || 
+            v.title === variantValue || 
+            v.value === variantValue || 
+            v.name === variantValue
+          );
+          if (variant) {
+            itemPrice = (variant.discPrice && variant.discPrice > 0) ? variant.discPrice : variant.price;
+          }
+        }
 
         let itemDiscountPercent = 0;
         let itemDiscountAmount = 0;
@@ -145,6 +158,26 @@ export const finalizeOrderCreation = async (
         const commRate = await getOrderItemCommissionRate(product._id.toString(), product.seller.toString());
         const commAmount = (itemTotal * commRate) / 100;
 
+        // Find variant details for accurate size/color recording
+        let variantDetails: any = null;
+        if (variantValue && product.variations && product.variations.length > 0) {
+          variantDetails = product.variations.find((v: any) => 
+            v._id?.toString() === variantValue || 
+            v.title === variantValue || 
+            v.value === variantValue || 
+            v.name === variantValue
+          );
+        }
+
+        const variantTitle = variantDetails 
+          ? (variantDetails.title || variantDetails.value || variantDetails.name) 
+          : (variantValue && variantValue !== product._id?.toString() ? variantValue : null);
+
+        const selectedVariant = item.selectedVariant || (variantDetails ? {
+          size: variantDetails.title || variantDetails.value || variantDetails.name,
+          color: product.color || null
+        } : (variantTitle ? { size: variantTitle, color: product.color || null } : null));
+
         const newOrderItem = new OrderItem({
           order: newOrder._id,
           product: product._id,
@@ -160,8 +193,9 @@ export const finalizeOrderCreation = async (
           appliedDiscountRuleId: appliedRuleId,
           commissionRate: commRate,
           commissionAmount: commAmount,
-          variation: item.variant || item.variation || null,
-          selectedVariant: item.selectedVariant || (item.variant ? { size: item.variant } : null),
+          variation: variantValue,
+          variantTitle: variantTitle,
+          selectedVariant: selectedVariant,
           deliveryType: config.type,
           status: 'Received'
         });

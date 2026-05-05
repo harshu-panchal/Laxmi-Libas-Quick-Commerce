@@ -187,7 +187,7 @@ export const getOrderById = asyncHandler(
         product: item.productName || populatedProduct?.productName || 'Unknown Product',
         productImage: item.productImage || populatedProduct?.mainImage || '',
         soldBy: (item.seller as any)?.storeName || 'N/A',
-        unit: item.variation || item.variantTitle || populatedProduct?.pack || 'N/A',
+        unit: item.variantTitle || item.variation || populatedProduct?.pack || 'N/A',
         size: item.selectedVariant?.size || '-',
         color: item.selectedVariant?.color || '-',
         price: item.unitPrice || 0,

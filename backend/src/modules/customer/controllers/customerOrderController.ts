@@ -67,11 +67,36 @@ export const createOrder = async (req: Request, res: Response) => {
         }
 
         // ── Case 2: Online (Delayed Order Creation) ────────
-        // Calculate total for payment
-        const subtotal = items.reduce((sum: number, item: any) => {
-            const price = item.product.discPrice || item.product.price || 0;
-            return sum + price * item.quantity;
-        }, 0);
+        // Calculate total for payment with variant support
+        let subtotal = 0;
+        for (const item of items) {
+            const product = await Product.findById(item.product.id || item.product._id);
+            if (!product) continue;
+
+            const variantValue = item.variant || item.variation || null;
+            let itemPrice = (product.discPrice && product.discPrice > 0) ? product.discPrice : product.price;
+
+            if (variantValue && product.variations && product.variations.length > 0) {
+                const targetVar = variantValue.toString().toLowerCase().trim();
+                const variant = product.variations.find((v: any) => {
+                    const vId = v._id?.toString();
+                    const vTitle = v.title?.toString().toLowerCase().trim();
+                    const vValue = v.value?.toString().toLowerCase().trim();
+                    const vName = v.name?.toString().toLowerCase().trim();
+                    
+                    return vId === variantValue.toString() || 
+                           vTitle === targetVar || 
+                           vValue === targetVar || 
+                           vName === targetVar;
+                });
+                
+                if (variant) {
+                    itemPrice = (variant.discPrice && variant.discPrice > 0) ? variant.discPrice : variant.price;
+                }
+            }
+            
+            subtotal += itemPrice * (item.quantity || 1);
+        }
         
         const total = subtotal + (fees?.deliveryFee || 0) + (fees?.platformFee || 0) + (fees?.ecomShippingFee || 0) + (tip || 0);
 
@@ -194,7 +219,12 @@ export const getOrderById = async (req: Request, res: Response) => {
         
         // Generate OTP if missing (for legacy customers)
         if (customer && !customer.deliveryOtp) {
-            customer.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+            const customerFull = await Customer.findById(userId);
+            if (customerFull?.phone) {
+                customer.deliveryOtp = customerFull.phone.slice(-4);
+            } else {
+                customer.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+            }
             await customer.save();
         }
 

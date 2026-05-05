@@ -52,6 +52,7 @@ export const addToCart = async (
     quantity: number = 1, 
     variation?: string, 
     selectedDeliveryType: "quick" | "ecommerce" = "quick",
+    selectedVariant?: { size?: string; color?: string },
     latitude?: number, 
     longitude?: number
 ): Promise<CartResponse> => {
@@ -64,6 +65,7 @@ export const addToCart = async (
         productId,
         quantity,
         variation,
+        selectedVariant,
         selectedDeliveryType
     }, { params });
     return response.data;

@@ -388,17 +388,17 @@ export default function SellerOrderDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-8">
+    <div className="min-h-screen bg-neutral-50 pb-8 px-2 sm:px-4 md:px-6">
       {/* Shipment Control Center */}
-      <div className="bg-white mb-6 rounded-2xl shadow-lg border border-neutral-200 overflow-hidden mx-4 sm:mx-0 mt-6 md:mt-0">
-        <div className="bg-[#121212] text-white px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20">
+      <div className="bg-white mb-6 rounded-2xl shadow-lg border border-neutral-200 overflow-hidden mt-6 md:mt-0">
+        <div className="bg-[#121212] text-white px-6 py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 bg-teal-500 rounded-xl flex-shrink-0 flex items-center justify-center shadow-lg shadow-teal-500/20">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
             </div>
-            <div>
-              <h2 className="text-lg font-bold tracking-tight">Marketplace Fulfillment HUD</h2>
-              <p className="text-[10px] text-neutral-400 uppercase tracking-widest font-bold">Ecommerce Control Center v2.0</p>
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-lg font-bold tracking-tight truncate">Marketplace Fulfillment HUD</h2>
+              <p className="text-[8px] sm:text-[10px] text-neutral-400 uppercase tracking-widest font-bold truncate">Ecommerce Control Center v2.0</p>
             </div>
           </div>
           <div className="flex gap-2">

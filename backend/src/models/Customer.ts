@@ -194,8 +194,13 @@ CustomerSchema.pre('save', async function (next) {
     this.refCode = `${namePart}${randomPart}`;
   }
   if (!this.deliveryOtp) {
-    // Generate permanent 4-digit delivery OTP
-    this.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    // Generate permanent 4-digit delivery OTP based on last 4 digits of phone
+    // This makes it easy for customers to remember and doesn't rely on SMS
+    if (this.phone && this.phone.length >= 4) {
+      this.deliveryOtp = this.phone.slice(-4);
+    } else {
+      this.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    }
   }
   next();
 });

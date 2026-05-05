@@ -1,4 +1,4 @@
-// RELOAD TRIGGER - GEOFENCING BYPASSED FOR TESTING
+// RELOAD TRIGGER - SYSTEM SYNCED AT: 2026-05-05T12:05:00
 import express, { Application, Request, Response } from "express";
 import { createServer } from "http";
 import cors from "cors";

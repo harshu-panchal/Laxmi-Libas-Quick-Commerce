@@ -103,6 +103,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         },
         quantity: item.quantity,
         variant: item.variation, // Also preserve it here for order placement
+        selectedVariant: item.selectedVariant, // Preserving size/color
         selectedDeliveryType: item.selectedDeliveryType || item.product?.type || 'quick'
       }));
   };
@@ -319,7 +320,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : item;
         });
       }
-      return [...currentValidItems, { product: normalizedProduct, quantity: 1, selectedDeliveryType } as any];
+      const variationId = (product as any).variantId || (product as any).selectedVariant?._id || (product as any).variantTitle;
+      const selectedVariant = (product as any).selectedVariantData || (product as any).selectedVariant;
+
+      return [...currentValidItems, { 
+        product: normalizedProduct, 
+        quantity: 1, 
+        selectedDeliveryType,
+        variant: variationId,
+        selectedVariant: selectedVariant
+      } as any];
     });
 
     // Only sync to API if user is authenticated and NOT a mock product
@@ -343,6 +353,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           1,
           variation,
           selectedDeliveryType,
+          (product as any).selectedVariantData,
           location?.latitude,
           location?.longitude
         );

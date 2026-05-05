@@ -10,13 +10,39 @@ import { getRoadDistances } from '../../../services/mapService';
 import Seller from '../../../models/Seller';
 
 // Helper to calculate item price matching frontend logic
-const calculateItemPrice = (product: any) => {
+const calculateItemPrice = (product: any, variation?: string) => {
+    // If variation is provided, look for it in product.variations
+    if (variation && product.variations && product.variations.length > 0) {
+        const targetVar = variation?.toString().toLowerCase().trim();
+        const variant = product.variations.find((v: any) => {
+            const vId = v._id?.toString();
+            const vTitle = v.title?.toString().toLowerCase().trim();
+            const vValue = v.value?.toString().toLowerCase().trim();
+            const vName = v.name?.toString().toLowerCase().trim();
+            
+            return vId === variation?.toString() || 
+                   vTitle === targetVar || 
+                   vValue === targetVar || 
+                   vName === targetVar;
+        });
+
+        if (variant) {
+            // Priority: Variant Discount Price -> Variant Base Price
+            const finalPrice = variant.discPrice && variant.discPrice > 0
+                ? variant.discPrice
+                : (variant.price || 0);
+            
+            console.log(`[DEBUG Variant Price] Product: ${product.productName}, Match: ${variation}, VariantPrice: ${variant.price}, VariantDisc: ${variant.discPrice}, Final: ${finalPrice}`);
+            return finalPrice;
+        }
+    }
+
     // Priority: Product Discount Price -> Product Base Price
     let finalPrice = product.discPrice && product.discPrice > 0
         ? product.discPrice
-        : product.price || 0;
+        : (product.price || 0);
 
-    console.log(`[DEBUG Price] Item: ${product.productName}, DiscPrice: ${product.discPrice}, Price: ${product.price}, Final: ${finalPrice}`);
+    console.log(`[DEBUG Base Price] Product: ${product.productName}, Price: ${product.price}, DiscPrice: ${product.discPrice}, Final: ${finalPrice}`);
     return finalPrice;
 };
 
@@ -24,7 +50,7 @@ const calculateItemPrice = (product: any) => {
 const calculateCartTotal = async (cartId: any) => {
     const items = await CartItem.find({ cart: cartId }).populate({
         path: 'product',
-        select: 'price discPrice seller status publish productName'
+        select: 'price discPrice variations seller status publish productName'
     });
 
     let total = 0;
@@ -34,7 +60,7 @@ const calculateCartTotal = async (cartId: any) => {
             // Always available as location filtering is removed
             const isAvailable = true;
             if (isAvailable) {
-                const price = calculateItemPrice(product);
+                const price = calculateItemPrice(product, item.variation);
                 total += price * item.quantity;
             }
         }
@@ -153,7 +179,7 @@ export const getCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice',
+                select: 'productName price mainImage stock pack mrp variations category seller status publish discPrice',
                 populate: {
                     path: 'seller',
                     select: 'city storeName location'
@@ -177,9 +203,9 @@ export const getCart = async (req: Request, res: Response) => {
                 const isAvailable = true;
                 if (isAvailable) {
                     filteredItems.push(item);
-                    const price = calculateItemPrice(product);
+                    const price = calculateItemPrice(product, item.variation);
                     total += price * item.quantity;
-                    console.log(`[DEBUG CartLoop] Item: ${product.productName}, Price: ${price}, Qty: ${item.quantity}, RunningTotal: ${total}`);
+                    console.log(`[DEBUG CartLoop] Item: ${product.productName}, Variant: ${item.variation}, Price: ${price}, Qty: ${item.quantity}, RunningTotal: ${total}`);
                 }
             }
         }
@@ -215,7 +241,7 @@ export const getCart = async (req: Request, res: Response) => {
 export const addToCart = async (req: Request, res: Response) => {
     try {
         const userId = req.user?.userId;
-        const { productId, quantity = 1, variation, selectedDeliveryType = "quick" } = req.body;
+        const { productId, quantity = 1, variation, selectedDeliveryType = "quick", selectedVariant } = req.body;
         const { latitude, longitude } = req.query;
 
         if (!productId) {
@@ -258,6 +284,10 @@ export const addToCart = async (req: Request, res: Response) => {
         if (cartItem) {
             // Update quantity
             cartItem.quantity += quantity;
+            // Also update selectedVariant if it was missing
+            if (!cartItem.selectedVariant && selectedVariant) {
+                cartItem.selectedVariant = selectedVariant;
+            }
             await cartItem.save();
         } else {
             // Create new cart item
@@ -266,6 +296,7 @@ export const addToCart = async (req: Request, res: Response) => {
                 product: productId,
                 quantity,
                 variation,
+                selectedVariant,
                 selectedDeliveryType
             });
             cart.items.push(cartItem._id as any);
@@ -280,7 +311,7 @@ export const addToCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice'
+                select: 'productName price mainImage stock pack mrp variations category seller status publish discPrice'
             }
         });
 
@@ -348,7 +379,7 @@ export const updateCartItem = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice',
+                select: 'productName price mainImage stock pack mrp variations category seller status publish discPrice',
                 populate: {
                     path: 'seller',
                     select: 'city storeName location'
@@ -412,7 +443,7 @@ export const removeFromCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice',
+                select: 'productName price mainImage stock pack mrp variations category seller status publish discPrice',
                 populate: {
                     path: 'seller',
                     select: 'city storeName location'

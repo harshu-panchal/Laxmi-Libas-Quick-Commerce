@@ -598,25 +598,20 @@ export async function handleOrderRejection(
             });
 
             try {
-                // Update order in database to "Rejected"
+                // Update order with notes but DO NOT reject automatically
+                // This allows the seller/admin to manually assign or wait for other boys to become online
                 const order = await Order.findById(orderId);
                 if (order) {
-                    order.status = 'Rejected';
+                    // order.status = 'Rejected'; // Disabled automatic rejection
                     order.deliveryBoyStatus = 'Failed';
                     order.adminNotes = (order.adminNotes ? order.adminNotes + '\n' : '') +
-                        `[${new Date().toISOString()}] Rejected: All notified delivery boys (${state.notifiedDeliveryBoys.size}) rejected the order.`;
+                        `[${new Date().toISOString()}] Broadcast Failed: All notified delivery boys (${state.notifiedDeliveryBoys.size}) rejected the order. Waiting for manual assignment or retry.`;
                     await order.save();
 
-                    // Notify customer via socket
-                    io.to(`order-${orderId}`).emit('order-rejected', {
-                        orderId,
-                        message: 'Unfortunately, no delivery partner is available at the moment. Your order has been rejected.',
-                    });
+                    // Notify sellers/restaurants that broadcast failed
+                    notifySellersOfOrderUpdate(io, order, 'BROADCAST_FAILED');
 
-                    // Notify sellers/restaurants
-                    notifySellersOfOrderUpdate(io, order, 'STATUS_UPDATE');
-
-                    console.log(`✅ All delivery boys rejected order ${orderId}. Order status updated to Rejected.`);
+                    console.log(`⚠️ All delivery boys rejected order ${orderId}. Order remains Accepted for manual intervention.`);
                 } else {
                     console.error(`❌ Order ${orderId} not found when trying to update rejection status`);
                 }

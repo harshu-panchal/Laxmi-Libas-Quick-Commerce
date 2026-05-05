@@ -321,75 +321,49 @@ export default function SellerStockManagement() {
                 </div>
 
                 {/* Table */}
-                <div className="overflow-x-auto flex-1">
-                    <table className="w-full text-left border-collapse border border-neutral-200">
+                <div className="overflow-x-auto w-full border border-neutral-200 rounded-b-lg">
+                    <table className="w-full min-w-[1000px] text-left border-collapse bg-white">
                         <thead>
                             <tr className="bg-neutral-50 text-xs font-bold text-neutral-800">
-                                <th
-                                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                                    onClick={() => handleSort('variationId')}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        Variation Id <SortIcon column="variationId" />
-                                    </div>
+                                <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort('variationId')}>
+                                    <div className="flex items-center justify-between">Var ID <SortIcon column='variationId' /></div>
                                 </th>
-                                <th
-                                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                                    onClick={() => handleSort('productId')}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        Product Id <SortIcon column="productId" />
-                                    </div>
+                                <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort('productId')}>
+                                    <div className="flex items-center justify-between">Prod ID <SortIcon column='productId' /></div>
                                 </th>
-                                <th
-                                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                                    onClick={() => handleSort('name')}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        Product Name <SortIcon column="name" />
-                                    </div>
+                                <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort('name')}>
+                                    <div className="flex items-center justify-between">Product Name <SortIcon column='name' /></div>
                                 </th>
-                                <th
-                                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                                    onClick={() => handleSort('seller')}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        Seller Name <SortIcon column="seller" />
-                                    </div>
+                                <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort('seller')}>
+                                    <div className="flex items-center justify-between">Seller <SortIcon column='seller' /></div>
                                 </th>
-                                <th className="p-4 border border-neutral-200">
-                                    <div className="flex items-center justify-between">
-                                        product Image
-                                    </div>
+                                <th className="p-3 border border-neutral-200">Image</th>
+                                <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort('variation')}>
+                                    <div className="flex items-center justify-between">Variation <SortIcon column='variation' /></div>
                                 </th>
-                                <th
-                                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                                    onClick={() => handleSort('variation')}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        Variation <SortIcon column="variation" />
-                                    </div>
+                                <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort('stock')}>
+                                    <div className="flex items-center justify-between">Stock <SortIcon column='stock' /></div>
                                 </th>
-                                <th
-                                    className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-                                    onClick={() => handleSort('stock')}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        Current Stock <SortIcon column="stock" />
-                                    </div>
-                                </th>
-                                <th className="p-4 border border-neutral-200 w-32">Action</th>
+                                <th className="p-3 border-b border-r border-neutral-200 sticky right-0 bg-neutral-50 shadow-[-2px_0_5px_rgba(0,0,0,0.05)] z-20 min-w-[120px]">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredItems.map((item) => (
                                 <tr key={item.variationId} className="hover:bg-neutral-50 transition-colors text-sm text-neutral-700">
-                                    <td className="p-4 align-middle border border-neutral-200 text-xs font-mono">{item.variationId}</td>
-                                    <td className="p-4 align-middle border border-neutral-200 text-xs font-mono">{item.productId}</td>
-                                    <td className="p-4 align-middle border border-neutral-200 font-medium">{item.name}</td>
-                                    <td className="p-4 align-middle border border-neutral-200">{item.seller}</td>
-                                    <td className="p-4 border border-neutral-200">
-                                        <div className="w-16 h-12 bg-white border border-neutral-200 rounded p-1 flex items-center justify-center mx-auto">
+                                    <td className="p-3 align-middle border border-neutral-200">
+                                        <span title={item.variationId} className="font-mono text-[10px] bg-neutral-50 px-2 py-1 rounded border border-neutral-200 shadow-sm">
+                                            {item.variationId.slice(0, 4)}...{item.variationId.slice(-4)}
+                                        </span>
+                                    </td>
+                                    <td className="p-3 align-middle border border-neutral-200">
+                                        <span title={item.productId} className="font-mono text-[10px] bg-neutral-50 px-2 py-1 rounded border border-neutral-200 shadow-sm">
+                                            {item.productId.slice(0, 4)}...{item.productId.slice(-4)}
+                                        </span>
+                                    </td>
+                                    <td className="p-3 align-middle border border-neutral-200 font-medium">{item.name}</td>
+                                    <td className="p-3 align-middle border border-neutral-200">{item.seller}</td>
+                                    <td className="p-3 border border-neutral-200">
+                                        <div className="w-12 h-10 bg-white border border-neutral-200 rounded p-0.5 flex items-center justify-center mx-auto">
                                             <img
                                                 src={item.image}
                                                 alt={item.name}
@@ -400,24 +374,21 @@ export default function SellerStockManagement() {
                                             />
                                         </div>
                                     </td>
-                                    <td className="p-4 align-middle border border-neutral-200">{item.variation}</td>
-                                    <td className="p-4 align-middle border border-neutral-200">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.stock === 0
-                                                ? 'bg-red-50 text-red-600'
-                                                : 'bg-yellow-50 text-primary-dark'
-                                                }`}>
-                                                {item.stock}
-                                            </span>
-                                        </div>
+                                    <td className="p-3 align-middle border border-neutral-200">
+                                        <span className="px-2 py-0.5 bg-neutral-100 rounded text-xs">{item.variation}</span>
                                     </td>
-                                    <td className="p-4 align-middle border border-neutral-200">
+                                    <td className="p-3 align-middle border border-neutral-200">
+                                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${item.stock === 0 ? 'bg-red-50 text-red-600' : 'bg-teal-50 text-teal-700'}`}>
+                                            {item.stock}
+                                        </span>
+                                    </td>
+                                    <td className="p-3 align-middle border-b border-neutral-200 sticky right-0 bg-white shadow-[-2px_0_5px_rgba(0,0,0,0.05)] z-10">
                                         <div className="flex items-center gap-2">
                                             <input
                                                 type="number"
                                                 min="0"
                                                 defaultValue={item.stock}
-                                                className="w-20 px-2 py-1 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-teal-500 outline-none"
+                                                className="w-16 px-1.5 py-1 border border-neutral-300 rounded text-xs outline-none focus:ring-1 focus:ring-teal-500"
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter') {
                                                         const val = parseInt((e.target as HTMLInputElement).value);
@@ -436,17 +407,20 @@ export default function SellerStockManagement() {
                                                         handleStockUpdate(item.productId, item.variationId, val);
                                                     }
                                                 }}
-                                                className="p-1.5 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors disabled:bg-neutral-300"
+                                                className="flex items-center gap-1 px-2 py-1 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors disabled:bg-neutral-300 text-xs font-medium"
                                                 title="Update Stock"
                                             >
                                                 {updatingStock === item.variationId ? (
-                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                                 ) : (
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                                                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                                                        <polyline points="7 3 7 8 15 8"></polyline>
-                                                    </svg>
+                                                    <>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                                            <polyline points="7 3 7 8 15 8"></polyline>
+                                                        </svg>
+                                                        Update
+                                                    </>
                                                 )}
                                             </button>
                                         </div>

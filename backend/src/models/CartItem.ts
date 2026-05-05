@@ -5,6 +5,10 @@ export interface ICartItem extends Document {
   product: mongoose.Types.ObjectId;
   quantity: number;
   variation?: string;
+  selectedVariant?: {
+    size?: string;
+    color?: string;
+  };
   selectedDeliveryType: "quick" | "standard" | "ecommerce";
   discountPercent?: number;
   discountAmount?: number;
@@ -33,6 +37,10 @@ const CartItemSchema = new Schema<ICartItem>(
     variation: {
       type: String,
       trim: true,
+    },
+    selectedVariant: {
+      size: String,
+      color: String,
     },
     selectedDeliveryType: {
       type: String,

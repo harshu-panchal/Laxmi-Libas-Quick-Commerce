@@ -25,47 +25,42 @@ async function generateDeliveryOtpForCustomers() {
   try {
     await connectDB();
 
-    // Find all customers without a deliveryOtp
-    const customersWithoutOtp = await Customer.find({
-      $or: [
-        { deliveryOtp: { $exists: false } },
-        { deliveryOtp: null },
-        { deliveryOtp: "" },
-      ],
-    }).select("_id name phone");
+    // Find all customers to update their OTP to phone-based one
+    const allCustomers = await Customer.find({}).select("_id name phone");
+    const customersToUpdate = allCustomers.length;
 
-    const totalCustomers = await Customer.countDocuments();
-    const customersNeedingOtp = customersWithoutOtp.length;
+    console.log(`📊 Total customers to update: ${customersToUpdate}`);
 
-    console.log(`📊 Total customers in database: ${totalCustomers}`);
-    console.log(`📋 Customers without delivery OTP: ${customersNeedingOtp}`);
-
-    if (customersNeedingOtp === 0) {
-      console.log("\n✅ All customers already have delivery OTPs. Nothing to do.\n");
+    if (customersToUpdate === 0) {
+      console.log("\n✅ No customers found. Nothing to do.\n");
       process.exit(0);
     }
 
     if (isDryRun) {
       console.log("\n📝 Customers that would be updated:");
-      customersWithoutOtp.slice(0, 10).forEach((c) => {
-        console.log(`   - ${c.name} (${c.phone})`);
+      allCustomers.slice(0, 10).forEach((c) => {
+        const phoneLast4 = c.phone ? c.phone.slice(-4) : "0000";
+        console.log(`   - ${c.name} (${c.phone}) -> OTP: ${phoneLast4}`);
       });
-      if (customersWithoutOtp.length > 10) {
-        console.log(`   ... and ${customersWithoutOtp.length - 10} more`);
+      if (allCustomers.length > 10) {
+        console.log(`   ... and ${allCustomers.length - 10} more`);
       }
       console.log("\n🔍 Dry run complete. Run without --dry-run to apply changes.\n");
       process.exit(0);
     }
 
-    // Generate OTPs and prepare bulk operations
-    console.log("\n⏳ Generating delivery OTPs...\n");
+    // Generate OTPs based on phone and prepare bulk operations
+    console.log("\n⏳ Updating delivery OTPs based on phone numbers...\n");
 
-    const bulkOps = customersWithoutOtp.map((customer) => ({
-      updateOne: {
-        filter: { _id: customer._id },
-        update: { $set: { deliveryOtp: generateOtp() } },
-      },
-    }));
+    const bulkOps = allCustomers.map((customer) => {
+      const phoneLast4 = customer.phone ? customer.phone.slice(-4) : "0000";
+      return {
+        updateOne: {
+          filter: { _id: customer._id },
+          update: { $set: { deliveryOtp: phoneLast4 } },
+        },
+      };
+    });
 
     // Execute bulk update
     const result = await Customer.bulkWrite(bulkOps);

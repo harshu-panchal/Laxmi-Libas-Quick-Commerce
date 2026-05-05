@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Button from "../../components/ui/button";
 import { useOrders } from "../../hooks/useOrders";
+import { getAppConfig, AppConfig } from "../../services/configService";
 
 const ArrowLeftIcon = ({ className }: { className?: string }) => (
   <svg
@@ -59,27 +60,35 @@ export default function Invoice() {
   const { getOrderById, fetchOrderById } = useOrders();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [config, setConfig] = useState<AppConfig | null>(null);
 
   useEffect(() => {
-    const loadOrder = async () => {
-      if (!id) return;
-
-      const existingOrder = getOrderById(id);
-      if (existingOrder) {
-        setOrder(existingOrder);
-        setLoading(false);
-        return;
-      }
-
+    const loadData = async () => {
       setLoading(true);
-      const fetchedOrder = await fetchOrderById(id);
-      if (fetchedOrder) {
-        setOrder(fetchedOrder);
+      
+      // Load config
+      const appConfigData = await getAppConfig();
+      if (appConfigData) {
+        setConfig(appConfigData);
       }
+
+      // Load order
+      if (id) {
+        const existingOrder = getOrderById(id);
+        if (existingOrder) {
+          setOrder(existingOrder);
+        } else {
+          const fetchedOrder = await fetchOrderById(id);
+          if (fetchedOrder) {
+            setOrder(fetchedOrder);
+          }
+        }
+      }
+      
       setLoading(false);
     };
 
-    loadOrder();
+    loadData();
   }, [id, getOrderById, fetchOrderById]);
 
   const handlePrint = () => {
@@ -134,6 +143,8 @@ export default function Invoice() {
   const deliveryFee = order.fees?.deliveryFee || 0;
   const platformFee = order.fees?.platformFee || 0;
   const totalAmount = order.totalAmount || subtotal + deliveryFee + platformFee;
+  const invoicePrefix = config?.invoicePrefix || "INV";
+  const shortId = order.id?.split("-").slice(-1)[0] || order.id || "N/A";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -172,17 +183,20 @@ export default function Invoice() {
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  LaxMart
+                  {config?.appName || "LaxMart"}
                 </h1>
                 <p className="text-gray-600">
-                  Fast Delivery E-Commerce Platform
+                  {config?.invoiceTagline || "Fast Delivery E-Commerce Platform"}
                 </p>
+                {config?.gstNumber && (
+                   <p className="text-xs font-bold text-blue-600 mt-1 uppercase">GSTIN: {config.gstNumber}</p>
+                )}
                 <p className="text-gray-600 mt-1">Invoice</p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-600 mb-1">Invoice Number</p>
                 <p className="text-lg font-semibold text-gray-900">
-                  {order.id?.split("-").slice(-1)[0] || order.id || "N/A"}
+                  #{invoicePrefix}-{shortId}
                 </p>
                 <p className="text-sm text-gray-600 mt-3 mb-1">Date</p>
                 <p className="text-sm font-medium text-gray-900">
@@ -339,8 +353,11 @@ export default function Invoice() {
 
           {/* Footer */}
           <div className="border-t border-gray-200 pt-6 text-center text-sm text-gray-600">
-            <p className="mb-2">Thank you for your business!</p>
-            <p>For any queries, please contact our customer support.</p>
+            <p className="mb-2 font-medium">{config?.invoiceFooter || "Thank you for your business!"}</p>
+            <div className="space-y-1">
+              {config?.supportEmail && <p>Email: {config.supportEmail}</p>}
+              {config?.supportPhone && <p>Support: {config.supportPhone}</p>}
+            </div>
           </div>
         </motion.div>
       </div>

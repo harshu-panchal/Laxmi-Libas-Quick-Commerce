@@ -109,6 +109,21 @@ export interface AppSettings {
   };
   maintenanceMode: boolean;
   maintenanceMessage?: string;
+
+  // Invoice Settings
+  invoicePrefix?: string;
+  invoiceTagline?: string;
+  invoiceFooter?: string;
+  gstNumber?: string;
+
+  // Social Links
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    whatsapp?: string;
+  };
+
   updatedBy?: string;
   createdAt?: string;
   updatedAt?: string;

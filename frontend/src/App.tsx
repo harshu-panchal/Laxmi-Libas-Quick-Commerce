@@ -170,6 +170,7 @@ const AdminPayments = lazy(() => import("./modules/admin/pages/AdminPayments"));
 const AdminWallet = lazy(() => import("./modules/admin/pages/AdminWallet"));
 const AdminBillingSettings = lazy(() => import("./modules/admin/pages/AdminBillingSettings"));
 const AdminDiscountRules = lazy(() => import("./modules/admin/pages/AdminDiscountRules"));
+const AdminAppSettings = lazy(() => import("./modules/admin/pages/AdminAppSettings"));
 
 // Lazy load hotel partner routes
 const HotelLayout = lazy(() => import("./modules/hotelPartner/components/HotelLayout"));
@@ -424,6 +425,7 @@ function App() {
                                       <Route path="payments" element={<AdminPayments />} />
                                       <Route path="wallet" element={<AdminWallet />} />
                                       <Route path="billing-settings" element={<AdminBillingSettings />} />
+                                      <Route path="app-settings" element={<AdminAppSettings />} />
                                     </Routes>
                                   </AdminLayout>
                                 </Suspense>

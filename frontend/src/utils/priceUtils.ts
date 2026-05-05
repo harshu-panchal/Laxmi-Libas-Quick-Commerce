@@ -20,24 +20,43 @@ export const calculateProductPrice = (product: any, variationSelector?: number |
   let variation;
   if (typeof variationSelector === 'number') {
     variation = product.variations?.[variationSelector];
-  } else if (typeof variationSelector === 'string') {
-    variation = product.variations?.find((v: any) => (v._id === variationSelector || v.id === variationSelector));
+  } else if (typeof variationSelector === 'string' && variationSelector) {
+    variation = product.variations?.find((v: any) => 
+      v._id === variationSelector || 
+      v.id === variationSelector ||
+      v.title === variationSelector ||
+      v.value === variationSelector ||
+      v.name === variationSelector
+    );
   }
 
   // Fallback to first variation if no specific one selected/found but variations exist
-  // Only if variationSelector was NOT provided (undefined). If it was provided but not found, we probably shouldn't default to 0?
-  // Current behavior was: if index undefined, use index 0.
-  if (!variation && product.variations?.length > 0 && variationSelector === undefined) {
+  if (!variation && product.variations?.length > 0 && (variationSelector === undefined || variationSelector === null || variationSelector === '')) {
     variation = product.variations[0];
   }
 
-  const displayPrice = (variation?.discPrice && variation.discPrice > 0)
-    ? variation.discPrice
-    : (product.discPrice && product.discPrice > 0)
-    ? product.discPrice
-    : (variation?.price || product.price || 0);
+  let displayPrice: number;
+  let mrp: number;
 
-  const mrp = variation?.price || product.mrp || product.compareAtPrice || product.price || 0;
+  if (variation) {
+    // If we have a variation, it takes full precedence for pricing
+    displayPrice = (variation.discPrice && variation.discPrice > 0)
+      ? variation.discPrice
+      : (variation.price || 0);
+    
+    mrp = variation.price || 0;
+  } else {
+    // Product-level pricing
+    displayPrice = (product.discPrice && product.discPrice > 0)
+      ? product.discPrice
+      : (product.price || 0);
+      
+    mrp = product.mrp || product.compareAtPrice || product.price || 0;
+  }
+
+  // Final safety checks
+  if (displayPrice === 0 && mrp > 0) displayPrice = mrp;
+  if (mrp === 0 && displayPrice > 0) mrp = displayPrice;
 
   const hasDiscount = mrp > displayPrice;
   const discount = hasDiscount ? Math.round(((mrp - displayPrice) / mrp) * 100) : 0;

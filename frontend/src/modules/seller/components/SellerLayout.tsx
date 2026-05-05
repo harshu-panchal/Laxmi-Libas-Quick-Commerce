@@ -61,13 +61,13 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
       {/* Main Content */}
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 w-full lg:ml-64`}
+        className={`flex-1 flex flex-col transition-all duration-300 lg:pl-64 min-w-0`}
       >
         {/* Header */}
         <SellerHeader onMenuClick={toggleSidebar} isSidebarOpen={isSidebarOpen} />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 bg-neutral-50">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 bg-neutral-50 min-w-0">
           {isRestricted ? (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 bg-white rounded-2xl shadow-sm border border-neutral-100 max-w-2xl mx-auto my-10">
               <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 mb-6">

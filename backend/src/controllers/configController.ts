@@ -13,12 +13,23 @@ export const getPublicConfig = async (_req: Request, res: Response) => {
       success: true,
       data: {
         appName: settings.appName,
+        appLogo: settings.appLogo,
+        appFavicon: settings.appFavicon,
         googleMapsKey: settings.deliveryConfig?.googleMapsKey || process.env.VITE_GOOGLE_MAPS_API_KEY || "",
         companyAddress: settings.companyAddress,
+        contactEmail: settings.contactEmail,
+        contactPhone: settings.contactPhone,
         supportEmail: settings.supportEmail,
         supportPhone: settings.supportPhone,
         currency: "INR",
         platformFee: settings.platformFee,
+        deliveryCharges: settings.deliveryCharges,
+        freeDeliveryThreshold: settings.freeDeliveryThreshold,
+        invoicePrefix: settings.invoicePrefix,
+        invoiceTagline: settings.invoiceTagline,
+        invoiceFooter: settings.invoiceFooter,
+        gstNumber: settings.gstNumber,
+        socialLinks: settings.socialLinks,
       }
     });
   } catch (error: any) {

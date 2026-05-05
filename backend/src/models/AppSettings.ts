@@ -116,6 +116,20 @@ export interface IAppSettings extends Document {
 
   // Withdrawal Settings
   minimumWithdrawalAmount?: number;
+  
+  // Invoice Settings
+  invoicePrefix?: string;
+  invoiceTagline?: string;
+  invoiceFooter?: string;
+  gstNumber?: string;
+
+  // Social Links
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    whatsapp?: string;
+  };
 
   createdAt: Date;
   updatedAt: Date;
@@ -398,6 +412,20 @@ const AppSettingsSchema = new Schema<IAppSettings>(
     updatedBy: {
       type: Schema.Types.ObjectId,
       ref: "Admin",
+    },
+
+    // Invoice Settings
+    invoicePrefix: { type: String, default: "INV", trim: true },
+    invoiceTagline: { type: String, default: "Fast Delivery E-Commerce Platform", trim: true },
+    invoiceFooter: { type: String, default: "Thank you for your business!", trim: true },
+    gstNumber: { type: String, trim: true },
+
+    // Social Links
+    socialLinks: {
+      facebook: String,
+      instagram: String,
+      twitter: String,
+      whatsapp: String,
     },
   },
   {

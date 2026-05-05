@@ -239,6 +239,30 @@ export default function TrackOrder() {
         </div>
       </div>
 
+      {/* Delivery OTP - HUD Highlight */}
+      {!['Delivered', 'Cancelled', 'Returned'].includes(trackingData.status) && (trackingData.deliveryOtp || socketOtp) && (
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="mx-4 -mt-2 mb-4 bg-white p-4 rounded-2xl border-2 border-blue-100 shadow-xl relative z-30"
+        >
+           <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                 <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Your Delivery Code</span>
+                 <span className="text-3xl font-black tracking-[0.2em] text-neutral-900 mt-1">
+                    {socketOtp || trackingData.deliveryOtp}
+                 </span>
+              </div>
+              <div className="bg-blue-50 p-2 rounded-xl border border-blue-100">
+                 <ShieldCheck className="text-blue-600" size={24} />
+              </div>
+           </div>
+           <p className="text-[10px] text-neutral-400 font-bold mt-2 border-t border-neutral-50 pt-2">
+              Please share this with the delivery partner to confirm receipt.
+           </p>
+        </motion.div>
+      )}
+
       {/* 3. Progress Stepper */}
       <div className="bg-white px-6 py-8 border-b border-neutral-100">
         <div className="flex justify-between relative px-2">

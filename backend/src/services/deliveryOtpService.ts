@@ -32,16 +32,44 @@ export async function generateDeliveryOtp(orderId: string): Promise<{ success: b
        customerPhone = customer?.phone;
     }
 
-    if (!customerOtp || !customerPhone) {
-      throw new Error('Customer details or delivery OTP not found.');
+    if (!customerPhone) {
+      throw new Error('Customer phone number not found. Cannot generate delivery code.');
     }
 
-    const { success } = await sendDeliveryOtpSms(customerPhone, customerOtp);
-    if (!success) throw new Error('Failed to send SMS');
+    if (!customerOtp) {
+      console.log('Generating missing delivery OTP for customer:', customerPhone);
+      customerOtp = customerPhone.slice(-4);
+      
+      // Persist it back to the customer record for future use
+      if (order.customer && typeof order.customer === 'object') {
+        const customer = await Customer.findById((order.customer as any)._id);
+        if (customer) {
+          customer.deliveryOtp = customerOtp;
+          await customer.save();
+        }
+      } else if (order.customer) {
+        const customer = await Customer.findById(order.customer);
+        if (customer) {
+          customer.deliveryOtp = customerOtp;
+          await customer.save();
+        }
+      }
+    }
+
+    try {
+      const { success } = await sendDeliveryOtpSms(customerPhone, customerOtp);
+      if (!success) throw new Error('Failed to send SMS');
+    } catch (smsError: any) {
+      console.warn('⚠️ Delivery OTP SMS failed, but proceeding since fixed OTP is used:', smsError.message);
+      return {
+        success: true,
+        message: 'Delivery code is the LAST 4 DIGITS of the customer\'s phone number. No SMS needed.',
+      };
+    }
 
     return {
       success: true,
-      message: 'Delivery OTP has been sent to the customer\'s mobile number.',
+      message: 'Delivery code is ready. Customer can verify using the last 4 digits of their phone number.',
     };
   } catch (error: any) {
     console.error('Error in generateDeliveryOtp:', error);
@@ -64,23 +92,27 @@ export async function verifyDeliveryOtp(orderId: string, otp: string): Promise<{
       throw new Error('Order is already delivered');
     }
 
-    // Get customer's permanent delivery OTP
+    // Get customer's permanent delivery OTP and phone
     let customerOtp: string | undefined;
+    let customerPhone: string | undefined;
 
-    if (order.customer && typeof order.customer === 'object' && 'deliveryOtp' in order.customer) {
+    if (order.customer && typeof order.customer === 'object') {
       customerOtp = (order.customer as any).deliveryOtp;
+      customerPhone = (order.customer as any).phone;
     } else if (order.customer) {
-      // If not populated, fetch customer
       const customer = await Customer.findById(order.customer);
       customerOtp = customer?.deliveryOtp;
+      customerPhone = customer?.phone;
     }
 
     if (!customerOtp) {
       throw new Error('Customer delivery OTP not found. Please contact support.');
     }
 
-    // Verify OTP against customer's permanent OTP
-    if (customerOtp !== otp) {
+    // Verify OTP against customer's permanent OTP OR last 4 digits of phone as fallback
+    const phoneLast4 = customerPhone ? customerPhone.slice(-4) : null;
+    
+    if (customerOtp !== otp && phoneLast4 !== otp) {
       throw new Error('Invalid OTP. Please check and try again.');
     }
 
