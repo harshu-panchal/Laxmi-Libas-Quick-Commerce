@@ -395,14 +395,19 @@ export default function Checkout() {
 
   // Use dynamic delivery fee if available (and valid), otherwise fallback to static config
   const deliveryCharge =
-    displayCart.estimatedDeliveryFee !== undefined
-      ? displayCart.estimatedDeliveryFee
-      : discountedTotal >= freeDeliveryThreshold
-        ? 0
-        : appConfig.deliveryFee;
+    quickDeliveryItems.length > 0
+      ? (displayCart.estimatedDeliveryFee !== undefined
+        ? displayCart.estimatedDeliveryFee
+        : discountedTotal >= freeDeliveryThreshold
+          ? 0
+          : appConfig.deliveryFee)
+      : 0;
 
   // Ecom shipping usually has its own fee if far away, adding placeholder for now
-  const ecomShippingCharge = ecommerceShippingItems.length > 0 ? 40 : 0; 
+  const ecomShippingCharge =
+    ecommerceShippingItems.length > 0
+      ? (discountedTotal >= freeDeliveryThreshold ? 0 : 40)
+      : 0; 
 
   const subtotalBeforeCoupon =
     discountedTotal + handlingCharge + deliveryCharge + ecomShippingCharge;
@@ -446,6 +451,17 @@ export default function Checkout() {
     giftPackagingFee -
     currentCouponDiscount,
   );
+
+  console.log("DEBUG: Checkout grandTotal calculation:", {
+    discountedTotal,
+    handlingCharge,
+    deliveryCharge,
+    ecomShippingCharge,
+    finalTipAmount,
+    giftPackagingFee,
+    currentCouponDiscount,
+    grandTotal
+  });
 
   const handleApplyCoupon = async (coupon: ApiCoupon) => {
     setIsValidatingCoupon(true);
@@ -1890,6 +1906,33 @@ export default function Checkout() {
               {deliveryCharge > 0 && null}
             </div>
           </div>
+
+          {/* Standard Shipping charge */}
+          {ecomShippingCharge > 0 && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    fill="none"
+                  />
+                  <circle cx="5.5" cy="18.5" r="1.5" fill="currentColor" />
+                  <circle cx="18.5" cy="18.5" r="1.5" fill="currentColor" />
+                </svg>
+                <span className="text-xs text-neutral-700">Standard Shipping charge</span>
+              </div>
+              <span className="text-xs font-medium text-neutral-900">
+                ₹{ecomShippingCharge}
+              </span>
+            </div>
+          )}
 
           {/* Coupon discount */}
           {selectedCoupon && currentCouponDiscount > 0 && (

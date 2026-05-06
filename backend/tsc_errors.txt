@@ -1,0 +1,208 @@
+﻿src/controllers/paymentController.ts(105,47): error TS2339: Property 'allOrders' does not exist on type '{ success: boolean; status: string; data: OrderStatusResponse; justPaid: boolean; order: any; booking: any; message?: undefined; }'.
+src/controllers/paymentController.ts(136,26): error TS2339: Property 'raw' does not exist on type '{ success: boolean; status: string; data: OrderStatusResponse; justPaid: boolean; order: any; booking: any; message?: undefined; } | { success: boolean; status: string; data: OrderStatusResponse; justPaid?: undefined; order?: undefined; booking?: undefined; message?: undefined; } | { ...; }'.
+  Property 'raw' does not exist on type '{ success: boolean; status: string; data: OrderStatusResponse; justPaid: boolean; order: any; booking: any; message?: undefined; }'.
+src/controllers/paymentController.ts(160,27): error TS2339: Property 'justPaid' does not exist on type '{ success: boolean; message?: undefined; } | { success: boolean; message: any; }'.
+  Property 'justPaid' does not exist on type '{ success: boolean; message?: undefined; }'.
+src/controllers/paymentController.ts(164,47): error TS2339: Property 'allOrders' does not exist on type '{ success: boolean; message?: undefined; } | { success: boolean; message: any; }'.
+  Property 'allOrders' does not exist on type '{ success: boolean; message?: undefined; }'.
+src/controllers/paymentController.ts(164,68): error TS2339: Property 'order' does not exist on type '{ success: boolean; message?: undefined; } | { success: boolean; message: any; }'.
+  Property 'order' does not exist on type '{ success: boolean; message?: undefined; }'.
+src/controllers/paymentController.ts(164,84): error TS2339: Property 'order' does not exist on type '{ success: boolean; message?: undefined; } | { success: boolean; message: any; }'.
+  Property 'order' does not exist on type '{ success: boolean; message?: undefined; }'.
+src/controllers/paymentController.ts(173,28): error TS2339: Property 'booking' does not exist on type '{ success: boolean; message?: undefined; } | { success: boolean; message: any; }'.
+  Property 'booking' does not exist on type '{ success: boolean; message?: undefined; }'.
+src/controllers/paymentController.ts(174,81): error TS2339: Property 'booking' does not exist on type '{ success: boolean; message?: undefined; } | { success: boolean; message: any; }'.
+  Property 'booking' does not exist on type '{ success: boolean; message?: undefined; }'.
+src/controllers/unifiedPaymentController.ts(3,30): error TS6133: 'getPhonePePaymentStatus' is declared but its value is never read.
+src/controllers/unifiedPaymentController.ts(3,55): error TS6133: 'handlePhonePeCallback' is declared but its value is never read.
+src/controllers/webhookController.ts(88,13): error TS2353: Object literal may only specify known properties, and 'time' does not exist in type '{ status: string; location?: string | undefined; description?: string | undefined; timestamp: Date; }'.
+src/jobs/courierSyncJob.ts(63,29): error TS2353: Object literal may only specify known properties, and 'time' does not exist in type '{ status: string; location?: string | undefined; description?: string | undefined; timestamp: Date; }'.
+src/middleware/cache.ts(6,25): error TS6133: 'req' is declared but its value is never read.
+src/models/DiscountRule.ts(20,5): error TS2353: Object literal may only specify known properties, and 'startDate' does not exist in type '{ createdAt?: SchemaDefinitionProperty<Date, IDiscountRule, Document<unknown, {}, FlatRecord<IDiscountRule>, {}, ResolveSchemaOptions<DefaultSchemaOptions>> & FlatRecord<...> & Required<...> & { ...; }> | undefined; ... 8 more ...; productId?: SchemaDefinitionProperty<...> | undefined; }'.
+src/models/Hotel.ts(143,5): error TS2353: Object literal may only specify known properties, and 'stars' does not exist in type '{ name?: SchemaDefinitionProperty<string, IHotel, Document<unknown, {}, FlatRecord<IHotel>, {}, ResolveSchemaOptions<DefaultSchemaOptions>> & FlatRecord<...> & Required<...> & { ...; }> | undefined; ... 22 more ...; kyc?: SchemaDefinitionProperty<...> | undefined; }'.
+src/models/Hotel.ts(173,12): error TS2339: Property 'structuredLocation' does not exist on type 'IfAny<FlatRecord<DocType>, any, TVirtuals & TInstanceMethods extends Record<string, never> ? Document<unknown, {}, FlatRecord<...>, TVirtuals, ResolveSchemaOptions<...>> & Default__v<...> : IfAny<...>>'.
+src/models/Hotel.ts(173,39): error TS2339: Property 'structuredLocation' does not exist on type 'IfAny<FlatRecord<DocType>, any, TVirtuals & TInstanceMethods extends Record<string, never> ? Document<unknown, {}, FlatRecord<...>, TVirtuals, ResolveSchemaOptions<...>> & Default__v<...> : IfAny<...>>'.
+src/models/Hotel.ts(174,31): error TS2339: Property 'structuredLocation' does not exist on type 'IfAny<FlatRecord<DocType>, any, TVirtuals & TInstanceMethods extends Record<string, never> ? Document<unknown, {}, FlatRecord<...>, TVirtuals, ResolveSchemaOptions<...>> & Default__v<...> : IfAny<...>>'.
+src/models/Hotel.ts(176,12): error TS2339: Property 'location' does not exist on type 'IfAny<FlatRecord<DocType>, any, TVirtuals & TInstanceMethods extends Record<string, never> ? Document<unknown, {}, FlatRecord<...>, TVirtuals, ResolveSchemaOptions<...>> & Default__v<...> : IfAny<...>>'.
+src/models/Hotel.ts(187,12): error TS2339: Property 'city' does not exist on type 'IfAny<FlatRecord<DocType>, any, TVirtuals & TInstanceMethods extends Record<string, never> ? Document<unknown, {}, FlatRecord<...>, TVirtuals, ResolveSchemaOptions<...>> & Default__v<...> : IfAny<...>>'.
+src/models/Hotel.ts(188,10): error TS2339: Property 'city' does not exist on type 'IfAny<FlatRecord<DocType>, any, TVirtuals & TInstanceMethods extends Record<string, never> ? Document<unknown, {}, FlatRecord<...>, TVirtuals, ResolveSchemaOptions<...>> & Default__v<...> : IfAny<...>>'.
+src/models/Hotel.ts(188,22): error TS2339: Property 'city' does not exist on type 'IfAny<FlatRecord<DocType>, any, TVirtuals & TInstanceMethods extends Record<string, never> ? Document<unknown, {}, FlatRecord<...>, TVirtuals, ResolveSchemaOptions<...>> & Default__v<...> : IfAny<...>>'.
+src/models/Hotel.ts(192,12): error TS7006: Parameter 'word' implicitly has an 'any' type.
+src/models/Hotel.ts(195,12): error TS2339: Property 'state' does not exist on type 'IfAny<FlatRecord<DocType>, any, TVirtuals & TInstanceMethods extends Record<string, never> ? Document<unknown, {}, FlatRecord<...>, TVirtuals, ResolveSchemaOptions<...>> & Default__v<...> : IfAny<...>>'.
+src/models/Hotel.ts(196,10): error TS2339: Property 'state' does not exist on type 'IfAny<FlatRecord<DocType>, any, TVirtuals & TInstanceMethods extends Record<string, never> ? Document<unknown, {}, FlatRecord<...>, TVirtuals, ResolveSchemaOptions<...>> & Default__v<...> : IfAny<...>>'.
+src/models/Hotel.ts(196,23): error TS2339: Property 'state' does not exist on type 'IfAny<FlatRecord<DocType>, any, TVirtuals & TInstanceMethods extends Record<string, never> ? Document<unknown, {}, FlatRecord<...>, TVirtuals, ResolveSchemaOptions<...>> & Default__v<...> : IfAny<...>>'.
+src/models/Hotel.ts(200,12): error TS7006: Parameter 'word' implicitly has an 'any' type.
+src/models/HotelBooking.ts(64,5): error TS2353: Object literal may only specify known properties, and 'expiresAt' does not exist in type '{ createdAt?: SchemaDefinitionProperty<Date, IHotelBooking, Document<unknown, {}, FlatRecord<IHotelBooking>, {}, ResolveSchemaOptions<DefaultSchemaOptions>> & FlatRecord<...> & Required<...> & { ...; }> | undefined; ... 13 more ...; bookingStatus?: SchemaDefinitionProperty<...> | undefined; }'.
+src/models/Payment.ts(53,5): error TS2353: Object literal may only specify known properties, and 'hotelBookingId' does not exist in type '{ status?: SchemaDefinitionProperty<"PENDING" | "SUCCESS" | "FAILED", IPayment, Document<unknown, {}, FlatRecord<IPayment>, {}, ResolveSchemaOptions<DefaultSchemaOptions>> & FlatRecord<...> & Required<...> & { ...; }> | undefined; ... 19 more ...; notes?: SchemaDefinitionProperty<...> | undefined; }'.
+src/models/PaymentIntent.ts(30,5): error TS2322: Type '{ type: (typeof Schema.Types.Mixed)[]; required: true; }' is not assignable to type 'SchemaDefinitionProperty<any[], IPaymentIntent, Document<unknown, {}, FlatRecord<IPaymentIntent>, {}, ResolveSchemaOptions<DefaultSchemaOptions>> & FlatRecord<...> & Required<...> & { ...; }> | undefined'.
+  Types of property 'type' are incompatible.
+    Type '(typeof Mixed)[]' is not assignable to type 'typeof Mixed | AnyArray<ObjectIdSchemaDefinition> | AnyArray<SchemaTypeOptions<ObjectId, IPaymentIntent, Document<unknown, {}, FlatRecord<IPaymentIntent>, {}, ResolveSchemaOptions<...>> & FlatRecord<...> & Required<...> & { ...; }>> | undefined'.
+      Type '(typeof Mixed)[]' is not assignable to type 'ObjectIdSchemaDefinition[]'.
+        Type 'typeof Mixed' is not assignable to type 'ObjectIdSchemaDefinition'.
+          Type 'typeof Mixed' is not assignable to type 'typeof ObjectId'.
+            Types of property 'schemaName' are incompatible.
+              Type '"Mixed"' is not assignable to type '"ObjectId"'.
+src/modules/admin/controllers/adminBusController.ts(65,51): error TS6133: 'req' is declared but its value is never read.
+src/modules/admin/controllers/adminHotelController.ts(11,1): error TS6133: 'HotelRoom' is declared but its value is never read.
+src/modules/admin/controllers/adminHotelController.ts(86,50): error TS6133: 'req' is declared but its value is never read.
+src/modules/admin/controllers/adminOrderController.ts(8,1): error TS6133: 'Seller' is declared but its value is never read.
+src/modules/admin/controllers/adminRefundController.ts(4,1): error TS6133: 'Payment' is declared but its value is never read.
+src/modules/admin/controllers/adminRefundController.ts(6,1): error TS6133: 'mongoose' is declared but its value is never read.
+src/modules/admin/controllers/adminRefundController.ts(11,54): error TS6133: 'req' is declared but its value is never read.
+src/modules/admin/controllers/adminRefundController.ts(26,19): error TS6133: 'reason' is declared but its value is never read.
+src/modules/admin/controllers/adminRefundController.ts(67,51): error TS6133: 'req' is declared but its value is never read.
+src/modules/bus/busController.ts(9,1): error TS6192: All imports in import declaration are unused.
+src/modules/bus/busController.ts(103,38): error TS7006: Parameter 'st' implicitly has an 'any' type.
+src/modules/bus/busController.ts(173,47): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/modules/bus/busController.ts(268,42): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/modules/bus/busController.ts(269,43): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/modules/bus/controllers/busController.ts(72,37): error TS7030: Not all code paths return a value.
+src/modules/customer/controllers/customerOrderController.ts(5,1): error TS6133: 'sendNotification' is declared but its value is never read.
+src/modules/customer/controllers/customerOrderController.ts(7,1): error TS6133: 'Seller' is declared but its value is never read.
+src/modules/customer/controllers/customerOrderController.ts(14,1): error TS6133: 'SocketIOServer' is declared but its value is never read.
+src/modules/customer/controllers/customerOrderController.ts(15,1): error TS6133: 'getOrderItemCommissionRate' is declared but its value is never read.
+src/modules/customer/controllers/customerProductController.ts(3,1): error TS6133: 'Category' is declared but its value is never read.
+src/modules/customer/controllers/customerProductController.ts(4,1): error TS6133: 'SubCategory' is declared but its value is never read.
+src/modules/customer/controllers/customerProductController.ts(128,15): error TS6133: 'nearbyAvailable' is declared but its value is never read.
+src/modules/customer/controllers/customerProductController.ts(148,11): error TS2322: Type '{ type: "quick" | "standard" | "same-day"; label: string; time: string; }' is not assignable to type '{ type: "standard"; label: string; time: string; }'.
+  Types of property 'type' are incompatible.
+    Type '"quick" | "standard" | "same-day"' is not assignable to type '"standard"'.
+      Type '"quick"' is not assignable to type '"standard"'.
+src/modules/customer/controllers/customerProductController.ts(151,28): error TS2322: Type '"quick"' is not assignable to type '"standard"'.
+src/modules/customer/controllers/customerProductController.ts(158,28): error TS2367: This comparison appears to be unintentional because the types '"standard"' and '"quick"' have no overlap.
+src/modules/customer/controllers/customerProductController.ts(160,35): error TS2367: This comparison appears to be unintentional because the types '"standard"' and '"quick"' have no overlap.
+src/modules/customer/controllers/customerProductController.ts(204,20): error TS18047: 'product' is possibly 'null'.
+src/modules/delivery/controllers/deliveryOrderController.ts(11,10): error TS2305: Module '"../../../services/orderService"' has no exported member 'processOrderStatusTransition'.
+src/modules/hotel/hotelController.ts(9,10): error TS6133: 'normalizeCity' is declared but its value is never read.
+src/modules/hotel/hotelController.ts(93,28): error TS7030: Not all code paths return a value.
+src/modules/hotel/hotelController.ts(112,28): error TS7030: Not all code paths return a value.
+src/modules/hotel/hotelController.ts(163,32): error TS7030: Not all code paths return a value.
+src/modules/hotel/hotelController.ts(200,27): error TS6133: 'minPrice' is declared but its value is never read.
+src/modules/hotel/hotelController.ts(200,37): error TS6133: 'maxPrice' is declared but its value is never read.
+src/modules/hotel/hotelController.ts(245,42): error TS2339: Property 'pricePerNight' does not exist on type '(FlattenMaps<any> & Required<{ _id: unknown; }> & { __v: number; })[] | (FlattenMaps<any> & Required<{ _id: unknown; }> & { __v: number; })'.
+  Property 'pricePerNight' does not exist on type '(FlattenMaps<any> & Required<{ _id: unknown; }> & { __v: number; })[]'.
+src/modules/hotel/hotelController.ts(257,32): error TS7030: Not all code paths return a value.
+src/modules/hotel/hotelController.ts(280,30): error TS7030: Not all code paths return a value.
+src/modules/hotel/hotelController.ts(349,35): error TS7030: Not all code paths return a value.
+src/modules/hotel/hotelController.ts(349,42): error TS6133: 'req' is declared but its value is never read.
+src/modules/hotel/hotelController.ts(382,38): error TS6133: 'req' is declared but its value is never read.
+src/modules/seller/controllers/orderController.ts(219,27): error TS2339: Property 'deliveryFlow' does not exist on type 'Document<unknown, {}, IOrder, {}, {}> & IOrder & Required<{ _id: ObjectId; }> & { __v: number; }'.
+src/modules/seller/controllers/orderController.ts(439,16): error TS2322: Type '"SHIPPED"' is not assignable to type '"assigned" | "picked" | "on_the_way" | "delivered" | undefined'.
+src/modules/seller/controllers/returnController.ts(2,1): error TS6133: 'asyncHandler' is declared but its value is never read.
+src/modules/support/supportController.ts(1,10): error TS6133: 'Request' is declared but its value is never read.
+src/scripts/generateDeliveryOtpForCustomers.ts(11,10): error TS6133: 'generateOtp' is declared but its value is never read.
+src/scripts/generateDeliveryOtpForCustomers.ts(74,19): error TS2304: Cannot find name 'customersWithoutOtp'.
+src/scripts/generateDeliveryOtpForCustomers.ts(74,56): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/server.ts(5,1): error TS6133: 'mongoose' is declared but its value is never read.
+src/services/dashboardService.ts(111,5): error TS2739: Type '{ totalUser: number; totalCategory: number; totalSubcategory: number; totalProduct: number; totalOrders: number; completedOrders: number; pendingOrders: number; cancelledOrders: number; soldOutProducts: number; lowStockProducts: number; totalRevenue: number; avgCompletedOrderValue: number; }' is missing the following properties from type 'DashboardStats': totalHotels, totalBuses
+src/services/inventoryService.ts(4,1): error TS6133: 'BusBooking' is declared but its value is never read.
+src/services/inventoryService.ts(133,15): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/services/inventoryService.ts(134,12): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/services/inventoryService.ts(193,35): error TS6133: 'hotelId' is declared but its value is never read.
+src/services/orderCleanupService.ts(103,19): error TS6133: 'orderId' is declared but its value is never read.
+src/services/orderCleanupService.ts(140,19): error TS6133: 'orderId' is declared but its value is never read.
+src/services/orderNotificationService.ts(511,19): error TS2339: Property 'deliveryFlow' does not exist on type 'Document<unknown, {}, IOrder, {}, {}> & IOrder & Required<{ _id: ObjectId; }> & { __v: number; }'.
+src/services/orderNotificationService.ts(511,41): error TS2339: Property 'deliveryFlow' does not exist on type 'Document<unknown, {}, IOrder, {}, {}> & IOrder & Required<{ _id: ObjectId; }> & { __v: number; }'.
+src/services/orderNotificationService.ts(629,59): error TS2345: Argument of type '"BROADCAST_FAILED"' is not assignable to parameter of type '"NEW_ORDER" | "STATUS_UPDATE" | "ORDER_CANCELLED"'.
+src/services/otpService.ts(247,10): error TS6133: 'isSpecialBypass' is declared but its value is never read.
+src/services/paymentService.ts(394,48): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/services/paymentService.ts(397,49): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/services/pdfService.ts(2,1): error TS6133: 'IOrder' is declared but its value is never read.
+src/services/pdfService.ts(3,1): error TS6133: 'OrderItem' is declared but its value is never read.
+src/services/pdfService.ts(4,1): error TS6133: 'Seller' is declared but its value is never read.
+src/services/pdfService.ts(5,1): error TS6133: 'fs' is declared but its value is never read.
+src/services/pdfService.ts(6,1): error TS6133: 'path' is declared but its value is never read.
+src/services/pdfService.ts(54,56): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(55,42): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(56,40): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(57,42): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(91,61): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(92,68): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(95,131): error TS2353: Object literal may only specify known properties, and 'color' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(114,24): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Argument of type '{ align: string; bold: boolean; }' is not assignable to parameter of type 'number'.
+  Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(124,24): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Argument of type '{ bold: boolean; }' is not assignable to parameter of type 'number'.
+  Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(168,24): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Argument of type '{ align: string; bold: boolean; }' is not assignable to parameter of type 'number'.
+  Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(173,24): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Argument of type '{ align: string; bold: boolean; }' is not assignable to parameter of type 'number'.
+  Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(187,60): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(188,42): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(189,43): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(190,42): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(205,24): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Argument of type '{ align: string; bold: boolean; }' is not assignable to parameter of type 'number'.
+  Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(209,122): error TS2353: Object literal may only specify known properties, and 'color' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(228,24): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Argument of type '{ align: string; bold: boolean; }' is not assignable to parameter of type 'number'.
+  Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(232,24): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Argument of type '{ bold: boolean; }' is not assignable to parameter of type 'number'.
+  Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(239,53): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(240,51): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(241,42): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(242,44): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(243,43): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(244,43): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(267,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Argument of type '{ bold: boolean; }' is not assignable to parameter of type 'number'.
+  Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(290,24): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Argument of type '{ align: string; bold: boolean; }' is not assignable to parameter of type 'number'.
+  Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(296,126): error TS2353: Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(314,24): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Argument of type '{ bold: boolean; }' is not assignable to parameter of type 'number'.
+  Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(315,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Argument of type '{ bold: boolean; }' is not assignable to parameter of type 'number'.
+  Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/pdfService.ts(319,41): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(text: string, x?: number | undefined, y?: number | undefined, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Argument of type '{ bold: boolean; }' is not assignable to parameter of type 'number'.
+  Overload 2 of 2, '(text: string, options?: TextOptions | undefined): PDFDocument', gave the following error.
+    Object literal may only specify known properties, and 'bold' does not exist in type 'TextOptions'.
+src/services/phonepeService.ts(13,1): error TS6133: 'mongoose' is declared but its value is never read.
+src/services/phonepeService.ts(45,7): error TS6133: 'encodePaymentType' is declared but its value is never read.
+src/services/phonepeService.ts(212,26): error TS18048: 'result' is possibly 'undefined'.
+src/services/phonepeService.ts(212,45): error TS18048: 'result' is possibly 'undefined'.
+src/services/phonepeService.ts(212,61): error TS18048: 'result' is possibly 'undefined'.
+src/services/phonepeService.ts(214,27): error TS18048: 'result' is possibly 'undefined'.
+src/services/phonepeService.ts(215,24): error TS18048: 'result' is possibly 'undefined'.
+src/services/phonepeService.ts(216,26): error TS18048: 'result' is possibly 'undefined'.
+src/services/phonepeService.ts(281,16): error TS7030: Not all code paths return a value.
+src/services/sellerNotificationService.ts(72,44): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/services/sellerNotificationService.ts(78,44): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/services/shipping/DelhiveryService.ts(3,1): error TS6133: 'ISeller' is declared but its value is never read.
+src/services/unifiedPaymentService.ts(48,13): error TS6133: 'modelName' is declared but its value is never read.
+src/services/unifiedPaymentService.ts(251,56): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/services/unifiedPaymentService.ts(252,57): error TS7006: Parameter 's' implicitly has an 'any' type.
