@@ -8,7 +8,7 @@ import { DiscountService } from "./discountService";
 import { getOrderItemCommissionRate } from "./commissionService";
 import { InventoryService } from "./inventoryService";
 import { notifySellersOfOrderUpdate } from "./sellerNotificationService";
-import { sendNotification } from "./notificationService";
+import { sendNotification, sendBroadcastNotification } from "./notificationService";
 import { Server as SocketIOServer } from "socket.io";
 
 export const finalizeOrderCreation = async (
@@ -238,6 +238,7 @@ export const finalizeOrderCreation = async (
             }
           }
           await sendNotification('Customer', userId, 'Order Placed!', `Your ${order.orderType} order ${order.orderNumber} is placed.`, { type: 'Order', link: `/orders/${order._id}` });
+          await sendBroadcastNotification('Admin', 'New Order Received!', `Order ${order.orderNumber} has been placed.`, { type: 'Order', link: `/orders/${order._id}`, priority: 'High' });
         } catch (e) { }
       }
     }

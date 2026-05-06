@@ -14,7 +14,18 @@ const router = Router();
  */
 router.post("/save", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { platform = "web" } = req.body;
+    const userAgent = req.headers['user-agent'] || '';
+    let { platform } = req.body;
+    
+    // Auto-detect mobile platform if not explicitly provided
+    if (!platform) {
+      if (userAgent.includes('Dart') || userAgent.includes('Android') || userAgent.includes('okhttp')) {
+        platform = 'mobile';
+      } else {
+        platform = 'web';
+      }
+    }
+    
     const token = req.body.token || req.body.fcmToken;
     const userId = req.user?.userId;
     const userType = req.user?.userType;
