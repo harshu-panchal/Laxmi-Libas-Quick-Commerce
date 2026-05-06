@@ -1,7 +1,7 @@
 import Order from '../models/Order';
 import { Server as SocketIOServer } from 'socket.io';
 import { notifySellersOfOrderUpdate } from './sellerNotificationService';
-import { debugLog } from './orderNotificationService';
+import { debugLog, notifyDeliveryBoysOfNewOrder } from './orderNotificationService';
 
 /**
  * Order Cleanup Service
@@ -11,8 +11,8 @@ export class OrderCleanupService {
     private static interval: NodeJS.Timeout | null = null;
     private static io: SocketIOServer | null = null;
 
-    // Timeouts in minutes (increased to 30m to be less aggressive)
-    private static readonly SELLER_ACCEPTANCE_TIMEOUT = 30;
+    // Timeouts in minutes (1 minute = 60 seconds for seller acceptance)
+    private static readonly SELLER_ACCEPTANCE_TIMEOUT = 1;
     private static readonly DELIVERY_ASSIGNMENT_TIMEOUT = 30;
 
     /**
@@ -22,12 +22,12 @@ export class OrderCleanupService {
         this.io = io;
         if (this.interval) return;
 
-        console.log('🔄 Order Cleanup Service started (Interval: 2 minutes)');
+        console.log('🔄 Order Cleanup Service started (Interval: 15 seconds)');
         
-        // Run every 2 minutes
+        // Run every 15 seconds to be highly responsive to the 60 seconds auto-accept rule
         this.interval = setInterval(() => {
             this.runCleanup();
-        }, 2 * 60 * 1000);
+        }, 15 * 1000);
         
         // Initial run
         this.runCleanup();
@@ -52,16 +52,19 @@ export class OrderCleanupService {
         try {
             const now = new Date();
 
-            // 1. Handle Seller Acceptance Timeout (Status: 'Received')
+            // 1. Handle Seller Acceptance Timeout (Status: 'Received') - Auto Accept after 60 seconds
             const sellerTimeoutDate = new Date(now.getTime() - this.SELLER_ACCEPTANCE_TIMEOUT * 60 * 1000);
             const stuckReceivedOrders = await Order.find({
                 status: 'Received',
-                paymentStatus: { $in: ['Paid', 'settled'] }, // Only paid orders
+                $or: [
+                    { paymentStatus: { $in: ['Paid', 'settled'] } },
+                    { paymentMethod: 'COD' }
+                ],
                 createdAt: { $lt: sellerTimeoutDate }
             });
 
             for (const order of stuckReceivedOrders) {
-                await this.rejectOrder(order, `Auto-rejected: Seller did not accept within ${this.SELLER_ACCEPTANCE_TIMEOUT} minutes.`);
+                await this.autoAcceptOrder(order);
             }
 
             // 2. Handle Delivery Assignment Timeout (Status: 'Accepted' but no deliveryBoy)
@@ -78,13 +81,49 @@ export class OrderCleanupService {
             }
 
             if (stuckReceivedOrders.length > 0 || stuckAcceptedOrders.length > 0) {
-                const msg = `🧹 [Cleanup] Processed ${stuckReceivedOrders.length} seller timeouts and ${stuckAcceptedOrders.length} delivery timeouts. (Cut-off: ${sellerTimeoutDate.toISOString()})`;
+                const msg = `🧹 [Cleanup] Processed ${stuckReceivedOrders.length} seller auto-accepts and ${stuckAcceptedOrders.length} delivery timeouts. (Cut-off: ${sellerTimeoutDate.toISOString()})`;
                 debugLog(msg);
                 console.log(msg);
             }
 
         } catch (error) {
             console.error('❌ [OrderCleanup] Error during cleanup:', error);
+        }
+    }
+
+    /**
+     * Helper to automatically accept an order when seller times out
+     */
+    private static async autoAcceptOrder(order: any) {
+        try {
+            order.status = 'Accepted';
+            order.adminNotes = (order.adminNotes ? order.adminNotes + '\n' : '') + `[${new Date().toISOString()}] Auto-accepted: Seller did not accept within 60 seconds.`;
+            await order.save();
+
+            const orderId = order._id.toString();
+            console.log(`✅ [Cleanup] Order ${order.orderNumber} auto-accepted because seller did not accept within 60 seconds.`);
+
+            // Notify Sellers (to stop ringing and update status on seller UI)
+            if (this.io) {
+                notifySellersOfOrderUpdate(this.io, order, 'STATUS_UPDATE');
+            }
+
+            // Trigger delivery notification
+            if (order.orderType !== 'ecommerce' && this.io) {
+                // Fetch full order with populated items and sellers for the notification service
+                const fullOrder = await Order.findById(order._id)
+                    .populate({
+                        path: 'items',
+                        populate: { path: 'seller' }
+                    });
+                
+                if (fullOrder) {
+                    await notifyDeliveryBoysOfNewOrder(this.io, fullOrder);
+                    console.log(`Automatic delivery notification triggered for Auto-Accepted order ${order.orderNumber}`);
+                }
+            }
+        } catch (err) {
+            console.error(`❌ [OrderCleanup] Failed to auto-accept order ${order._id}:`, err);
         }
     }
 
@@ -102,26 +141,6 @@ export class OrderCleanupService {
             
             // Send reminder only
             console.log(`⏰ [Cleanup] REMINDER sent for Order ${order.orderNumber}: ${reason}`);
-
-            /*
-            // Notify Customer via Socket
-            this.io?.to(`order-${orderId}`).emit('order-rejected', {
-                orderId,
-                message: 'We apologize, but your order could not be fulfilled at this time. A refund (if applicable) will be processed.',
-                reason
-            });
-
-            // Notify Sellers (to stop ringing)
-            if (this.io) {
-                notifySellersOfOrderUpdate(this.io, order, 'STATUS_UPDATE');
-            }
-
-            // Emit to general delivery room to stop any pending acceptance UI
-            this.io?.to('delivery-notifications').emit('order-accepted', {
-                orderId,
-                acceptedBy: 'SYSTEM_REJECTED'
-            });
-            */
 
             debugLog(`⏰ [Cleanup] Order ${order.orderNumber} reminder sent: ${reason}`);
         } catch (err) {
