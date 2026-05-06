@@ -309,7 +309,7 @@ export default function SellerDashboard() {
                       <tbody className="divide-y divide-neutral-50">
                         {newOrders.map((order) => (
                           <tr key={order.id} className="hover:bg-neutral-50/50 transition-colors">
-                            <td className="px-8 py-5 font-bold text-neutral-700">#{order.id}</td>
+                            <td className="px-8 py-5 font-bold text-neutral-700">#{order.orderId || order.id}</td>
                             <td className="px-8 py-5 font-black text-neutral-900">₹{order.amount}</td>
                             <td className="px-8 py-5">
                               <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[9px] font-black uppercase tracking-widest">

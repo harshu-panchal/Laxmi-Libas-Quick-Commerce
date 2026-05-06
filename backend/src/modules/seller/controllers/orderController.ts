@@ -136,22 +136,10 @@ export const getOrderById = asyncHandler(
     const sellerId = (req as any).user.userId;
     const { id } = req.params;
 
-    // First check if this seller has items in this order
-    // First check if this seller has items in this order
-    const sellerItems = await OrderItem.find({ order: id, seller: sellerId })
-      .populate("seller", "storeName")
-      .populate("product", "productName mainImage pack");
-
-    if (!sellerItems || sellerItems.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    // Get order with populated data
+    // Get order with populated data checking either _id or orderNumber
+    const orderQuery = id.startsWith('ORD') ? { orderNumber: id } : { _id: id };
     const order = await Order.findOne({
-      _id: id,
+      ...orderQuery,
       $or: [
         { paymentStatus: "Paid" },
         { paymentMethod: "COD" }
@@ -164,6 +152,18 @@ export const getOrderById = asyncHandler(
       return res.status(404).json({
         success: false,
         message: "Order not found or not yet confirmed",
+      });
+    }
+
+    // First check if this seller has items in this order
+    const sellerItems = await OrderItem.find({ order: order._id, seller: sellerId })
+      .populate("seller", "storeName")
+      .populate("product", "productName mainImage pack");
+
+    if (!sellerItems || sellerItems.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found or no items belong to you",
       });
     }
 
