@@ -9,9 +9,6 @@ import { asyncHandler } from "../../../utils/asyncHandler";
 import Category from "../../../models/Category";
 import mongoose from "mongoose";
 
-/**
- * Send OTP to seller mobile number
- */
 export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
   const { mobile } = req.body;
 
@@ -181,7 +178,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   // Handle multi-category input: if category is missing but categories is present, use first one as primary
   let finalCategory = category;
   const finalCategories = req.body.categories || (category ? [category] : []);
-  
+
   if (!finalCategory && finalCategories.length > 0) {
     finalCategory = finalCategories[0];
   }
@@ -278,7 +275,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // Generate token only if auto-approved
-  const token = shouldAutoApprove 
+  const token = shouldAutoApprove
     ? generateToken(seller._id.toString(), "Seller", undefined, seller.category.toString())
     : undefined;
 
@@ -330,23 +327,25 @@ export const updateProfile = asyncHandler(
   async (req: Request, res: Response) => {
     const sellerId = (req as any).user.userId;
     const updates = req.body;
+    console.log("📥 [updateProfile] Received updates body:", JSON.stringify(updates, null, 2));
 
-    // Prevent updating sensitive fields directly
+    // Prevent updating sensitive fields directly (removed city, lat/lng, location, radius from restricted list)
     const restrictedFields = [
       "password",
       "mobile",
       "email",
       "status",
       "balance",
-      "category",
-      "latitude",
-      "longitude",
-      "serviceRadiusKm",
-      "location",
-      "city",
-      "serviceableArea",
     ];
     restrictedFields.forEach((field) => delete updates[field]);
+
+    // Automatically construct/update GeoJSON location point if latitude & longitude are supplied
+    if (updates.latitude && updates.longitude) {
+      updates.location = {
+        type: "Point",
+        coordinates: [parseFloat(updates.longitude), parseFloat(updates.latitude)]
+      };
+    }
 
     const seller = await Seller.findByIdAndUpdate(sellerId, updates, {
       new: true,

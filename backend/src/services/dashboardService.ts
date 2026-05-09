@@ -4,7 +4,7 @@ import SubCategory from "../models/SubCategory";
 import Product from "../models/Product";
 import Order from "../models/Order";
 // import OrderItem from "../models/OrderItem";
-// import Seller from "../models/Seller";
+import Seller from "../models/Seller";
 import RoomRent from "../models/RoomRent";
 import Bus from "../models/Bus";
 
@@ -23,6 +23,7 @@ export interface DashboardStats {
   avgCompletedOrderValue: number;
   totalHotels: number;
   totalBuses: number;
+  totalSellers: number;
 }
 
 export interface SalesData {
@@ -56,6 +57,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       lowStockProducts,
       revenueData,
       avgOrderValue,
+      totalSellers,
       totalHotels,
       totalBuses,
     ] = await Promise.all([
@@ -75,15 +77,16 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       Product.countDocuments({ stock: 0, status: "Active" }).catch(() => 0),
       Product.countDocuments({ stock: { $lte: 10, $gt: 0 }, status: "Active" }).catch(() => 0),
       Order.aggregate([
-        { $match: { status: "Delivered", paymentStatus: "Paid" } },
+        { $match: { status: "Delivered", paymentStatus: { $in: ["Paid", "settled"] } } },
         { $group: { _id: null, total: { $sum: { $ifNull: ["$total", 0] } } } },
       ]).catch(() => []),
       Order.aggregate([
-        { $match: { status: "Delivered", paymentStatus: "Paid" } },
+        { $match: { status: "Delivered", paymentStatus: { $in: ["Paid", "settled"] } } },
         { $group: { _id: null, avg: { $avg: { $ifNull: ["$total", 0] } } } },
       ]).catch(() => []),
-      RoomRent.countDocuments().catch(() => 0),
-      Bus.countDocuments().catch(() => 0),
+      Seller.countDocuments({ businessType: "product" }).catch(() => 0),
+      Seller.countDocuments({ businessType: "hotel" }).catch(() => 0),
+      Seller.countDocuments({ businessType: "bus" }).catch(() => 0),
     ]);
 
     const totalRevenue = revenueData[0]?.total || 0;
@@ -102,6 +105,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       lowStockProducts: lowStockProducts || 0,
       totalRevenue: totalRevenue || 0,
       avgCompletedOrderValue: Math.round((avgCompletedOrderValue || 0) * 100) / 100,
+      totalSellers: totalSellers || 0,
       totalHotels: totalHotels || 0,
       totalBuses: totalBuses || 0,
     };
@@ -121,6 +125,9 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       lowStockProducts: 0,
       totalRevenue: 0,
       avgCompletedOrderValue: 0,
+      totalSellers: 0,
+      totalHotels: 0,
+      totalBuses: 0,
     };
   }
 };
@@ -178,7 +185,7 @@ export const getSalesAnalytics = async (
       {
         $match: {
           status: "Delivered",
-          paymentStatus: "Paid",
+          paymentStatus: { $in: ["Paid", "settled"] },
           orderDate: { $gte: startDate },
         },
       },
@@ -194,7 +201,7 @@ export const getSalesAnalytics = async (
       {
         $match: {
           status: "Delivered",
-          paymentStatus: "Paid",
+          paymentStatus: { $in: ["Paid", "settled"] },
           orderDate: { $gte: lastPeriodStart, $lt: startDate },
         },
       },
@@ -426,7 +433,7 @@ export const getTopSellers = async (
       {
         $match: {
           status: "Delivered",
-          paymentStatus: "Paid",
+          paymentStatus: { $in: ["Paid", "settled"] },
         },
       },
       {
@@ -541,7 +548,7 @@ export const getSalesByLocation = async () => {
       {
         $match: {
           status: "Delivered",
-          paymentStatus: "Paid",
+          paymentStatus: { $in: ["Paid", "settled"] },
         },
       },
       {

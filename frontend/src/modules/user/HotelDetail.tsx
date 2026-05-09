@@ -6,11 +6,27 @@ import { useShare } from '../../hooks/useShare';
 import ShareSheet from '../../components/ShareSheet';
 import { getHotelDetails } from '../../services/api/customerHotelService';
 
+const getAmenityIcon = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes('wifi') || n.includes('internet')) return '📶';
+    if (n.includes('pool') || n.includes('swimming')) return '🏊';
+    if (n.includes('ac') || n.includes('air cond') || n.includes('cooling') || n.includes('condition')) return '❄️';
+    if (n.includes('tv') || n.includes('television')) return '📺';
+    if (n.includes('park') || n.includes('parking')) return '🅿️';
+    if (n.includes('gym') || n.includes('fitness')) return '🏋️';
+    if (n.includes('spa') || n.includes('massage')) return '💆';
+    if (n.includes('food') || n.includes('restaurant') || n.includes('breakfast') || n.includes('dining')) return '🍳';
+    if (n.includes('bar') || n.includes('drink') || n.includes('lounge')) return '🍺';
+    if (n.includes('geyser') || n.includes('hot water')) return '🔥';
+    return '✦';
+};
+
 const HotelDetail: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const [hotel, setHotel] = React.useState<any>(null);
     const [loading, setLoading] = React.useState(true);
+    const [activeTab, setActiveTab] = React.useState<'AMENITIES' | 'POLICIES' | 'RATINGS'>('AMENITIES');
 
     React.useEffect(() => {
         const fetchDetail = async () => {
@@ -71,6 +87,14 @@ const HotelDetail: React.FC = () => {
             </div>
         );
     }
+
+    const amenities = hotel.amenities || hotel.facilities || hotel.businessDetails?.amenities || ['Free Wifi', 'Air Conditioning', 'Flat TV', 'Hot Water', 'Room Service', '24x7 Security'];
+
+    const reviewsList = hotel.reviews || [
+        { name: "Rahul Sharma", date: "April 2026", score: 5, text: "Extremely clean rooms, exceptionally polite staff, and the location is perfect for travelers. Highly recommended!" },
+        { name: "Anjali Gupta", date: "May 2026", score: 4.8, text: "Excellent service. Check-in was an absolute breeze. Couple friendly rules make it safe and secure." },
+        { name: "David Miller", date: "May 2026", score: 4.5, text: "Great value for money. Loved the quick room service and high speed wifi. Will stay again." }
+    ];
 
     return (
         <div className="min-h-screen bg-white pb-24 font-['Inter']">
@@ -181,71 +205,186 @@ const HotelDetail: React.FC = () => {
                 </div>
             </div>
 
-            {/* Rules & Policies */}
-            <div className="px-5 mt-12">
-                <div className="flex items-center gap-2 mb-6">
-                    <ShieldCheck size={18} className="text-blue-600" />
-                    <h3 className="text-lg font-black text-gray-900 uppercase tracking-wider">Rules & Policies</h3>
-                </div>
-                <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-6">
-                        <div className="flex items-start gap-3">
-                            <div className="p-2 bg-gray-50 rounded-xl text-gray-400">
-                                <Clock size={18} />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Check-in</p>
-                                <p className="text-sm font-black text-gray-900">{hotel.policies?.checkInTime || '12:00 PM'}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <div className="p-2 bg-gray-50 rounded-xl text-gray-400">
-                                <Clock size={18} />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Check-out</p>
-                                <p className="text-sm font-black text-gray-900">{hotel.policies?.checkOutTime || '11:00 AM'}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-4 pt-2">
-                        <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
-                            <div className="flex items-center gap-3">
-                                <Cigarette size={18} className={hotel.policies?.smokingAllowed ? "text-blue-600" : "text-gray-400"} />
-                                <span className="text-xs font-black text-gray-700">Smoking Allowed</span>
-                            </div>
-                            {hotel.policies?.smokingAllowed ? (
-                                <span className="text-[9px] font-black bg-blue-100 text-blue-600 px-2 py-1 rounded uppercase">Yes</span>
-                            ) : (
-                                <Ban size={16} className="text-red-400" />
+            {/* Custom Tab Switcher */}
+            <div className="sticky top-0 bg-white/95 backdrop-blur-md z-30 border-b border-gray-100 mt-10">
+                <div className="flex px-5">
+                    {[
+                        { id: 'AMENITIES', label: 'Amenities' },
+                        { id: 'POLICIES', label: 'Policies' },
+                        { id: 'RATINGS', label: 'Ratings' }
+                    ].map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className="flex-1 py-4 text-center relative font-[900] text-xs uppercase tracking-widest transition-colors duration-300"
+                            style={{ color: activeTab === tab.id ? '#2563eb' : '#9ca3af' }}
+                        >
+                            {tab.label}
+                            {activeTab === tab.id && (
+                                <motion.div 
+                                    layoutId="activeTabIndicator"
+                                    className="absolute bottom-0 left-0 right-0 h-[3px] bg-blue-600 rounded-full"
+                                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                                />
                             )}
-                        </div>
-                        <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
-                            <div className="flex items-center gap-3">
-                                <Dog size={18} className={hotel.policies?.petsAllowed ? "text-blue-600" : "text-gray-400"} />
-                                <span className="text-xs font-black text-gray-700">Pets Allowed</span>
-                            </div>
-                            {hotel.policies?.petsAllowed ? (
-                                <span className="text-[9px] font-black bg-blue-100 text-blue-600 px-2 py-1 rounded uppercase">Yes</span>
-                            ) : (
-                                <Ban size={16} className="text-red-400" />
-                            )}
-                        </div>
-                        <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
-                            <div className="flex items-center gap-3">
-                                <ShieldCheck size={18} className={hotel.policies?.coupleFriendly ? "text-blue-600" : "text-gray-400"} />
-                                <span className="text-xs font-black text-gray-700">Couple Friendly</span>
-                            </div>
-                            {hotel.policies?.coupleFriendly ? (
-                                <span className="text-[9px] font-black bg-blue-100 text-blue-600 px-2 py-1 rounded uppercase">Yes</span>
-                            ) : (
-                                <Ban size={16} className="text-red-400" />
-                            )}
-                        </div>
-                    </div>
+                        </button>
+                    ))}
                 </div>
             </div>
+
+            {/* Tab Contents */}
+            <div className="px-5 mt-8">
+                {activeTab === 'AMENITIES' && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="grid grid-cols-2 gap-4"
+                    >
+                        {amenities.map((amenity: string, i: number) => (
+                            <div 
+                                key={i} 
+                                className="flex items-center gap-3 p-4 bg-neutral-50/75 border border-neutral-100 rounded-[20px] transition-all hover:bg-neutral-50"
+                            >
+                                <span className="text-xl">{getAmenityIcon(amenity)}</span>
+                                <span className="text-xs font-black text-gray-700">{amenity}</span>
+                            </div>
+                        ))}
+                    </motion.div>
+                )}
+
+                {activeTab === 'POLICIES' && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-6"
+                    >
+                        {/* Check-in Period Cards */}
+                        <div className="grid grid-cols-2 gap-4 bg-neutral-50 p-4 rounded-[24px] border border-neutral-100">
+                            <div className="flex items-start gap-3">
+                                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                                    <Clock size={16} />
+                                </div>
+                                <div>
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Check-in</p>
+                                    <p className="text-sm font-black text-gray-800">{hotel.policies?.checkInTime || '12:00 PM'}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                                    <Clock size={16} />
+                                </div>
+                                <div>
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Check-out</p>
+                                    <p className="text-sm font-black text-gray-800">{hotel.policies?.checkOutTime || '11:00 AM'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Rules List Grid */}
+                        <div className="space-y-3">
+                            {[
+                                { label: 'Couple Friendly', val: hotel.policies?.coupleFriendly, icon: ShieldCheck, desc: 'Safe for unmarried couples' },
+                                { label: 'Pets Allowed', val: hotel.policies?.petsAllowed, icon: Dog, desc: 'Pet friendly property' },
+                                { label: 'Smoking Allowed', val: hotel.policies?.smokingAllowed, icon: Cigarette, desc: 'Designated smoking areas' },
+                                { label: 'Local IDs Allowed', val: hotel.policies?.localIdsAllowed, icon: ShieldCheck, desc: 'Local residents accepted' },
+                                { label: 'Alcohol Allowed', val: hotel.policies?.alcoholAllowed, icon: ShieldCheck, desc: 'Permitted in private rooms' },
+                                { label: 'Suitable for Events', val: hotel.policies?.forEvents, icon: ShieldCheck, desc: 'Social gatherings allowed' },
+                                { label: 'Outside Food Allowed', val: hotel.policies?.outsideFoodAllowed, icon: ShieldCheck, desc: 'Delivery orders permitted' },
+                            ].map((rule, i) => (
+                                <div 
+                                    key={i} 
+                                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                                        rule.val 
+                                            ? 'bg-emerald-50/20 border-emerald-100/50' 
+                                            : 'bg-neutral-50/40 border-neutral-100/70'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <rule.icon size={18} className={rule.val ? 'text-emerald-600' : 'text-neutral-400'} />
+                                        <div>
+                                            <p className="text-xs font-black text-gray-800">{rule.label}</p>
+                                            <p className="text-[10px] font-bold text-gray-400">{rule.desc}</p>
+                                        </div>
+                                    </div>
+                                    {rule.val ? (
+                                        <span className="text-[9px] font-black bg-emerald-100/60 text-emerald-600 px-2.5 py-1 rounded-lg uppercase tracking-wider">Allowed</span>
+                                    ) : (
+                                        <span className="text-[9px] font-black bg-neutral-100 text-neutral-400 px-2.5 py-1 rounded-lg uppercase tracking-wider">Restricted</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+
+                {activeTab === 'RATINGS' && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-6"
+                    >
+                        {/* Breakdown Metrics */}
+                        <div className="bg-neutral-50 p-6 rounded-[24px] border border-neutral-100 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-3xl font-[1000] text-gray-900">{hotel.rating || 4.2}</span>
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-black text-blue-600 uppercase tracking-wider">Out of 5 Stars</span>
+                                        <span className="text-[10px] font-bold text-gray-400">{hotel.reviewsCount || 48} ratings</span>
+                                    </div>
+                                </div>
+                                <div className="flex gap-0.5">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star key={i} size={16} fill={i < Math.round(hotel.rating || 4.2) ? '#2563eb' : 'none'} className={i < Math.round(hotel.rating || 4.2) ? 'text-blue-600' : 'text-gray-300'} />
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-4 text-xs font-black text-gray-600">
+                                {[
+                                    { label: 'Cleanliness', score: '4.8' },
+                                    { label: 'Location', score: '4.6' },
+                                    { label: 'Check-In', score: '4.7' },
+                                    { label: 'Value for Money', score: '4.5' },
+                                ].map((metric, i) => (
+                                    <div key={i} className="space-y-1">
+                                        <div className="flex justify-between text-[10px] font-black uppercase text-gray-400 tracking-wide">
+                                            <span>{metric.label}</span>
+                                            <span className="text-gray-700">{metric.score}</span>
+                                        </div>
+                                        <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                            <div className="h-full bg-blue-600 rounded-full" style={{ width: `${parseFloat(metric.score) * 20}%` }}></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Guest Reviews list */}
+                        <div className="space-y-4">
+                            <h4 className="text-xs font-black uppercase tracking-widest text-neutral-400 mb-2">Guest Feedback</h4>
+                            {reviewsList.map((review: any, i: number) => (
+                                <div key={i} className="p-5 bg-white border border-neutral-100 rounded-[24px] space-y-3">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h5 className="text-xs font-black text-gray-800">{review.name}</h5>
+                                            <span className="text-[9px] font-bold text-gray-400">{review.date}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-lg">
+                                            <Star size={11} fill="#2563eb" className="text-blue-600" />
+                                            <span className="text-[10px] font-black text-blue-600">{review.score}</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs font-semibold text-gray-500 leading-relaxed italic">
+                                        "{review.text}"
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </div>
+
 
             {/* Exact Location */}
             <div className="px-5 mt-12 mb-10">

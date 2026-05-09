@@ -310,10 +310,23 @@ export const cancelOrder = async (req: Request, res: Response) => {
         order.cancelledAt = new Date();
         order.cancelledBy = new mongoose.Types.ObjectId(userId);
 
-        // --- NEW: REFUND TRACKING ---
+        // --- NEW: REFUND TRACKING & AUTO-REFUND ENGINE ---
         if (order.paymentStatus === 'Paid') {
-            order.refundStatus = 'Pending';
             order.refundAmount = order.total;
+            try {
+                const { processCustomerWalletTransaction } = require('../../../services/walletService');
+                await processCustomerWalletTransaction(
+                    userId,
+                    order.total,
+                    'credit',
+                    `Auto Refund for order cancellation: ORD-${String(order._id).slice(-6).toUpperCase()}`
+                );
+                order.refundStatus = 'Refunded';
+                order.paymentStatus = 'Refunded';
+            } catch (walletErr) {
+                console.error('[AutoRefund] Wallet credit failed, setting status to Pending:', walletErr);
+                order.refundStatus = 'Pending';
+            }
         }
         // -----------------------------
 

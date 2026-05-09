@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ProductCard from './components/ProductCard';
-import { getProducts } from '../../services/api/customerProductService';
+import { getProducts, getQuickProducts } from '../../services/api/customerProductService';
 import { getHomeContent } from '../../services/api/customerHomeService';
 import { Product } from '../../types/domain';
 import { useLocation } from '../../hooks/useLocation';
@@ -13,6 +13,8 @@ export default function Search() {
   const [searchParams] = useSearchParams();
   const { location } = useLocation();
   const searchQuery = searchParams.get('q') || '';
+  const isQuickPath = window.location.pathname.startsWith('/quick');
+  const isQuickSection = isQuickPath || searchParams.get('section') === 'quick' || searchParams.get('quick') === 'true';
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [trendingItems, setTrendingItems] = useState<any[]>([]);
   const [cookingIdeas, setCookingIdeas] = useState<any[]>([]);
@@ -35,7 +37,12 @@ export default function Search() {
           params.latitude = location.latitude;
           params.longitude = location.longitude;
         }
-        const response = await getProducts(params);
+        if (location?.city) {
+          params.city = location.city;
+        }
+        const response = isQuickSection
+          ? await getQuickProducts(params)
+          : await getProducts(params);
         setSearchResults((response.data as unknown as Product[]));
       } catch (error) {
         console.error('Error searching products:', error);
@@ -46,7 +53,7 @@ export default function Search() {
     };
 
     fetchProducts();
-  }, [searchQuery, location]);
+  }, [searchQuery, location, isQuickSection]);
 
   // Fetch trending/home content for initial view
   useEffect(() => {
@@ -125,7 +132,7 @@ export default function Search() {
                   <div
                     key={item.id || item._id}
                     className="bg-white rounded-lg border-2 border-primary-dark p-3 cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => navigate(item.type === 'category' ? `/category/${item.id || item._id}` : `/product/${item.id || item._id}`)}
+                    onClick={() => navigate(item.type === 'category' ? (isQuickSection ? `/quick/category/${item.id || item._id}` : `/category/${item.id || item._id}`) : `/product/${item.id || item._id}`)}
                   >
                     <div className="w-full h-24 rounded-lg mb-2 overflow-hidden bg-neutral-50 flex items-center justify-center">
                       {item.image || item.imageUrl ? (

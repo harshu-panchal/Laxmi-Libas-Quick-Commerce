@@ -8,6 +8,7 @@ import FeaturedThisWeek from "./components/FeaturedThisWeek";
 import ProductCard from "./components/ProductCard";
 import { getHomeContent } from "../../services/api/customerHomeService";
 import { getHeaderCategoriesPublic } from "../../services/api/headerCategoryService";
+import { getCategories } from "../../services/api/customerProductService";
 import { useLocation } from "../../hooks/useLocation";
 import { useLoading } from "../../context/LoadingContext";
 import PageLoader from "../../components/PageLoader";
@@ -117,8 +118,10 @@ export default function Home() {
     // Fetch Header Categories
     const fetchHeaderCategories = async () => {
       try {
-        const categories = await getHeaderCategoriesPublic(true);
-        setHeaderCategories(categories);
+        const res = await getCategories();
+        if (res.success && res.data) {
+          setHeaderCategories(res.data);
+        }
       } catch (err) {
         console.error("Failed to fetch header categories:", err);
       }
@@ -134,8 +137,9 @@ export default function Home() {
       try {
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        const headerCategories = await getHeaderCategoriesPublic(true);
-        const slugsToPreload = ['all', ...headerCategories.map(cat => cat.slug)];
+        const res = await getCategories();
+        const headerCategories = res.success ? res.data : [];
+        const slugsToPreload = ['all', ...headerCategories.map((cat: any) => cat.slug)];
 
         const batchSize = 2;
         for (let i = 0; i < slugsToPreload.length; i += batchSize) {

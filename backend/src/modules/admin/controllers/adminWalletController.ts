@@ -88,7 +88,7 @@ export const getFinancialDashboard = asyncHandler(
     const totalOrderAmountResult = await mongoose
       .model("Order")
       .aggregate([
-        { $match: { status: { $ne: "Cancelled" }, paymentStatus: "Paid" } },
+        { $match: { status: { $ne: "Cancelled" }, paymentStatus: { $in: ["Paid", "settled"] } } },
         { $group: { _id: null, total: { $sum: "$total" } } },
       ]);
     const totalOrderAmount =
@@ -147,7 +147,7 @@ export const getFinancialDashboard = asyncHandler(
 
     // C. Order Fees (Platform Fee + Shipping Charge)
     const orderFeesResult = await mongoose.model("Order").aggregate([
-      { $match: { status: { $ne: "Cancelled" }, paymentStatus: "Paid" } },
+      { $match: { status: { $ne: "Cancelled" }, paymentStatus: { $in: ["Paid", "settled"] } } },
       {
         $group: {
           _id: null,

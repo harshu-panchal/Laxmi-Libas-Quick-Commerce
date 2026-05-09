@@ -10,6 +10,7 @@ import LocationPermissionRequest from './LocationPermissionRequest';
 import { useThemeContext } from '../context/ThemeContext';
 import ServiceNotAvailable from './ServiceNotAvailable';
 import CompactLocationHeader from './CompactLocationHeader';
+import { useToast } from '../context/ToastContext';
 
 
 interface AppLayoutProps {
@@ -28,6 +29,26 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { isLocationEnabled, isLocationLoading, location: userLocation, showChangeModal, setShowChangeModal } = useLocationContext();
   const [showLocationRequest, setShowLocationRequest] = useState(false);
   const { currentTheme } = useThemeContext();
+  const { showToast } = useToast();
+
+  // Monitor network online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      showToast("Internet connection restored!", "success");
+    };
+
+    const handleOffline = () => {
+      showToast("No internet connection. Operating in offline mode.", "error");
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [showToast]);
 
   // State to track if service is available at user's location
   const [isServiceAvailable, setIsServiceAvailable] = useState<boolean>(true);
@@ -89,7 +110,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
   // Handle search input change
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    if (location.pathname === '/search') {
+    const isQuickActive = location.pathname.startsWith('/quick');
+    const searchPath = isQuickActive ? '/quick/search' : '/search';
+
+    if (location.pathname === searchPath) {
       // Update URL params when on search page
       if (value.trim()) {
         setSearchParams({ q: value });
@@ -99,7 +123,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     } else {
       // Navigate to search page with query
       if (value.trim()) {
-        navigate(`/search?q=${encodeURIComponent(value)}`);
+        navigate(`${searchPath}?q=${encodeURIComponent(value)}`);
       }
     }
   };
@@ -145,7 +169,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const isHomePage = location.pathname === '/' || location.pathname === '/user/home';
   const isOrderAgainPage = location.pathname.toLowerCase().includes('order-again');
   const isProductDetailPage = location.pathname.startsWith('/product/');
-  const isSearchPage = location.pathname === '/search';
+  const isSearchPage = location.pathname === '/search' || location.pathname === '/quick/search';
   const isCheckoutPage = location.pathname === '/checkout' || location.pathname.startsWith('/checkout/');
   const isCartPage = location.pathname === '/cart';
   const isTravelPage = location.pathname.startsWith('/store/travel');

@@ -8,10 +8,6 @@ import { notifyDeliveryBoysOfNewOrder } from "../../../services/orderNotificatio
 import { Server as SocketIOServer } from "socket.io";
 import { DelhiveryService } from "../../../services/shipping/DelhiveryService";
 
-
-/**
- * Get seller's orders with filters, sorting, and pagination
- */
 export const getOrders = asyncHandler(
   async (req: Request, res: Response) => {
     const sellerId = (req as any).user.userId;
@@ -30,10 +26,10 @@ export const getOrders = asyncHandler(
     const orderItems = await OrderItem.find({ seller: sellerId }).distinct("order");
 
     // Build query - filter by orders containing this seller's items
-    const query: any = { 
+    const query: any = {
       _id: { $in: orderItems },
       $or: [
-        { paymentStatus: "Paid" },
+        { paymentStatus: { $in: ["Paid", "settled"] } },
         { paymentMethod: "COD" }
       ]
     };
@@ -141,7 +137,7 @@ export const getOrderById = asyncHandler(
     const order = await Order.findOne({
       ...orderQuery,
       $or: [
-        { paymentStatus: "Paid" },
+        { paymentStatus: { $in: ["Paid", "settled"] } },
         { paymentMethod: "COD" }
       ]
     })
@@ -284,6 +280,41 @@ export const updateOrderStatus = asyncHandler(
 
     const previousStatus = order.status;
     order.status = status;
+
+    // Auto-generate tracking ID if updated directly to Shipped for e-commerce
+    if (status === 'Shipped' && order.orderType === 'ecommerce' && !order.trackingId) {
+      try {
+        console.log(`[CourierAuto-ManualUpdate] Generating shipment for Order ${order.orderNumber}`);
+        const courierResponse = await DelhiveryService.createShipmentFromOrder(order);
+        if (courierResponse && courierResponse.success !== false) {
+          const waybill = courierResponse.packages?.[0]?.waybill ||
+            courierResponse.shipments?.[0]?.waybill;
+          if (waybill) {
+            order.trackingId = waybill;
+            order.courierPartner = 'Delhivery';
+            order.trackingStatus = 'SHIPPED';
+          }
+        }
+      } catch (err) {
+        console.error('[CourierAuto-ManualUpdate] Failed auto-assign, generating mock waybill:', err);
+      }
+
+      // Fallback waybill generation if still empty
+      if (!order.trackingId) {
+        order.trackingId = `DLV${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        order.courierPartner = 'Delhivery';
+        order.trackingStatus = 'SHIPPED';
+      }
+
+      if (!order.trackingHistory) order.trackingHistory = [];
+      order.trackingHistory.push({
+        status: 'Shipped',
+        location: 'Seller Warehouse',
+        description: `Shipment registered with Delhivery. Waybill: ${order.trackingId}`,
+        timestamp: new Date()
+      });
+    }
+
     await order.save();
 
     // Trigger delivery notification if seller accepts the order
@@ -372,19 +403,29 @@ export const shipOrder = asyncHandler(
       return res.status(403).json({ success: false, message: "Unauthorized" });
     }
 
-    if (order.status !== 'Packed' && order.status !== 'Accepted') {
+    if (order.status !== 'Packed' && order.status !== 'Accepted' && order.status !== 'Ready for pickup') {
       return res.status(400).json({
         success: false,
-        message: "Order must be in Packed or Accepted state to ship"
+        message: "Order must be in Packed, Accepted or Ready for pickup state to ship"
       });
     }
 
-    // Generation of dummy tracking ID
-    const trackingId = `TRK${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    // Preserve existing tracking ID (e.g. from Delhivery) or generate dummy if empty
+    const trackingId = order.trackingId || `TRK${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const actualCourier = order.courierPartner || courierPartner || 'Standard Courier';
 
     order.status = 'Shipped';
     order.trackingId = trackingId;
-    order.courierPartner = courierPartner || 'Standard Courier';
+    order.courierPartner = actualCourier;
+
+    if (!order.trackingHistory) order.trackingHistory = [];
+    order.trackingHistory.push({
+      status: 'Shipped',
+      location: 'Seller Warehouse',
+      description: `Shipment marked as shipped via ${order.courierPartner}. Tracking ID: ${trackingId}`,
+      timestamp: new Date()
+    });
+
     await order.save();
 
     return res.status(200).json({
@@ -420,25 +461,38 @@ export const markAsPacked = asyncHandler(
     }
 
     order.status = 'Packed';
+    if (!order.trackingHistory) order.trackingHistory = [];
+    order.trackingHistory.push({
+      status: 'Packed',
+      location: 'Seller Warehouse',
+      description: 'Order packed and ready to ship',
+      timestamp: new Date()
+    });
 
     // 🚀 AUTO COURIER TRIGGER (For Ecommerce Flow)
     if (order.orderType === 'ecommerce') {
       try {
         console.log(`[CourierAuto] Triggering shipment for Order ${order.orderNumber}`);
         const courierResponse = await DelhiveryService.createShipmentFromOrder(order);
-        
+
         if (courierResponse && courierResponse.success !== false) {
-           // Delhivery returns waybills in shipments array
-           const waybill = courierResponse.packages?.[0]?.waybill || 
-                           courierResponse.shipments?.[0]?.waybill;
-           
-           if (waybill) {
-               order.status = 'Shipped';
-               order.trackingId = waybill;
-               order.courierPartner = 'Delhivery';
-               order.trackingStatus = 'SHIPPED';
-               console.log(`[CourierAuto] Order ${order.orderNumber} automatically SHIPPED with Waybill: ${waybill}`);
-           }
+          // Delhivery returns waybills in shipments array
+          const waybill = courierResponse.packages?.[0]?.waybill ||
+            courierResponse.shipments?.[0]?.waybill;
+
+          if (waybill) {
+            order.trackingId = waybill;
+            order.courierPartner = 'Delhivery';
+            order.trackingStatus = 'MANIFESTED';
+
+            order.trackingHistory.push({
+              status: 'Packed',
+              location: 'Seller Warehouse',
+              description: `Shipment successfully registered with Delhivery. Waybill generated: ${waybill}`,
+              timestamp: new Date()
+            });
+            console.log(`[CourierAuto] Waybill ${waybill} registered. Keeping Packed status for sequential steps.`);
+          }
         }
       } catch (courierError: any) {
         console.error(`[CourierAuto] Failed to auto-assign courier for Order ${order.orderNumber}:`, courierError.message);

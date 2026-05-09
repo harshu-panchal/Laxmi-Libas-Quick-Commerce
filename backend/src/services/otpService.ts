@@ -244,11 +244,6 @@ function isMockMode(): boolean {
   return false;
 }
 
-function isSpecialBypass(mobile: string): boolean {
-  const normalized = mobile.replace(/\D/g, '');
-  return normalized === '9827607086' || normalized === '919827607086';
-}
-
 // ==========================================
 // SMS OTP (Customer / Delivery)
 // ==========================================

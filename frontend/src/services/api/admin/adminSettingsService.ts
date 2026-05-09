@@ -124,6 +124,53 @@ export interface AppSettings {
     whatsapp?: string;
   };
 
+  // Theme Customization
+  themeSettings?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    backgroundColor?: string;
+    textColor?: string;
+    fontFamily?: string;
+    enableGlassmorphism?: boolean;
+    cardStyle?: "flat" | "bordered" | "shadow" | "glass";
+  };
+
+  // Dynamic Module Access Control
+  roleAccessConfig?: {
+    hotelModuleAllowedRoles?: string[];
+    busModuleAllowedRoles?: string[];
+    deliveryModuleAllowedRoles?: string[];
+    sellerModuleAllowedRoles?: string[];
+  };
+
+  // Dynamic Home Banners & Controls
+  dynamicUIControls?: {
+    showHotelSection?: boolean;
+    showBusSection?: boolean;
+    showGrocerySection?: boolean;
+    showBestsellers?: boolean;
+    showPromoStrip?: boolean;
+    customFooterText?: string;
+    primaryButtonLabel?: string;
+    checkoutFieldsRequirement?: string;
+  };
+  dynamicButtons?: Array<{
+    buttonId: string;
+    label: string;
+    visible: boolean;
+    icon?: string;
+  }>;
+  dynamicForms?: Array<{
+    formId: string;
+    fields: Array<{
+      fieldId: string;
+      label: string;
+      placeholder?: string;
+      type: "text" | "number" | "email" | "tel" | "checkbox" | "select";
+      required: boolean;
+      visible: boolean;
+    }>;
+  }>;
   updatedBy?: string;
   createdAt?: string;
   updatedAt?: string;

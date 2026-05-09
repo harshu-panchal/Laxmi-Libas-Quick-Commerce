@@ -59,3 +59,5 @@ export { default as Bus } from './Bus';
 export { default as BusBooking } from './BusBooking';
 export { default as BusRoute } from './BusRoute';
 export { default as BusSchedule } from './BusSchedule';
+export { default as AuditLog } from './AuditLog';
+

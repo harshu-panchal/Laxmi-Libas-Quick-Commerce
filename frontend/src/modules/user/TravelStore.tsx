@@ -14,6 +14,29 @@ const TravelStore: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'hotels' | 'buses'>('hotels');
     const [timeLeft, setTimeLeft] = useState({ h: 2, m: 38, s: 16 });
 
+    // Date Helpers
+    const getTodayDateStr = () => {
+        return new Date().toISOString().split('T')[0];
+    };
+    const getTomorrowDateStr = () => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toISOString().split('T')[0];
+    };
+    const getTomorrowDisplayStr = () => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `Tomorrow, ${tomorrow.getDate()} ${months[tomorrow.getMonth()]}`;
+    };
+    const getHotelDisplayDates = () => {
+        const today = new Date();
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${today.getDate()} ${months[today.getMonth()]} - ${tomorrow.getDate()} ${months[tomorrow.getMonth()]}`;
+    };
+
     // Hotel Search State
     const [hotelLocation, setHotelLocation] = useState('Indore');
     const [hotelCities, setHotelCities] = useState<string[]>([]);
@@ -107,7 +130,7 @@ const TravelStore: React.FC = () => {
                                             className="bg-white p-3 rounded-xl border border-neutral-200 flex items-center gap-3 cursor-pointer"
                                         >
                                             <Calendar size={16} className="text-neutral-400" />
-                                            <span className="text-xs font-bold">31 Mar - 01 Apr</span>
+                                            <span className="text-xs font-bold">{getHotelDisplayDates()}</span>
                                         </div>
                                     </div>
                                     <div className="flex-1 flex flex-col gap-1">
@@ -166,11 +189,11 @@ const TravelStore: React.FC = () => {
                                         className="bg-white p-3 rounded-xl border border-neutral-200 flex items-center gap-3 cursor-pointer"
                                     >
                                         <Calendar size={16} className="text-neutral-400" />
-                                        <span className="text-xs font-bold">Tomorrow, 31 Mar</span>
+                                        <span className="text-xs font-bold">{getTomorrowDisplayStr()}</span>
                                     </div>
                                 </div>
                                 <button 
-                                    onClick={() => navigate(`/store/travel/buses/results?from=${busFrom}&to=${busTo}&date=2026-03-31`)}
+                                    onClick={() => navigate(`/store/travel/buses/results?from=${busFrom}&to=${busTo}&date=${getTomorrowDateStr()}`)}
                                     className="w-full bg-green-600 text-white font-black py-3 rounded-xl shadow-lg shadow-green-100 flex items-center justify-center gap-2 text-sm tracking-tight active:scale-95 transition-all"
                                 >
                                     <Search size={18} />

@@ -1,4 +1,5 @@
 import React from 'react';
+import { categoryFieldsRegistry, CategorySpec } from '../data/categoryFieldsRegistry';
 
 interface DynamicCategoryFieldsProps {
     categoryName: string;
@@ -7,325 +8,117 @@ interface DynamicCategoryFieldsProps {
     handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
 }
 
-export default function DynamicCategoryFields({ categoryName, subcategoryName, formData, handleChange }: DynamicCategoryFieldsProps) {
-    const name = categoryName.toLowerCase();
-    const subName = (subcategoryName || '').toLowerCase();
-
-    // Keywords for different categories
-    const clothingKeywords = ['clothing', 'fashion', 'jeans', 'shirt', 'top', 'tshirt', 't-shirt', 'pant', 'wear', 'suit', 'kurta', 'kurti', 'saree', 'garment', 'cloth', 'fabric'];
-    const footwearKeywords = ['footwear', 'shoe', 'sandal', 'slipper', 'crocs', 'boots', 'heels', 'sneaker', 'jutti', 'kito', 'crokx', 'flip flop'];
-    const groceryKeywords = ['grocery', 'food', 'snack', 'drink', 'beverage', 'pulse', 'oil', 'spice', 'household', 'vegetable', 'fruit', 'grains', 'masala'];
-    const beautyKeywords = ['beauty', 'cosmetic', 'makeup', 'skin', 'hair', 'care', 'perfume', 'deodorant', 'shampoo', 'soap'];
-    const electronicsKeywords = ['electronics', 'mobile', 'laptop', 'computer', 'accessory', 'gadget', 'tv', 'fridge', 'appliance', 'watch'];
-    const toysKeywords = ['toy', 'game', 'puzzle', 'doll', 'action figure', 'outdoor', 'indoor', 'kids'];
-    const homeKeywords = ['home', 'furniture', 'decor', 'kitchen', 'dining', 'bedroom', 'office', 'living', 'appliance'];
-    const eyeglassesKeywords = ['eye', 'glass', 'spectacle', 'sunglass', 'lens', 'frame', 'testing'];
-    const automotiveKeywords = ['automotive', 'part', 'engine', 'accessory', 'tyre', 'wheel', 'interior', 'exterior', 'tool', 'equipment'];
-    const serviceKeywords = ['service', 'clean', 'electrician', 'plumber', 'pest', 'salon', 'repair', 'maintenance', 'installation'];
-    const rentalKeywords = ['rental', 'rent', 'room', 'bike', 'car', 'furniture', 'appliance', 'costume'];
-
-    // Category Matching Logic
+export const findMatchingCategorySpec = (categoryName: string, subcategoryName: string = ""): { key: string; spec: CategorySpec } | null => {
+    const combinedName = `${categoryName} ${subcategoryName}`.toLowerCase();
     
-    // Footwear
-    if (footwearKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Brand</label>
-                    <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Nike" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Size (e.g. 7, 8, 9, 10 or XL, M)</label>
-                    <input type="text" name="size" value={formData.size || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. 8, 9, 10" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Material</label>
-                    <input type="text" name="material" value={formData.material || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Leather" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Gender</label>
-                    <select name="gender" value={formData.gender || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500">
-                        <option value="">Select Gender</option>
-                        <option value="Men">Men</option>
-                        <option value="Women">Women</option>
-                        <option value="Unisex">Unisex</option>
-                        <option value="Kids">Kids</option>
-                    </select>
-                </div>
-            </div>
-        );
-    }
-
-    // Clothing / Fashion
-    if (clothingKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Brand (Custom)</label>
-                    <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Zara, Local Brand" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Size (e.g. S, M, XL, 32, 34)</label>
-                    <input type="text" name="size" value={formData.size || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="Enter Size (e.g. XL, 38, Free Size)" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Color</label>
-                    <input type="text" name="color" value={formData.color || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Blue" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Fabric</label>
-                    <input type="text" name="fabric" value={formData.fabric || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Cotton" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Gender</label>
-                    <select name="gender" value={formData.gender || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500">
-                        <option value="">Select Gender</option>
-                        <option value="Men">Men</option>
-                        <option value="Women">Women</option>
-                        <option value="Unisex">Unisex</option>
-                        <option value="Kids/Boys">Kids/Boys</option>
-                        <option value="Kids/Girls">Kids/Girls</option>
-                    </select>
-                </div>
-            </div>
-        );
-    }
-
-
-    // Grocery / Produce
-    if (groceryKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
-        const isProduce = name.includes('fruit') || name.includes('vegetable') || subName.includes('fruit') || subName.includes('vegetable');
-        
-        if (isProduce) {
-            return (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Shelf Life (e.g. 3 days, 1 week)</label>
-                        <input type="text" name="shelfLife" value={formData.shelfLife || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. 3 days" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Storage Instructions</label>
-                        <input type="text" name="specifications" value={formData.specifications || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Keep refrigerated" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Unit/Weight (e.g. 500g, 1kg, 1 pc)</label>
-                        <input type="text" name="weight" value={formData.weight || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. 1kg" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Origin (Optional)</label>
-                        <input type="text" name="madeIn" value={formData.madeIn || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Local Farm" />
-                    </div>
-                </div>
-            );
+    // Find first spec where a keyword matches the category or subcategory name
+    for (const [key, spec] of Object.entries(categoryFieldsRegistry)) {
+        if (spec.keywords.some(keyword => combinedName.includes(keyword.toLowerCase()))) {
+            return { key, spec };
         }
-
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Brand</label>
-                    <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Quantity (e.g. 1kg, 500ml)</label>
-                    <input type="text" name="quantityInsidePack" value={formData.quantityInsidePack || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Expiry Date</label>
-                    <input type="date" name="expiryDate" value={formData.expiryDate && !isNaN(new Date(formData.expiryDate).getTime()) ? new Date(formData.expiryDate).toISOString().split('T')[0] : ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-            </div>
-        );
     }
-
-    // Beauty
-    if (beautyKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Brand</label>
-                    <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Skin Type</label>
-                    <input type="text" name="skinType" value={formData.skinType || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. All, Oily, Dry" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Expiry Date</label>
-                    <input type="date" name="expiryDate" value={formData.expiryDate ? new Date(formData.expiryDate).toISOString().split('T')[0] : ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-            </div>
-        );
-    }
-
-    // Electronics
-    if (electronicsKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Brand</label>
-                    <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Model Name</label>
-                    <input type="text" name="modelName" value={formData.modelName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Warranty</label>
-                    <input type="text" name="warranty" value={formData.warranty || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. 1 Year" />
-                </div>
-                <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Specifications</label>
-                    <textarea name="specifications" value={formData.specifications || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" rows={3}></textarea>
-                </div>
-            </div>
-        );
-    }
-
-    // Toys
-    if (toysKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Brand</label>
-                    <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Age Group</label>
-                    <input type="text" name="ageGroup" value={formData.ageGroup || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. 3-5 years" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Material</label>
-                    <input type="text" name="material" value={formData.material || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-            </div>
-        );
-    }
-
-    // Home & Furniture
-    if (homeKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Material</label>
-                    <input type="text" name="material" value={formData.material || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Size/Dimensions</label>
-                    <input type="text" name="size" value={formData.size || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Weight</label>
-                    <input type="text" name="weight" value={formData.weight || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-            </div>
-        );
-    }
-
-    // Eyeglasses
-    if (eyeglassesKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Frame Type</label>
-                    <input type="text" name="frameType" value={formData.frameType || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Lens Type</label>
-                    <input type="text" name="lensType" value={formData.lensType || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Power (if applicable)</label>
-                    <input type="text" name="power" value={formData.power || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Brand</label>
-                    <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-            </div>
-        );
-    }
-
-    // Rental
-    if (rentalKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
-        const isBike = subName.includes('bike') || subName.includes('vehicle');
-
-        if (isBike) {
-            return (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Rent Amount (Daily/Monthly)</label>
-                        <input type="number" name="rentAmount" value={formData.rentAmount || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Security Deposit</label>
-                        <input type="number" name="securityDeposit" value={formData.securityDeposit || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Vehicle Model</label>
-                        <input type="text" name="vehicleModel" value={formData.vehicleModel || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" placeholder="e.g. Splendor Plus" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-2">Brand</label>
-                        <input type="text" name="brandName" value={formData.brandName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                    </div>
-                </div>
-            );
-        }
-
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Rent Amount (Monthly)</label>
-                    <input type="number" name="rentAmount" value={formData.rentAmount || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Security Deposit</label>
-                    <input type="number" name="securityDeposit" value={formData.securityDeposit || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">BHK</label>
-                    <select name="bhk" value={formData.bhk || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500">
-                        <option value="">Select BHK</option>
-                        <option value="1 BHK">1 BHK</option>
-                        <option value="2 BHK">2 BHK</option>
-                        <option value="3 BHK">3 BHK</option>
-                    </select>
-                </div>
-            </div>
-        );
-    }
-
-    // Automotive Parts
-    if (automotiveKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Part Number</label>
-                    <input type="text" name="partNumber" value={formData.partNumber || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Vehicle Model</label>
-                    <input type="text" name="vehicleModel" value={formData.vehicleModel || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-            </div>
-        );
-    }
-
-    // Services
-    if (serviceKeywords.some(kw => name.includes(kw) || subName.includes(kw))) {
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Service Name</label>
-                    <input type="text" name="serviceName" value={formData.serviceName || formData.productName || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Contact Number</label>
-                    <input type="text" name="contactNumber" value={formData.contactNumber || ''} onChange={handleChange} className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
-                </div>
-            </div>
-        );
-    }
-
     return null;
+};
+
+export default function DynamicCategoryFields({ categoryName, subcategoryName, formData, handleChange }: DynamicCategoryFieldsProps) {
+    const match = findMatchingCategorySpec(categoryName, subcategoryName);
+
+    if (!match) {
+        return null;
+    }
+
+    const { spec } = match;
+
+    return (
+        <div className="bg-neutral-50/50 p-6 rounded-xl border border-neutral-200/60 space-y-4">
+            <div className="flex items-center gap-2 mb-2 border-b border-neutral-100 pb-3">
+                <div className="w-1 h-5 bg-teal-500 rounded-full" />
+                <h4 className="text-sm font-bold text-neutral-800 uppercase tracking-wider">
+                    {categoryName} Specifications
+                </h4>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {spec.fields.map(field => {
+                    // Normalize date value for input fields
+                    let value = formData[field.name] || '';
+                    if (field.type === 'date' && value) {
+                        try {
+                            const dateObj = new Date(value);
+                            if (!isNaN(dateObj.getTime())) {
+                                value = dateObj.toISOString().split('T')[0];
+                            }
+                        } catch (e) {
+                            value = '';
+                        }
+                    }
+
+                    if (field.type === 'select') {
+                        return (
+                            <div key={field.name} className="space-y-1.5">
+                                <label className="block text-xs font-bold text-neutral-700 ml-0.5 uppercase tracking-wide">
+                                    {field.label} {field.required && <span className="text-red-500">*</span>}
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        name={field.name}
+                                        value={value}
+                                        onChange={handleChange}
+                                        required={field.required}
+                                        className="w-full px-4 py-2.5 rounded-lg border border-neutral-200 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none bg-white text-neutral-800 text-sm font-medium transition-all appearance-none"
+                                    >
+                                        <option value="">Select {field.label}</option>
+                                        {field.options?.map(opt => (
+                                            <option key={opt} value={opt}>{opt}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    if (field.type === 'textarea') {
+                        return (
+                            <div key={field.name} className="md:col-span-2 space-y-1.5">
+                                <label className="block text-xs font-bold text-neutral-700 ml-0.5 uppercase tracking-wide">
+                                    {field.label} {field.required && <span className="text-red-500">*</span>}
+                                </label>
+                                <textarea
+                                    name={field.name}
+                                    value={value}
+                                    onChange={handleChange}
+                                    required={field.required}
+                                    placeholder={field.placeholder}
+                                    rows={3}
+                                    className="w-full px-4 py-2.5 rounded-lg border border-neutral-200 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-neutral-800 text-sm font-medium transition-all"
+                                />
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <div key={field.name} className="space-y-1.5">
+                            <label className="block text-xs font-bold text-neutral-700 ml-0.5 uppercase tracking-wide">
+                                {field.label} {field.required && <span className="text-red-500">*</span>}
+                            </label>
+                            <input
+                                type={field.type}
+                                name={field.name}
+                                value={value}
+                                onChange={handleChange}
+                                required={field.required}
+                                placeholder={field.placeholder}
+                                className="w-full px-4 py-2.5 rounded-lg border border-neutral-200 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-neutral-800 text-sm font-medium transition-all"
+                            />
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
 }

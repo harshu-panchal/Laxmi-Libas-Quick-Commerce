@@ -6,6 +6,8 @@ import Seller from "../../../models/Seller";
 import mongoose from "mongoose";
 import { cache } from "../../../utils/cache";
 
+import HeaderCategory from "../../../models/HeaderCategory";
+
 // Get all categories (public) - with caching
 export const getCategories = async (_req: Request, res: Response) => {
   try {
@@ -15,12 +17,25 @@ export const getCategories = async (_req: Request, res: Response) => {
     let categories = cache.get(cacheKey);
 
     if (!categories) {
-      categories = await Category.find({
-        status: "Active", // Only return active categories
+      const headerCategories = await HeaderCategory.find({
+        status: "Published", // Only return active published categories
       })
         .sort({ order: 1 })
-        .select("name image icon description color slug _id")
-        .lean(); // Use lean() for better performance
+        .lean();
+
+      // Map to consistent Category schema
+      categories = headerCategories.map(hc => ({
+        _id: hc._id,
+        id: hc._id,
+        name: hc.name,
+        slug: hc.slug,
+        theme: hc.theme,
+        isActive: hc.status === "Published",
+        icon: hc.iconName,
+        image: hc.iconName, // For fallback
+        description: "",
+        color: hc.theme,
+      }));
 
       // Cache for 10 minutes
       cache.set(cacheKey, categories, 10 * 60 * 1000);

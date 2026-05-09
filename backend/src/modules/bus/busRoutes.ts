@@ -12,6 +12,7 @@ router.post('/routes/add', authenticate, busController.addBusRoute);
 router.get('/schedules/all', authenticate, busController.getSellerSchedules);
 router.post('/schedules/add', authenticate, busController.addBusSchedule);
 
+router.get('/bookings/all', authenticate, busController.getSellerAllBookings);
 router.get('/:busId/bookings', authenticate, busController.getBusBookings);
 router.patch('/bookings/:bookingId/status', authenticate, busController.updateBookingStatus);
 router.get('/:busId/manifest', authenticate, busController.getManifest);
@@ -27,6 +28,7 @@ router.post('/wallet/withdraw', authenticate, busController.createBusWithdrawalR
 router.get('/', busController.searchBuses);
 router.get('/bookings/:bookingId/ticket', authenticate, busController.getTicket);
 router.post('/booking', authenticate, busController.createBusBooking);
+router.post('/bookings/:bookingId/cancel', authenticate, busController.cancelBusBooking);
 router.get('/cities', busController.getBusCities); // Dynamic cities list
 router.get('/my-bookings', authenticate, busController.getMyBookings);
 router.get('/:id', busController.getScheduleDetail);

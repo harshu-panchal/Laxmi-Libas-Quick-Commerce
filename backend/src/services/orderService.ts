@@ -52,10 +52,20 @@ export const finalizeOrderCreation = async (
       const sellerCity = seller?.city ? normalizeCity(seller.city) : '';
       const customerCity = address.city ? normalizeCity(address.city) : '';
 
-      let decidedType: string = item.selectedDeliveryType || 'quick';
-      if (decidedType === 'ecommerce') decidedType = 'standard';
-      if (decidedType === 'quick' && sellerCity && customerCity && sellerCity !== customerCity) {
-        decidedType = 'standard';
+      // Auto-detect based on product configuration:
+      // If product.deliveryType is quick AND same city, it's quick. Otherwise ecommerce!
+      let decidedType = 'ecommerce';
+      if (product.deliveryType === 'quick' || product.type === 'quick' || product.type === 'both') {
+        if (sellerCity && customerCity && sellerCity === customerCity) {
+          decidedType = 'quick';
+        }
+      }
+      
+      // Support explicit overrides from frontend
+      if (item.selectedDeliveryType === 'quick' && sellerCity && customerCity && sellerCity === customerCity) {
+        decidedType = 'quick';
+      } else if (item.selectedDeliveryType === 'ecommerce' || item.selectedDeliveryType === 'standard') {
+        decidedType = 'ecommerce';
       }
       
       if (decidedType === 'quick') quickItems.push(item);
@@ -72,10 +82,39 @@ export const finalizeOrderCreation = async (
     const createdOrders: any[] = [];
     const splitConfigs = [
       { type: 'quick', items: quickItems, flow: 'instant' },
-      { type: 'standard', items: ecommerceItems, flow: 'courier' }
+      { type: 'ecommerce', items: ecommerceItems, flow: 'courier' }
     ].filter(config => config.items.length > 0);
 
     for (const config of splitConfigs) {
+      // Smart Delivery Estimation
+      let estimatedDeliveryDateValue: Date = new Date();
+      let estimatedDeliveryTimeValue: string = "";
+
+      if (config.type === 'quick') {
+        estimatedDeliveryDateValue = new Date();
+        estimatedDeliveryTimeValue = "30-45 mins";
+      } else {
+        const pincode = address.pincode || '000000';
+        const daysToAdd = 2 + (parseInt(pincode.charAt(0)) % 4);
+        estimatedDeliveryDateValue = new Date();
+        estimatedDeliveryDateValue.setDate(estimatedDeliveryDateValue.getDate() + daysToAdd);
+        estimatedDeliveryTimeValue = `by 7:00 PM (Arriving in ${daysToAdd} days)`;
+      }
+
+      // Fraud & Abuse Risk Detection
+      let isFlaggedFraudValue = false;
+      let fraudCheckScoreValue = 0;
+      try {
+        const previousOrders = await Order.find({ customer: new mongoose.Types.ObjectId(userId) }).sort({ createdAt: -1 }).limit(10);
+        const failedOrdersCount = previousOrders.filter(o => o.status === 'Cancelled' || o.paymentStatus === 'Failed').length;
+        if (failedOrdersCount >= 4) {
+          isFlaggedFraudValue = true;
+          fraudCheckScoreValue = 85; // High Risk Alert
+        } else if (failedOrdersCount >= 2) {
+          fraudCheckScoreValue = 45; // Moderate Risk
+        }
+      } catch (err) {}
+
       const newOrder = new Order({
         customer: new mongoose.Types.ObjectId(userId),
         customerName: customer.name,
@@ -101,13 +140,17 @@ export const finalizeOrderCreation = async (
         total: 0,
         items: [],
         parentOrderId: parentOrderId,
-        orderType: config.type as 'quick' | 'standard',
+        orderType: config.type as 'quick' | 'ecommerce',
         deliveryType: config.flow as 'instant' | 'courier',
         type: 'product',
         deliveryInstructions: deliveryInstructions || '',
         tip: tip || 0,
         transactionId: orderData.transactionId,
         merchantOrderId: orderData.merchantOrderId,
+        estimatedDeliveryDate: estimatedDeliveryDateValue,
+        estimatedDeliveryTime: estimatedDeliveryTimeValue,
+        isFlaggedFraud: isFlaggedFraudValue,
+        fraudCheckScore: fraudCheckScoreValue,
       });
 
       let calculatedSubtotal = 0;

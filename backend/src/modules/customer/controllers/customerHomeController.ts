@@ -601,7 +601,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
           { category: { $in: categoryIds } }
         ],
         status: "Active", 
-        publish: true 
+        publish: true
       };
       
       const rawProducts = await Product.find(prodQuery).sort({ createdAt: -1 }).limit(40).lean();

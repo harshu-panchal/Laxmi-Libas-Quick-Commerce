@@ -157,21 +157,41 @@ export default function Account() {
       </div>
 
       <div className="px-4 md:px-6 lg:px-8 -mt-4 md:-mt-6 mb-4 md:mb-6">
-        <div className="grid grid-cols-3 md:grid-cols-3 gap-2.5 md:gap-6 max-w-2xl md:mx-auto">
-          <button onClick={() => navigate('/orders')} className="bg-white rounded-lg border border-neutral-200 p-3 md:p-4 hover:shadow-md transition-shadow text-center outline-none">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1.5 md:mb-2 text-neutral-700 md:w-6 md:h-6"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            <div className="text-[10px] md:text-xs font-semibold text-neutral-900">Your orders</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl md:mx-auto">
+          {/* Orders */}
+          <button onClick={() => navigate('/orders')} className="bg-white rounded-2xl border border-neutral-200 p-3.5 hover:shadow-md transition-all text-center outline-none flex flex-col items-center justify-center group active:scale-95 duration-200">
+            <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center text-teal-600 mb-2 group-hover:scale-110 transition-transform">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>
+            </div>
+            <div className="text-[11px] font-black text-neutral-800 uppercase tracking-tighter">Your Orders</div>
+            <div className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">E-Commerce</div>
           </button>
-          <button onClick={() => navigate('/bookings')} className="bg-white rounded-lg border border-neutral-200 p-3 md:p-4 hover:shadow-md transition-shadow text-center outline-none">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1.5 md:mb-2 text-neutral-700 md:w-6 md:h-6"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M12 7v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M8 11h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M8 15h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-            <div className="text-[10px] md:text-xs font-semibold text-neutral-900">Bookings</div>
+
+          {/* Hotel Bookings */}
+          <button onClick={() => navigate('/bookings/hotels')} className="bg-white rounded-2xl border border-neutral-200 p-3.5 hover:shadow-md transition-all text-center outline-none flex flex-col items-center justify-center group active:scale-95 duration-200">
+            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 mb-2 group-hover:scale-110 transition-transform">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+            </div>
+            <div className="text-[11px] font-black text-neutral-800 uppercase tracking-tighter">Hotel Bookings</div>
+            <div className="text-[8px] font-bold text-indigo-500 uppercase tracking-widest mt-0.5">Stays & Trips</div>
           </button>
-          <button
-            onClick={() => navigate('/help-center')}
-            className="bg-white rounded-lg border border-neutral-200 p-3 md:p-4 hover:shadow-md transition-shadow text-center outline-none"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1.5 md:mb-2 text-neutral-700 md:w-6 md:h-6"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            <div className="text-[10px] md:text-xs font-semibold text-neutral-900">Help Center</div>
+
+          {/* Bus Tickets */}
+          <button onClick={() => navigate('/bookings/buses')} className="bg-white rounded-2xl border border-neutral-200 p-3.5 hover:shadow-md transition-all text-center outline-none flex flex-col items-center justify-center group active:scale-95 duration-200">
+            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-2 group-hover:scale-110 transition-transform">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-1.1 0-2 .9-2 2v7c0 .6.4 1 1 1h2" /><circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" /></svg>
+            </div>
+            <div className="text-[11px] font-black text-neutral-800 uppercase tracking-tighter">Bus Tickets</div>
+            <div className="text-[8px] font-bold text-blue-500 uppercase tracking-widest mt-0.5">My Tickets</div>
+          </button>
+
+          {/* Help Center */}
+          <button onClick={() => navigate('/help-center')} className="bg-white rounded-2xl border border-neutral-200 p-3.5 hover:shadow-md transition-all text-center outline-none flex flex-col items-center justify-center group active:scale-95 duration-200">
+            <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600 mb-2 group-hover:scale-110 transition-transform">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+            </div>
+            <div className="text-[11px] font-black text-neutral-800 uppercase tracking-tighter">Help Center</div>
+            <div className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">24/7 Support</div>
           </button>
         </div>
       </div>

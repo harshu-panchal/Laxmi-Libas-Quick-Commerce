@@ -9,6 +9,7 @@ export interface ICustomer extends Document {
   registrationDate: Date;
   status: 'Active' | 'Inactive';
   refCode: string;
+  referredByCode?: string;
   deliveryOtp: string; // Permanent 4-digit OTP for delivery verification
   totalOrders: number;
   totalSpent: number;
@@ -93,6 +94,11 @@ const CustomerSchema = new Schema<ICustomer>(
     refCode: {
       type: String,
       unique: true,
+      trim: true,
+      uppercase: true,
+    },
+    referredByCode: {
+      type: String,
       trim: true,
       uppercase: true,
     },

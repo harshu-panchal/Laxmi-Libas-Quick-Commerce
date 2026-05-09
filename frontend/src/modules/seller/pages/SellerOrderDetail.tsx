@@ -58,11 +58,12 @@ export default function SellerOrderDetail() {
       }
 
       if (response.success) {
-        setOrderStatus(newStatus);
-        const updatedData: any = { ...orderDetail, status: newStatus as any };
-        if (newStatus === 'Shipped' && (response.data as any).trackingId) {
+        const actualStatus = (response.data as any)?.status || newStatus;
+        setOrderStatus(actualStatus);
+        const updatedData: any = { ...orderDetail, status: actualStatus as any };
+        if ((response.data as any)?.trackingId) {
             updatedData.trackingId = (response.data as any).trackingId;
-            updatedData.courierPartner = (response.data as any).courierPartner;
+            updatedData.courierPartner = (response.data as any).courierPartner || 'Delhivery';
         }
         setOrderDetail(updatedData);
       } else {
@@ -434,52 +435,72 @@ export default function SellerOrderDetail() {
               </div>
             </div>
           )}
-
           {/* Progress Steps for Ecommerce */}
-          {orderDetail.orderType === 'ecommerce' && (
-            <div className="mb-8 relative">
-              <div className="absolute top-5 left-0 w-full h-1 bg-neutral-100 -z-0"></div>
-              <div 
-                className="absolute top-5 left-0 h-1 bg-teal-500 transition-all duration-500 -z-0"
-                style={{ 
-                  width: orderStatus === 'Received' ? '0%' : 
-                         orderStatus === 'Accepted' ? '25%' :
-                         orderStatus === 'Packed' ? '50%' :
-                         orderStatus === 'Ready for pickup' ? '75%' : 
-                         orderStatus === 'Shipped' || orderStatus === 'Delivered' ? '100%' : '0%'
-                }}
-              ></div>
-              
-              <div className="flex justify-between relative z-10">
-                {[
-                  { id: 'Received', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>, label: 'Order Received' },
-                  { id: 'Accepted', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>, label: 'Accepted' },
-                  { id: 'Packed', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>, label: 'Packed' },
-                  { id: 'Ready for pickup', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>, label: 'Ready' },
-                  { id: 'Shipped', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>, label: 'Dispatched' },
-                ].map((step, idx) => {
-                  const isCompleted = ['Delivered', 'Shipped', 'Ready for pickup', 'Packed', 'Accepted', 'Received'].indexOf(orderStatus) >= ['Delivered', 'Shipped', 'Ready for pickup', 'Packed', 'Accepted', 'Received'].indexOf(step.id);
-                  const isCurrent = orderStatus === step.id;
-                  
-                  return (
-                    <div key={step.id} className="flex flex-col items-center group">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all ${
-                        isCompleted ? "bg-teal-500 border-white text-white shadow-lg shadow-teal-500/20" : 
-                        "bg-white border-neutral-100 text-neutral-300"
-                      } ${isCurrent ? "scale-125 z-20 border-teal-500 ring-4 ring-teal-50" : ""}`}>
-                        {step.icon}
-                      </div>
-                      <span className={`text-[10px] font-bold mt-2 uppercase tracking-tighter ${isCompleted ? "text-teal-600" : "text-neutral-400"}`}>
-                        {step.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {orderDetail.orderType === 'ecommerce' && (() => {
+            const STATUS_WEIGHTS: Record<string, number> = {
+              'Received': 1,
+              'Accepted': 2,
+              'Packed': 3,
+              'Ready for pickup': 4,
+              'Shipped': 5,
+              'On the way': 5,
+              'Out for Delivery': 5,
+              'Delivered': 6
+            };
+            
+            const currentWeight = STATUS_WEIGHTS[orderStatus] || 1;
+            
+            const steps = [
+              { id: 'Received', weight: 1, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>, label: 'Order Received' },
+              { id: 'Accepted', weight: 2, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>, label: 'Accepted' },
+              { id: 'Packed', weight: 3, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>, label: 'Packed' },
+              { id: 'Ready for pickup', weight: 4, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>, label: 'Ready' },
+              { id: 'Shipped', weight: 5, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>, label: 'Dispatched' },
+            ];
 
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-neutral-50 p-4 rounded-xl border border-neutral-100">
+            const currentWidth = 
+              orderStatus === 'Received' ? '0%' : 
+              orderStatus === 'Accepted' ? '25%' :
+              orderStatus === 'Packed' ? '50%' :
+              orderStatus === 'Ready for pickup' ? '75%' : 
+              ['Shipped', 'On the way', 'Out for Delivery', 'Delivered'].includes(orderStatus) ? '100%' : '0%';
+
+            return (
+              <div className="mb-8 relative">
+                <div className="absolute top-5 left-0 w-full h-1 bg-neutral-100 -z-0"></div>
+                <div 
+                  className="absolute top-5 left-0 h-1 bg-teal-500 transition-all duration-500 -z-0"
+                  style={{ width: currentWidth }}
+                ></div>
+                
+                <div className="flex justify-between relative z-10">
+                  {steps.map((step) => {
+                    const isCompleted = currentWeight >= step.weight;
+                    const isCurrent = orderStatus === step.id || (step.id === 'Shipped' && ['On the way', 'Out for Delivery', 'Delivered', 'Shipped'].includes(orderStatus) && currentWeight >= 5);
+                    const showCheckmark = isCompleted && !isCurrent;
+                    
+                    return (
+                      <div key={step.id} className="flex flex-col items-center group">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all ${
+                          isCompleted ? "bg-teal-500 border-white text-white shadow-lg shadow-teal-500/20" : 
+                          "bg-white border-neutral-100 text-neutral-300"
+                        } ${isCurrent ? "scale-125 z-20 border-teal-500 ring-4 ring-teal-50 bg-teal-500 text-white" : ""}`}>
+                          {showCheckmark ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                          ) : (
+                            step.icon
+                          )}
+                        </div>
+                        <span className={`text-[10px] font-bold mt-2 uppercase tracking-tighter ${isCompleted ? "text-teal-600" : "text-neutral-400"}`}>
+                          {step.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}   <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-neutral-50 p-4 rounded-xl border border-neutral-100">
             <div className="flex-1 w-full space-y-2">
               <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Next Recommended Action</p>
               

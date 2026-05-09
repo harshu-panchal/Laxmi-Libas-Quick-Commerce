@@ -3,6 +3,7 @@ import Bus from '../../models/Bus';
 import BusRoute from '../../models/BusRoute';
 import BusSchedule from '../../models/BusSchedule';
 import BusBooking from '../../models/BusBooking';
+import SeatLock from '../../models/SeatLock';
 import { PDFService } from '../../services/pdfService';
 import { asyncHandler } from '../../utils/asyncHandler';
 import mongoose from 'mongoose';
@@ -125,13 +126,34 @@ export const getScheduleDetail = asyncHandler(async (req: Request, res: Response
   const bus = schedule.busId as any;
   const route = schedule.routeId as any;
 
+  // Find active seat locks for this schedule
+  const activeLocks = await SeatLock.find({
+    scheduleId: schedule._id,
+    expiresAt: { $gt: new Date() }
+  });
+  const lockedSeatNumbers = activeLocks.map(l => l.seatNumber);
+
+  const mergedSeats = schedule.seats.map((s: any) => {
+    if (lockedSeatNumbers.includes(s.seatNumber)) {
+      return {
+        _id: s._id,
+        seatNumber: s.seatNumber,
+        seatType: s.seatType,
+        isBooked: true, // Treat as booked/locked on frontend
+        price: s.price,
+        bookedFor: s.bookedFor
+      };
+    }
+    return s;
+  });
+
   const data = {
     _id: schedule._id,
     operatorName: bus.operatorName,
     date: schedule.departureDate.toLocaleDateString(),
     departureTime: schedule.departureTime,
     basePrice: schedule.basePrice,
-    seats: schedule.seats,
+    seats: mergedSeats,
     pickupPoints: route.pickupPoints,
     dropoffPoints: route.dropoffPoints,
     amenities: bus.amenities
@@ -245,6 +267,27 @@ export const getBusBookings = asyncHandler(async (req: Request, res: Response) =
   const schedules = await BusSchedule.find({ busId }).distinct('_id');
   
   const bookings = await BusBooking.find({ scheduleId: { $in: schedules } })
+    .populate('userId')
+    .sort({ createdAt: -1 });
+
+  res.json({ success: true, data: bookings });
+});
+
+export const getSellerAllBookings = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+
+  // Find all buses for this seller
+  const buses = await Bus.find({ sellerId }).distinct('_id');
+
+  // Find all schedules for these buses
+  const schedules = await BusSchedule.find({ busId: { $in: buses } }).distinct('_id');
+
+  // Find all bookings for these schedules
+  const bookings = await BusBooking.find({ scheduleId: { $in: schedules } })
+    .populate({
+      path: 'scheduleId',
+      populate: [{ path: 'busId' }, { path: 'routeId' }]
+    })
     .populate('userId')
     .sort({ createdAt: -1 });
 
@@ -472,4 +515,51 @@ export const createBusWithdrawalRequest = asyncHandler(async (req: Request, res:
 
   res.status(201).json({ success: true, data: request, message: 'Withdrawal request submitted successfully' });
 });
+
+/**
+ * @desc    Cancel a bus booking and automatically refund to customer wallet
+ */
+export const cancelBusBooking = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.userId;
+  const { bookingId } = req.params;
+
+  const booking = await BusBooking.findById(bookingId);
+  if (!booking) {
+    res.status(404).json({ success: false, message: 'Booking not found' });
+    return;
+  }
+
+  if (booking.userId.toString() !== userId && (req as any).user.role !== 'admin') {
+    res.status(403).json({ success: false, message: 'Unauthorized' });
+    return;
+  }
+
+  if (booking.status === 'Cancelled') {
+    res.status(400).json({ success: false, message: 'Booking is already cancelled' });
+    return;
+  }
+
+  booking.status = 'Cancelled';
+  await booking.save();
+
+  // If already paid, automatically trigger refund to customer wallet!
+  if (booking.paymentStatus === 'Paid') {
+    const { processCustomerWalletTransaction } = await import('../../services/walletService');
+    await processCustomerWalletTransaction(
+      booking.userId.toString(),
+      booking.totalAmount,
+      'credit',
+      `Auto Refund for Bus Booking cancellation: TK-${String(bookingId).slice(-6).toUpperCase()}`
+    );
+    booking.paymentStatus = 'Refunded';
+    await booking.save();
+  }
+
+  res.json({
+    success: true,
+    message: 'Booking cancelled and refund processed successfully to your wallet.',
+    data: booking
+  });
+});
+
 

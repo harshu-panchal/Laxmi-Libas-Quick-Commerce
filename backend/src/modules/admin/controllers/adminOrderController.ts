@@ -775,3 +775,69 @@ export const exportOrders = asyncHandler(
     res.send(csvContent);
   }
 );
+
+/**
+ * Get all escalated orders (Escalation Dashboard)
+ */
+export const getEscalatedOrders = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { page = 1, limit = 10, status } = req.query;
+
+    const query: any = { isEscalated: true };
+    if (status) query.escalationStatus = status;
+
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .populate("customer", "name email phone")
+        .populate("deliveryBoy", "name mobile")
+        .sort({ escalatedAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit as string)),
+      Order.countDocuments(query),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Escalated orders fetched successfully",
+      data: orders,
+      pagination: {
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+        total,
+        pages: Math.ceil(total / parseInt(limit as string)),
+      }
+    });
+  }
+);
+
+/**
+ * Resolve an escalated order
+ */
+export const resolveEscalation = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { escalationStatus, notes } = req.body;
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    order.escalationStatus = escalationStatus || "Resolved";
+    if (notes) order.escalationNotes = notes;
+    if (escalationStatus === "Resolved") {
+      order.isEscalated = false; // Resolved
+    }
+
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Escalation updated to ${order.escalationStatus}`,
+      data: order,
+    });
+  }
+);
+

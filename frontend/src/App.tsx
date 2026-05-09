@@ -11,6 +11,7 @@ import { LoadingProvider } from "./context/LoadingContext";
 import { AxiosLoadingInterceptor } from "./context/AxiosLoadingInterceptor";
 import IconLoader from "./components/loaders/IconLoader";
 import RouteLoaderTrigger from "./components/loaders/RouteLoaderTrigger";
+import ScrollPreservation from "./components/ScrollPreservation";
 import AppLayout from "./components/AppLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
@@ -20,28 +21,36 @@ import RouteTransition from "./components/RouteTransition";
 import { useEffect } from "react";
 import { initializePushNotifications, setupForegroundNotificationHandler } from "./services/pushNotificationService";
 
-// Critical routes - load immediately (Home, Cart, Checkout)
+// Critical routes - load immediately (Home, LaxmartEntry)
 import Home from "./modules/user/Home";
 import LaxmartEntry from "./modules/user/LaxmartEntry";
-import TravelStore from "./modules/user/TravelStore";
-import HotelBooking from "./modules/user/HotelBooking";
-import HotelList from "./modules/user/HotelList";
-import HotelDetail from "./modules/user/HotelDetail";
-import RoomSelection from './modules/user/RoomSelection';
-import TravelCart from './modules/user/TravelCart';
-import TravelCheckout from './modules/user/TravelCheckout';
-import TravelPayment from './modules/user/TravelPayment';
-import TravelConfirmation from './modules/user/TravelConfirmation';
-import BusSearch from './modules/user/BusSearch';
-import BusResults from './modules/user/BusResults';
-import BusSeatSelection from './modules/user/BusSeatSelection';
-import MinutesStore from "./modules/user/MinutesStore";
-import Cart from "./modules/user/Cart";
-import Checkout from "./modules/user/Checkout";
-import CheckoutAddress from "./modules/user/CheckoutAddress";
-import ProductDetail from "./modules/user/ProductDetail";
-import PaymentVerify from "./modules/user/PaymentVerify";
-import TravelBookings from "./modules/user/TravelBookings";
+
+// Route-level Dynamic lazy loading for TRAVEL & HOTEL Modules
+const TravelStore = lazy(() => import("./modules/user/TravelStore"));
+const HotelBooking = lazy(() => import("./modules/user/HotelBooking"));
+const HotelList = lazy(() => import("./modules/user/HotelList"));
+const HotelDetail = lazy(() => import("./modules/user/HotelDetail"));
+const RoomSelection = lazy(() => import('./modules/user/RoomSelection'));
+const TravelCart = lazy(() => import('./modules/user/TravelCart'));
+const TravelCheckout = lazy(() => import('./modules/user/TravelCheckout'));
+const TravelPayment = lazy(() => import('./modules/user/TravelPayment'));
+const TravelConfirmation = lazy(() => import('./modules/user/TravelConfirmation'));
+const TravelBookings = lazy(() => import("./modules/user/TravelBookings"));
+
+// Route-level Dynamic lazy loading for BUS Modules
+const BusSearch = lazy(() => import('./modules/user/BusSearch'));
+const BusResults = lazy(() => import('./modules/user/BusResults'));
+const BusSeatSelection = lazy(() => import('./modules/user/BusSeatSelection'));
+
+// Route-level Dynamic lazy loading for CART & CHECKOUT Modules
+const Cart = lazy(() => import("./modules/user/Cart"));
+const Checkout = lazy(() => import("./modules/user/Checkout"));
+const CheckoutAddress = lazy(() => import("./modules/user/CheckoutAddress"));
+const PaymentVerify = lazy(() => import("./modules/user/PaymentVerify"));
+
+// Route-level Dynamic lazy loading for PRODUCT & QUICK Modules
+const MinutesStore = lazy(() => import("./modules/user/MinutesStore"));
+const ProductDetail = lazy(() => import("./modules/user/ProductDetail"));
 
 // Lazy load less critical routes for code splitting
 const Search = lazy(() => import("./modules/user/Search"));
@@ -220,6 +229,7 @@ function App() {
                           v7_relativeSplatPath: true,
                         }}>
                         <RouteLoaderTrigger />
+                        <ScrollPreservation />
                         <Routes>
                           {/* Public Routes */}
                           <Route
@@ -462,28 +472,65 @@ function App() {
                                   <Routes>
                                     <Route path="/" element={<LaxmartEntry />} />
                                     <Route path="/user/home" element={<Home />} />
-                                    <Route path="/store/travel" element={<TravelStore />} />
+                                    <Route path="/travel" element={<TravelStore />} />
+                                    <Route path="/store/travel" element={<Navigate to="/travel" replace />} />
+                                    <Route path="/travel/hotels" element={<HotelBooking />} />
+                                    <Route path="/travel/hotels/list" element={<HotelList />} />
+                                    <Route path="/travel/hotel/:id" element={<HotelDetail />} />
+                                    <Route path="/travel/hotels/rooms/:id" element={<RoomSelection />} />
+                                    
+                                    <Route path="/travel/buses" element={<BusSearch />} />
+                                    <Route path="/travel/buses/results" element={<BusResults />} />
+                                    <Route path="/travel/bus/:id" element={<BusSeatSelection />} />
+                                    
+                                    <Route path="/travel/cart" element={<TravelCart />} />
+                                    <Route path="/travel/checkout" element={<TravelCheckout />} />
+                                    <Route path="/travel/payment" element={<TravelPayment />} />
+                                    <Route path="/travel/confirmation" element={<TravelConfirmation />} />
+
+                                    <Route path="/quick" element={<MinutesStore />} />
+                                    <Route path="/quick/category/:id" element={<Category />} />
+                                    <Route path="/quick/search" element={<Search />} />
+
+                                    {/* Legacy Travel Routes Support */}
                                     <Route path="/store/travel/hotels" element={<HotelBooking />} />
                                     <Route path="/store/travel/hotels/list" element={<HotelList />} />
-                <Route path="/store/travel/hotels/detail/:id" element={<HotelDetail />} />
-                <Route path="/store/travel/hotels/rooms/:id" element={<RoomSelection />} />
-                <Route path="/store/travel/cart" element={<TravelCart />} />
-                <Route path="/store/travel/checkout" element={<TravelCheckout />} />
-                <Route path="/store/travel/payment" element={<TravelPayment />} />
-                <Route path="/store/travel/confirmation" element={<TravelConfirmation />} />
-                <Route path="/store/travel/buses" element={<BusSearch />} />
-                <Route path="/store/travel/buses/results" element={<BusResults />} />
-                <Route path="/store/travel/buses/seats/:id" element={<BusSeatSelection />} />
-                <Route path="/payment/verify" element={<PaymentVerify />} />
-                <Route
-                  path="/bookings"
-                  element={
-                    <ProtectedRoute requiredUserType="Customer">
-                      <TravelBookings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="/store/minutes" element={<MinutesStore />} />
+                                    <Route path="/store/travel/hotels/detail/:id" element={<HotelDetail />} />
+                                    <Route path="/store/travel/hotels/rooms/:id" element={<RoomSelection />} />
+                                    <Route path="/store/travel/cart" element={<TravelCart />} />
+                                    <Route path="/store/travel/checkout" element={<TravelCheckout />} />
+                                    <Route path="/store/travel/payment" element={<TravelPayment />} />
+                                    <Route path="/store/travel/confirmation" element={<TravelConfirmation />} />
+                                    <Route path="/store/travel/buses" element={<BusSearch />} />
+                                    <Route path="/store/travel/buses/results" element={<BusResults />} />
+                                    <Route path="/store/travel/buses/seats/:id" element={<BusSeatSelection />} />
+                                    
+                                    <Route path="/payment/verify" element={<PaymentVerify />} />
+                                    <Route
+                                      path="/bookings"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <TravelBookings />
+                                        </ProtectedRoute>
+                                      }
+                                    />
+                                    <Route
+                                      path="/bookings/hotels"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <TravelBookings type="hotel" />
+                                        </ProtectedRoute>
+                                      }
+                                    />
+                                    <Route
+                                      path="/bookings/buses"
+                                      element={
+                                        <ProtectedRoute requiredUserType="Customer">
+                                          <TravelBookings type="bus" />
+                                        </ProtectedRoute>
+                                      }
+                                    />
+                                    <Route path="/store/minutes" element={<Navigate to="/quick" replace />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/track-order/:id" element={<TrackOrder />} />
                 <Route path="/order/:id" element={<TrackOrder />} />

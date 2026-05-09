@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { useRef, useEffect, useState } from 'react';
 import { Product } from '../../../types/domain';
+import LazyImage from '../../../components/LazyImage';
 import { useCart } from '../../../context/CartContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useLocation } from '../../../hooks/useLocation';
@@ -165,7 +166,8 @@ export default function ProductCard({
   };
 
   const handleAdd = async (e: React.MouseEvent) => {
-    handleAddType(e, 'quick');
+    const isQuick = (product as any).isQuickEligible === true || (product as any).deliveryType === 'quick' || product.type === 'quick' || product.type === 'both';
+    handleAddType(e, isQuick ? 'quick' : 'ecommerce');
   };
 
   const handleVariantSelect = async (index: number) => {
@@ -237,9 +239,8 @@ export default function ProductCard({
     }
   };
 
-  // Distance-based delivery logic
-  const sellerDistance = (product as any).distance || (product.seller as any)?.distance || 10; // Default to 10 if unknown
-  const isQuickAvailable = sellerDistance <= 5;
+  // Distance and schema-based delivery logic
+  const isQuickAvailable = (product as any).isQuickEligible === true || (product as any).deliveryType === 'quick' || product.type === 'quick' || product.type === 'both';
 
   return (
     <motion.div
@@ -256,9 +257,8 @@ export default function ProductCard({
       >
         <div className={`w-full ${categoryStyle ? 'h-24 md:h-32' : 'h-32 md:h-40'} bg-neutral-50 flex items-center justify-center overflow-hidden relative`}>
           {product.imageUrl || product.mainImage ? (
-            <img
-              ref={imageRef}
-              src={product.imageUrl || product.mainImage}
+            <LazyImage
+              src={product.imageUrl || product.mainImage || ''}
               alt={product.name || product.productName || 'Product'}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
@@ -295,13 +295,13 @@ export default function ProductCard({
             {isQuickAvailable ? (
               <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-yellow-100 rounded-md">
                 <span className="text-[7px] md:text-[8px] font-black text-yellow-700 uppercase tracking-tighter flex items-center gap-0.5">
-                  ⚡ Quick
+                  ⚡ Quick Delivery
                 </span>
               </div>
             ) : (
               <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 rounded-md">
                 <span className="text-[7px] md:text-[8px] font-black text-blue-600 uppercase tracking-tighter">
-                  📦 Standard
+                  🚚 Standard Delivery
                 </span>
               </div>
             )}
@@ -330,10 +330,34 @@ export default function ProductCard({
                 )}
               </div>
               {(product.pack || product.variations?.[0]?.title) && (
-                <span className="text-[9px] text-neutral-400 font-medium">
+                <span className="text-[9px] text-neutral-400 font-medium block">
                   {product.pack || product.variations?.[0]?.title || product.variations?.[0]?.value}
                 </span>
               )}
+              {/* Subtle Dynamic Category Highlight Tag */}
+              {(() => {
+                const getHighlight = () => {
+                  const keys = ['brandName', 'color', 'fabric', 'material', 'bhk', 'ramSize', 'operatingSystem', 'processorType', 'power'];
+                  for (const k of keys) {
+                    if ((product as any)[k]) return { label: k === 'brandName' ? 'Brand' : k.replace(/([A-Z])/g, ' $1'), val: (product as any)[k] };
+                  }
+                  if ((product as any).attributes) {
+                    for (const [k, v] of Object.entries((product as any).attributes)) {
+                      if (v && typeof v === 'string' && v.length < 15) {
+                        return { label: k.replace(/([A-Z])/g, ' $1'), val: v };
+                      }
+                    }
+                  }
+                  return null;
+                };
+                const highlight = getHighlight();
+                if (!highlight) return null;
+                return (
+                  <span className="text-[8px] font-bold text-teal-600 bg-teal-50 px-1 py-0.5 rounded inline-block mt-1 border border-teal-100 uppercase tracking-wider max-w-[120px] truncate">
+                    {highlight.label}: {highlight.val}
+                  </span>
+                );
+              })()}
               {product.variations && product.variations.length > 1 && (
                 <span className="text-[8px] font-black text-indigo-600 uppercase tracking-tighter mt-0.5">
                   {product.variations.length} Options
@@ -440,7 +464,7 @@ export default function ProductCard({
           <div className="px-6 space-y-6">
             <div className="flex items-center gap-4 p-3 bg-neutral-50 rounded-2xl">
               <div className="w-16 h-16 bg-white rounded-xl overflow-hidden border border-neutral-100 flex-shrink-0">
-                <img src={product.imageUrl || product.mainImage} alt={product.name} className="w-full h-full object-cover" />
+                <LazyImage src={product.imageUrl || product.mainImage || ''} alt={product.name || ''} className="w-full h-full object-cover" />
               </div>
               <div>
                 <h4 className="font-bold text-neutral-900 line-clamp-1">{product.name || product.productName}</h4>

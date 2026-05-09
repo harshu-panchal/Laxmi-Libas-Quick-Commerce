@@ -154,3 +154,4 @@ router.delete("/seller/room-rent/:id", authenticate, requireUserType("Seller"), 
 router.patch("/seller/room-rent/:id/toggle-status", authenticate, requireUserType("Seller"), roomRentController.toggleRoomRentStatus);
 
 export default router;
+// Forced reload for quick routes update

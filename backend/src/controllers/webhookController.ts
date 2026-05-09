@@ -1,7 +1,10 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { asyncHandler } from '../utils/asyncHandler';
 import Order from '../models/Order';
 import { OrderSettlementService } from '../services/orderSettlementService';
+import { notifySellersOfOrderUpdate } from '../services/sellerNotificationService';
+import { createNotification } from '../utils/notificationHelper';
 
 /**
  * Handle Delhivery Webhook Status Updates
@@ -25,7 +28,7 @@ export const handleCourierWebhook = asyncHandler(
         // 2. Extract identifiers
         // Note: Delhivery payload fields might vary depending on their specific webhook version.
         // We assume 'waybill' and 'status' are present.
-        const trackingId = data.waybill || data.awb || data.tracking_id;
+        const trackingId = data.waybill || data.awb || data.tracking_id || data.trackingId;
         const courierStatus = (data.status || '').toUpperCase();
 
         if (!trackingId) {
@@ -79,30 +82,72 @@ export const handleCourierWebhook = asyncHandler(
                 break;
         }
 
+        const previousStatus = order.status;
+        order.status = systemStatus as any;
+
         // 5. Save tracking history
         order.trackingStatus = courierStatus;
         if (!order.trackingHistory) order.trackingHistory = [];
         order.trackingHistory.push({
-            status: courierStatus,
-            location: data.location || 'N/A',
-            time: data.status_time || new Date(),
-            raw: data
+            status: systemStatus,
+            location: data.location || 'Hub Center',
+            description: data.description || `Shipment status updated to ${systemStatus}`,
+            timestamp: data.status_time || new Date(),
         });
 
-        const previousStatus = order.status;
-        order.status = systemStatus as any;
-        
         await order.save();
         console.log(`[Webhook] Updated Order ${order.orderNumber} status: ${previousStatus} -> ${systemStatus}`);
+
+        // Broadcast update via Socket.io for live UI syncing
+        const io = (req.app as any).get("io");
+        if (io) {
+            io.to(`order-${order._id.toString()}`).emit("order-status-update", {
+                orderId: order._id.toString(),
+                status: systemStatus,
+                trackingHistory: order.trackingHistory
+            });
+            console.log(`[Webhook] Broadcasted live socket update to order-${order._id.toString()}`);
+        }
 
         // 6. Trigger Payment Settlement on Delivery
         if (systemStatus === 'Delivered' && previousStatus !== 'Delivered') {
             try {
                 console.log(`[Webhook] Triggering settlement for Order ${order.orderNumber}`);
                 await OrderSettlementService.settleOrder(order._id.toString());
+
+                // Notify Sellers via Socket.io
+                if (io) {
+                    await notifySellersOfOrderUpdate(io, order, 'STATUS_UPDATE');
+                }
+
+                // Acknowledge Admin and Seller with in-app notifications
+                const message = `Order #${order.orderNumber} has been successfully delivered and payment is settled!`;
+                console.log(`[Webhook] Notifying admin and sellers about delivery: ${message}`);
+
+                // Create notification for admin
+                await createNotification(io, {
+                    role: 'admin',
+                    type: 'system',
+                    message,
+                    payload: { orderId: order._id.toString(), status: 'Delivered' }
+                });
+
+                // Fetch seller IDs from order items to create individual notifications
+                const orderItems = await mongoose.model('OrderItem').find({ order: order._id });
+                const sellerIds = [...new Set(orderItems.map((item: any) => item.seller?.toString()).filter(id => !!id))];
+
+                for (const sellerId of sellerIds) {
+                    await createNotification(io, {
+                        userId: sellerId,
+                        role: 'seller',
+                        type: 'system',
+                        message: `Congratulations! Your Order #${order.orderNumber} has been delivered and earnings are credited to your wallet.`,
+                        payload: { orderId: order._id.toString(), status: 'Delivered' }
+                    });
+                }
             } catch (settleError: any) {
-                console.error(`[Webhook] Settlement failed for Order ${order.orderNumber}:`, settleError.message);
-                // We return 200 to Delhivery anyway so they don't retry, but we've logged the error
+                console.error(`[Webhook] Settlement/Notification failed for Order ${order.orderNumber}:`, settleError.message);
+                // We return 200 anyway so they don't retry, but we've logged the error
             }
         }
 

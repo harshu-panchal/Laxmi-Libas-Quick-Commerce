@@ -2,7 +2,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useMemo, useEffect } from "react";
 import ProductCard from "./components/ProductCard";
 import { motion, AnimatePresence } from "framer-motion";
-import { getProducts, getCategoryById, Category as ApiCategory } from "../../services/api/customerProductService";
+import { getProducts, getQuickProducts, getCategoryById, Category as ApiCategory } from "../../services/api/customerProductService";
 import { useLocation as useLocationContext } from "../../hooks/useLocation";
 
 
@@ -11,6 +11,8 @@ export default function CategoryPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { location: userLocation } = useLocationContext();
+  const isQuickPath = window.location.pathname.startsWith('/quick');
+  const isQuickSection = isQuickPath || searchParams.get("section") === "quick" || searchParams.get("quick") === "true";
 
   const [category, setCategory] = useState<ApiCategory | null>(null);
   const [subcategories, setSubcategories] = useState<any[]>([]);
@@ -100,8 +102,18 @@ export default function CategoryPage() {
         if (selectedSubcategory !== "all") {
           params.subcategory = selectedSubcategory;
         }
+        if (userLocation?.latitude && userLocation?.longitude) {
+          params.latitude = userLocation.latitude;
+          params.longitude = userLocation.longitude;
+        }
+        if (userLocation?.city) {
+          params.city = userLocation.city;
+        }
 
-        const response = await getProducts(params);
+        const response = isQuickSection
+          ? await getQuickProducts(params)
+          : await getProducts(params);
+
         if (response.success) {
           const safeProducts = (response.data || [])
             .map((p: any) => ({
@@ -125,7 +137,7 @@ export default function CategoryPage() {
     if (id) {
       fetchProducts();
     }
-  }, [id, selectedSubcategory, category?._id]);
+  }, [id, selectedSubcategory, category?._id, isQuickSection, userLocation?.latitude, userLocation?.longitude, userLocation?.city]);
 
   // Client-side filtering removed in favor of backend subcategory filtering
   // Categorize products into Quick and Ecommerce
@@ -135,11 +147,18 @@ export default function CategoryPage() {
       ? products.filter(p => (p.category?._id || p.category || p.categoryId)?.toString() === activeId?.toString())
       : products;
 
+    if (isQuickSection) {
+      return {
+        quickProducts: baseProducts,
+        ecommerceProducts: []
+      };
+    }
+
     return {
       quickProducts: baseProducts.filter(p => p.type === 'quick' || !p.type || p.type === 'both'),
       ecommerceProducts: baseProducts.filter(p => p.type === 'ecommerce' || p.type === 'both')
     };
-  }, [products, category, id]);
+  }, [products, category, id, isQuickSection]);
 
   if ((categoryLoading || loading) && !products.length && !category) {
     return null; // Let global IconLoader handle it

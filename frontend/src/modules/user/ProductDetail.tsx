@@ -20,6 +20,7 @@ import { calculateProductPrice } from "../../utils/priceUtils";
 import { CLOTHING_MOCK_DATA } from "../../utils/clothingMockData";
 import { useShare } from "../../hooks/useShare";
 import ShareSheet from "../../components/ShareSheet";
+import ProductSpecificationSheet from "./components/ProductSpecificationSheet";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -355,6 +356,18 @@ export default function ProductDetail() {
       alert("This variant is currently out of stock.");
       return;
     }
+
+    const productType = product?.type || product?.deliveryType;
+    let selectedDeliveryType: "quick" | "ecommerce" = "ecommerce";
+
+    if (productType !== "ecommerce" && location?.city && product?.seller?.city) {
+      const normalize = (c: string) => c.toLowerCase().trim().replace(/\s+/g, "");
+      const isQuick = normalize(location.city) === normalize(product.seller.city);
+      if (isQuick) {
+        selectedDeliveryType = "quick";
+      }
+    }
+
     // Create product with selected variant info
     const productWithVariant = {
       ...product,
@@ -370,7 +383,7 @@ export default function ProductDetail() {
         color: product.color
       } : null
     };
-    addToCart(productWithVariant, addButtonRef.current);
+    addToCart(productWithVariant, addButtonRef.current, selectedDeliveryType);
   };
 
   // WhatsApp Enquiry Logic for Room Rent
@@ -412,6 +425,26 @@ export default function ProductDetail() {
   };
 
   const renderDeliveryBadge = () => {
+    const productType = product?.type || product?.deliveryType;
+
+    // 1. If product is explicitly ecommerce-only, it can never be quick delivery
+    if (productType === "ecommerce") {
+      return (
+        <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg">
+          <span className="text-lg">🚚</span>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider leading-none">
+              Standard
+            </span>
+            <span className="text-xs font-bold text-blue-900">
+              Courier Delivery
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // 2. Otherwise (quick or both), check city match for quick delivery
     if (!location?.city || !product?.seller?.city) return null;
 
     const normalize = (c: string) => c.toLowerCase().trim().replace(/\s+/g, "");
@@ -1151,6 +1184,9 @@ export default function ProductDetail() {
             </div>
           </div>
         )}
+
+        {/* Dynamic Category Specifications Sheet */}
+        <ProductSpecificationSheet product={product} />
 
         {/* Top products in this category */}
         {similarProducts.length > 0 && (

@@ -114,9 +114,12 @@ app.use((req: Request, _res: Response, next) => {
 });
 
 
+import webhookRoutes from "./routes/webhookRoutes";
+
 // API Routes
 app.use("/api/v1", routes);
 app.use("/api/payment", unifiedPaymentRoutes);
+app.use("/api/webhook", webhookRoutes);
 
 // Error handling middleware (must be last)
 app.use(notFound);

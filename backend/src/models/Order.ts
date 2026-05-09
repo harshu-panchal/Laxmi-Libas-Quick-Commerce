@@ -85,7 +85,23 @@ export interface IOrder extends Document {
   // Tracking
   trackingNumber?: string;
   estimatedDeliveryDate?: Date;
+  estimatedDeliveryTime?: string;
   deliveredAt?: Date;
+
+  // Support Escalations
+  isEscalated?: boolean;
+  escalationStatus?: "Pending" | "Resolved" | "Investigating";
+  escalationReason?: "delayed" | "missing_item" | "incorrect_item" | "other";
+  escalationNotes?: string;
+  escalatedAt?: Date;
+
+  // Delivery Proof
+  deliveryProofImage?: string;
+  deliveryProofTimestamp?: Date;
+
+  // Fraud Protection
+  isFlaggedFraud?: boolean;
+  fraudCheckScore?: number;
 
   // Delivery OTP
   deliveryOtp?: string;
@@ -128,7 +144,7 @@ export interface IOrder extends Document {
   deliveryType: "instant" | "courier";
   courierPartner?: string;
   trackingId?: string;
-  trackingStatus?: "assigned" | "picked" | "on_the_way" | "delivered";
+  trackingStatus?: string;
   trackingHistory?: Array<{
     status: string;
     location?: string;
@@ -345,8 +361,52 @@ const OrderSchema = new Schema<IOrder>(
     estimatedDeliveryDate: {
       type: Date,
     },
+    estimatedDeliveryTime: {
+      type: String,
+      trim: true,
+    },
     deliveredAt: {
       type: Date,
+    },
+
+    // Support Escalation
+    isEscalated: {
+      type: Boolean,
+      default: false,
+    },
+    escalationStatus: {
+      type: String,
+      enum: ["Pending", "Resolved", "Investigating"],
+    },
+    escalationReason: {
+      type: String,
+      enum: ["delayed", "missing_item", "incorrect_item", "other"],
+    },
+    escalationNotes: {
+      type: String,
+      trim: true,
+    },
+    escalatedAt: {
+      type: Date,
+    },
+
+    // Delivery Proof
+    deliveryProofImage: {
+      type: String,
+      trim: true,
+    },
+    deliveryProofTimestamp: {
+      type: Date,
+    },
+
+    // Fraud Protection
+    isFlaggedFraud: {
+      type: Boolean,
+      default: false,
+    },
+    fraudCheckScore: {
+      type: Number,
+      default: 0,
     },
 
     // Delivery OTP
@@ -471,7 +531,6 @@ const OrderSchema = new Schema<IOrder>(
     },
     trackingStatus: {
       type: String,
-      enum: ["assigned", "picked", "on_the_way", "delivered"],
     },
     trackingHistory: [
       {
@@ -518,6 +577,9 @@ OrderSchema.index({ customer: 1, orderDate: -1 });
 OrderSchema.index({ status: 1 });
 OrderSchema.index({ orderDate: -1 });
 OrderSchema.index({ deliveryBoy: 1 });
+OrderSchema.index({ "deliveryAddress.city": 1 });
+OrderSchema.index({ createdAt: -1 });
+OrderSchema.index({ status: 1, createdAt: -1 });
 
 const Order =
   (mongoose.models.Order as mongoose.Model<IOrder>) ||

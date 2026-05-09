@@ -882,7 +882,7 @@ export default function OrderDetail() {
           </motion.div>
 
           {/* Delivery OTP - Header Display */}
-          {!['Delivered', 'Cancelled', 'Returned'].includes(orderStatus) && (order?.deliveryOtp || socketOtp) && (
+          {order?.orderType !== 'ecommerce' && !['Delivered', 'Cancelled', 'Returned'].includes(orderStatus) && (order?.deliveryOtp || socketOtp) && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -897,8 +897,8 @@ export default function OrderDetail() {
         </div>
       </motion.div>
 
-      {/* Map Section */}
-      {!showConfirmation && !['Delivered', 'Cancelled', 'Returned'].includes(order?.status) && (
+      {/* Map Section - Only for Quick Commerce */}
+      {!showConfirmation && order?.orderType !== 'ecommerce' && !['Delivered', 'Cancelled', 'Returned'].includes(order?.status) && (
         <GoogleMapsTracking
           sellerLocations={sellerLocations.map(s => ({
             lat: s.latitude,
@@ -943,6 +943,130 @@ export default function OrderDetail() {
         />
       )}
 
+      {/* Ecommerce Courier Tracking HUD */}
+      {!showConfirmation && order?.orderType === 'ecommerce' && (
+        <div className="mx-4 mt-4 bg-white rounded-2xl shadow-md border border-neutral-200 overflow-hidden">
+          {/* Header */}
+          <div className="bg-[#121212] text-white px-5 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                  <rect x="1" y="3" width="15" height="13"></rect>
+                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                  <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                  <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-sm sm:text-base tracking-tight">Courier Tracking Desk</h3>
+                <p className="text-[10px] text-teal-400 uppercase tracking-widest font-bold">Standard Delivery Service</p>
+              </div>
+            </div>
+            {order.trackingId && (
+              <span className="px-3 py-1 bg-teal-500/20 text-teal-400 rounded-full text-xs font-bold uppercase tracking-wider">
+                {order.status}
+              </span>
+            )}
+          </div>
+
+          <div className="p-5 space-y-5">
+            {/* Courier & Waybill Info */}
+            <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="text-xs text-neutral-500 font-bold uppercase tracking-wider">Courier Partner</p>
+                <p className="font-black text-neutral-900 text-lg flex items-center gap-1.5 mt-0.5">
+                  📦 {order.courierPartner || 'Delhivery'}
+                </p>
+              </div>
+              {order.trackingId ? (
+                <div className="flex flex-col sm:items-end">
+                  <p className="text-xs text-neutral-500 font-bold uppercase tracking-wider">Waybill / Tracking ID</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="font-mono font-bold text-neutral-800 bg-white border border-neutral-300 px-2.5 py-1 rounded text-sm shadow-sm select-all">
+                      {order.trackingId}
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(order.trackingId);
+                        alert('Tracking ID Copied!');
+                      }}
+                      className="p-1.5 hover:bg-neutral-200 rounded transition-colors text-neutral-600 border border-neutral-300 bg-white shadow-sm"
+                      title="Copy Tracking ID"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                    <a
+                      href={`https://www.delhivery.com/track/package/${order.trackingId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 hover:bg-neutral-200 rounded transition-colors text-teal-600 border border-neutral-300 bg-white shadow-sm"
+                      title="Track on Delhivery Website"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-neutral-500 text-sm font-medium flex items-center gap-1">
+                  ⌛ Waybill will be generated upon dispatch
+                </div>
+              )}
+            </div>
+
+            {/* Tracking History Timeline */}
+            <div>
+              <h4 className="text-sm font-bold text-neutral-800 mb-4 uppercase tracking-wider flex items-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                Shipment Journey Timeline
+              </h4>
+
+              {order.trackingHistory && order.trackingHistory.length > 0 ? (
+                <div className="relative border-l-2 border-teal-500 pl-6 ml-3 space-y-6 py-1">
+                  {order.trackingHistory.slice().reverse().map((step: any, idx: number) => {
+                    const stepTime = step.timestamp || step.time;
+                    const formattedDate = stepTime ? new Date(stepTime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+                    const isLatest = idx === 0;
+
+                    return (
+                      <div key={idx} className="relative group">
+                        {/* Dot indicator */}
+                        <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-4 ${
+                          isLatest ? 'bg-teal-500 border-teal-100 ring-4 ring-teal-50 scale-125' : 'bg-neutral-300 border-white'
+                        }`} />
+
+                        <div>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                            <span className={`font-bold text-sm ${isLatest ? 'text-teal-600' : 'text-neutral-800'}`}>
+                              {step.status}
+                            </span>
+                            <span className="text-xs text-neutral-400 font-bold">
+                              {formattedDate}
+                            </span>
+                          </div>
+                          <p className="text-xs text-neutral-500 mt-1 flex items-center gap-1 font-bold uppercase tracking-tight">
+                            📍 {step.location || 'Hub Center'}
+                          </p>
+                          {step.description && (
+                            <p className="text-xs text-neutral-600 mt-1 bg-neutral-50 p-2 rounded border border-neutral-100">
+                              {step.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-6 bg-neutral-50 border border-neutral-200 rounded-xl text-center">
+                  <p className="text-sm font-bold text-neutral-600">📦 Package is being prepared</p>
+                  <p className="text-xs text-neutral-400 mt-1">Once packed and registered with Delhivery, tracking milestones will appear here in real-time!</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tracking Error Display */}
       {trackingError && (
         <div className="mx-4 mt-2 px-4 py-2 bg-red-50 text-red-700 text-xs rounded-lg border border-red-100 flex items-center gap-2">
@@ -951,8 +1075,8 @@ export default function OrderDetail() {
         </div>
       )}
 
-      {/* Delivery Partner Card */}
-      {(order?.deliveryPartner || order?.deliveryOtp || socketOtp) && (
+      {/* Delivery Partner Card - Only for Quick Commerce */}
+      {order?.orderType !== 'ecommerce' && (order?.deliveryPartner || order?.deliveryOtp || socketOtp) && (
         <DeliveryPartnerCard
           partner={{
             name: order?.deliveryPartner?.name || "Delivery Partner",
@@ -960,6 +1084,7 @@ export default function OrderDetail() {
             profileImage: order?.deliveryPartner?.profileImage,
             vehicleNumber: order?.deliveryPartner?.vehicleNumber,
           }}
+          type={order?.orderType}
           eta={routeInfo ? Math.ceil(routeInfo.durationValue / 60) : eta}
           distance={routeInfo ? routeInfo.distanceValue : distance}
           isTracking={isConnected && !!deliveryLocation}
@@ -997,8 +1122,8 @@ export default function OrderDetail() {
         {/* Promo Carousel */}
         <PromoCarousel />
 
-        {/* Delivery Partner Assignment - Only show if no partner assigned yet */}
-        {!order?.deliveryPartner && (
+        {/* Delivery Partner Assignment - Only show if no partner assigned yet for Quick Commerce */}
+        {order?.orderType !== 'ecommerce' && !order?.deliveryPartner && (
           <motion.div
             className="bg-white rounded-xl p-4 shadow-sm"
             initial={{ opacity: 0, y: 20 }}
@@ -1165,12 +1290,14 @@ export default function OrderDetail() {
             </div>
             <ChevronRightIcon className="w-5 h-5 text-gray-400" />
           </div>
-          <SectionItem
-            icon={CircleSlashIcon}
-            title="Cancel order"
-            subtitle=""
-            onClick={() => setShowCancelModal(true)}
-          />
+          {!['Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned'].includes(orderStatus) && (
+            <SectionItem
+              icon={CircleSlashIcon}
+              title="Cancel order"
+              subtitle=""
+              onClick={() => setShowCancelModal(true)}
+            />
+          )}
         </motion.div>
 
         {/* Quick Actions */}

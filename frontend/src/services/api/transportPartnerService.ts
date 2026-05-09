@@ -15,8 +15,9 @@ export interface BusBooking {
   _id: string;
   busId: any;
   userId: any;
-  seats: string[];
-  amount: number;
+  seats: any[];
+  amount?: number;
+  totalAmount?: number;
   status: 'Confirmed' | 'Boarded' | 'Completed' | 'Cancelled';
 }
 
@@ -41,6 +42,14 @@ export const addBus = async (busData: any): Promise<ApiResponse<Bus>> => {
  */
 export const getBusBookings = async (busId: string): Promise<ApiResponse<BusBooking[]>> => {
   const response = await api.get<ApiResponse<BusBooking[]>>(`/bus/${busId}/bookings`);
+  return response.data;
+};
+
+/**
+ * Get all bookings for all current seller's buses
+ */
+export const getSellerAllBookings = async (): Promise<ApiResponse<any[]>> => {
+  const response = await api.get<ApiResponse<any[]>>('/bus/bookings/all');
   return response.data;
 };
 

@@ -8,16 +8,7 @@ import PaymentMethod from "../../../models/PaymentMethod";
  */
 export const getAppSettings = asyncHandler(
   async (_req: Request, res: Response) => {
-    let settings = await AppSettings.findOne();
-
-    // Create default settings if none exist
-    if (!settings) {
-      settings = await AppSettings.create({
-        appName: "LaxMart",
-        contactEmail: "contact@laxmart.store",
-        contactPhone: "1234567890",
-      });
-    }
+    const settings = await (AppSettings as any).getSettings();
 
     return res.status(200).json({
       success: true,

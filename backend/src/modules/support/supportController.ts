@@ -7,15 +7,15 @@ import { asyncHandler } from '../../utils/asyncHandler';
  */
 export const createTicket = asyncHandler(async (req: any, res: Response) => {
   const { category, subject, description, orderId, priority } = req.body;
-  const userId = req.user._id;
+  const userId = req.user.userId || req.user._id;
 
   const ticket = await SupportTicket.create({
     userId,
-    orderId,
+    orderId: orderId ? new mongoose.Types.ObjectId(orderId) : undefined,
     category,
     subject,
     description,
-    priority,
+    priority: priority || 'Medium',
     messages: [
       {
         sender: 'User',
@@ -23,6 +23,22 @@ export const createTicket = asyncHandler(async (req: any, res: Response) => {
       }
     ]
   });
+
+  // Automatically escalate order status if ticket is linked to an order
+  if (orderId) {
+    try {
+      const Order = mongoose.models.Order || require('../../models/Order').default;
+      await Order.findByIdAndUpdate(orderId, {
+        isEscalated: true,
+        escalationStatus: 'Pending',
+        escalationReason: category === 'Delivery Issue' ? 'delayed' : 'other',
+        escalationNotes: `Support ticket filed: ${subject}. Description: ${description}`,
+        escalatedAt: new Date()
+      });
+    } catch (orderEscError) {
+      console.error('[SupportTicket] Order escalation sync failed:', orderEscError);
+    }
+  }
 
   res.status(201).json({ success: true, data: ticket });
 });

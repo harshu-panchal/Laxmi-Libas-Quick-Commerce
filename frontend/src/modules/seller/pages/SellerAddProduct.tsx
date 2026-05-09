@@ -208,7 +208,7 @@ export default function SellerAddProduct() {
         try {
           const response = await getProductById(id);
           if (response.success && response.data) {
-            const product = response.data;
+            const product = response.data as any;
             setFormData({
               productName: product.productName,
               headerCategory:
@@ -291,6 +291,8 @@ export default function SellerAddProduct() {
               longitude: (product as any).longitude?.toString() || "",
               radius: (product as any).radius?.toString() || "40",
               shopAddress: (product as any).shopAddress || "",
+              // Flexible Attributes (Map/Object) support for custom categories
+              ...(product.attributes || {}),
             });
             if (product.category) {
               setCategoryName((product.category as any).name || "");
@@ -414,6 +416,34 @@ export default function SellerAddProduct() {
       }
     }
   }, [formData.category, categories]);
+
+  // Auto-populate category and header category based on seller's category profile for new products
+  useEffect(() => {
+    if (!id && categories.length > 0) {
+      const resolvedSellerCatId = typeof sellerCatId === 'object' && sellerCatId?._id 
+        ? sellerCatId._id.toString() 
+        : sellerCatId?.toString();
+
+      if (resolvedSellerCatId && !formData.category) {
+        const matchingCat = categories.find(
+          (cat: any) => (cat._id?.toString() || cat.id?.toString()) === resolvedSellerCatId
+        );
+        if (matchingCat) {
+          const catId = (matchingCat._id || matchingCat.id).toString();
+          const headerId = (typeof matchingCat.headerCategoryId === 'string'
+            ? matchingCat.headerCategoryId
+            : matchingCat.headerCategoryId?._id)?.toString();
+
+          setFormData(prev => ({
+            ...prev,
+            category: catId,
+            headerCategory: headerId || prev.headerCategory
+          }));
+          setCategoryName(matchingCat.name);
+        }
+      }
+    }
+  }, [id, sellerCatId, categories, formData.category]);
 
   // Handle category and subcategory changes when header category changes
   useEffect(() => {
@@ -702,6 +732,7 @@ export default function SellerAddProduct() {
         : [];
 
       const productData = {
+        ...formData,
         productName: formData.productName,
         headerCategoryId: formData.headerCategory || undefined,
         categoryId: formData.category || undefined,

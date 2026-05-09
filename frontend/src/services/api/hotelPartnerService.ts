@@ -8,7 +8,22 @@ export interface Hotel {
   city: string;
   status: string;
   mainImage: string;
+  stars?: number;
+  rating?: number;
+  propertyType?: string;
+  policies?: {
+    checkInTime?: string;
+    checkOutTime?: string;
+    coupleFriendly?: boolean;
+    petsAllowed?: boolean;
+    smokingAllowed?: boolean;
+    localIdsAllowed?: boolean;
+    alcoholAllowed?: boolean;
+    forEvents?: boolean;
+    outsideFoodAllowed?: boolean;
+  };
 }
+
 
 export interface HotelBooking {
   _id: string;

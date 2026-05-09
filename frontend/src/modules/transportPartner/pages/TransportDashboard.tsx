@@ -162,7 +162,7 @@ const TransportDashboard: React.FC = () => {
         {[
           { label: 'Active Routes', value: buses.length, icon: Navigation, color: 'text-blue-500', bg: 'bg-blue-50' },
           { label: 'Total Passengers', value: bookings.length, icon: Users, color: 'text-purple-500', bg: 'bg-purple-50' },
-          { label: 'Fleet Revenue', value: '₹' + bookings.reduce((a, b) => a + b.amount, 0).toLocaleString(), icon: IndianRupee, color: 'text-teal-500', bg: 'bg-teal-50' },
+          { label: 'Fleet Revenue', value: '₹' + bookings.reduce((a, b) => a + (b.totalAmount !== undefined ? b.totalAmount : (b.amount !== undefined ? b.amount : 0)), 0).toLocaleString(), icon: IndianRupee, color: 'text-teal-500', bg: 'bg-teal-50' },
           { label: 'On-Time Performance', value: '94%', icon: TrendingUp, color: 'text-orange-500', bg: 'bg-orange-50' },
         ].map((stat, i) => (
           <motion.div
@@ -231,9 +231,12 @@ const TransportDashboard: React.FC = () => {
                       <div>
                         <h4 className="text-lg font-black text-neutral-800">{(booking.userId as any)?.name || 'Guest'}</h4>
                         <div className="flex gap-1 mt-1">
-                          {booking.seats?.map(s => (
-                            <span key={s} className="px-2 py-0.5 bg-neutral-50 border border-neutral-100 rounded-md text-[10px] font-black font-mono text-neutral-500">{s}</span>
-                          ))}
+                          {booking.seats?.map(s => {
+                            const seatStr = typeof s === 'string' ? s : (s && s.seatNumber ? s.seatNumber : '');
+                            return (
+                              <span key={seatStr} className="px-2 py-0.5 bg-neutral-50 border border-neutral-100 rounded-md text-[10px] font-black font-mono text-neutral-500">{seatStr}</span>
+                            );
+                          })}
                         </div>
                         <div className="mt-2 flex gap-2">
                           <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${
@@ -250,7 +253,7 @@ const TransportDashboard: React.FC = () => {
                     <div className="flex items-center gap-3 w-full sm:w-auto">
                       <div className="text-right mr-4 hidden md:block">
                         <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Fare Paid</p>
-                        <p className="text-lg font-black text-neutral-800">₹{booking.amount.toLocaleString()}</p>
+                        <p className="text-lg font-black text-neutral-800">₹{(booking.totalAmount !== undefined ? booking.totalAmount : (booking.amount !== undefined ? booking.amount : 0)).toLocaleString()}</p>
                       </div>
                       
                       {booking.status === 'Confirmed' && (

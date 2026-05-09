@@ -180,6 +180,8 @@ router.get("/orders/export/csv", checkPermission('orders'), orderController.expo
 router.patch("/orders/:id/tracking", checkPermission('orders'), orderController.updateOrderTracking);
 router.post("/orders/:id/generate-label", checkPermission('orders'), orderController.generateCourierLabel);
 router.get("/orders/:id/track-courier", checkPermission('orders'), orderController.trackCourierOrder);
+router.get("/orders/escalations/all", checkPermission('orders'), orderController.getEscalatedOrders);
+router.patch("/orders/:id/escalation/resolve", checkPermission('orders'), orderController.resolveEscalation);
 
 // ==================== Return Request Routes ====================
 router.get("/return-requests", orderController.getReturnRequests);
@@ -193,6 +195,11 @@ router.get("/customers", checkPermission('users'), customerController.getAllCust
 router.get("/customers/:id", checkPermission('users'), customerController.getCustomerById);
 router.patch("/customers/:id/status", checkPermission('users'), customerController.updateCustomerStatus);
 router.get("/customers/:id/orders", checkPermission('users'), customerController.getCustomerOrders);
+router.post("/customers/:id/reset", checkPermission('users'), customerController.resetCustomerAccount);
+router.post("/customers/:id/wallet", checkPermission('users'), customerController.updateCustomerWallet);
+router.get("/customers/:id/referrals", checkPermission('users'), customerController.getCustomerReferrals);
+router.get("/customers/:id/unified-history", checkPermission('users'), customerController.getCustomerUnifiedHistory);
+router.get("/audit-logs", checkPermission('users'), customerController.getAuditLogs);
 
 // ==================== Delivery Routes ====================
 router.post("/delivery", checkPermission('delivery'), deliveryController.createDeliveryBoy);
@@ -342,13 +349,34 @@ router.post("/sellers/:id/unblock", checkPermission('sellers'), sellerApprovalCo
 router.post("/sellers/:id/business-types", checkPermission('sellers'), sellerApprovalController.updateSellerBusinessTypes);
 
 // ==================== Hotel & Bus Management ====================
+// --- Hotel Admin Control Center ---
 router.get("/hotels", checkPermission('hotel'), hotelController.getAllHotels);
 router.patch("/hotels/:id/status", checkPermission('hotel'), hotelController.updateHotelStatus);
+router.patch("/hotels/:id/policies", checkPermission('hotel'), hotelController.adminUpdateHotelPolicies);
 router.get("/hotels/bookings", checkPermission('hotel'), hotelController.getHotelBookings);
+router.get("/hotels/stats", checkPermission('hotel'), hotelController.getHotelStats);
+router.get("/hotels/rooms", checkPermission('hotel'), hotelController.adminGetHotelRooms);
+router.put("/hotels/rooms/:id", checkPermission('hotel'), hotelController.adminUpdateHotelRoom);
+router.get("/hotels/partners", checkPermission('hotel'), hotelController.getHotelPartners);
+router.patch("/hotels/partners/:id/verification", checkPermission('hotel'), hotelController.updatePartnerVerification);
+router.patch("/hotels/bookings/:id/action", checkPermission('hotel'), hotelController.adminProcessBookingAction);
 
+// --- Bus / Transport Admin Control Center ---
 router.get("/buses", checkPermission('bus'), busController.getAllBuses);
 router.patch("/buses/:id/status", checkPermission('bus'), busController.updateBusStatus);
 router.get("/buses/bookings", checkPermission('bus'), busController.getBusBookings);
+router.get("/buses/stats", checkPermission('bus'), busController.getBusStats);
+router.get("/buses/operators", checkPermission('bus'), busController.getBusOperators);
+router.patch("/buses/operators/:id/status", checkPermission('bus'), busController.updateOperatorStatus);
+router.get("/buses/routes", checkPermission('bus'), busController.adminGetBusRoutes);
+router.post("/buses/routes", checkPermission('bus'), busController.adminAddBusRoute);
+router.put("/buses/routes/:id", checkPermission('bus'), busController.adminUpdateBusRoute);
+router.delete("/buses/routes/:id", checkPermission('bus'), busController.adminDeleteBusRoute);
+router.get("/buses/schedules", checkPermission('bus'), busController.adminGetBusSchedules);
+router.post("/buses/schedules", checkPermission('bus'), busController.adminAddBusSchedule);
+router.put("/buses/schedules/:id", checkPermission('bus'), busController.adminUpdateBusSchedule);
+router.delete("/buses/schedules/:id", checkPermission('bus'), busController.adminDeleteBusSchedule);
+router.patch("/buses/bookings/:id/cancel", checkPermission('bus'), busController.adminCancelTicket);
 
 // ==================== Shop Management ====================
 // Legacy routes (keep for backward compatibility)
@@ -387,10 +415,7 @@ router.post("/bestseller-cards", bestsellerCardController.createBestsellerCard);
 router.put("/bestseller-cards/:id", bestsellerCardController.updateBestsellerCard);
 router.delete("/bestseller-cards/:id", bestsellerCardController.deleteBestsellerCard);
 
-// ==================== Bus Management Routes ====================
-router.get("/buses", busController.getAllBuses);
-router.patch("/buses/:id/status", busController.updateBusStatus);
-router.get("/buses/bookings", busController.getBusBookings);
+// ==================== Bestseller Card Reorder ====================
 router.put("/bestseller-cards/reorder", bestsellerCardController.reorderBestsellerCards);
 
 // ==================== Lowest Prices Product Routes ====================

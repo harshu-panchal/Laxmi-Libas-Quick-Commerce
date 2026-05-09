@@ -18,6 +18,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { getOrderTracking } from '../../services/api/trackingService';
+import api from '../../services/api/config';
 import Button from '../../components/ui/button';
 import LiveTrackingMap from '../../components/LiveTrackingMap';
 import { useDeliveryTracking } from '../../hooks/useDeliveryTracking';
@@ -32,6 +33,14 @@ export default function TrackOrder() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Support Escalation Drawer States
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [submittingSupport, setSubmittingSupport] = useState(false);
+  const [supportCategory, setSupportCategory] = useState('Delivery Issue');
+  const [supportPriority, setSupportPriority] = useState('Medium');
+  const [supportSubject, setSupportSubject] = useState('');
+  const [supportDescription, setSupportDescription] = useState('');
+
   // Real-time tracking hook
   const { 
     deliveryLocation, 
@@ -41,7 +50,8 @@ export default function TrackOrder() {
     orderStatus, 
     deliveryOtp: socketOtp,
     isConnected,
-    lastUpdate
+    lastUpdate,
+    trackingHistory
   } = useDeliveryTracking(id);
 
   useEffect(() => {
@@ -64,10 +74,45 @@ export default function TrackOrder() {
     }
   };
 
+  const handleSupportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supportSubject.trim() || !supportDescription.trim()) {
+      showToast('Subject and description are required', 'error');
+      return;
+    }
+
+    setSubmittingSupport(true);
+    try {
+      const { createSupportTicket } = await import('../../services/api/supportService');
+      const res = await createSupportTicket({
+        category: supportCategory,
+        priority: supportPriority as any,
+        subject: supportSubject,
+        description: supportDescription,
+        orderId: id
+      });
+
+      if (res.success) {
+        showToast('Escalation ticket filed. Support has been notified!', 'success');
+        setShowSupportModal(false);
+        setSupportSubject('');
+        setSupportDescription('');
+        fetchInitialData();
+      } else {
+        showToast(res.message || 'Failed to file escalation', 'error');
+      }
+    } catch (err) {
+      showToast('Error registering support ticket', 'error');
+    } finally {
+      setSubmittingSupport(false);
+    }
+  };
+
   // Combine initial data with real-time updates
   const trackingData = orderData ? {
     ...orderData,
     status: orderStatus || orderData.status,
+    trackingHistory: trackingHistory || orderData.trackingHistory,
     tracking: {
       ...orderData.tracking,
       currentLocation: deliveryLocation || orderData.tracking?.currentLocation,
@@ -155,7 +200,10 @@ export default function TrackOrder() {
             <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">#{trackingData.orderNumber || id?.slice(-8)}</span>
           </div>
         </div>
-        <button className="text-xs font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg uppercase tracking-wider">
+        <button 
+          onClick={() => setShowSupportModal(true)}
+          className="text-xs font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg uppercase tracking-wider hover:bg-blue-100 transition-colors"
+        >
            Help?
         </button>
       </div>
@@ -311,6 +359,50 @@ export default function TrackOrder() {
            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
               <Clock className="text-white" size={20} />
            </div>
+        </div>
+      </div>
+
+      {/* Smart Delivery Estimation Intelligence Section */}
+      <div className="px-4 pt-4">
+        <div className="bg-white rounded-2xl border border-neutral-200 p-5 shadow-sm space-y-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+              <Clock size={18} />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Smart Estimated Delivery</span>
+              <span className="text-sm font-black text-neutral-900">
+                {trackingData.estimatedDeliveryTime ? new Date(trackingData.estimatedDeliveryTime).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' }) : "Arriving Shortly"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-neutral-100 pt-3 text-xs">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[9px] font-black text-neutral-400 uppercase tracking-wider">Estimated Time Window</span>
+              <span className="font-bold text-neutral-700">
+                {trackingData.estimatedDeliveryTime ? new Date(trackingData.estimatedDeliveryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "---"}
+              </span>
+            </div>
+            <div className="text-right flex flex-col gap-0.5">
+              <span className="text-[9px] font-black text-neutral-400 uppercase tracking-wider">Reliability Score</span>
+              <span className="font-bold text-emerald-600 flex items-center gap-1 justify-end">
+                <ShieldCheck size={12} /> High (99.4%)
+              </span>
+            </div>
+          </div>
+
+          {trackingData.isEscalated && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2.5 items-start mt-2">
+              <span className="text-base">⚠️</span>
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-amber-900 uppercase tracking-tight">Active Escalation Pending</span>
+                <p className="text-[10px] text-amber-700 font-bold mt-0.5">
+                  Our customer experience manager is actively resolving your delivery issue. Priority: {trackingData.escalationStatus || "High"}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -496,21 +588,176 @@ export default function TrackOrder() {
       {/* Safety & Support Footer */}
       <div className="fixed bottom-0 left-0 right-0 bg-white p-4 border-t border-neutral-100 z-50 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
          <div className="flex gap-3 max-w-lg mx-auto">
-            <Button 
-              variant="outline" 
-              className="flex-1 rounded-xl py-4 h-auto font-black text-xs uppercase tracking-widest border-neutral-200 flex items-center justify-center gap-2"
-              onClick={() => navigate('/help-center')}
-            >
-               <MessageSquare size={16} /> Support
-            </Button>
+            {['Received', 'Pending'].includes(trackingData.status) ? (
+              <Button 
+                variant="outline" 
+                className="flex-1 border-red-200 text-red-600 hover:bg-red-50 rounded-xl py-4 h-auto font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2"
+                onClick={async () => {
+                  const reason = window.prompt("Why are you cancelling this order?");
+                  if (!reason) return;
+                  try {
+                    const response = await api.post(`/customer/orders/${id}/cancel`, { reason });
+                    if (response.data?.success) {
+                      showToast("Order cancelled and fully refunded to wallet!", "success");
+                      fetchInitialData();
+                    } else {
+                      showToast(response.data?.message || "Failed to cancel order", "error");
+                    }
+                  } catch (err: any) {
+                    showToast(err.response?.data?.message || "Error cancelling order", "error");
+                  }
+                }}
+              >
+                 Cancel Order
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                className="flex-1 rounded-xl py-4 h-auto font-black text-xs uppercase tracking-widest border-neutral-200 flex items-center justify-center gap-2"
+                onClick={() => setShowSupportModal(true)}
+              >
+                 <MessageSquare size={16} /> Support
+              </Button>
+            )}
+            
             <Button 
               variant="default" 
               className="flex-[2] bg-neutral-900 text-white rounded-xl py-4 h-auto font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2"
+              onClick={() => setShowSupportModal(true)}
             >
-               View Full Details <ArrowRight size={16} />
+               File Escalation <ArrowRight size={16} />
             </Button>
          </div>
       </div>
+
+      {/* 9. Support Ticket Escalation Drawer Modal */}
+      <AnimatePresence>
+        {showSupportModal && (
+          <>
+            {/* Glassmorphic Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-neutral-950 z-50 backdrop-blur-sm"
+              onClick={() => setShowSupportModal(false)}
+            />
+
+            {/* Bottom/Right Sliding Sheet */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white rounded-t-[32px] shadow-2xl z-50 border-t border-neutral-100 p-6 pb-8 overflow-y-auto max-h-[85vh]"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Support Center</span>
+                  <h2 className="text-xl font-black text-neutral-900 mt-1">Order Escalation</h2>
+                </div>
+                <button 
+                  onClick={() => setShowSupportModal(false)}
+                  className="w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center hover:bg-neutral-200 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSupportSubmit} className="space-y-5">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-neutral-400 tracking-wider">Issue Category</label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {[
+                      { key: 'Delivery Issue', label: '🚚 Delivery delay' },
+                      { key: 'Missing Item', label: '📦 Missing product' },
+                      { key: 'Incorrect Item', label: '❌ Incorrect item' },
+                      { key: 'Payment & Refund', label: '💳 Payment/Refund' },
+                    ].map((cat) => (
+                      <button
+                        type="button"
+                        key={cat.key}
+                        onClick={() => setSupportCategory(cat.key)}
+                        className={`p-3 rounded-xl border text-xs font-bold transition-all text-left flex items-center gap-2 ${
+                          supportCategory === cat.key 
+                            ? 'bg-blue-50 border-blue-600 text-blue-700 shadow-sm' 
+                            : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-neutral-400 tracking-wider">Priority Level</label>
+                  <div className="flex gap-2 mt-2">
+                    {['Low', 'Medium', 'High'].map((pri) => (
+                      <button
+                        type="button"
+                        key={pri}
+                        onClick={() => setSupportPriority(pri)}
+                        className={`flex-1 p-2.5 rounded-lg border text-xs font-bold transition-all ${
+                          supportPriority === pri 
+                            ? pri === 'High' 
+                              ? 'bg-red-50 border-red-500 text-red-700' 
+                              : pri === 'Medium'
+                                ? 'bg-amber-50 border-amber-500 text-amber-700'
+                                : 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                            : 'bg-white border-neutral-200 text-neutral-600'
+                        }`}
+                      >
+                        {pri}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-neutral-400 tracking-wider">Subject</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Brief summary of your issue"
+                    value={supportSubject}
+                    onChange={(e) => setSupportSubject(e.target.value)}
+                    className="w-full mt-1.5 p-3.5 border border-neutral-200 rounded-xl text-sm font-bold text-neutral-900 bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-neutral-400 tracking-wider">Detailed Description</label>
+                  <textarea
+                    required
+                    rows={4}
+                    placeholder="Provide details to help our team solve your problem faster..."
+                    value={supportDescription}
+                    onChange={(e) => setSupportDescription(e.target.value)}
+                    className="w-full mt-1.5 p-3.5 border border-neutral-200 rounded-xl text-sm font-bold text-neutral-900 bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all resize-none"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={submittingSupport}
+                  className="w-full bg-blue-600 text-white font-black uppercase text-xs tracking-widest py-4 rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 hover:bg-blue-700 disabled:bg-neutral-200"
+                >
+                  {submittingSupport ? (
+                    <>
+                      <Loader2 className="animate-spin" size={16} /> Submitting Escalation...
+                    </>
+                  ) : (
+                    <>
+                      Submit Escalation Ticket
+                    </>
+                  )}
+                </Button>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

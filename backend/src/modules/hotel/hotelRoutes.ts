@@ -22,7 +22,8 @@ import {
   getHotelWalletStats,
   getHotelWalletTransactions,
   getHotelWithdrawalRequests,
-  createHotelWithdrawalRequest
+  createHotelWithdrawalRequest,
+  cancelHotelBooking
 } from './hotelController';
 import { authenticate, checkSellerAccess, checkPermission } from '../../middleware/auth';
 
@@ -35,6 +36,7 @@ router.get('/', getHotels);
 router.get('/location/current', getCurrentLocation);
 router.post('/booking', authenticate, createBooking);
 router.get('/my-bookings', authenticate, getMyBookings);
+router.post('/bookings/:bookingId/cancel', authenticate, cancelHotelBooking);
 router.get('/cities', getHotelCities);
 
 // --- Static seller/partner routes (MUST be before /:hotelId) ---

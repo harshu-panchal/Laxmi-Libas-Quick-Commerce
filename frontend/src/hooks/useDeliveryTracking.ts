@@ -27,6 +27,7 @@ interface TrackingData {
     lastUpdate: Date | null
     error: string | null
     reconnectAttempts: number
+    trackingHistory: any[] | null
 }
 
 const MAX_RECONNECT_ATTEMPTS = 5
@@ -44,6 +45,7 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
         lastUpdate: null,
         error: null,
         reconnectAttempts: 0,
+        trackingHistory: null,
     })
 
     const socketRef = useRef<Socket | null>(null)
@@ -177,6 +179,16 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
             setTrackingData(prev => ({
                 ...prev,
                 deliveryOtp: data.deliveryOtp,
+                lastUpdate: new Date(),
+            }))
+        })
+
+        socket.on('order-status-update', (data: any) => {
+            console.log('📡 Order status updated via socket:', data)
+            setTrackingData(prev => ({
+                ...prev,
+                orderStatus: data.status,
+                trackingHistory: data.trackingHistory || prev.trackingHistory,
                 lastUpdate: new Date(),
             }))
         })

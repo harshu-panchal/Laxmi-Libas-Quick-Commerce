@@ -25,7 +25,7 @@ export const getOrderTracking = asyncHandler(
       });
     }
 
-    // For Ecommerce orders, return static tracking info from order model
+    // For Ecommerce orders, return tracking info and history from order model
     if (order.orderType === 'ecommerce') {
       return res.status(200).json({
         success: true,
@@ -38,7 +38,8 @@ export const getOrderTracking = asyncHandler(
             courierPartner: order.courierPartner || 'N/A',
             trackingId: order.trackingId || 'N/A',
             estimatedDeliveryDate: order.estimatedDeliveryDate,
-            status: order.status // For ecommerce, order status reflects tracking status mostly
+            status: order.status, // For ecommerce, order status reflects tracking status mostly
+            trackingHistory: order.trackingHistory || []
           },
           deliveryAddress: order.deliveryAddress,
         },

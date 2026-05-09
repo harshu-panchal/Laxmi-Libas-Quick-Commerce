@@ -61,29 +61,51 @@ export interface CategoryListResponse {
  * Get products with filters (Public)
  * Location (latitude/longitude) is required to filter products by seller's service radius
  */
-export const getProducts = async (params?: GetProductsParams): Promise<ProductListResponse> => {
-    /*
-    // Handle mock Men's Wear category - Disabled for live flow testing
-    if (params?.category === 'mens-wear') {
-        const { CLOTHING_MOCK_DATA } = await import('../../utils/clothingMockData');
-        return {
-            success: true,
-            data: CLOTHING_MOCK_DATA.products as any,
-            pagination: { page: 1, limit: 10, total: CLOTHING_MOCK_DATA.products.length, pages: 1 }
-        };
-    }
-    */
-    const response = await api.get<ProductListResponse>('/customer/products', { params });
+export const getProducts = async (params?: GetProductsParams, useCache: boolean = true): Promise<ProductListResponse> => {
+    const cacheKey = `products-${JSON.stringify(params || {})}`;
     
-    if (response.data && response.data.success && Array.isArray(response.data.data)) {
-        // Global filter to hide mock/placeholder products
-        const isMockProduct = (p: any) => 
-            ((p.imageUrl || "").includes('10mins_icon_pink') || (p.mainImage || "").includes('10mins_icon_pink'));
+    const fetchFn = async () => {
+        const response = await api.get<ProductListResponse>('/customer/products', { params });
+        
+        if (response.data && response.data.success && Array.isArray(response.data.data)) {
+            // Global filter to hide mock/placeholder products
+            const isMockProduct = (p: any) => 
+                ((p.imageUrl || "").includes('10mins_icon_pink') || (p.mainImage || "").includes('10mins_icon_pink'));
 
-        response.data.data = response.data.data.filter(p => !isMockProduct(p));
+            response.data.data = response.data.data.filter(p => !isMockProduct(p));
+        }
+        return response.data;
+    };
+
+    if (useCache) {
+        return apiCache.getOrFetch(cacheKey, fetchFn, 30 * 1000); // 30 seconds cache TTL
     }
+    return fetchFn();
+};
+
+/**
+ * Get only Quick Commerce products (for Quick section)
+ */
+export const getQuickProducts = async (params?: GetProductsParams, useCache: boolean = true): Promise<ProductListResponse> => {
+    const cacheKey = `quick-products-${JSON.stringify(params || {})}`;
     
-    return response.data;
+    const fetchFn = async () => {
+        const response = await api.get<ProductListResponse>('/customer/products/quick', { params });
+        
+        if (response.data && response.data.success && Array.isArray(response.data.data)) {
+            // Global filter to hide mock/placeholder products
+            const isMockProduct = (p: any) => 
+                ((p.imageUrl || "").includes('10mins_icon_pink') || (p.mainImage || "").includes('10mins_icon_pink'));
+
+            response.data.data = response.data.data.filter(p => !isMockProduct(p));
+        }
+        return response.data;
+    };
+
+    if (useCache) {
+        return apiCache.getOrFetch(cacheKey, fetchFn, 15 * 1000); // 15 seconds cache TTL
+    }
+    return fetchFn();
 };
 
 /**
@@ -111,9 +133,18 @@ export const getProductById = async (id: string, latitude?: number, longitude?: 
 /**
  * Get category details by ID or slug (Public)
  */
-export const getCategoryById = async (id: string): Promise<any> => {
-    const response = await api.get<any>(`/customer/categories/${id}`);
-    return response.data;
+export const getCategoryById = async (id: string, useCache: boolean = true): Promise<any> => {
+    const cacheKey = `category-detail-${id}`;
+    
+    const fetchFn = async () => {
+        const response = await api.get<any>(`/customer/categories/${id}`);
+        return response.data;
+    };
+
+    if (useCache) {
+        return apiCache.getOrFetch(cacheKey, fetchFn, 5 * 60 * 1000); // 5 minutes cache TTL
+    }
+    return fetchFn();
 };
 
 /**
@@ -126,10 +157,10 @@ export const getCategories = async (tree: boolean = false): Promise<CategoryList
     return apiCache.getOrFetch(
         cacheKey,
         async () => {
-    const url = tree ? '/customer/categories/tree' : '/customer/categories';
-    const response = await api.get<CategoryListResponse>(url);
-    return response.data;
+            const url = tree ? '/customer/categories/tree' : '/customer/categories';
+            const response = await api.get<CategoryListResponse>(url);
+            return response.data;
         },
-        10 * 60 * 1000 // 10 minutes cache
+        5 * 1000 // 5 seconds cache TTL
     );
 };

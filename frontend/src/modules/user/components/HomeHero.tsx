@@ -203,35 +203,42 @@ export default function HomeHero({
                 id: 'travel', 
                 name: 'Travel', 
                 icon: '/travel_airplane_red_flat_1774950352120.png', 
-                path: '/store/travel',
+                path: '/travel',
                 activeBg: 'bg-[#fff1f1]',
                 activeBorder: 'border-[#ffdada]',
               },
               { 
                 id: 'quick', 
                 name: 'Quick', 
-                icon: '/10mins_icon_pink_1774950068063.png', 
-                path: '/store/minutes',
+                icon: '⚡', 
+                path: '/quick',
                 activeBg: 'bg-[#ffebf5]',
                 activeBorder: 'border-[#fccde5]',
               }
-            ].map((store) => (
-              <div 
-                key={store.id} 
-                className="flex flex-col items-center flex-1 max-w-[75px]" 
-                onClick={() => {
-                  if (store.path.startsWith('/')) {
-                    navigate(store.path);
-                  }
-                }}
-              >
-                <div className={`w-full aspect-square rounded-[14px] p-1 shadow-sm active:scale-95 transition-all cursor-pointer flex flex-col items-center justify-center border-2 ${activeStore === store.id ? `${store.activeBg} ${store.activeBorder}` : 'bg-white border-neutral-100'
-                  }`}>
-                  <img src={store.icon} alt={store.name} className="w-[20px] h-[20px] object-contain mb-0.5" />
+            ].map((store) => {
+              const isActive = activeStore === store.id || (store.id === 'quick' && activeStore === 'minutes');
+              return (
+                <div 
+                  key={store.id} 
+                  className="flex flex-col items-center flex-1 max-w-[75px]" 
+                  onClick={() => {
+                    if (store.path.startsWith('/')) {
+                      navigate(store.path);
+                    }
+                  }}
+                >
+                  <div className={`w-full aspect-square rounded-[14px] p-1 shadow-sm active:scale-95 transition-all cursor-pointer flex flex-col items-center justify-center border-2 ${isActive ? `${store.activeBg} ${store.activeBorder}` : 'bg-white border-neutral-100'
+                    }`}>
+                  {store.icon.startsWith('/') ? (
+                    <img src={store.icon} alt={store.name} className="w-[20px] h-[20px] object-contain mb-0.5" />
+                  ) : (
+                    <span className="text-[18px] leading-none mb-1">{store.icon}</span>
+                  )}
                   <span className="text-[8px] font-black text-gray-900 uppercase tracking-tighter">{store.name}</span>
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
 
           {/* Row 2: Rewards and Points Bar - Minimalist */}
@@ -276,7 +283,7 @@ export default function HomeHero({
           {!hideSearchBar && (
             <div className="flex items-center gap-2">
               <div
-                onClick={() => navigate('/search')}
+                onClick={() => navigate(activeStore === 'quick' ? '/search?section=quick' : '/search')}
                 className="flex-1 rounded-[12px] border-2 border-[#1e90ff] px-3 py-1.5 md:py-2 flex items-center gap-2 bg-white shadow-sm active:scale-[0.99] transition-all cursor-pointer h-[38px] md:h-[44px]"
               >
                 <svg className="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

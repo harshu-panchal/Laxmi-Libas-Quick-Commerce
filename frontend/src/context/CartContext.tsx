@@ -238,13 +238,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     pendingOperationsRef.current.add(productId);
 
+    const productType = product.type || (product as any).deliveryType;
+    const resolvedDeliveryType = productType === 'ecommerce' ? 'ecommerce' : selectedDeliveryType;
+
     // Normalize product to always have 'id' property for consistency
     const normalizedProduct: Product = {
       ...product,
       id: productId,
       name: product.name || product.productName || 'Product',
       imageUrl: product.imageUrl || product.mainImage,
-      type: selectedDeliveryType // Use the selected type instead of product base type
+      type: resolvedDeliveryType // Use the selected type instead of product base type
     };
 
     // Optimistic Update
@@ -286,7 +289,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
         const itemDeliveryType = (item as any).selectedDeliveryType || item.product.type;
 
-        if (itemDeliveryType !== selectedDeliveryType) return false;
+        if (itemDeliveryType !== resolvedDeliveryType) return false;
 
         // If both have variants, match by variant ID or title
         if (variantId || (itemVariantId && itemVariantId !== itemProductId)) {
@@ -308,7 +311,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
           const itemDeliveryType = (item as any).selectedDeliveryType || item.product.type;
 
-          if (itemDeliveryType !== selectedDeliveryType) return item;
+          if (itemDeliveryType !== resolvedDeliveryType) return item;
 
           // Match by product ID and variant
           const isMatch = (variantId || (itemVariantId && itemVariantId !== itemProductId))
@@ -326,7 +329,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [...currentValidItems, { 
         product: normalizedProduct, 
         quantity: 1, 
-        selectedDeliveryType,
+        selectedDeliveryType: resolvedDeliveryType,
         variant: variationId,
         selectedVariant: selectedVariant
       } as any];
@@ -352,7 +355,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           productId,
           1,
           variation,
-          selectedDeliveryType,
+          resolvedDeliveryType,
           (product as any).selectedVariantData,
           location?.latitude,
           location?.longitude

@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Calendar, Users, ChevronRight, Zap, Lock, Star, Clock, MapPin, ShieldCheck, Heart, X, ArrowLeft, Share2, Home, Plane, Hotel, Bus, Ticket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getHotelCities } from '../../services/api/customerHotelService';
+import { getHotelCities, getHotels } from '../../services/api/customerHotelService';
 import { useLocation } from '../../hooks/useLocation';
 
 
@@ -19,6 +19,10 @@ const HotelBooking: React.FC = () => {
     const { location: userLocation } = useLocation();
     const [selectedLocation, setSelectedLocation] = React.useState(userLocation?.city || 'City, Hotel or Area');
 
+    // Live backend hotels state
+    const [fetchedHotels, setFetchedHotels] = useState<any[]>([]);
+    const [isLoadingHotels, setIsLoadingHotels] = useState(false);
+
     // Keep destination in sync with real-time location city if not manually overridden
     React.useEffect(() => {
         if (userLocation?.city && (selectedLocation === 'City, Hotel or Area' || !selectedLocation)) {
@@ -31,20 +35,28 @@ const HotelBooking: React.FC = () => {
     const [isLoadingCities, setIsLoadingCities] = React.useState(false);
 
     React.useEffect(() => {
-        const fetchCities = async () => {
+        const fetchCitiesAndHotels = async () => {
             setIsLoadingCities(true);
+            setIsLoadingHotels(true);
             try {
-                const response = await getHotelCities();
-                if (response.success) {
-                    setAvailableCities(response.data);
+                const [citiesRes, hotelsRes] = await Promise.all([
+                    getHotelCities(),
+                    getHotels()
+                ]);
+                if (citiesRes.success) {
+                    setAvailableCities(citiesRes.data);
+                }
+                if (hotelsRes.success) {
+                    setFetchedHotels(hotelsRes.data);
                 }
             } catch (err) {
-                console.error('Failed to fetch hotel cities:', err);
+                console.error('Failed to fetch cities or hotels:', err);
             } finally {
                 setIsLoadingCities(false);
+                setIsLoadingHotels(false);
             }
         };
-        fetchCities();
+        fetchCitiesAndHotels();
     }, []);
 
     const filteredCities = searchQuery 
@@ -548,76 +560,82 @@ const HotelBooking: React.FC = () => {
                             </div>
                         </div>
                     ))}
-                </div>
-
-                {/* Deal Grid Header */}
+                </div>                {/* Deal Grid Header */}
                 <div className="flex items-center justify-between mb-6 px-2 mt-12">
                     <div>
-                        <h3 className="text-2xl font-[1000] text-gray-900 tracking-tight">Crazy Hour Deals</h3>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Exclusive App-only offers</p>
+                        <h3 className="text-2xl font-[1000] text-gray-900 tracking-tight">Recommended Stays</h3>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Live properties by LaxMart partners</p>
                     </div>
-                    <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-full border border-red-100/50">
-                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
-                        <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Live Now</span>
+                    <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-full border border-green-100/50">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
+                        <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">Active now</span>
                     </div>
                 </div>
 
                 {/* Deal Grid */}
                 <div className="grid grid-cols-2 gap-4 mb-12 px-2">
-                    {[
-                        { name: 'Azure Bay Resort', location: 'Maldives', img: '/hotel_deal_1.png', price: '₹12,499', rating: '4.9', locked: false, label: 'Bestseller' },
-                        { name: 'Mountain Peak', location: 'Manali', img: '/hotel_deal_2.png', price: '₹4,200', rating: '4.7', locked: true, label: 'Locked' },
-                    ].map((deal, idx) => (
-                        <motion.div 
-                            key={idx}
-                            whileHover={{ y: -5 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="bg-white rounded-[28px] overflow-hidden shadow-sm border border-neutral-100 group"
-                        >
-                            <div className="relative aspect-[4/5] bg-gray-100">
-                                <img src={deal.img} alt={deal.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                                {deal.locked ? (
-                                    <div className="absolute inset-0 bg-black/40 backdrop-blur-md flex flex-col items-center justify-center p-4">
-                                        <div className="bg-white/20 p-3 rounded-full border border-white/30 mb-2">
-                                            <Lock size={24} className="text-white" fill="currentColor" />
-                                        </div>
-                                        <p className="text-[10px] font-black text-white uppercase text-center tracking-tighter">Unlocks at 8 PM</p>
-                                    </div>
-                                ) : (
-                                    <>
+                    {isLoadingHotels ? (
+                        <div className="col-span-2 flex flex-col items-center justify-center py-10 bg-white rounded-3xl border border-neutral-100 shadow-sm">
+                            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-3">Loading properties...</p>
+                        </div>
+                    ) : fetchedHotels.length > 0 ? (
+                        fetchedHotels.slice(0, 4).map((hotel, idx) => {
+                            const hotelId = hotel._id;
+                            const rating = hotel.rating || 4.2;
+                            const mainImg = hotel.mainImage || '/hotel_deal_1.png';
+                            const price = hotel.basePrice || 1200;
+                            return (
+                                <motion.div 
+                                    key={hotelId}
+                                    whileHover={{ y: -5 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => navigate(`/store/travel/hotels/detail/${hotelId}`)}
+                                    className="bg-white rounded-[28px] overflow-hidden shadow-sm border border-neutral-100 group cursor-pointer hover:border-blue-200 transition-colors"
+                                >
+                                    <div className="relative aspect-[4/5] bg-gray-100">
+                                        <img src={mainImg} alt={hotel.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                         <div className="absolute top-3 left-3 bg-white rounded-lg px-2 py-1 flex items-center gap-1 shadow-md border border-gray-100">
                                             <Star size={10} fill="#ffc107" className="text-[#ffc107]" />
-                                            <span className="text-[11px] font-black text-gray-900">{deal.rating}</span>
+                                            <span className="text-[11px] font-black text-gray-900">{rating}</span>
                                         </div>
                                         <button className="absolute top-3 right-3 bg-black/20 hover:bg-red-500/80 backdrop-blur-md text-white p-2 rounded-full transition-colors">
                                             <Heart size={16} />
                                         </button>
                                         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                                            <span className="bg-yellow-400 text-gray-900 text-[9px] font-[1000] uppercase px-3 py-1 rounded-lg tracking-tighter shadow-lg shadow-yellow-400/20">{deal.label}</span>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                            <div className="p-4">
-                                <h4 className="text-sm font-black text-gray-900 truncate leading-none">{deal.name}</h4>
-                                <div className="flex items-center gap-1 text-gray-400 mt-1.5 mb-3">
-                                    <MapPin size={10} />
-                                    <span className="text-[10px] font-bold uppercase">{deal.location}</span>
-                                </div>
-                                {!deal.locked && (
-                                    <div className="flex items-end justify-between">
-                                        <div className="flex flex-col">
-                                            <span className="text-base font-black text-gray-900">{deal.price}</span>
-                                            <span className="text-[8px] font-bold text-gray-400 uppercase">per night</span>
-                                        </div>
-                                        <div className="bg-gray-100 h-8 w-8 rounded-full flex items-center justify-center text-gray-900 font-black text-sm">
-                                            →
+                                            <span className="bg-yellow-400 text-gray-900 text-[9px] font-[1000] uppercase px-3 py-1 rounded-lg tracking-tighter shadow-lg shadow-yellow-400/20">
+                                                {hotel.propertyType || 'Hotel'}
+                                            </span>
                                         </div>
                                     </div>
-                                )}
+                                    <div className="p-4">
+                                        <h4 className="text-sm font-black text-gray-900 truncate leading-none">{hotel.name}</h4>
+                                        <div className="flex items-center gap-1 text-gray-400 mt-1.5 mb-3">
+                                            <MapPin size={10} />
+                                            <span className="text-[10px] font-bold uppercase truncate">{hotel.city}</span>
+                                        </div>
+                                        <div className="flex items-end justify-between">
+                                            <div className="flex flex-col">
+                                                <span className="text-base font-black text-gray-900">₹{price.toLocaleString()}</span>
+                                                <span className="text-[8px] font-bold text-gray-400 uppercase">per night</span>
+                                            </div>
+                                            <div className="bg-gray-100 h-8 w-8 rounded-full flex items-center justify-center text-gray-900 font-black text-sm">
+                                                →
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            );
+                        })
+                    ) : (
+                        <div className="col-span-2 flex flex-col items-center justify-center py-10 px-6 text-center bg-white rounded-3xl border border-dashed border-gray-200">
+                            <div className="bg-neutral-50 p-2 rounded-2xl mb-2">
+                                <Hotel size={24} className="text-gray-300" />
                             </div>
-                        </motion.div>
-                    ))}
+                            <h4 className="text-xs font-black text-gray-900 uppercase tracking-tight">No Active Stays</h4>
+                            <p className="text-[10px] text-gray-400 font-bold mt-1">Please check back later or register a property.</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Exclusive Membership Banner */}

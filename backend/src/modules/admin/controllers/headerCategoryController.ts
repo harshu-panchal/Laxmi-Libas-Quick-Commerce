@@ -1,5 +1,18 @@
 import { Request, Response } from "express";
 import HeaderCategory from "../../../models/HeaderCategory";
+import { cache } from "../../../utils/cache";
+
+// Clear category caches helper
+const clearCategoryCaches = () => {
+  try {
+    cache.delete("customer-categories-list");
+    cache.delete("customer-categories-tree");
+    // Also clear other public cached routes if needed
+    cache.invalidatePattern(/customer-categories/);
+  } catch (err) {
+    console.error("Failed to clear category caches:", err);
+  }
+};
 
 // @desc    Get all header categories (Admin)
 // @route   GET /api/v1/header-categories/admin
@@ -68,15 +81,15 @@ export const createHeaderCategory = async (req: Request, res: Response) => {
       order,
     });
 
+    // Invalidate Cache
+    clearCategoryCaches();
+
     return res.status(201).json(category);
   } catch (error) {
     return res.status(500).json({ message: "Server Error", error });
   }
 };
 
-// @desc    Update a header category
-// @route   PUT /api/v1/header-categories/:id
-// @access  Private/Admin
 // @desc    Update a header category
 // @route   PUT /api/v1/header-categories/:id
 // @access  Private/Admin
@@ -115,6 +128,10 @@ export const updateHeaderCategory = async (req: Request, res: Response) => {
       category.order = order !== undefined ? order : category.order;
 
       const updatedCategory = await category.save();
+
+      // Invalidate Cache
+      clearCategoryCaches();
+
       return res.json(updatedCategory);
     } else {
       return res.status(404).json({ message: "Header category not found" });
@@ -141,6 +158,10 @@ export const deleteHeaderCategory = async (req: Request, res: Response) => {
 
     if (category) {
       await category.deleteOne();
+
+      // Invalidate Cache
+      clearCategoryCaches();
+
       return res.json({ message: "Header category removed" });
     } else {
       return res.status(404).json({ message: "Header category not found" });

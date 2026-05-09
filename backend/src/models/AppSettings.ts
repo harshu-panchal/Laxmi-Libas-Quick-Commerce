@@ -131,6 +131,58 @@ export interface IAppSettings extends Document {
     whatsapp?: string;
   };
 
+  // Theme Colors & Typography Settings
+  themeSettings?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    backgroundColor?: string;
+    textColor?: string;
+    fontFamily?: string;
+    enableGlassmorphism?: boolean;
+    cardStyle?: "flat" | "bordered" | "shadow" | "glass";
+  };
+
+  // Dynamic Role Access Control Config
+  roleAccessConfig?: {
+    hotelModuleAllowedRoles?: string[];
+    busModuleAllowedRoles?: string[];
+    deliveryModuleAllowedRoles?: string[];
+    sellerModuleAllowedRoles?: string[];
+  };
+
+  // Dynamic UI Sections & Fields Controls
+  dynamicUIControls?: {
+    showHotelSection?: boolean;
+    showBusSection?: boolean;
+    showGrocerySection?: boolean;
+    showBestsellers?: boolean;
+    showPromoStrip?: boolean;
+    customFooterText?: string;
+    primaryButtonLabel?: string;
+    checkoutFieldsRequirement?: string; // e.g. "Standard" or "Compact"
+  };
+
+  // Dynamic Buttons Customization
+  dynamicButtons?: Array<{
+    buttonId: string;
+    label: string;
+    visible: boolean;
+    icon?: string;
+  }>;
+
+  // Dynamic Forms Customization
+  dynamicForms?: Array<{
+    formId: string;
+    fields: Array<{
+      fieldId: string;
+      label: string;
+      placeholder?: string;
+      type: "text" | "number" | "date" | "email" | "select";
+      required: boolean;
+      visible: boolean;
+    }>;
+  }>;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -427,6 +479,64 @@ const AppSettingsSchema = new Schema<IAppSettings>(
       twitter: String,
       whatsapp: String,
     },
+
+    // Theme Customization
+    themeSettings: {
+      primaryColor: { type: String, default: "#0d9488" },
+      secondaryColor: { type: String, default: "#f59e0b" },
+      backgroundColor: { type: String, default: "#ffffff" },
+      textColor: { type: String, default: "#1f2937" },
+      fontFamily: { type: String, default: "Outfit" },
+      enableGlassmorphism: { type: Boolean, default: true },
+      cardStyle: { type: String, enum: ["flat", "bordered", "shadow", "glass"], default: "shadow" },
+    },
+
+    // Dynamic Permission & Module Access Control
+    roleAccessConfig: {
+      hotelModuleAllowedRoles: { type: [String], default: ["Super Admin", "Admin", "hotel"] },
+      busModuleAllowedRoles: { type: [String], default: ["Super Admin", "Admin", "bus"] },
+      deliveryModuleAllowedRoles: { type: [String], default: ["Super Admin", "Admin", "delivery", "Delivery"] },
+      sellerModuleAllowedRoles: { type: [String], default: ["Super Admin", "Admin", "seller", "Seller"] },
+    },
+
+    // Dynamic Home Banner & Feature Section Controls
+    dynamicUIControls: {
+      showHotelSection: { type: Boolean, default: true },
+      showBusSection: { type: Boolean, default: true },
+      showGrocerySection: { type: Boolean, default: true },
+      showBestsellers: { type: Boolean, default: true },
+      showPromoStrip: { type: Boolean, default: true },
+      customFooterText: { type: String, default: "© 2026 Laxmart. All Rights Reserved." },
+      primaryButtonLabel: { type: String, default: "Explore Now" },
+      checkoutFieldsRequirement: { type: String, default: "Standard" },
+    },
+
+    // Dynamic Buttons Customization
+    dynamicButtons: [
+      {
+        buttonId: { type: String, required: true },
+        label: { type: String, required: true },
+        visible: { type: Boolean, default: true },
+        icon: { type: String, default: "ArrowRight" }
+      }
+    ],
+
+    // Dynamic Forms Customization
+    dynamicForms: [
+      {
+        formId: { type: String, required: true },
+        fields: [
+          {
+            fieldId: { type: String, required: true },
+            label: { type: String, required: true },
+            placeholder: String,
+            type: { type: String, enum: ["text", "number", "date", "email", "select"], default: "text" },
+            required: { type: Boolean, default: false },
+            visible: { type: Boolean, default: true }
+          }
+        ]
+      }
+    ],
   },
   {
     timestamps: true,
@@ -448,7 +558,31 @@ AppSettingsSchema.statics.getSettings = async function () {
         baseDistance: 0,
         kmRate: 0,
         assignmentMode: "Automatic"
-      }
+      },
+      dynamicButtons: [
+        { buttonId: "bookHotel", label: "Book Room", visible: true, icon: "Calendar" },
+        { buttonId: "searchBus", label: "Search Buses", visible: true, icon: "Search" },
+        { buttonId: "addCart", label: "Add to Cart", visible: true, icon: "ShoppingBag" }
+      ],
+      dynamicForms: [
+        {
+          formId: "hotelBookingForm",
+          fields: [
+            { fieldId: "guestName", label: "Primary Guest Name", placeholder: "Enter guest name", type: "text", required: true, visible: true },
+            { fieldId: "guestEmail", label: "Guest Email", placeholder: "Enter guest email", type: "email", required: true, visible: true },
+            { fieldId: "guestPhone", label: "Guest Phone Number", placeholder: "10-digit number", type: "text", required: true, visible: true },
+            { fieldId: "specialRequests", label: "Special Requests (Optional)", placeholder: "e.g., Early check-in, late check-out", type: "text", required: false, visible: true }
+          ]
+        },
+        {
+          formId: "busBookingForm",
+          fields: [
+            { fieldId: "passengerName", label: "Passenger Full Name", placeholder: "As on ID card", type: "text", required: true, visible: true },
+            { fieldId: "passengerGender", label: "Gender", placeholder: "Male/Female/Other", type: "select", required: true, visible: true },
+            { fieldId: "passengerAge", label: "Age", placeholder: "Enter age", type: "number", required: true, visible: true }
+          ]
+        }
+      ]
     });
   }
   return settings;

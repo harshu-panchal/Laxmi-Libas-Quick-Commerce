@@ -112,18 +112,29 @@ export const createProduct = asyncHandler(
       });
     }
 
-    // 5. Clean up undefined fields
-    if (!newProductData.headerCategoryId)
-      delete newProductData.headerCategoryId;
-    if (!newProductData.subcategory) delete newProductData.subcategory;
-    if (!newProductData.brand) delete newProductData.brand;
+    // 5. Clean up undefined/empty string fields (especially relational ObjectIds) to prevent Mongoose CastErrors
+    const fieldsToPrune = [
+      "headerCategoryId",
+      "category",
+      "subcategory",
+      "subSubCategory",
+      "subSubCategoryId",
+      "brand",
+      "brandId",
+      "shopId",
+      "tax"
+    ];
+    fieldsToPrune.forEach(field => {
+      if (newProductData[field] === "" || newProductData[field] === undefined || newProductData[field] === null) {
+        delete newProductData[field];
+      }
+    });
 
     // Handle Tax: Frontend sends taxId, Model expects 'tax' (string) or something else?
-    // Checking SellerAddProduct.tsx sending taxId -> formData.tax
-    // Model Product.ts -> tax: { type: String }
-    // Ideally we should store the Tax ID or Name. Since frontend sends ID, let's map it.
-    if (productData.taxId) {
+    if (productData.taxId && productData.taxId !== "") {
       newProductData.tax = productData.taxId;
+    } else {
+      delete newProductData.tax;
     }
 
     // 6. Set product status - All products are published automatically without approval
@@ -168,13 +179,33 @@ export const createProduct = asyncHandler(
       }
     }
 
-    const product = await Product.create(newProductData);
+    try {
+      const product = await Product.create(newProductData);
 
-    return res.status(201).json({
-      success: true,
-      message: "Product created successfully",
-      data: product,
-    });
+      return res.status(201).json({
+        success: true,
+        message: "Product created successfully",
+        data: product,
+      });
+    } catch (createError: any) {
+      console.error("[createProduct] Database insertion FAILED:", {
+        message: createError.message,
+        errors: createError.errors,
+        code: createError.code,
+        keyValue: createError.keyValue
+      });
+      return res.status(400).json({
+        success: false,
+        message: createError.message || "Database validation failed",
+        error: {
+          name: createError.name,
+          message: createError.message,
+          errors: createError.errors,
+          code: createError.code,
+          keyValue: createError.keyValue
+        }
+      });
+    }
   }
 );
 
@@ -456,26 +487,68 @@ export const updateProduct = asyncHandler(
       });
     }
 
+    // 5. Clean up undefined/empty string fields (especially relational ObjectIds) to prevent Mongoose CastErrors
+    const fieldsToPrune = [
+      "headerCategoryId",
+      "category",
+      "subcategory",
+      "subSubCategory",
+      "subSubCategoryId",
+      "brand",
+      "brandId",
+      "shopId",
+      "tax"
+    ];
+    fieldsToPrune.forEach(field => {
+      if (updateData[field] === "" || updateData[field] === undefined || updateData[field] === null) {
+        delete updateData[field];
+        // Also ensure any explicit Mongoose schema fields are set to undefined if they were empty
+        if (product && (product as any)[field] === "") {
+          (product as any)[field] = undefined;
+        }
+      }
+    });
+
     // Apply updates
     Object.assign(product, updateData);
 
-    await product.save();
+    try {
+      await product.save();
 
-    // Re-populate for response
-    const populatedProduct = await Product.findById(product._id)
-      .populate("category", "name")
-      .populate("subcategory", "subcategoryName")
-      .populate("headerCategoryId", "name slug")
-      .populate("brand", "name")
-      .populate("tax", "name rate");
+      // Re-populate for response
+      const populatedProduct = await Product.findById(product._id)
+        .populate("category", "name")
+        .populate("subcategory", "subcategoryName")
+        .populate("headerCategoryId", "name slug")
+        .populate("brand", "name")
+        .populate("tax", "name rate");
 
-    console.log("DEBUG updateProduct: product updated successfully");
+      console.log("DEBUG updateProduct: product updated successfully");
 
-    return res.status(200).json({
-      success: true,
-      message: "Product updated successfully",
-      data: populatedProduct,
-    });
+      return res.status(200).json({
+        success: true,
+        message: "Product updated successfully",
+        data: populatedProduct,
+      });
+    } catch (updateError: any) {
+      console.error("[updateProduct] Database update FAILED:", {
+        message: updateError.message,
+        errors: updateError.errors,
+        code: updateError.code,
+        keyValue: updateError.keyValue
+      });
+      return res.status(400).json({
+        success: false,
+        message: updateError.message || "Database update validation failed",
+        error: {
+          name: updateError.name,
+          message: updateError.message,
+          errors: updateError.errors,
+          code: updateError.code,
+          keyValue: updateError.keyValue
+        }
+      });
+    }
   }
 );
 

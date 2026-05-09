@@ -597,3 +597,51 @@ export const createHotelWithdrawalRequest = asyncHandler(async (req: Request, re
   res.status(201).json({ success: true, data: request, message: 'Withdrawal request submitted successfully' });
 });
 
+/**
+ * @desc    Cancel a hotel booking and initiate auto-refund to user wallet
+ */
+export const cancelHotelBooking = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.userId;
+  const { bookingId } = req.params;
+
+  const booking = await HotelBooking.findById(bookingId);
+  if (!booking) {
+    res.status(404).json({ success: false, message: 'Booking not found' });
+    return;
+  }
+
+  // Authorize: must belong to user or admin
+  if (booking.userId.toString() !== userId && (req as any).user.role !== 'admin') {
+    res.status(403).json({ success: false, message: 'Unauthorized' });
+    return;
+  }
+
+  if (booking.bookingStatus === 'Cancelled') {
+    res.status(400).json({ success: false, message: 'Booking is already cancelled' });
+    return;
+  }
+
+  booking.bookingStatus = 'Cancelled';
+  await booking.save();
+
+  // If the customer already paid, initiate Auto Refund!
+  if (booking.paymentStatus === 'Paid') {
+    const { processCustomerWalletTransaction } = await import('../../services/walletService');
+    await processCustomerWalletTransaction(
+      booking.userId.toString(),
+      booking.totalAmount,
+      'credit',
+      `Auto Refund for Hotel Booking cancellation: BK-${String(bookingId).slice(-6).toUpperCase()}`
+    );
+    booking.paymentStatus = 'Refunded';
+    await booking.save();
+  }
+
+  res.json({
+    success: true,
+    message: 'Booking cancelled and refund processed successfully to your wallet.',
+    data: booking
+  });
+});
+
+

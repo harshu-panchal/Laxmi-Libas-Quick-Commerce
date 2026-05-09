@@ -9,13 +9,16 @@ export interface IProduct extends Document {
 
   // Categorization
   category: mongoose.Types.ObjectId;
+  categoryId?: mongoose.Types.ObjectId;
   subcategory?: mongoose.Types.ObjectId;
+  subCategoryId?: mongoose.Types.ObjectId;
   subSubCategory?: mongoose.Types.ObjectId;
   headerCategoryId?: mongoose.Types.ObjectId;
   brand?: mongoose.Types.ObjectId;
 
   // Seller Info
   seller: mongoose.Types.ObjectId;
+  sellerId?: mongoose.Types.ObjectId;
 
   // Images
   mainImage?: string;
@@ -132,6 +135,8 @@ export interface IProduct extends Document {
   colorGroupId?: string; // Links products that are part of the same color variation group
 
   type: "quick" | "ecommerce" | "both";
+  isQuickEligible?: boolean;
+  deliveryType?: "quick" | "ecommerce";
   availablePincodes?: string[];
   courierAvailable?: boolean;
   city?: string;
@@ -183,7 +188,15 @@ const ProductSchema = new Schema<IProduct>(
         "Category is required",
       ],
     },
+    categoryId: {
+      type: Schema.Types.ObjectId,
+      ref: "Category",
+    },
     subcategory: {
+      type: Schema.Types.ObjectId,
+      ref: "SubCategory",
+    },
+    subCategoryId: {
       type: Schema.Types.ObjectId,
       ref: "SubCategory",
     },
@@ -205,6 +218,10 @@ const ProductSchema = new Schema<IProduct>(
       type: Schema.Types.ObjectId,
       ref: "Seller",
       required: [true, "Seller is required"],
+    },
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      ref: "Seller",
     },
 
     // Images
@@ -423,6 +440,15 @@ const ProductSchema = new Schema<IProduct>(
       default: "quick",
       required: true,
     },
+    isQuickEligible: {
+      type: Boolean,
+      default: false,
+    },
+    deliveryType: {
+      type: String,
+      enum: ["quick", "ecommerce"],
+      default: "ecommerce",
+    },
     availablePincodes: {
       type: [String],
       default: [],
@@ -492,6 +518,25 @@ ProductSchema.virtual("mrp").get(function () {
 ProductSchema.pre("save", function (next) {
   const doc = this as any;
 
+  // Bidirectional relationship sync for full schema and relational query compatibility
+  if (doc.category && !doc.categoryId) doc.categoryId = doc.category;
+  if (!doc.category && doc.categoryId) doc.category = doc.categoryId;
+
+  if (doc.subcategory && !doc.subCategoryId) doc.subCategoryId = doc.subcategory;
+  if (!doc.subcategory && doc.subCategoryId) doc.subcategory = doc.subCategoryId;
+
+  if (doc.seller && !doc.sellerId) doc.sellerId = doc.seller;
+  if (!doc.seller && doc.sellerId) doc.seller = doc.sellerId;
+
+  // Sync isQuickEligible and deliveryType for full compatibility
+  if (doc.type === "quick" || doc.type === "both") {
+    doc.isQuickEligible = true;
+    doc.deliveryType = "quick";
+  } else {
+    doc.isQuickEligible = false;
+    doc.deliveryType = "ecommerce";
+  }
+
   // Validation Logic based on Type
   if (doc.type === "quick") {
     if (!doc.latitude || !doc.longitude) {
@@ -548,8 +593,11 @@ ProductSchema.index({ subcategory: 1 });
 ProductSchema.index({ brand: 1 });
 ProductSchema.index({ status: 1 });
 ProductSchema.index({ publish: 1 });
+ProductSchema.index({ city: 1 });
+ProductSchema.index({ createdAt: -1 });
 // Compound indexes for common queries
 ProductSchema.index({ status: 1, publish: 1 }); // For getProducts
+ProductSchema.index({ city: 1, status: 1, publish: 1 }); // For same-city query optimization
 ProductSchema.index({ category: 1, status: 1, publish: 1 }); // For category products
 ProductSchema.index({ subcategory: 1, status: 1, publish: 1 }); // For subcategory products
 ProductSchema.index({

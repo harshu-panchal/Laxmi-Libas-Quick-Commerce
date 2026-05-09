@@ -362,3 +362,40 @@ export const deleteShopByStore = async (
   );
   return response.data;
 };
+
+/**
+ * Supercharged Customer Control Center Services
+ */
+export const resetUserAccount = async (id: string): Promise<ApiResponse<any>> => {
+  const response = await api.post<ApiResponse<any>>(`/admin/customers/${id}/reset`);
+  return response.data;
+};
+
+export const updateUserWallet = async (
+  id: string,
+  action: "credit" | "debit",
+  amount: number,
+  reason: string
+): Promise<ApiResponse<any>> => {
+  const response = await api.post<ApiResponse<any>>(`/admin/customers/${id}/wallet`, {
+    action,
+    amount,
+    reason,
+  });
+  return response.data;
+};
+
+export const getUserReferrals = async (id: string): Promise<ApiResponse<any>> => {
+  const response = await api.get<ApiResponse<any>>(`/admin/customers/${id}/referrals`);
+  return response.data;
+};
+
+export const getUserUnifiedHistory = async (id: string): Promise<ApiResponse<any>> => {
+  const response = await api.get<ApiResponse<any>>(`/admin/customers/${id}/unified-history`);
+  return response.data;
+};
+
+export const getAuditLogs = async (params?: any): Promise<ApiResponse<any>> => {
+  const response = await api.get<ApiResponse<any>>("/admin/audit-logs", { params });
+  return response.data;
+};

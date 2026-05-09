@@ -22,20 +22,7 @@ interface Category {
 }
 
 const DEFAULT_CATEGORIES: Category[] = [
-    { id: 'all', name: 'For You', icon: CategoryIcons.ForYou, slug: 'all' },
-    { id: 'fashion', name: 'Fashion', icon: CategoryIcons.Fashion, slug: 'fashion' },
-    { id: 'mobiles', name: 'Mobiles', icon: CategoryIcons.Mobiles, slug: 'mobiles' },
-    { id: 'beauty', name: 'Beauty', icon: CategoryIcons.Beauty, slug: 'beauty' },
-    { id: 'electronics', name: 'Electronics', icon: CategoryIcons.Electronics, slug: 'electronics' },
-    { id: 'home', name: 'Home', icon: CategoryIcons.Home, slug: 'home' },
-    { id: 'appliances', name: 'Appliances', icon: CategoryIcons.Appliances, slug: 'appliances' },
-    { id: 'toysbaby', name: 'Toys, baby', icon: CategoryIcons.ToysBaby, slug: 'toysbaby' },
-    { id: 'foodhealth', name: 'Food & Health', icon: CategoryIcons.FoodHealth, slug: 'foodhealth' },
-    { id: 'auto', name: 'Auto Accessories', icon: CategoryIcons.AutoAccessories, slug: 'auto' },
-    { id: 'twowheelers', name: '2 Wheelers', icon: CategoryIcons.TwoWheelers, slug: 'twowheelers' },
-    { id: 'sports', name: 'Sports & more', icon: CategoryIcons.Sports, slug: 'sports' },
-    { id: 'books', name: 'Books & more', icon: CategoryIcons.Books, slug: 'books' },
-    { id: 'furniture', name: 'Furniture', icon: CategoryIcons.Furniture, slug: 'furniture' },
+    { id: 'all', name: 'For You', icon: CategoryIcons.ForYou, slug: 'all' }
 ];
 
 interface CategoryTabBarProps {

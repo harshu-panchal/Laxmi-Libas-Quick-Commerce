@@ -1,65 +1,63 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Zap, Clock, ChevronRight, Search } from 'lucide-react';
 import HomeHero from './components/HomeHero';
-import { getProducts, getCategories } from '../../services/api/customerProductService';
+import { getQuickProducts, getCategories } from '../../services/api/customerProductService';
 import { useLocation } from '../../hooks/useLocation';
 import ProductCard from './components/ProductCard';
 import { Product, Category } from '../../types/domain';
 
 const MinutesStore = () => {
+    const navigate = useNavigate();
     const { location } = useLocation();
     const [products, setProducts] = useState<any[]>([]);
-    const [categories, setCategories] = useState<any[]>([]);
+    const [allCategories, setAllCategories] = useState<any[]>([]);
+    const [activeTab, setActiveTab] = useState('all');
     const [isLoading, setIsLoading] = useState(true);
-    const [timeLeft, setTimeLeft] = useState({ minutes: 9, seconds: 54 });
 
+    // Fetch Header Categories once on mount
     useEffect(() => {
-        const timer = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-                if (prev.minutes > 0) return { minutes: prev.minutes - 1, seconds: 59 };
-                return prev;
-            });
-        }, 1000);
-        return () => clearInterval(timer);
-    }, []);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
+        const fetchCategoriesData = async () => {
             try {
-                const [pRes, cRes] = await Promise.all([
-                    getProducts({ 
-                        latitude: location?.latitude, 
-                        longitude: location?.longitude,
-                        limit: 50 
-                    }),
-                    getCategories()
-                ]);
-
-                if (pRes.success) {
-                    // Filter products for "Quick" module: distance <= 40km (matches backend radius)
-                    const quickProducts = pRes.data.filter((p: any) => {
-                        const distance = p.distance || (p.seller as any)?.distance || 0;
-                        return distance <= 40;
-                    });
-                    setProducts(quickProducts);
-                }
-                if (cRes.success) {
-                    setCategories(cRes.data.slice(0, 8));
+                const res = await getCategories();
+                if (res.success && res.data) {
+                    setAllCategories(res.data);
                 }
             } catch (err) {
-                console.error('Failed to fetch Quick store data:', err);
+                console.error('Failed to fetch category headers:', err);
+            }
+        };
+        fetchCategoriesData();
+    }, []);
+
+    // Fetch Products whenever location or selected tab changes
+    useEffect(() => {
+        const fetchProducts = async () => {
+            setIsLoading(true);
+            try {
+                const params: any = {
+                    latitude: location?.latitude, 
+                    longitude: location?.longitude,
+                    city: location?.city,
+                    limit: 50
+                };
+                if (activeTab !== 'all') {
+                    params.headerCategory = activeTab;
+                }
+                const res = await getQuickProducts(params);
+                if (res.success) {
+                    setProducts(res.data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch Quick products:', err);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        if (location?.latitude) {
-            fetchData();
-        }
-    }, [location?.latitude, location?.longitude]);
+        fetchProducts();
+    }, [location?.latitude, location?.longitude, location?.city, activeTab]);
 
     return (
         <div className="bg-white min-h-screen pb-24 font-['Inter']">
@@ -69,49 +67,33 @@ const MinutesStore = () => {
                 hideLocationBar={true}
                 hideSearchBar={true}
                 hideCategoryTabs={false}
+                headerCategories={allCategories}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
             />
 
             <div className="px-4 pt-4">
-                {/* 10-Min Flash Banner (Compact) */}
-                <div className="bg-neutral-900 rounded-2xl p-4 mb-6 text-white relative overflow-hidden shadow-lg">
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-1.5 mb-1 text-yellow-400">
-                            <Zap size={14} fill="currentColor" />
-                            <span className="font-black text-[10px] uppercase tracking-widest">Fastest Delivery</span>
+
+                {/* Nearby Essentials Horizontal Scroll */}
+                {!isLoading && products.length > 0 && (
+                    <div className="mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xs font-black text-neutral-900 uppercase tracking-widest">Nearby Essentials</h3>
+                            <span className="text-[10px] text-neutral-400 font-bold">Quick Delivery</span>
                         </div>
-                        <h2 className="text-xl font-black mb-0.5">Delivering In <span className="text-yellow-400">10 MINS</span></h2>
-                        <div className="flex items-center gap-2 mt-2 bg-white/10 backdrop-blur-md rounded-full px-3 py-1 w-fit border border-white/10">
-                            <Clock size={12} className="text-yellow-400" />
-                            <span className="text-[10px] font-bold">
-                                Ends in {timeLeft.minutes}:{timeLeft.seconds < 10 ? `0${timeLeft.seconds}` : timeLeft.seconds}
-                            </span>
+                        <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 hide-scrollbar scroll-smooth">
+                            {products.slice(0, 8).map((prod) => (
+                                <div key={prod._id} className="w-[145px] flex-shrink-0">
+                                    <ProductCard product={prod} categoryStyle={true} />
+                                </div>
+                            ))}
                         </div>
                     </div>
-                    <div className="absolute top-0 right-0 h-full w-1/3 opacity-40">
-                        <img src="/minutes_banner.png" alt="Delivery" className="h-full w-full object-cover" />
-                    </div>
-                </div>
-
-                {/* Categories Row (Compact) */}
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-black text-neutral-900 uppercase tracking-tighter">Nearby Essentials</h3>
-                    <button className="text-blue-600 font-bold text-[10px] uppercase tracking-widest">See All</button>
-                </div>
-
-                <div className="flex gap-3 overflow-x-auto pb-6 -mx-4 px-4 hide-scrollbar">
-                    {categories.map((cat, idx) => (
-                        <div key={idx} className="flex flex-col items-center gap-1.5 flex-shrink-0 w-16">
-                            <div className="w-16 h-16 rounded-xl bg-neutral-50 border border-neutral-100 p-2 flex items-center justify-center">
-                                <img src={cat.imageUrl || cat.icon || '/minutes_fruits.png'} alt={cat.name} className="w-full h-full object-contain" />
-                            </div>
-                            <span className="text-[10px] font-bold text-neutral-800 text-center line-clamp-1">{cat.name}</span>
-                        </div>
-                    ))}
-                </div>
+                )}
 
                 {/* Products Grid (Compact) */}
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-black text-neutral-900 uppercase tracking-tighter">Recommended for You</h3>
+                    <h3 className="text-xs font-black text-neutral-900 uppercase tracking-widest">Recommended for You</h3>
                 </div>
 
                 {isLoading ? (
@@ -122,14 +104,14 @@ const MinutesStore = () => {
                     </div>
                 ) : products.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {products.map((prod) => (
+                        {products.slice(8).map((prod) => (
                             <ProductCard key={prod._id} product={prod} categoryStyle={true} />
                         ))}
                     </div>
                 ) : (
                     <div className="bg-neutral-50 rounded-2xl p-8 text-center border border-dashed border-neutral-200">
                         <ShoppingBag size={32} className="mx-auto text-neutral-300 mb-3" />
-                        <p className="text-sm font-bold text-neutral-500">No stores found within 40km.</p>
+                        <p className="text-sm font-bold text-neutral-500">No products found in your city.</p>
                         <p className="text-[10px] text-neutral-400 mt-1">Try switching to Laxmart for standard delivery.</p>
                     </div>
                 )}

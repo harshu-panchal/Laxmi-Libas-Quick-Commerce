@@ -3,6 +3,7 @@ import Product from "../../../models/Product";
 import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
 import Seller from "../../../models/Seller";
+import HeaderCategory from "../../../models/HeaderCategory";
 import mongoose from "mongoose";
 import { normalizeCity, calculateDistance, getDeliveryTypeByDistance } from "../../../utils/locationUtils";
 // import { findSellersWithinRange } from "../../../utils/locationHelper";
@@ -20,6 +21,7 @@ export const getProducts = async (req: Request, res: Response) => {
       category: categoryParam,
       subcategory: subcategoryParam,
       city: userCityParam,
+      search,
       limit = 20,
       page = 1
     } = req.query;
@@ -32,19 +34,46 @@ export const getProducts = async (req: Request, res: Response) => {
     const userLng = (longitude || lng) ? Number(longitude || lng) : null;
     const userPincode = pincode ? String(pincode).trim() : null;
 
-    // ── Base query for active, published, approved-seller products ──────────
+    // ── Base query for active, published, approved-seller products (Laxmart shows both types of products) ──
     const baseQuery: any = { status: 'Active', publish: true };
     
-    // Use categoryId (legacy) or category parameter
+    // Use categoryId (legacy) or category parameter with robust ObjectId/Slug resolution
     const activeCategoryId = categoryId || categoryParam;
-    if (activeCategoryId && mongoose.Types.ObjectId.isValid(activeCategoryId as string)) {
-      baseQuery.category = new mongoose.Types.ObjectId(activeCategoryId as string);
+    if (activeCategoryId) {
+      if (mongoose.Types.ObjectId.isValid(activeCategoryId as string)) {
+        baseQuery.category = new mongoose.Types.ObjectId(activeCategoryId as string);
+      } else {
+        const resolvedCat = await Category.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
+        if (resolvedCat) {
+          baseQuery.category = resolvedCat._id;
+        } else {
+          const resolvedHeader = await HeaderCategory.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
+          if (resolvedHeader) {
+            const categoriesInHeader = await Category.find({ headerCategoryId: resolvedHeader._id }).select('_id');
+            baseQuery.category = { $in: categoriesInHeader.map(c => c._id) };
+          }
+        }
+      }
     }
     
-    // Handle subcategory filtering
-    if (subcategoryParam && mongoose.Types.ObjectId.isValid(subcategoryParam as string)) {
-      baseQuery.subcategory = new mongoose.Types.ObjectId(subcategoryParam as string);
+    // Handle subcategory filtering with robust ObjectId/Slug resolution
+    if (subcategoryParam) {
+      if (mongoose.Types.ObjectId.isValid(subcategoryParam as string)) {
+        baseQuery.subcategory = new mongoose.Types.ObjectId(subcategoryParam as string);
+      } else {
+        const resolvedSub = await SubCategory.findOne({ slug: (subcategoryParam as string).toLowerCase().trim() }).select('_id');
+        if (resolvedSub) {
+          baseQuery.subcategory = resolvedSub._id;
+        }
+      }
     }
+
+    // Support text-based full text searches if provided
+    if (search && String(search).trim()) {
+      baseQuery.$text = { $search: String(search).trim() };
+    }
+
+    const sort = search ? { score: { $meta: "textScore" } } : { createdAt: -1 };
 
     // ── Fetch Quick (location-based) products ───────────────────────────────
     let quickProducts: any[] = [];
@@ -53,7 +82,7 @@ export const getProducts = async (req: Request, res: Response) => {
       const maxRadiusMeters = 40 * 1000; // 40 km
       const quickQuery = {
         ...baseQuery,
-        type: { $in: ['quick', 'both'] },
+        type: { $in: ['quick', 'both'] }, // Laxmart shows all quick-eligible products
         location: {
           $nearSphere: {
             $geometry: { type: 'Point', coordinates: [userLng, userLat] },
@@ -63,7 +92,12 @@ export const getProducts = async (req: Request, res: Response) => {
       };
       quickProducts = await Product.find(quickQuery)
         .populate('category', 'name')
+        .populate('categoryId', 'name')
+        .populate('subcategory', 'name')
+        .populate('subCategoryId', 'name')
         .populate('seller', 'storeName location serviceRadiusKm city')
+        .populate('sellerId', 'storeName location serviceRadiusKm city')
+        .sort(sort)
         .limit(limitNum)
         .skip(skip)
         .lean();
@@ -75,13 +109,18 @@ export const getProducts = async (req: Request, res: Response) => {
       
       const quickQuery = {
         ...baseQuery,
-        type: { $in: ['quick', 'both'] },
+        type: { $in: ['quick', 'both'] }, // Laxmart shows all quick-eligible products
         seller: { $in: sellerIds }
       };
       
       quickProducts = await Product.find(quickQuery)
         .populate('category', 'name')
+        .populate('categoryId', 'name')
+        .populate('subcategory', 'name')
+        .populate('subCategoryId', 'name')
         .populate('seller', 'storeName location serviceRadiusKm city')
+        .populate('sellerId', 'storeName location serviceRadiusKm city')
+        .sort(sort)
         .limit(limitNum)
         .skip(skip)
         .lean();
@@ -93,11 +132,21 @@ export const getProducts = async (req: Request, res: Response) => {
       const ecomQuery = {
         ...baseQuery,
         type: { $in: ['ecommerce', 'both'] },
-        availablePincodes: userPincode,  // direct array includes match
+        $or: [
+          { availablePincodes: userPincode },
+          { availablePincodes: "*" },
+          { availablePincodes: "all" },
+          { availablePincodes: "national" }
+        ]
       };
       ecommerceProducts = await Product.find(ecomQuery)
         .populate('category', 'name')
+        .populate('categoryId', 'name')
+        .populate('subcategory', 'name')
+        .populate('subCategoryId', 'name')
         .populate('seller', 'storeName location serviceRadiusKm')
+        .populate('sellerId', 'storeName location serviceRadiusKm')
+        .sort(sort)
         .limit(limitNum)
         .skip(skip)
         .lean();
@@ -108,7 +157,12 @@ export const getProducts = async (req: Request, res: Response) => {
     if (!userLat && !userPincode) {
       fallbackProducts = await Product.find(baseQuery)
         .populate('category', 'name')
+        .populate('categoryId', 'name')
+        .populate('subcategory', 'name')
+        .populate('subCategoryId', 'name')
         .populate('seller', 'storeName')
+        .populate('sellerId', 'storeName')
+        .sort(sort)
         .limit(limitNum)
         .skip(skip)
         .lean();
@@ -178,6 +232,7 @@ export const getProducts = async (req: Request, res: Response) => {
 
 // Get single product by ID (public)
 export const getProductById = async (req: Request, res: Response) => {
+  console.log('[getProductById] Called with ID:', req.params.id);
   try {
     const { id } = req.params;
     // latitude and longitude    // const { latitude, longitude } = req.query; // User location
@@ -194,10 +249,16 @@ export const getProductById = async (req: Request, res: Response) => {
       publish: true,
     })
       .populate("category", "name")
+      .populate("categoryId", "name")
       .populate("subcategory", "name")
+      .populate("subCategoryId", "name")
       .populate("brand", "name")
       .populate(
         "seller",
+        "storeName mobile city fssaiLicNo address location serviceRadiusKm status"
+      )
+      .populate(
+        "sellerId",
         "storeName mobile city fssaiLicNo address location serviceRadiusKm status"
       );
 
@@ -346,3 +407,191 @@ export const getProductById = async (req: Request, res: Response) => {
     });
   }
 };
+
+/**
+ * Get only Quick Commerce products (for Quick section)
+ */
+export const getQuickProducts = async (req: Request, res: Response) => {
+  console.log('[getQuickProducts] Called with query:', req.query);
+  try {
+    const {
+      categoryId,
+      category: categoryParam,
+      subcategory: subcategoryParam,
+      headerCategory,
+      city: userCityParam,
+      search,
+      limit = 20,
+      page = 1
+    } = req.query;
+
+    const limitNum = Number(limit);
+    const skip = (Number(page) - 1) * limitNum;
+
+    // Base query for active approved products (strictly quick products inside Quick module)
+    const query: any = { 
+      status: 'Active', 
+      publish: true,
+      type: 'quick'
+    };
+
+    // Filter by Header Category (e.g. from top tabs)
+    if (headerCategory) {
+      const headerQueryArray = [];
+      if (mongoose.Types.ObjectId.isValid(headerCategory as string)) {
+        headerQueryArray.push({ _id: new mongoose.Types.ObjectId(headerCategory as string) });
+      } else {
+        headerQueryArray.push({ slug: (headerCategory as string).toLowerCase().trim() });
+      }
+
+      const headerCategoryDoc = await HeaderCategory.findOne({ $or: headerQueryArray }).select('_id');
+
+      if (headerCategoryDoc) {
+        // Find all categories under this header category for maximum compatibility
+        const categoriesInHeader = await Category.find({ 
+          headerCategoryId: headerCategoryDoc._id,
+          status: "Active" 
+        }).select('_id');
+        const categoryIds = categoriesInHeader.map(c => c._id);
+
+        query.$or = [
+          { headerCategoryId: headerCategoryDoc._id },
+          { category: { $in: categoryIds } }
+        ];
+      }
+    }
+
+    // Category / Subcategory with robust Slug/ObjectId resolution
+    const activeCategoryId = categoryId || categoryParam;
+    if (activeCategoryId) {
+      if (mongoose.Types.ObjectId.isValid(activeCategoryId as string)) {
+        query.category = new mongoose.Types.ObjectId(activeCategoryId as string);
+      } else {
+        const resolvedCat = await Category.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
+        if (resolvedCat) {
+          query.category = resolvedCat._id;
+        } else {
+          const resolvedHeader = await HeaderCategory.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
+          if (resolvedHeader) {
+            const categoriesInHeader = await Category.find({ headerCategoryId: resolvedHeader._id }).select('_id');
+            query.category = { $in: categoriesInHeader.map(c => c._id) };
+          }
+        }
+      }
+    }
+    
+    if (subcategoryParam) {
+      if (mongoose.Types.ObjectId.isValid(subcategoryParam as string)) {
+        query.subcategory = new mongoose.Types.ObjectId(subcategoryParam as string);
+      } else {
+        const resolvedSub = await SubCategory.findOne({ slug: (subcategoryParam as string).toLowerCase().trim() }).select('_id');
+        if (resolvedSub) {
+          query.subcategory = resolvedSub._id;
+        }
+      }
+    }
+
+    // Text search if search query is provided
+    if (search && String(search).trim()) {
+      query.$text = { $search: String(search).trim() };
+    }
+
+    // Filter by same-city sellers with robust global fallback
+    const userCity = userCityParam ? normalizeCity(userCityParam as string) : "";
+    if (userCity) {
+      const sellersInCity = await Seller.find({ 
+        city: { $regex: new RegExp(`^${userCity}$`, 'i') }, 
+        status: 'Approved' 
+      }).select('_id');
+      
+      if (sellersInCity.length > 0) {
+        const sellerIds = sellersInCity.map(s => s._id);
+        query.seller = { $in: sellerIds };
+        console.log(`[getQuickProducts] Found ${sellerIds.length} sellers in user city "${userCity}":`, sellerIds);
+      } else {
+        // Fallback globally if no sellers are approved in the user's city
+        console.log(`[getQuickProducts] No sellers found in city "${userCity}". Falling back to global approved sellers.`);
+        const approvedSellers = await Seller.find({ status: 'Approved' }).select('_id');
+        query.seller = { $in: approvedSellers.map(s => s._id) };
+      }
+    } else {
+      // If city is not provided, find approved sellers globally
+      const approvedSellers = await Seller.find({ status: 'Approved' }).select('_id');
+      query.seller = { $in: approvedSellers.map(s => s._id) };
+    }
+
+    const sort = search ? { score: { $meta: "textScore" } } : { createdAt: -1 };
+
+    const [products, total] = await Promise.all([
+      Product.find(query)
+        .populate('category', 'name')
+        .populate('categoryId', 'name')
+        .populate('subcategory', 'name')
+        .populate('subCategoryId', 'name')
+        .populate('seller', 'storeName location city status')
+        .populate('sellerId', 'storeName location city status')
+        .sort(sort)
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Product.countDocuments(query)
+    ]);
+
+    // Format products consistent with getProducts mapping
+    const formattedProducts = products.map((product: any) => {
+      const seller = product.seller as any;
+      const sellerCity = seller?.city ? normalizeCity(seller.city) : '';
+      const userCityNormalized = userCityParam ? normalizeCity(userCityParam as string) : '';
+      const isSameCity = sellerCity && userCityNormalized ? sellerCity.toLowerCase() === userCityNormalized.toLowerCase() : false;
+
+      // Debug logging requested by the user
+      console.log('[getQuickProducts Debug]', {
+        productName: product.productName || product.name,
+        userCity: userCityNormalized,
+        sellerCity,
+        isQuickEligible: product.isQuickEligible,
+        type: product.type,
+        isSameCity
+      });
+
+      return {
+        productId: product._id,
+        ...product,
+        nearbyAvailable: true,
+        ecommerceAvailable: product.type === 'both',
+        quickDeliveryAvailable: true,
+        isSameCity,
+        deliveryType: 'quick',
+        deliveryLabel: 'Quick Delivery',
+        quickPrice: product.discPrice || product.price,
+        ecommercePrice: product.discPrice || product.price,
+        deliveryTimeQuick: '30-45 min',
+        deliveryTimeEcommerce: '3-5 days',
+      };
+    });
+
+    // Prioritize products from same city at the top of the feed
+    formattedProducts.sort((a, b) => {
+      if (a.isSameCity && !b.isSameCity) return -1;
+      if (!a.isSameCity && b.isSameCity) return 1;
+      return 0;
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Quick products retrieved successfully",
+      data: formattedProducts,
+      pagination: {
+        page: Number(page),
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    });
+
+  } catch (error: any) {
+    console.error('[getQuickProducts] Error:', error.message);
+    return res.status(500).json({ success: false, message: 'Error fetching quick products', error: error.message });
+  }
+};
+
