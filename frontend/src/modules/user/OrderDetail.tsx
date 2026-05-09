@@ -1084,7 +1084,6 @@ export default function OrderDetail() {
             profileImage: order?.deliveryPartner?.profileImage,
             vehicleNumber: order?.deliveryPartner?.vehicleNumber,
           }}
-          type={order?.orderType}
           eta={routeInfo ? Math.ceil(routeInfo.durationValue / 60) : eta}
           distance={routeInfo ? routeInfo.distanceValue : distance}
           isTracking={isConnected && !!deliveryLocation}
