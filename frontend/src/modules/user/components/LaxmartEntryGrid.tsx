@@ -1,8 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useThemeContext } from '../../../context/ThemeContext';
 
 const LaxmartEntryGrid: React.FC = () => {
     const navigate = useNavigate();
+    const { setActiveCategory } = useThemeContext();
 
     const tiles = [
         {
@@ -11,14 +13,8 @@ const LaxmartEntryGrid: React.FC = () => {
             image: '/laxmart_fashion_tile_1774949163717.png',
             bgColor: 'linear-gradient(to bottom, #1e3a8a, #3b82f6)',
             path: '/user/home',
-            textColor: 'white'
-        },
-        {
-            title: 'Pay',
-            subtitle: 'EMI, loans, cards, bills, and more',
-            image: '/laxmart_pay_tile_1774949182667.png',
-            bgColor: 'linear-gradient(to bottom, #4c1d95, #8b5cf6)',
-            path: '#pay',
+            categoryKey: 'all',
+            gridClass: 'col-span-2 aspect-[1.5]',
             textColor: 'white'
         },
         {
@@ -26,7 +22,9 @@ const LaxmartEntryGrid: React.FC = () => {
             subtitle: 'Kitchen essentials at wholesale prices',
             image: '/laxmart_grocery_tile_1774949199910.png',
             bgColor: 'linear-gradient(to bottom, #7c2d12, #ea580c)',
-            path: '#grocery',
+            path: '/user/home',
+            categoryKey: 'grocery',
+            gridClass: 'col-span-1 aspect-[0.9]',
             textColor: 'white'
         },
         {
@@ -35,21 +33,25 @@ const LaxmartEntryGrid: React.FC = () => {
             image: '/laxmart_travel_tile_1774949219806.png',
             bgColor: 'linear-gradient(to bottom, #0369a1, #0ea5e9)',
             path: '/travel',
+            gridClass: 'col-span-1 aspect-[0.9]',
             textColor: 'white'
         }
     ];
 
-    // Note: The image paths are absolute from the brain directory in this context. 
-    // In a real app, they'd be imported. I'll use the generated paths for now.
-    // I should probably use the actual generated paths which I have in my history.
+    const handleTileClick = (tile: any) => {
+        if (tile.categoryKey) {
+            setActiveCategory(tile.categoryKey);
+        }
+        navigate(tile.path);
+    };
 
     return (
         <div className="grid grid-cols-2 gap-3 px-4 py-4">
             {tiles.map((tile, index) => (
                 <div
                     key={index}
-                    onClick={() => navigate(tile.path)}
-                    className="relative overflow-hidden rounded-2xl cursor-pointer aspect-[0.88] shadow-md group active:scale-[0.98] transition-all duration-200"
+                    onClick={() => handleTileClick(tile)}
+                    className={`${tile.gridClass} relative overflow-hidden rounded-2xl cursor-pointer shadow-md group active:scale-[0.98] transition-all duration-200`}
                     style={{ background: tile.bgColor }}
                 >
                     <div className="absolute inset-0 z-0">

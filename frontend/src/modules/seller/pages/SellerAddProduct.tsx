@@ -426,10 +426,10 @@ export default function SellerAddProduct() {
 
       if (resolvedSellerCatId && !formData.category) {
         const matchingCat = categories.find(
-          (cat: any) => (cat._id?.toString() || cat.id?.toString()) === resolvedSellerCatId
+          (cat: any) => (cat._id?.toString() || (cat as any).id?.toString()) === resolvedSellerCatId
         );
         if (matchingCat) {
-          const catId = (matchingCat._id || matchingCat.id).toString();
+          const catId = matchingCat._id.toString();
           const headerId = (typeof matchingCat.headerCategoryId === 'string'
             ? matchingCat.headerCategoryId
             : matchingCat.headerCategoryId?._id)?.toString();
