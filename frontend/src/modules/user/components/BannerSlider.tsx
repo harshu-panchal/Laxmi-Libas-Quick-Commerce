@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getActiveBanners, Banner } from '../../../services/api/bannerService';
 import { useNavigate } from 'react-router-dom';
 
-export default function BannerSlider() {
+export default function BannerSlider({ pageLocation = 'Home Page' }: { pageLocation?: string }) {
     const [banners, setBanners] = useState<Banner[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -13,20 +13,19 @@ export default function BannerSlider() {
     useEffect(() => {
         const fetchBanners = async () => {
             try {
-                // Fetch banners specifically for Category/Inner sections if needed, 
-                // but default is Home Page which is fine for now.
-                const response = await getActiveBanners('Home Page');
+                // Fetch banners dynamically based on page location
+                const response = await getActiveBanners(pageLocation);
                 if (response.success && response.data.length > 0) {
                     setBanners(response.data);
                 }
             } catch (error) {
-                console.error('Failed to fetch banners', error);
+                console.error(`Failed to fetch banners for ${pageLocation}`, error);
             } finally {
                 setLoading(false);
             }
         };
         fetchBanners();
-    }, []);
+    }, [pageLocation]);
 
     useEffect(() => {
         if (banners.length <= 1) return;
@@ -50,12 +49,45 @@ export default function BannerSlider() {
                         transition={{ duration: 0.5 }}
                         className="absolute inset-0 cursor-pointer"
                         onClick={() => {
-                            if (banners[currentIndex].link) {
-                                if (banners[currentIndex].link!.startsWith('http')) {
-                                    window.open(banners[currentIndex].link!, '_blank');
-                                } else {
-                                    navigate(banners[currentIndex].link!);
-                                }
+                            const url = banners[currentIndex].redirectUrl || banners[currentIndex].link;
+                            if (!url) return;
+
+                            const type = banners[currentIndex].redirectType || 'external';
+
+                            if (type === 'external' || url.startsWith('http://') || url.startsWith('https://')) {
+                                window.open(url, '_blank');
+                                return;
+                            }
+
+                            if (type === 'product') {
+                                navigate(`/product/${url.replace(/^\//, '')}`);
+                                return;
+                            }
+
+                            if (type === 'category') {
+                                navigate(`/category/${url.replace(/^\//, '')}`);
+                                return;
+                            }
+
+                            if (type === 'hotel') {
+                                navigate(`/hotels`);
+                                return;
+                            }
+
+                            if (type === 'bus') {
+                                navigate(`/buses`);
+                                return;
+                            }
+
+                            if (type === 'quick') {
+                                navigate(`/quick`);
+                                return;
+                            }
+
+                            if (url.startsWith('/')) {
+                                navigate(url);
+                            } else {
+                                navigate(`/${url}`);
                             }
                         }}
                     >

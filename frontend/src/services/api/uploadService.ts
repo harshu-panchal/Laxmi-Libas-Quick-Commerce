@@ -33,6 +33,7 @@ export async function uploadImage(
     headers: {
       "Content-Type": "multipart/form-data",
     },
+    timeout: 60000, // 1 minute timeout
   });
 
   if (response.data.success && response.data.data) {
@@ -63,6 +64,7 @@ export async function uploadImages(
     headers: {
       "Content-Type": "multipart/form-data",
     },
+    timeout: 180000, // 3 minutes timeout for gallery
   });
 
   if (response.data.success && response.data.data) {
@@ -94,6 +96,7 @@ export async function uploadDocument(
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      timeout: 60000, // 1 minute timeout
     }
   );
 
@@ -128,6 +131,7 @@ export async function uploadDocuments(
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      timeout: 180000, // 3 minutes timeout
     }
   );
 
@@ -170,6 +174,7 @@ export async function uploadVideo(
     headers: {
       "Content-Type": "multipart/form-data",
     },
+    timeout: 300000, // 5 minutes timeout for product video uploads
   });
 
   if (response.data.success && response.data.data) {

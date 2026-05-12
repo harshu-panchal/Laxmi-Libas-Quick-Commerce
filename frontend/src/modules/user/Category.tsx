@@ -1,9 +1,15 @@
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useMemo, useEffect } from "react";
 import ProductCard from "./components/ProductCard";
+import BannerSlider from "./components/BannerSlider";
 import { motion, AnimatePresence } from "framer-motion";
 import { getProducts, getQuickProducts, getCategoryById, Category as ApiCategory } from "../../services/api/customerProductService";
 import { useLocation as useLocationContext } from "../../hooks/useLocation";
+
+const isUrl = (str: string | undefined) => {
+  if (!str) return false;
+  return str.startsWith("http://") || str.startsWith("https://") || str.startsWith("/") || str.startsWith("data:") || str.includes(".");
+};
 
 
 export default function CategoryPage() {
@@ -25,6 +31,8 @@ export default function CategoryPage() {
   const [loading, setLoading] = useState(true);
   const [categoryLoading, setCategoryLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [selectedSort, setSelectedSort] = useState("newest");
 
   // Fetch Category Details
   useEffect(() => {
@@ -98,7 +106,10 @@ export default function CategoryPage() {
       */
 
       try {
-        const params: any = { category: category?._id || id };
+        const params: any = { 
+          category: category?._id || id,
+          sortBy: selectedSort
+        };
         if (selectedSubcategory !== "all") {
           params.subcategory = selectedSubcategory;
         }
@@ -137,14 +148,41 @@ export default function CategoryPage() {
     if (id) {
       fetchProducts();
     }
-  }, [id, selectedSubcategory, category?._id, isQuickSection, userLocation?.latitude, userLocation?.longitude, userLocation?.city]);
+  }, [id, selectedSubcategory, category?._id, isQuickSection, userLocation?.latitude, userLocation?.longitude, userLocation?.city, selectedSort]);
 
   // Client-side filtering removed in favor of backend subcategory filtering
   // Categorize products into Quick and Ecommerce
   const { quickProducts, ecommerceProducts } = useMemo(() => {
+    const getCategoryId = (p: any) => {
+      if (!p) return "";
+      if (p.category) {
+        if (typeof p.category === "object") return p.category._id?.toString() || "";
+        return p.category.toString();
+      }
+      if (p.categoryId) {
+        if (typeof p.categoryId === "object") return p.categoryId._id?.toString() || "";
+        return p.categoryId.toString();
+      }
+      return "";
+    };
+
     const activeId = category?._id || category?.id || id;
+    const activeIdStr = activeId?.toString();
+    const isObjectId = activeIdStr ? /^[0-9a-fA-F]{24}$/.test(activeIdStr) : false;
+
     const baseProducts = activeId 
-      ? products.filter(p => (p.category?._id || p.category || p.categoryId)?.toString() === activeId?.toString())
+      ? products.filter(p => {
+          const catId = getCategoryId(p);
+          if (isObjectId) {
+            return catId === activeIdStr;
+          }
+          const pSlug = (p.category && typeof p.category === 'object' ? p.category.slug : '') || 
+                        (p.categoryId && typeof p.categoryId === 'object' ? p.categoryId.slug : '');
+          if (pSlug && activeIdStr) {
+            return pSlug.toLowerCase() === activeIdStr.toLowerCase();
+          }
+          return true;
+        })
       : products;
 
     if (isQuickSection) {
@@ -201,9 +239,33 @@ export default function CategoryPage() {
   const getFilterOptions = () => {
     // We use category?._id if available, otherwise fallback to id from params
     const activeId = category?._id || category?.id || id;
+    const activeIdStr = activeId?.toString();
+    const isObjectId = activeIdStr ? /^[0-9a-fA-F]{24}$/.test(activeIdStr) : false;
+
     const categoryProducts = products.filter((p) => {
-      const prodCatId = p.category?._id || p.category || p.categoryId;
-      return prodCatId?.toString() === activeId?.toString();
+      const getCategoryId = (prod: any) => {
+        if (!prod) return "";
+        if (prod.category) {
+          if (typeof prod.category === "object") return prod.category._id?.toString() || "";
+          return prod.category.toString();
+        }
+        if (prod.categoryId) {
+          if (typeof prod.categoryId === "object") return prod.categoryId._id?.toString() || "";
+          return prod.categoryId.toString();
+        }
+        return "";
+      };
+      
+      const catId = getCategoryId(p);
+      if (isObjectId) {
+        return catId === activeIdStr;
+      }
+      const pSlug = (p.category && typeof p.category === 'object' ? p.category.slug : '') || 
+                    (p.categoryId && typeof p.categoryId === 'object' ? p.categoryId.slug : '');
+      if (pSlug && activeIdStr) {
+        return pSlug.toLowerCase() === activeIdStr.toLowerCase();
+      }
+      return true;
     });
     const filterMap = new Map<string, number>();
 
@@ -340,9 +402,9 @@ export default function CategoryPage() {
                       ? "ring-2 ring-primary-dark ring-offset-2 bg-white"
                       : "bg-neutral-50 border border-neutral-100 group-hover:shadow-md"
                     }`}>
-                  {subcat.image ? (
+                  {subcat.image || (subcat.icon && isUrl(subcat.icon)) ? (
                     <img
-                      src={subcat.image}
+                      src={subcat.image || subcat.icon}
                       alt={subcat.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
@@ -351,7 +413,7 @@ export default function CategoryPage() {
                         const parent = target.parentElement;
                         if (parent) {
                           parent.textContent =
-                            subcat.icon || subcat.name?.charAt(0) || "📦";
+                            subcat.name?.charAt(0) || "📦";
                         }
                       }}
                     />
@@ -408,6 +470,16 @@ export default function CategoryPage() {
                     />
                   </svg>
                 </button>
+                {category?.icon && isUrl(category.icon) && (
+                  <img
+                    src={category.icon}
+                    alt=""
+                    className="w-6 h-6 md:w-8 md:h-8 object-contain rounded-md"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                )}
                 <h1 className="text-base md:text-xl font-bold text-neutral-900">
                   {category?.name}
                 </h1>
@@ -444,7 +516,9 @@ export default function CategoryPage() {
             </button>
 
             {/* Sort Button */}
-            <button className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md hover:bg-neutral-50 transition-colors flex-shrink-0 whitespace-nowrap">
+            <button 
+              onClick={() => setIsSortOpen(true)}
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md hover:bg-neutral-50 transition-colors flex-shrink-0 whitespace-nowrap">
               <svg
                 width="12"
                 height="12"
@@ -460,7 +534,7 @@ export default function CategoryPage() {
                   strokeLinejoin="round"
                 />
               </svg>
-              <span>Sort</span>
+              <span>Sort{selectedSort !== 'newest' ? `: ${selectedSort === 'lowestPrice' ? 'Low-High' : 'High-Low'}` : ''}</span>
               <span className="text-neutral-500 text-[10px] ml-0.5">▾</span>
             </button>
 
@@ -479,11 +553,15 @@ export default function CategoryPage() {
                         : "bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50"
                       }`}>
                     <span className="text-sm flex-shrink-0">
-                      {subcat.image ? (
+                      {subcat.image || (subcat.icon && isUrl(subcat.icon)) ? (
                         <img
-                          src={subcat.image}
+                          src={subcat.image || subcat.icon}
                           alt=""
                           className="w-4 h-4 object-cover rounded-full"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "https://cdn-icons-png.flaticon.com/512/263/263142.png";
+                          }}
                         />
                       ) : (
                         subcat.icon || "📦"
@@ -498,6 +576,9 @@ export default function CategoryPage() {
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto scrollbar-hide bg-white pb-10">
+          <div className="px-4 md:px-6 lg:px-8 pt-3">
+            <BannerSlider pageLocation="Categories" />
+          </div>
           {(quickProducts.length === 0 && ecommerceProducts.length === 0) ? (
             <div className="flex flex-col items-center justify-center py-20 px-4 bg-white rounded-2xl shadow-sm border border-neutral-100 mt-10 mx-4">
               <div className="w-20 h-20 bg-neutral-50 rounded-full flex items-center justify-center mb-6">
@@ -733,6 +814,67 @@ export default function CategoryPage() {
                     disabled={selectedFilters.length === 0}>
                     Apply
                   </button>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Sort Drawer Modal */}
+      <AnimatePresence>
+        {isSortOpen && (
+          <>
+            <div className="fixed inset-0 z-[100]">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0 bg-black/40"
+                onClick={() => setIsSortOpen(false)}
+              />
+
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                onClick={(e) => e.stopPropagation()}
+                className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[50vh] flex flex-col pb-6 z-[110]">
+                <div className="px-5 py-4 border-b border-neutral-200 flex justify-between items-center">
+                  <h2 className="text-base font-bold text-neutral-900">
+                    Sort By
+                  </h2>
+                  <button onClick={() => setIsSortOpen(false)} className="text-neutral-400 hover:text-neutral-600 text-lg">
+                    ✕
+                  </button>
+                </div>
+
+                <div className="p-4 space-y-1">
+                  {[
+                    { id: "newest", label: "Newest Arrivals" },
+                    { id: "lowestPrice", label: "Price: Low to High" },
+                    { id: "highestPrice", label: "Price: High to Low" }
+                  ].map((option) => {
+                    const isSelected = selectedSort === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        onClick={() => {
+                          setSelectedSort(option.id);
+                          setIsSortOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-neutral-50 transition-colors text-left">
+                        <span className={`text-sm font-medium ${isSelected ? "text-primary-dark font-bold" : "text-neutral-700"}`}>
+                          {option.label}
+                        </span>
+                        {isSelected && (
+                          <span className="text-primary-dark font-bold text-base">✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </motion.div>
             </div>

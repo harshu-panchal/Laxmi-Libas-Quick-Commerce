@@ -218,6 +218,8 @@ export const getOrderById = asyncHandler(
       paymentMethod: order.paymentMethod || 'N/A',
       paymentStatus: order.paymentStatus || 'Pending',
       deliveryAddress: order.deliveryAddress || {},
+      deliveryProofImage: order.deliveryProofImage || '',
+      deliveryProofTimestamp: order.deliveryProofTimestamp ? order.deliveryProofTimestamp.toISOString() : '',
     };
 
     return res.status(200).json({
@@ -235,7 +237,7 @@ export const updateOrderStatus = asyncHandler(
   async (req: Request, res: Response) => {
     const sellerId = (req as any).user.userId;
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, deliveryProofImage } = req.body;
 
     // Validate allowed status updates for seller
     const allowedStatuses = ['Accepted', 'Packed', 'Shipped', 'On the way', 'Delivered', 'Cancelled', 'Rejected'];
@@ -313,6 +315,13 @@ export const updateOrderStatus = asyncHandler(
         description: `Shipment registered with Delhivery. Waybill: ${order.trackingId}`,
         timestamp: new Date()
       });
+    }
+
+    if (status === 'Delivered') {
+      if (deliveryProofImage) {
+        order.deliveryProofImage = deliveryProofImage;
+        order.deliveryProofTimestamp = new Date();
+      }
     }
 
     await order.save();

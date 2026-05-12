@@ -6,6 +6,8 @@ export interface Banner {
     imageUrl: string;
     title?: string;
     link?: string;
+    redirectUrl?: string;
+    redirectType?: 'product' | 'category' | 'external' | 'hotel' | 'bus' | 'quick' | 'none';
     order: number;
     isActive: boolean;
     pageLocation: string;

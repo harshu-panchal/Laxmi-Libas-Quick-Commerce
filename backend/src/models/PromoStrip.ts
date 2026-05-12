@@ -6,6 +6,10 @@ export interface IPromoStrip extends Document {
   saleText: string; // e.g., "SALE"
   startDate: Date; // Sale start date
   endDate: Date; // Sale end date
+  title?: string; // Optional custom title
+  image?: string; // Optional custom background image URL
+  redirectUrl?: string; // Optional target redirect URL
+  backgroundColor?: string; // Optional custom background color
   categoryCards: Array<{
     categoryId: mongoose.Types.ObjectId; // Reference to Category
     title: string; // Custom title for the card
@@ -54,6 +58,22 @@ const PromoStripSchema = new Schema<IPromoStrip>(
         },
         message: "End date must be after start date",
       },
+    },
+    title: {
+      type: String,
+      trim: true,
+    },
+    image: {
+      type: String,
+      trim: true,
+    },
+    redirectUrl: {
+      type: String,
+      trim: true,
+    },
+    backgroundColor: {
+      type: String,
+      trim: true,
     },
     categoryCards: [
       {

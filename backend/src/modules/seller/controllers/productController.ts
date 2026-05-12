@@ -80,10 +80,12 @@ export const createProduct = asyncHandler(
       }
     }
 
-    // 3. Set Price and Stock
+    // 3. Set Price and Stock and Discounts
     newProductData.price = productData.price;
     newProductData.discPrice = productData.discPrice || 0;
     newProductData.stock = parseInt(productData.stock) || 0;
+    newProductData.discountType = productData.discountType || "none";
+    newProductData.discountValue = Number(productData.discountValue || productData.discount || 0);
 
     // Handle any extra fields as dynamic attributes
     const knownFields = [
@@ -93,7 +95,7 @@ export const createProduct = asyncHandler(
       "dealOfDay", "status", "manufacturer", "madeIn", "requiresApproval", "tags",
       "sellerId", "seller", "headerCategoryId", "category", "subcategory", "brand",
       "mainImage", "galleryImages", "variations", "variationType", "type",
-      "availablePincodes", "courierAvailable", "latitude", "longitude"
+      "availablePincodes", "courierAvailable", "latitude", "longitude", "discountType", "discountValue", "discount"
     ];
 
     const attributes: any = {};
@@ -437,6 +439,10 @@ export const updateProduct = asyncHandler(
     }
 
     // Handle any extra fields as dynamic attributes
+    if (updateData.discount !== undefined) {
+      updateData.discountValue = Number(updateData.discount || 0);
+    }
+
     const knownFields = [
       "productName", "smallDescription", "description", "categoryId", "subcategoryId",
       "brandId", "price", "discPrice", "stock", "mainImageUrl", "galleryImageUrls",
@@ -444,7 +450,7 @@ export const updateProduct = asyncHandler(
       "dealOfDay", "status", "manufacturer", "madeIn", "requiresApproval", "tags",
       "sellerId", "seller", "headerCategoryId", "category", "subcategory", "brand",
       "mainImage", "galleryImages", "variations", "variationType", "type",
-      "availablePincodes", "courierAvailable", "latitude", "longitude"
+      "availablePincodes", "courierAvailable", "latitude", "longitude", "discountType", "discountValue", "discount"
     ];
 
     const attributes: any = {};

@@ -5,6 +5,8 @@ export interface IBanner extends Document {
     imageUrl: string;
     title?: string;
     link?: string;
+    redirectUrl?: string;
+    redirectType?: 'product' | 'category' | 'external' | 'hotel' | 'bus' | 'quick' | 'none';
     order: number;
     isActive: boolean;
     pageLocation: string; // "Home Page", "Category Page", etc.
@@ -26,6 +28,15 @@ const BannerSchema = new Schema<IBanner>(
             type: String,
             trim: true,
         },
+        redirectUrl: {
+            type: String,
+            trim: true,
+        },
+        redirectType: {
+            type: String,
+            enum: ['product', 'category', 'external', 'hotel', 'bus', 'quick', 'none'],
+            default: 'none',
+        },
         order: {
             type: Number,
             default: 0,
@@ -45,6 +56,16 @@ const BannerSchema = new Schema<IBanner>(
         timestamps: true,
     }
 );
+
+BannerSchema.pre("save", function (next) {
+    if (this.redirectUrl && !this.link) {
+        this.link = this.redirectUrl;
+    }
+    if (this.link && !this.redirectUrl) {
+        this.redirectUrl = this.link;
+    }
+    next();
+});
 
 BannerSchema.index({ order: 1, isActive: 1 });
 

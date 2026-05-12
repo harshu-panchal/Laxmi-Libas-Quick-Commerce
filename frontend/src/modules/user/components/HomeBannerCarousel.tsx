@@ -46,12 +46,45 @@ export default function HomeBannerCarousel() {
             key={banner._id}
             className={`absolute inset-0 transition-opacity duration-700 flex items-center cursor-pointer ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
             onClick={() => {
-              if (banner.link) {
-                if (banner.link.startsWith('http')) {
-                  window.open(banner.link, '_blank');
-                } else {
-                  navigate(banner.link);
-                }
+              const url = banner.redirectUrl || banner.link;
+              if (!url) return;
+
+              const type = banner.redirectType || 'external';
+
+              if (type === 'external' || url.startsWith('http://') || url.startsWith('https://')) {
+                window.open(url, '_blank');
+                return;
+              }
+
+              if (type === 'product') {
+                navigate(`/product/${url.replace(/^\//, '')}`);
+                return;
+              }
+
+              if (type === 'category') {
+                navigate(`/category/${url.replace(/^\//, '')}`);
+                return;
+              }
+
+              if (type === 'hotel') {
+                navigate(`/hotels`);
+                return;
+              }
+
+              if (type === 'bus') {
+                navigate(`/buses`);
+                return;
+              }
+
+              if (type === 'quick') {
+                navigate(`/quick`);
+                return;
+              }
+
+              if (url.startsWith('/')) {
+                navigate(url);
+              } else {
+                navigate(`/${url}`);
               }
             }}
           >

@@ -124,6 +124,12 @@ export default function Categories() {
             .map((cat: any) => {
             const id = cat.slug || cat._id;
             const isActive = selectedCategoryId === id;
+            
+            const isUrl = (str: string | undefined) => {
+              if (!str) return false;
+              return str.startsWith("http://") || str.startsWith("https://") || str.startsWith("/") || str.startsWith("data:") || str.includes(".");
+            };
+
             return (
               <button
                 key={id}
@@ -137,9 +143,13 @@ export default function Categories() {
                 <div className={`w-12 h-12 rounded-xl mb-1.5 flex items-center justify-center overflow-hidden border-2 transition-all ${isActive ? 'border-primary-dark scale-110 shadow-sm' : 'border-neutral-200'
                   }`}>
                   <img
-                    src={cat.image || "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png"}
+                    src={cat.image || (cat.icon && isUrl(cat.icon) ? cat.icon : "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png")}
                     alt={cat.name}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png";
+                    }}
                   />
                 </div>
                 <span className={`text-[10px] leading-tight text-center font-bold tracking-tight ${isActive ? 'text-primary-dark capitalize' : 'text-neutral-500 capitalize'

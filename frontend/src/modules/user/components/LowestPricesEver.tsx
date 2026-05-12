@@ -9,6 +9,7 @@ import { Product } from '../../../types/domain';
 import { useWishlist } from '../../../hooks/useWishlist';
 import { calculateProductPrice } from '../../../utils/priceUtils';
 import { isClothingRelated } from '../../../utils/clothingUtils';
+import LazyImage from '../../../components/LazyImage';
 
 
 interface LowestPricesEverProps {
@@ -64,7 +65,7 @@ const ProductCard = memo(({
         <div className="relative block">
           <div className="w-full h-28 bg-neutral-100 flex items-center justify-center overflow-hidden relative">
             {product.imageUrl ? (
-              <img
+              <LazyImage
                 src={product.imageUrl}
                 alt={product.name}
                 className="w-full h-full object-contain"

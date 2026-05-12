@@ -82,78 +82,77 @@ const calculateDeliveryStuff = async (total: number, items: any[], userLat: numb
         // Check free delivery threshold
         if (freeDeliveryThreshold > 0 && total >= freeDeliveryThreshold) {
             estimatedDeliveryFee = 0;
-        } else if (settings) {
-            // If distance based is enabled
-            if (settings.deliveryConfig?.isDistanceBased === true) {
-                const config = settings.deliveryConfig;
-                // Default to base charge to ensure we don't accidentally give free delivery
-                estimatedDeliveryFee = config.baseCharge || 0;
+            return { estimatedDeliveryFee, platformFee, freeDeliveryThreshold };
+        }
 
-                if (userLat !== null && userLng !== null) {
-                    // Get all sellers involved in the cart
-                    const sellerIds = new Set<string>();
-                    items.forEach((item: any) => {
-                        const seller = item.product?.seller;
-                        if (seller) {
-                            const id = typeof seller === 'object' ? (seller._id || seller.id) : seller;
-                            if (id) sellerIds.add(id.toString());
-                        }
-                    });
+        // Identify unique sellers
+        const sellerMap = new Map<string, any>();
+        items.forEach((item: any) => {
+            const seller = item.product?.seller;
+            if (seller) {
+                const id = typeof seller === 'object' ? (seller._id || seller.id) : seller;
+                if (id) {
+                    sellerMap.set(id.toString(), seller);
+                }
+            }
+        });
 
-                    if (sellerIds.size > 0) {
-                        const uniqueSellerIds = Array.from(sellerIds)
-                            .filter(id => mongoose.Types.ObjectId.isValid(id))
-                            .map(id => new mongoose.Types.ObjectId(id));
-                        
-                        if (uniqueSellerIds.length === 0) {
-                            return { estimatedDeliveryFee, platformFee, freeDeliveryThreshold };
-                        }
-                        
-                        const sellers = await Seller.find({ _id: { $in: uniqueSellerIds } }).select('location latitude longitude');
+        const uniqueSellerIds = Array.from(sellerMap.keys());
 
-                        const sellerLocations: { lat: number; lng: number }[] = [];
-                        sellers.forEach((seller: any) => {
-                            let lat, lng;
-                            // Safe check for location coordinates
-                            const loc = (seller as any).location;
-                            if (loc && loc.coordinates && loc.coordinates.length === 2) {
-                                lng = loc.coordinates[0];
-                                lat = loc.coordinates[1];
-                            } else if ((seller as any).latitude && (seller as any).longitude) {
-                                lat = parseFloat((seller as any).latitude);
-                                lng = parseFloat((seller as any).longitude);
-                            }
-                            if (lat && lng) sellerLocations.push({ lat, lng });
-                        });
+        if (uniqueSellerIds.length === 0) {
+            return { estimatedDeliveryFee, platformFee, freeDeliveryThreshold };
+        }
 
-                        if (sellerLocations.length > 0) {
-                            const distances = await getRoadDistances(
-                                sellerLocations,
-                                { lat: userLat, lng: userLng },
-                                config.googleMapsKey
-                            );
+        const isDistanceBased = settings.deliveryConfig?.isDistanceBased === true;
 
-                            if (distances && distances.length > 0) {
-                                const maxDistance = Math.max(...distances);
-                                // Limit distance based calculation to a reasonable range (e.g. 50km)
-                                // If they are further, they probably shouldn't be ordering, but we'll cap it
-                                const billableDistance = Math.min(50, maxDistance);
-                                const extraKm = Math.max(0, billableDistance - config.baseDistance);
-                                let calculatedFee = Math.ceil(config.baseCharge + (extraKm * config.kmRate));
-                                
-                                // Absolute maximum cap for delivery fee to prevent crazy values
-                                const MAX_DELIVERY_FEE = 250; 
-                                estimatedDeliveryFee = Math.min(MAX_DELIVERY_FEE, calculatedFee);
-                                
-                                console.log(`[Delivery] Distance: ${maxDistance.toFixed(2)}km, Billable: ${billableDistance}km, Fee: ${calculatedFee}, Capped: ${estimatedDeliveryFee}`);
-                            }
-                        }
+        if (isDistanceBased && userLat !== null && userLng !== null) {
+            const config = settings.deliveryConfig;
+            
+            const sellers = await Seller.find({
+                _id: { $in: uniqueSellerIds.map(id => new mongoose.Types.ObjectId(id)) }
+            }).select('location latitude longitude storeName');
+
+            let totalFee = 0;
+
+            for (const seller of sellers) {
+                let lat, lng;
+                const loc = seller.location;
+                if (loc && loc.coordinates && loc.coordinates.length === 2) {
+                    lng = loc.coordinates[0];
+                    lat = loc.coordinates[1];
+                } else if (seller.latitude && seller.longitude) {
+                    lat = parseFloat(seller.latitude);
+                    lng = parseFloat(seller.longitude);
+                }
+
+                let sellerFee = config.baseCharge || 0;
+
+                if (lat && lng) {
+                    const distances = await getRoadDistances(
+                        [{ lat, lng }],
+                        { lat: userLat, lng: userLng },
+                        config.googleMapsKey
+                    );
+
+                    if (distances && distances.length > 0) {
+                        const distance = distances[0];
+                        const billableDistance = Math.min(50, distance);
+                        const extraKm = Math.max(0, billableDistance - config.baseDistance);
+                        sellerFee = Math.ceil(config.baseCharge + (extraKm * config.kmRate));
+                        console.log(`[Delivery] Seller: ${seller.storeName}, Distance: ${distance.toFixed(2)}km, Fee: ${sellerFee}`);
                     }
                 }
-            } else {
-                // Fixed charge
-                estimatedDeliveryFee = settings.deliveryCharges || 0;
+                totalFee += sellerFee;
             }
+
+            const MAX_DELIVERY_FEE = 500; // reasonable overall cap
+            estimatedDeliveryFee = Math.min(MAX_DELIVERY_FEE, totalFee);
+            console.log(`[Delivery] Cumulative Distance Fee for ${sellers.length} sellers: ${totalFee}, Capped: ${estimatedDeliveryFee}`);
+        } else {
+            // Fixed delivery charge per unique seller in the cart
+            const fixedChargePerSeller = settings.deliveryCharges || 0;
+            estimatedDeliveryFee = fixedChargePerSeller * uniqueSellerIds.length;
+            console.log(`[Delivery] Cumulative Fixed Fee for ${uniqueSellerIds.length} sellers: ${estimatedDeliveryFee}`);
         }
     } catch (err) {
         console.error("Error calculating delivery stuff:", err);

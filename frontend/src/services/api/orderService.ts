@@ -78,6 +78,8 @@ export interface OrderDetail {
   paymentMethod: string;
   paymentStatus: string;
   deliveryAddress: DeliveryAddress;
+  deliveryProofImage?: string;
+  deliveryProofTimestamp?: string;
 }
 
 export interface UpdateOrderStatusData {

@@ -74,6 +74,8 @@ export interface Order {
   orderType?: 'quick' | 'ecommerce';
   estimatedDeliveryDate?: string;
   deliveredAt?: string;
+  deliveryProofImage?: string;
+  deliveryProofTimestamp?: string;
   adminNotes?: string;
   customerNotes?: string;
   cancellationReason?: string;

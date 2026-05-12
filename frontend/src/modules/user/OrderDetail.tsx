@@ -1013,6 +1013,28 @@ export default function OrderDetail() {
               )}
             </div>
 
+            {/* Live Navigation Call to Action */}
+            {order.trackingId && (
+              <div className="bg-teal-50/50 border border-teal-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                <div>
+                  <p className="text-xs font-black text-teal-800 uppercase tracking-widest flex items-center gap-1.5">
+                    🌐 Live Delhivery Courier Tracking
+                  </p>
+                  <p className="text-[11px] text-teal-600 font-semibold mt-1">
+                    Your package is registered with Delhivery. Click to view live maps, local vehicle dispatch details, and precise delivery times on their official portal.
+                  </p>
+                </div>
+                <a
+                  href={`https://www.delhivery.com/track/package/${order.trackingId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-black uppercase tracking-wider text-center transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:shadow-teal-600/15 active:scale-95 shrink-0 font-bold"
+                >
+                  <span>Track Live Package ↗</span>
+                </a>
+              </div>
+            )}
+
             {/* Tracking History Timeline */}
             <div>
               <h4 className="text-sm font-bold text-neutral-800 mb-4 uppercase tracking-wider flex items-center gap-2">
@@ -1164,6 +1186,49 @@ export default function OrderDetail() {
           </span>
           <ChevronRightIcon className="w-5 h-5 text-gray-400" />
         </motion.button>
+
+        {/* Delivery Proof (POD) Card */}
+        {order.deliveryProofImage && (
+          <motion.div
+            className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-200/60 space-y-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📸</span>
+              <p className="font-extrabold text-neutral-900 text-sm sm:text-base">
+                Delivery Proof (POD)
+              </p>
+            </div>
+            <div className="relative group overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
+              <img 
+                src={order.deliveryProofImage} 
+                alt="Delivery Proof" 
+                className="w-full h-auto max-h-[220px] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://placehold.co/400x300?text=Delivery+Proof+Image';
+                }}
+              />
+            </div>
+            <div className="text-xs text-neutral-500 font-medium flex flex-col gap-1">
+              <span>Your package was delivered successfully with physical verification.</span>
+              {order.deliveryProofTimestamp && (
+                <span className="text-neutral-900 font-bold mt-1">
+                  ⏱️ Delivered: {new Date(order.deliveryProofTimestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </div>
+            <a 
+              href={order.deliveryProofImage} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-teal-600 hover:text-teal-700 font-bold inline-flex items-center gap-1.5 hover:underline"
+            >
+              View Full Resolution Image
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </a>
+          </motion.div>
+        )}
 
         {/* Delivery Details Banner */}
         <motion.div

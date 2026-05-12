@@ -17,6 +17,7 @@ export default function AdminOrderDetail() {
   const [labelLoading, setLabelLoading] = useState(false);
   const [trackingInfo, setTrackingInfo] = useState<any>(null);
   const [trackingLoading, setTrackingLoading] = useState(false);
+  const [simulating, setSimulating] = useState(false);
 
   // Real-time tracking hook for quick commerce
   const { 
@@ -103,6 +104,46 @@ export default function AdminOrderDetail() {
       console.error('Tracking error:', err);
     } finally {
       setTrackingLoading(false);
+    }
+  };
+  
+  // Simulate Courier Delivery Webhook callback
+  const handleSimulateWebhook = async () => {
+    if (!order || !order.trackingId) return;
+    if (!window.confirm('Simulate Delhivery webhook "Delivered" (DL) status callback? This will test the live system: updating order state to Delivered, settling funds, and sending notifications.')) return;
+    
+    setSimulating(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/webhook/courier`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          waybill: order.trackingId,
+          status: 'DL',
+          location: 'Delhivery Central Hub, Indore',
+          description: 'Package successfully delivered. Physical verification complete.',
+          status_time: new Date().toISOString(),
+          pod_image: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&q=80&w=600'
+        })
+      });
+
+      const resData = await response.json();
+      if (resData.success) {
+        alert('🎯 Webhook callback simulated successfully! Order updated to Delivered, seller wallet settled, and in-app notifications generated.');
+        // Re-fetch order
+        const responseDetail = await getOrderById(order._id);
+        if (responseDetail.success && responseDetail.data) {
+          setOrder(responseDetail.data);
+        }
+      } else {
+        alert('Failed to simulate webhook: ' + resData.message);
+      }
+    } catch (err: any) {
+      alert('Simulation error: ' + err.message);
+    } finally {
+      setSimulating(false);
     }
   };
 
@@ -379,6 +420,26 @@ export default function AdminOrderDetail() {
                       </div>
                     </div>
 
+                    {order.status !== 'Delivered' && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                        <div>
+                          <p className="text-xs font-black text-yellow-800 uppercase tracking-widest flex items-center gap-1.5">
+                            🔬 Sandbox Testing Desk
+                          </p>
+                          <p className="text-[11px] text-yellow-600 font-semibold mt-1">
+                            Simulate physical delivery callback to test settlement engines, balance credits & in-app updates.
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleSimulateWebhook}
+                          disabled={simulating}
+                          className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-1.5 shrink-0 shadow-md hover:shadow-lg hover:shadow-yellow-600/10 active:scale-95"
+                        >
+                          {simulating ? <RefreshCw className="animate-spin" size={13} /> : '🎯 Simulate Delivery'}
+                        </button>
+                      </div>
+                    )}
+
                     {trackingInfo && trackingInfo.ShipmentData && (
                       <div className="space-y-4">
                         <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
@@ -502,6 +563,43 @@ export default function AdminOrderDetail() {
               )}
             </div>
           </div>
+
+          {/* Delivery Proof (POD) */}
+          {order.deliveryProofImage && (
+            <div className="bg-white rounded-lg shadow p-6 border border-teal-100">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                📸 Delivery Proof (POD)
+              </h2>
+              <div className="space-y-4">
+                <div className="rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50 relative group">
+                  <img 
+                    src={order.deliveryProofImage} 
+                    alt="Delivery Proof" 
+                    className="w-full h-auto max-h-[180px] object-cover transition-transform duration-300 group-hover:scale-105"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://placehold.co/400x300?text=No+Proof+Image';
+                    }}
+                  />
+                </div>
+                <div className="text-xs text-neutral-500 space-y-1 font-semibold">
+                  <span>Handover verification successfully executed.</span>
+                  {order.deliveryProofTimestamp && (
+                    <p className="text-neutral-800 font-bold mt-1">
+                      ⏱️ Timestamp: {new Date(order.deliveryProofTimestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
+                </div>
+                <a 
+                  href={order.deliveryProofImage} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-teal-600 hover:text-teal-700 font-bold inline-flex items-center gap-1 hover:underline"
+                >
+                  View Full Resolution ↗
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -53,6 +53,9 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
   const [saleTextValue, setSaleTextValue] = useState(theme.saleText);
   const [dateRange, setDateRange] = useState("");
   const [crazyDealsTitle, setCrazyDealsTitle] = useState("CRAZY DEALS");
+  const [redirectUrl, setRedirectUrl] = useState("");
+  const [backgroundColor, setBackgroundColor] = useState("");
+  const [promoImage, setPromoImage] = useState("");
   const [subcategoryImagesMap, setSubcategoryImagesMap] = useState<Record<string, string[]>>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const snowflakesRef = useRef<HTMLDivElement>(null);
@@ -164,6 +167,11 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
               newDateRange = `${start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()} - ${end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}`;
             }
 
+            // Set new promotion strip settings
+            setRedirectUrl(promoStrip.redirectUrl || "");
+            setBackgroundColor(promoStrip.backgroundColor || "");
+            setPromoImage(promoStrip.image || "");
+
             // Map category cards from PromoStrip
             if (promoStrip.categoryCards && promoStrip.categoryCards.length > 0) {
               fetchedCards = promoStrip.categoryCards
@@ -272,6 +280,9 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
         // Reset CRAZY DEALS title if no PromoStrip data
         if (!response.data?.promoStrip || !response.data.promoStrip.isActive) {
           setCrazyDealsTitle("CRAZY DEALS");
+          setRedirectUrl("");
+          setBackgroundColor("");
+          setPromoImage("");
         }
         setHasData(fetchedCards.length > 0 || fetchedProducts.length > 0);
 
@@ -548,12 +559,25 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
 
   return (
     <div
-      className="relative"
+      className={`relative ${redirectUrl ? 'cursor-pointer hover:brightness-105 transition-all duration-300' : ''}`}
       style={{
-        background: `linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]}, ${theme.primary[3]}, ${theme.primary[3]})`,
+        background: promoImage 
+          ? `url(${promoImage}) center/cover no-repeat` 
+          : (backgroundColor 
+              ? backgroundColor 
+              : `linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]}, ${theme.primary[3]}, ${theme.primary[3]})`),
         paddingTop: "12px",
         paddingBottom: "0px",
         marginTop: 0,
+      }}
+      onClick={() => {
+        if (redirectUrl) {
+          if (redirectUrl.startsWith('http')) {
+            window.open(redirectUrl, '_blank');
+          } else {
+            navigate(redirectUrl);
+          }
+        }
       }}>
       {/* HOUSEFULL SALE Banner */}
       <div
@@ -853,6 +877,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                 <div key={card.id} className="promo-card">
                   <Link
                     to={card.slug || card.categoryId ? `/category/${card.slug || card.categoryId}` : "#"}
+                    onClick={(e) => e.stopPropagation()}
                     className="group rounded-lg transition-all duration-300 hover:shadow-md active:scale-[0.98] h-full flex flex-col overflow-hidden relative"
                     style={{
                       minHeight: "90px",

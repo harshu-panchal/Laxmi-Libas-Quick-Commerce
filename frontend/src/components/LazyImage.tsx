@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 interface LazyImageProps {
   src: string;
@@ -10,8 +10,8 @@ interface LazyImageProps {
 }
 
 /**
- * Optimized lazy loading image component
- * Only loads images when they're about to enter the viewport
+ * High-performance Progressive Lazy Loading Image component
+ * Uses native browser lazy-loading, async decoding, and CSS Shimmer placeholders
  */
 export default function LazyImage({
   src,
@@ -21,62 +21,56 @@ export default function LazyImage({
   onError,
   ...props
 }: LazyImageProps) {
-  const [imageSrc, setImageSrc] = useState<string | null>(placeholder || null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
 
+  // Reset loading states when src changes to support category/filter switching
   useEffect(() => {
-    if (!src) return;
-
-    // Use Intersection Observer for lazy loading
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            // Start loading the image
-            const img = new Image();
-            img.src = src;
-            img.onload = () => {
-              setImageSrc(src);
-              setIsLoaded(true);
-            };
-            img.onerror = () => {
-              setHasError(true);
-              // onError will be called by the img element's onError handler below
-            };
-            observer.disconnect();
-          }
-        });
-      },
-      {
-        rootMargin: '50px', // Start loading 50px before entering viewport
-      }
-    );
-
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [src, onError]);
+    setIsLoaded(false);
+    setHasError(false);
+  }, [src]);
 
   return (
-    <img
-      ref={imgRef}
-      src={imageSrc || placeholder || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"%3E%3C/svg%3E'}
-      alt={alt}
-      className={`${className} ${isLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
-      loading="lazy"
-      decoding="async"
-      onError={(e) => {
-        setHasError(true);
-        if (onError) onError(e);
-      }}
-      {...props}
-    />
+    <div className="relative w-full h-full overflow-hidden bg-neutral-100 flex items-center justify-center">
+      {/* Premium CSS Shimmer Skeleton State */}
+      {!isLoaded && !hasError && (
+        <div 
+          className="absolute inset-0 bg-gradient-to-r from-neutral-100 via-neutral-200 to-neutral-100 bg-[length:200%_100%]" 
+          style={{
+            animation: 'shimmer 1.5s infinite linear',
+          }}
+        />
+      )}
+
+      {/* Fallback Error Display */}
+      {hasError && (
+        <div className="absolute inset-0 bg-neutral-50 flex flex-col items-center justify-center p-2 text-center text-[10px] font-black text-neutral-400 uppercase tracking-wider">
+          ⚠️ Image Error
+        </div>
+      )}
+
+      <img
+        src={src || placeholder || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"%3E%3C/svg%3E'}
+        alt={alt}
+        className={`${className} ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'} transition-all duration-300 ease-out`}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setIsLoaded(true)}
+        onError={(e) => {
+          setHasError(true);
+          if (onError) onError(e);
+        }}
+        {...props}
+      />
+
+      {/* Embedded Shimmer Animation Keyframe */}
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+      `}</style>
+    </div>
   );
 }
 

@@ -71,6 +71,13 @@ export const handleCourierWebhook = asyncHandler(
             case 'DELIVERED':
                 systemStatus = 'Delivered';
                 order.paymentStatus = 'settled';
+                // Attach Delivery Proof image if sent by courier partner or webhook simulator
+                const podUrl = data.pod || data.pod_image || data.pod_url || data.image_url || data.podUrl;
+                if (podUrl) {
+                    order.deliveryProofImage = podUrl;
+                    order.deliveryProofTimestamp = data.status_time || new Date();
+                    console.log(`[Webhook] Captured Delivery Proof POD Image for order ${order.orderNumber}: ${podUrl}`);
+                }
                 break;
             case 'CAN':
             case 'CANCELLED':

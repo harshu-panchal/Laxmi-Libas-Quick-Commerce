@@ -710,7 +710,7 @@ export default function SellerOrderDetail() {
             </table>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2 mb-6">
+          <div className={`grid gap-6 ${orderDetail.deliveryProofImage ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} mb-6`}>
             <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
               <h3 className="text-sm font-semibold text-neutral-900 mb-3">Customer & Delivery</h3>
               <div className="space-y-2 text-sm text-neutral-700">
@@ -725,6 +725,42 @@ export default function SellerOrderDetail() {
                 <div><span className="font-medium">Delivery Boy:</span> {orderDetail.deliveryBoyName || 'Not assigned'}</div>
               </div>
             </div>
+
+            {orderDetail.deliveryProofImage && (
+              <div className="rounded-xl border border-teal-200 bg-teal-50/10 p-4">
+                <h3 className="text-sm font-semibold text-neutral-900 mb-3 flex items-center gap-1.5">
+                  📸 Delivery Proof (POD)
+                </h3>
+                <div className="space-y-3">
+                  <div className="rounded-lg overflow-hidden border border-neutral-200 bg-white relative group">
+                    <img 
+                      src={orderDetail.deliveryProofImage} 
+                      alt="Delivery Proof" 
+                      className="w-full h-auto max-h-[140px] object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://placehold.co/400x300?text=No+Proof+Image';
+                      }}
+                    />
+                  </div>
+                  <div className="text-xs text-neutral-500 font-semibold space-y-1">
+                    <span>Physical verification complete.</span>
+                    {orderDetail.deliveryProofTimestamp && (
+                      <p className="text-neutral-900 font-bold">
+                        ⏱️ Timestamp: {new Date(orderDetail.deliveryProofTimestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
+                  </div>
+                  <a 
+                    href={orderDetail.deliveryProofImage} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-teal-600 hover:text-teal-700 font-black inline-flex items-center gap-1 hover:underline"
+                  >
+                    View Full Image ↗
+                  </a>
+                </div>
+              </div>
+            )}
 
             <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
               <h3 className="text-sm font-semibold text-neutral-900 mb-3">Invoice Summary</h3>

@@ -65,6 +65,9 @@ export interface IProduct extends Document {
   rating: number;
   reviewsCount: number;
   discount: number; // Calculated percentage
+  discountType?: "percentage" | "flat" | "none";
+  discountValue?: number;
+  finalPrice?: number;
 
   returnPolicyText?: string;
 
@@ -136,7 +139,7 @@ export interface IProduct extends Document {
 
   type: "quick" | "ecommerce" | "both";
   isQuickEligible?: boolean;
-  deliveryType?: "quick" | "ecommerce";
+  deliveryType?: "quick" | "ecommerce" | "both";
   availablePincodes?: string[];
   courierAvailable?: boolean;
   city?: string;
@@ -348,6 +351,19 @@ const ProductSchema = new Schema<IProduct>(
     rating: { type: Number, default: 0, min: 0, max: 5 },
     reviewsCount: { type: Number, default: 0, min: 0 },
     discount: { type: Number, default: 0, min: 0, max: 100 },
+    discountType: {
+      type: String,
+      enum: ["percentage", "flat", "none"],
+      default: "none",
+    },
+    discountValue: {
+      type: Number,
+      default: 0,
+    },
+    finalPrice: {
+      type: Number,
+      default: 0,
+    },
 
     returnPolicyText: { type: String, trim: true },
 
@@ -446,7 +462,7 @@ const ProductSchema = new Schema<IProduct>(
     },
     deliveryType: {
       type: String,
-      enum: ["quick", "ecommerce"],
+      enum: ["quick", "ecommerce", "both"],
       default: "ecommerce",
     },
     availablePincodes: {
@@ -570,13 +586,39 @@ ProductSchema.pre("save", function (next) {
     };
   }
 
-  // Calculate discount
-  if (doc.compareAtPrice && doc.compareAtPrice > doc.price) {
-    doc.discount = Math.round(
-      ((doc.compareAtPrice - doc.price) / doc.compareAtPrice) * 100
-    );
+  // Calculate discount and finalPrice
+  let discountAmount = 0;
+  const basePrice = doc.price || 0;
+  const discountType = doc.discountType || "none";
+  const discountValue = doc.discountValue || 0;
+
+  if (discountType === "percentage" && discountValue > 0) {
+    discountAmount = Math.round(basePrice * (discountValue / 100));
+  } else if (discountType === "flat" && discountValue > 0) {
+    discountAmount = discountValue;
+  }
+
+  // Cap discountAmount to basePrice
+  if (discountAmount > basePrice) {
+    discountAmount = basePrice;
+  }
+
+  if (discountType !== "none" && discountValue > 0) {
+    doc.finalPrice = basePrice - discountAmount;
+    doc.compareAtPrice = basePrice; // Original price becomes strike-through (compareAtPrice)
+    doc.price = doc.finalPrice; // Update actual selling price to final price
+    doc.discPrice = doc.finalPrice; // Keep discPrice in sync
+    doc.discount = discountType === "percentage" ? discountValue : Math.round((discountAmount / basePrice) * 100);
   } else {
-    doc.discount = 0;
+    doc.finalPrice = doc.price;
+    doc.discPrice = doc.price;
+    if (doc.compareAtPrice && doc.compareAtPrice > doc.price) {
+      doc.discount = Math.round(
+        ((doc.compareAtPrice - doc.price) / doc.compareAtPrice) * 100
+      );
+    } else {
+      doc.discount = 0;
+    }
   }
 
   // Auto-disable if out of stock

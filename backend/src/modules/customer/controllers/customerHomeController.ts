@@ -718,6 +718,7 @@ export const getStoreProducts = async (req: Request, res: Response) => {
     console.log(`[getStoreProducts] Shop found:`, shop ? { name: shop.name, productsCount: shop.products?.length || 0, category: shop.category, image: shop.image } : 'NOT FOUND');
 
     let shopData: any = null;
+    let isSellerStore = false;
 
     if (shop) {
       shopData = {
@@ -775,28 +776,69 @@ export const getStoreProducts = async (req: Request, res: Response) => {
         }
       }
     } else {
-      // Fallback: try to match by category name (legacy support)
-      const categoryId = await getCategoryIdByName(storeId);
-      if (categoryId) {
-        query.category = categoryId;
-        // Try to get category details for shop data
-        const category = await Category.findById(categoryId).select("name slug image").lean();
-        if (category) {
-          shopData = {
-            name: category.name,
-            image: category.image || '',
-            description: '',
-            category: category,
-          };
-        }
-      } else {
-        // No matching shop or category found
-        return res.status(200).json({
-          success: true,
-          data: [],
-          shop: null,
-          message: "Store not found"
+      // Not a campaign shop. Check if it's a Seller Storefront
+      let sellerDoc: any = null;
+      if (mongoose.Types.ObjectId.isValid(storeId)) {
+        sellerDoc = await Seller.findById(storeId).lean();
+      }
+
+      if (!sellerDoc) {
+        // Match by slugified storeName
+        const sellers = await Seller.find({ status: "Approved" }).lean();
+        sellerDoc = sellers.find(s => {
+          const slugified = s.storeName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+          return slugified === storeId.toLowerCase();
         });
+      }
+
+      if (sellerDoc) {
+        isSellerStore = true;
+        console.log(`[getStoreProducts] Found seller store: ${sellerDoc.storeName}`);
+
+        shopData = {
+          name: sellerDoc.storeName,
+          image: sellerDoc.storeBanner || sellerDoc.logo || '',
+          description: sellerDoc.storeDescription || 'Premier seller storefront',
+          rating: 4.8, // Elite default storefront rating
+          city: sellerDoc.city || '',
+          deliveryType: sellerDoc.businessTypes?.includes('commerce') ? 'Same-City Delivery' : 'Standard Shipping',
+          isSellerStore: true,
+          sellerId: sellerDoc._id.toString()
+        };
+
+        // For direct seller store, show all approved/published products belonging to this seller
+        query = {
+          status: "Active",
+          publish: true,
+          $or: [
+            { seller: sellerDoc._id },
+            { sellerId: sellerDoc._id }
+          ]
+        };
+      } else {
+        // Fallback: try to match by category name (legacy support)
+        const categoryId = await getCategoryIdByName(storeId);
+        if (categoryId) {
+          query.category = categoryId;
+          // Try to get category details for shop data
+          const category = await Category.findById(categoryId).select("name slug image").lean();
+          if (category) {
+            shopData = {
+              name: category.name,
+              image: category.image || '',
+              description: '',
+              category: category,
+            };
+          }
+        } else {
+          // No matching shop, seller, or category found
+          return res.status(200).json({
+            success: true,
+            data: [],
+            shop: null,
+            message: "Store not found"
+          });
+        }
       }
     }
 
@@ -806,7 +848,10 @@ export const getStoreProducts = async (req: Request, res: Response) => {
 
     console.log(`[getStoreProducts] User location: lat=${userLat}, lng=${userLng}`);
 
-    if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
+    if (isSellerStore) {
+      // Bound to a single explicit seller storefront, skip nearby seller checks
+      console.log(`[getStoreProducts] Seller storefront loaded directly.`);
+    } else if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
       const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
       console.log(`[getStoreProducts] Found ${nearbySellerIds.length} sellers within range`);
 

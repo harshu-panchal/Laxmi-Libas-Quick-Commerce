@@ -110,14 +110,55 @@ export const getCategoriesWithSubs = async (_req: Request, res: Response) => {
 
     categoriesWithSubs = await Promise.all(
       categories.map(async (category) => {
-        const subcategories = await SubCategory.find({
-          category: category._id,
+        // Query Category model for hierarchical subcategories
+        const catSubs = await Category.find({
+          parentId: { $in: [category._id, category._id.toString()] },
+          status: "Active"
         })
           .sort({ order: 1 })
-          .select("name image order");
+          .select("name image order slug");
+
+        // Query old SubCategory model for legacy subcategories
+        const oldSubs = await SubCategory.find({
+          category: { $in: [category._id, category._id.toString()] },
+        })
+          .sort({ order: 1 })
+          .select("name image order slug");
+
+        // Format and combine
+        const combinedSubs = [
+          ...catSubs.map(sub => ({
+            _id: sub._id,
+            id: sub._id,
+            name: sub.name,
+            slug: sub.slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+            image: sub.image || "",
+            order: sub.order || 0
+          })),
+          ...oldSubs.map(sub => ({
+            _id: sub._id,
+            id: sub._id,
+            name: sub.name,
+            slug: (sub as any).slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+            image: sub.image || "",
+            order: sub.order || 0
+          }))
+        ];
+
+        // Deduplicate combined list by _id
+        const seenSubs = new Set<string>();
+        const uniqueSubs = combinedSubs.filter(sub => {
+          const idStr = sub._id.toString();
+          if (seenSubs.has(idStr)) return false;
+          seenSubs.add(idStr);
+          return true;
+        });
+
+        // Sort by order
+        uniqueSubs.sort((a, b) => a.order - b.order);
 
         // Keep only subcategories that have at least one product
-        const filteredSubs = subcategories.filter((sub) =>
+        const filteredSubs = uniqueSubs.filter((sub) =>
           subcategoryCountMap.has(sub._id.toString())
         );
 
@@ -270,23 +311,66 @@ export const getCategoryById = async (req: Request, res: Response) => {
         }
     }
 
-    // Query for BOTH ObjectId and String representation to be safe against legacy data references
-    // Use Category model to find subcategories (children) instead of separate SubCategory model
-    // Using parentId to find children
-    const subcategories = await Category.find({
+    // Query Category model for hierarchical subcategories (children)
+    const categorySubcategories = await Category.find({
       parentId: { $in: [catId, catId.toString()] },
       status: "Active"
     })
       .select("name image order slug icon")
       .sort({
         order: 1,
-      });
+      })
+      .lean();
 
-    console.log(`[getCategoryById] Found ${subcategories.length} subcategories for ${category.name}`);
+    // Query SubCategory model for legacy subcategories
+    const oldSubcategories = await SubCategory.find({
+      category: { $in: [catId, catId.toString()] }
+    })
+      .select("name image order slug")
+      .sort({
+        order: 1,
+      })
+      .lean();
+
+    // Combine and format consistently
+    const combined = [
+      ...categorySubcategories.map(cat => ({
+        _id: cat._id,
+        id: cat._id,
+        name: cat.name,
+        slug: cat.slug || cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        image: cat.image || "",
+        order: cat.order || 0,
+        icon: (cat as any).icon || ""
+      })),
+      ...oldSubcategories.map(sub => ({
+        _id: sub._id,
+        id: sub._id,
+        name: sub.name,
+        slug: (sub as any).slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        image: sub.image || "",
+        order: sub.order || 0,
+        icon: ""
+      }))
+    ];
+
+    // Deduplicate by _id
+    const seenSubs = new Set<string>();
+    const subcategoriesMerged = combined.filter(sub => {
+      const idStr = sub._id.toString();
+      if (seenSubs.has(idStr)) return false;
+      seenSubs.add(idStr);
+      return true;
+    });
+
+    // Sort by order
+    subcategoriesMerged.sort((a, b) => a.order - b.order);
+
+    console.log(`[getCategoryById] Found ${subcategoriesMerged.length} subcategories for ${category.name}`);
 
     const responseData = {
       category,
-      subcategories,
+      subcategories: subcategoriesMerged,
       currentSubcategory: null,
     };
 

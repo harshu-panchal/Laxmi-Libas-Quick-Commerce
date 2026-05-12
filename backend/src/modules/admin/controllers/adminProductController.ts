@@ -618,6 +618,11 @@ export const createSubCategory = asyncHandler(
       $inc: { totalSubcategories: 1 },
     });
 
+    // Invalidate category caches
+    cache.delete("customer-categories-list");
+    cache.delete("customer-categories-tree");
+    cache.invalidatePattern(/^customer-category-/);
+
     return res.status(201).json({
       success: true,
       message: "Subcategory created successfully",
@@ -690,6 +695,11 @@ export const updateSubCategory = asyncHandler(
       });
     }
 
+    // Invalidate category caches
+    cache.delete("customer-categories-list");
+    cache.delete("customer-categories-tree");
+    cache.invalidatePattern(/^customer-category-/);
+
     return res.status(200).json({
       success: true,
       message: "Subcategory updated successfully",
@@ -727,6 +737,11 @@ export const deleteSubCategory = asyncHandler(
     await Category.findByIdAndUpdate(subcategory.category, {
       $inc: { totalSubcategories: -1 },
     });
+
+    // Invalidate category caches
+    cache.delete("customer-categories-list");
+    cache.delete("customer-categories-tree");
+    cache.invalidatePattern(/^customer-category-/);
 
     return res.status(200).json({
       success: true,

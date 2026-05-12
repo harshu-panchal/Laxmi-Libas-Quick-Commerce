@@ -128,7 +128,7 @@ export const getOrderById = asyncHandler(
 export const updateOrderStatus = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { status, adminNotes } = req.body;
+    const { status, adminNotes, deliveryProofImage } = req.body;
 
     const validStatuses = [
       "Received",
@@ -155,6 +155,10 @@ export const updateOrderStatus = asyncHandler(
 
     if (status === "Delivered") {
       updateData.deliveredAt = new Date();
+      if (deliveryProofImage) {
+        updateData.deliveryProofImage = deliveryProofImage;
+        updateData.deliveryProofTimestamp = new Date();
+      }
     }
 
     if (status === "Cancelled") {

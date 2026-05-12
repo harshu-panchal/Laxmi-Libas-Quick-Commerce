@@ -61,6 +61,8 @@ export default function SellerAddProduct() {
     price: "0",
     discPrice: "0",
     stock: "0",
+    discountType: "none",
+    discount: "0",
     variationType: "",
     manufacturer: "",
     madeIn: "",
@@ -238,6 +240,8 @@ export default function SellerAddProduct() {
               price: product.price?.toString() || "0",
               discPrice: product.discPrice?.toString() || "0",
               stock: product.stock?.toString() || "0",
+              discountType: product.discountType || "none",
+              discount: product.discountValue?.toString() || product.discount?.toString() || "0",
               variationType: product.variationType || "",
               manufacturer: product.manufacturer || "",
               madeIn: product.madeIn || "",
@@ -731,8 +735,13 @@ export default function SellerAddProduct() {
           .filter(Boolean)
         : [];
 
+      // Destructure deliveryType to avoid sending "both" under deliveryType field,
+      // which is restricted to ["quick", "ecommerce"] in backend mongoose schema.
+      // The backend expects delivery selection to be passed via "type" property.
+      const { deliveryType: formDeliveryType, ...cleanFormData } = formData;
+
       const productData = {
-        ...formData,
+        ...cleanFormData,
         productName: formData.productName,
         headerCategoryId: formData.headerCategory || undefined,
         categoryId: formData.category || undefined,
@@ -762,6 +771,9 @@ export default function SellerAddProduct() {
         price: parseFloat(formData.price || "0"),
         discPrice: parseFloat(formData.discPrice || "0"),
         stock: parseInt(formData.stock || "0"),
+        discountType: formData.discountType,
+        discount: parseFloat(formData.discount || "0"),
+        discountValue: parseFloat(formData.discount || "0"),
         isShopByStoreOnly: formData.isShopByStoreOnly === "Yes",
         shopId: formData.isShopByStoreOnly === "Yes" && formData.shopId ? formData.shopId : undefined,
         productVideoUrl: productVideoUrl || undefined,
@@ -847,6 +859,8 @@ export default function SellerAddProduct() {
               price: "0",
               discPrice: "0",
               stock: "0",
+              discountType: "none",
+              discount: "0",
               variationType: "",
               manufacturer: "",
               madeIn: "",
@@ -1145,10 +1159,10 @@ export default function SellerAddProduct() {
                 <h2 className="text-lg font-semibold">Price & Stock</h2>
               </div>
               <div className="p-4 sm:p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-neutral-50 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-neutral-50 rounded-lg">
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Base Price (₹) *
+                      Original Base Price (₹) *
                     </label>
                     <input
                       type="number"
@@ -1162,15 +1176,30 @@ export default function SellerAddProduct() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Base Discounted Price (₹)
+                      Discount Type
+                    </label>
+                    <select
+                      name="discountType"
+                      value={formData.discountType}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+                      <option value="none">No Discount</option>
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="flat">Flat Amount (₹)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Discount Value
                     </label>
                     <input
                       type="number"
-                      name="discPrice"
-                      value={formData.discPrice}
+                      name="discount"
+                      value={formData.discount}
                       onChange={handleChange}
-                      placeholder="80"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      placeholder="20"
+                      disabled={formData.discountType === "none"}
+                      className={`w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${formData.discountType === "none" ? "bg-neutral-100 cursor-not-allowed text-neutral-400" : ""}`}
                     />
                   </div>
                   <div>
@@ -1187,6 +1216,24 @@ export default function SellerAddProduct() {
                     />
                   </div>
                 </div>
+
+                {formData.discountType !== "none" && (
+                  <div className="p-3 bg-teal-50 border border-teal-200 text-teal-800 rounded-lg text-sm font-medium flex items-center justify-between">
+                    <span>Computed Final Selling Price:</span>
+                    <span className="text-base font-bold">
+                      ₹{(() => {
+                        const priceNum = parseFloat(formData.price) || 0;
+                        const discVal = parseFloat(formData.discount) || 0;
+                        if (formData.discountType === "percentage") {
+                          return Math.max(0, priceNum - Math.round(priceNum * (discVal / 100)));
+                        } else if (formData.discountType === "flat") {
+                          return Math.max(0, priceNum - discVal);
+                        }
+                        return priceNum;
+                      })()}
+                    </span>
+                  </div>
+                )}
 
                 {/* Variations Section */}
                 <div className="mt-8 pt-6 border-t border-neutral-100">

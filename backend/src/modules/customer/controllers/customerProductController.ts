@@ -8,6 +8,88 @@ import mongoose from "mongoose";
 import { normalizeCity, calculateDistance, getDeliveryTypeByDistance } from "../../../utils/locationUtils";
 // import { findSellersWithinRange } from "../../../utils/locationHelper";
 
+/**
+ * Helper to manually populate the subcategory field for products.
+ * If the product's subcategory ID refers to a Category document (with parentId)
+ * or a SubCategory document, we fetch the correct name/slug and standardise the field.
+ */
+const populateProductsSubcategory = async (products: any[]) => {
+  if (!products || products.length === 0) return products;
+
+  // Gather unique non-empty subcategory IDs
+  const subcategoryIdsToResolve = new Set<string>();
+  products.forEach((product) => {
+    const subcat = product.subcategory || product.subCategoryId;
+    if (subcat) {
+      if (typeof subcat === "string") {
+        if (mongoose.Types.ObjectId.isValid(subcat)) {
+          subcategoryIdsToResolve.add(subcat);
+        }
+      } else if (subcat instanceof mongoose.Types.ObjectId) {
+        subcategoryIdsToResolve.add(subcat.toString());
+      } else if (typeof subcat === "object") {
+        const idVal = subcat._id || subcat.id;
+        if (idVal) {
+          subcategoryIdsToResolve.add(idVal.toString());
+        }
+      }
+    }
+  });
+
+  if (subcategoryIdsToResolve.size === 0) return products;
+
+  const objectIds = Array.from(subcategoryIdsToResolve).map(id => new mongoose.Types.ObjectId(id));
+
+  // Find matches in both Category and SubCategory models
+  const [resolvedCats, resolvedSubs] = await Promise.all([
+    Category.find({ _id: { $in: objectIds } }).select("_id name slug").lean(),
+    SubCategory.find({ _id: { $in: objectIds } }).select("_id name").lean()
+  ]);
+
+  const subcategoryMap = new Map<string, { _id: any; name: string; slug: string }>();
+
+  resolvedCats.forEach((cat) => {
+    subcategoryMap.set(cat._id.toString(), {
+      _id: cat._id,
+      name: cat.name,
+      slug: cat.slug || cat.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    });
+  });
+
+  resolvedSubs.forEach((sub) => {
+    if (!subcategoryMap.has(sub._id.toString())) {
+      subcategoryMap.set(sub._id.toString(), {
+        _id: sub._id,
+        name: sub.name,
+        slug: (sub as any).slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      });
+    }
+  });
+
+  // Attach resolved subcategories
+  products.forEach((product) => {
+    const subcat = product.subcategory || product.subCategoryId;
+    if (subcat) {
+      let subcatIdStr = "";
+      if (typeof subcat === "string") {
+        subcatIdStr = subcat;
+      } else if (subcat instanceof mongoose.Types.ObjectId) {
+        subcatIdStr = subcat.toString();
+      } else if (typeof subcat === "object") {
+        subcatIdStr = (subcat._id || subcat.id || "").toString();
+      }
+
+      if (subcategoryMap.has(subcatIdStr)) {
+        const resolved = subcategoryMap.get(subcatIdStr)!;
+        product.subcategory = resolved;
+        product.subCategoryId = resolved;
+      }
+    }
+  });
+
+  return products;
+};
+
 // Get products with hybrid filtering (Smart Decision Engine)
 export const getProducts = async (req: Request, res: Response) => {
   try {
@@ -23,7 +105,9 @@ export const getProducts = async (req: Request, res: Response) => {
       city: userCityParam,
       search,
       limit = 20,
-      page = 1
+      page = 1,
+      sortBy,
+      sort: sortParam
     } = req.query;
 
     const limitNum = Number(limit);
@@ -37,35 +121,69 @@ export const getProducts = async (req: Request, res: Response) => {
     // ── Base query for active, published, approved-seller products (Laxmart shows both types of products) ──
     const baseQuery: any = { status: 'Active', publish: true };
     
+    const andConditions: any[] = [];
+    
     // Use categoryId (legacy) or category parameter with robust ObjectId/Slug resolution
     const activeCategoryId = categoryId || categoryParam;
     if (activeCategoryId) {
+      let resolvedCatIds: mongoose.Types.ObjectId[] = [];
       if (mongoose.Types.ObjectId.isValid(activeCategoryId as string)) {
-        baseQuery.category = new mongoose.Types.ObjectId(activeCategoryId as string);
+        resolvedCatIds = [new mongoose.Types.ObjectId(activeCategoryId as string)];
       } else {
         const resolvedCat = await Category.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
         if (resolvedCat) {
-          baseQuery.category = resolvedCat._id;
+          resolvedCatIds = [resolvedCat._id as mongoose.Types.ObjectId];
         } else {
           const resolvedHeader = await HeaderCategory.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
           if (resolvedHeader) {
             const categoriesInHeader = await Category.find({ headerCategoryId: resolvedHeader._id }).select('_id');
-            baseQuery.category = { $in: categoriesInHeader.map(c => c._id) };
+            resolvedCatIds = categoriesInHeader.map(c => c._id as mongoose.Types.ObjectId);
           }
         }
       }
+
+      if (resolvedCatIds.length > 0) {
+        andConditions.push({
+          $or: [
+            { category: { $in: resolvedCatIds } },
+            { categoryId: { $in: resolvedCatIds } }
+          ]
+        });
+      }
     }
-    
+
     // Handle subcategory filtering with robust ObjectId/Slug resolution
     if (subcategoryParam) {
+      let resolvedSubId: mongoose.Types.ObjectId | null = null;
       if (mongoose.Types.ObjectId.isValid(subcategoryParam as string)) {
-        baseQuery.subcategory = new mongoose.Types.ObjectId(subcategoryParam as string);
+        resolvedSubId = new mongoose.Types.ObjectId(subcategoryParam as string);
       } else {
-        const resolvedSub = await SubCategory.findOne({ slug: (subcategoryParam as string).toLowerCase().trim() }).select('_id');
+        const slugStr = (subcategoryParam as string).toLowerCase().trim();
+        // Try finding in SubCategory first
+        const resolvedSub = await SubCategory.findOne({ slug: slugStr }).select('_id');
         if (resolvedSub) {
-          baseQuery.subcategory = resolvedSub._id;
+          resolvedSubId = resolvedSub._id as mongoose.Types.ObjectId;
+        } else {
+          // Try finding in Category (hierarchical subcategory)
+          const resolvedCatSub = await Category.findOne({ slug: slugStr, parentId: { $ne: null } }).select('_id');
+          if (resolvedCatSub) {
+            resolvedSubId = resolvedCatSub._id as mongoose.Types.ObjectId;
+          }
         }
       }
+
+      if (resolvedSubId) {
+        andConditions.push({
+          $or: [
+            { subcategory: resolvedSubId },
+            { subCategoryId: resolvedSubId }
+          ]
+        });
+      }
+    }
+
+    if (andConditions.length > 0) {
+      baseQuery.$and = andConditions;
     }
 
     // Support text-based full text searches if provided
@@ -73,7 +191,17 @@ export const getProducts = async (req: Request, res: Response) => {
       baseQuery.$text = { $search: String(search).trim() };
     }
 
-    const sort = search ? { score: { $meta: "textScore" } } : { createdAt: -1 };
+    let sort: any = { createdAt: -1 };
+    const activeSort = sortBy || sortParam;
+    if (activeSort === 'lowestPrice' || activeSort === 'price_asc' || activeSort === 'priceAsc') {
+      sort = { finalPrice: 1 };
+    } else if (activeSort === 'highestPrice' || activeSort === 'price_desc' || activeSort === 'priceDesc') {
+      sort = { finalPrice: -1 };
+    } else if (activeSort === 'newest') {
+      sort = { createdAt: -1 };
+    } else if (search && String(search).trim()) {
+      sort = { score: { $meta: "textScore" } };
+    }
 
     // ── Fetch Quick (location-based) products ───────────────────────────────
     let quickProducts: any[] = [];
@@ -186,7 +314,7 @@ export const getProducts = async (req: Request, res: Response) => {
         const userCity = userCityParam ? normalizeCity(userCityParam as string) : '';
         
         let deliveryInfo = { 
-          type: 'standard' as const, 
+          type: 'standard' as string, 
           label: 'Standard Delivery', 
           time: '3-5 days' 
         };
@@ -222,7 +350,10 @@ export const getProducts = async (req: Request, res: Response) => {
         };
       });
 
-    return res.status(200).json({ success: true, data: hybridProducts });
+    // Manually populate subcategories to support both Category & SubCategory models
+    const populatedHybridProducts = await populateProductsSubcategory(hybridProducts);
+
+    return res.status(200).json({ success: true, data: populatedHybridProducts });
 
   } catch (error: any) {
     console.error('[getProducts] Decision Engine ERROR:', error.message);
@@ -385,11 +516,18 @@ export const getProductById = async (req: Request, res: Response) => {
       }).select("productName mainImage color _id");
     }
 
+    const productObj = product.toObject();
+    const similarProductsObj = similarProducts.map(p => p.toObject());
+    
+    // Populate subcategories manually
+    await populateProductsSubcategory([productObj]);
+    await populateProductsSubcategory(similarProductsObj);
+
     return res.status(200).json({
       success: true,
       data: {
-        ...product.toObject(),
-        similarProducts,
+        ...productObj,
+        similarProducts: similarProductsObj,
         colorVariations, // Include color variations for the thumbnails UI
         isAvailableAtLocation, // Add availability flag to response
       },
@@ -422,7 +560,9 @@ export const getQuickProducts = async (req: Request, res: Response) => {
       city: userCityParam,
       search,
       limit = 20,
-      page = 1
+      page = 1,
+      sortBy,
+      sort: sortParam
     } = req.query;
 
     const limitNum = Number(limit);
@@ -432,7 +572,7 @@ export const getQuickProducts = async (req: Request, res: Response) => {
     const query: any = { 
       status: 'Active', 
       publish: true,
-      type: 'quick'
+      type: { $in: ['quick', 'both'] }
     };
 
     // Filter by Header Category (e.g. from top tabs)
@@ -461,34 +601,66 @@ export const getQuickProducts = async (req: Request, res: Response) => {
       }
     }
 
+    const quickAndConditions: any[] = [];
+
     // Category / Subcategory with robust Slug/ObjectId resolution
     const activeCategoryId = categoryId || categoryParam;
     if (activeCategoryId) {
+      let resolvedCatIds: mongoose.Types.ObjectId[] = [];
       if (mongoose.Types.ObjectId.isValid(activeCategoryId as string)) {
-        query.category = new mongoose.Types.ObjectId(activeCategoryId as string);
+        resolvedCatIds = [new mongoose.Types.ObjectId(activeCategoryId as string)];
       } else {
         const resolvedCat = await Category.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
         if (resolvedCat) {
-          query.category = resolvedCat._id;
+          resolvedCatIds = [resolvedCat._id as mongoose.Types.ObjectId];
         } else {
           const resolvedHeader = await HeaderCategory.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
           if (resolvedHeader) {
             const categoriesInHeader = await Category.find({ headerCategoryId: resolvedHeader._id }).select('_id');
-            query.category = { $in: categoriesInHeader.map(c => c._id) };
+            resolvedCatIds = categoriesInHeader.map(c => c._id as mongoose.Types.ObjectId);
           }
         }
+      }
+
+      if (resolvedCatIds.length > 0) {
+        quickAndConditions.push({
+          $or: [
+            { category: { $in: resolvedCatIds } },
+            { categoryId: { $in: resolvedCatIds } }
+          ]
+        });
       }
     }
     
     if (subcategoryParam) {
+      let resolvedSubId: mongoose.Types.ObjectId | null = null;
       if (mongoose.Types.ObjectId.isValid(subcategoryParam as string)) {
-        query.subcategory = new mongoose.Types.ObjectId(subcategoryParam as string);
+        resolvedSubId = new mongoose.Types.ObjectId(subcategoryParam as string);
       } else {
-        const resolvedSub = await SubCategory.findOne({ slug: (subcategoryParam as string).toLowerCase().trim() }).select('_id');
+        const slugStr = (subcategoryParam as string).toLowerCase().trim();
+        const resolvedSub = await SubCategory.findOne({ slug: slugStr }).select('_id');
         if (resolvedSub) {
-          query.subcategory = resolvedSub._id;
+          resolvedSubId = resolvedSub._id as mongoose.Types.ObjectId;
+        } else {
+          const resolvedCatSub = await Category.findOne({ slug: slugStr, parentId: { $ne: null } }).select('_id');
+          if (resolvedCatSub) {
+            resolvedSubId = resolvedCatSub._id as mongoose.Types.ObjectId;
+          }
         }
       }
+
+      if (resolvedSubId) {
+        quickAndConditions.push({
+          $or: [
+            { subcategory: resolvedSubId },
+            { subCategoryId: resolvedSubId }
+          ]
+        });
+      }
+    }
+
+    if (quickAndConditions.length > 0) {
+      query.$and = quickAndConditions;
     }
 
     // Text search if search query is provided
@@ -496,7 +668,7 @@ export const getQuickProducts = async (req: Request, res: Response) => {
       query.$text = { $search: String(search).trim() };
     }
 
-    // Filter by same-city sellers with robust global fallback
+    // Filter strictly by same-city sellers (only show products from sellers matching the user's city)
     const userCity = userCityParam ? normalizeCity(userCityParam as string) : "";
     if (userCity) {
       const sellersInCity = await Seller.find({ 
@@ -504,23 +676,26 @@ export const getQuickProducts = async (req: Request, res: Response) => {
         status: 'Approved' 
       }).select('_id');
       
-      if (sellersInCity.length > 0) {
-        const sellerIds = sellersInCity.map(s => s._id);
-        query.seller = { $in: sellerIds };
-        console.log(`[getQuickProducts] Found ${sellerIds.length} sellers in user city "${userCity}":`, sellerIds);
-      } else {
-        // Fallback globally if no sellers are approved in the user's city
-        console.log(`[getQuickProducts] No sellers found in city "${userCity}". Falling back to global approved sellers.`);
-        const approvedSellers = await Seller.find({ status: 'Approved' }).select('_id');
-        query.seller = { $in: approvedSellers.map(s => s._id) };
-      }
+      const sellerIds = sellersInCity.map(s => s._id);
+      query.seller = { $in: sellerIds };
+      console.log(`[getQuickProducts] Strictly restricting to ${sellerIds.length} sellers in user city "${userCity}":`, sellerIds);
     } else {
       // If city is not provided, find approved sellers globally
       const approvedSellers = await Seller.find({ status: 'Approved' }).select('_id');
       query.seller = { $in: approvedSellers.map(s => s._id) };
     }
 
-    const sort = search ? { score: { $meta: "textScore" } } : { createdAt: -1 };
+    let sort: any = { createdAt: -1 };
+    const activeSort = sortBy || sortParam;
+    if (activeSort === 'lowestPrice' || activeSort === 'price_asc' || activeSort === 'priceAsc') {
+      sort = { finalPrice: 1 };
+    } else if (activeSort === 'highestPrice' || activeSort === 'price_desc' || activeSort === 'priceDesc') {
+      sort = { finalPrice: -1 };
+    } else if (activeSort === 'newest') {
+      sort = { createdAt: -1 };
+    } else if (search && String(search).trim()) {
+      sort = { score: { $meta: "textScore" } };
+    }
 
     const [products, total] = await Promise.all([
       Product.find(query)
@@ -577,10 +752,13 @@ export const getQuickProducts = async (req: Request, res: Response) => {
       return 0;
     });
 
+    // Manually populate subcategories to support both Category & SubCategory models
+    const populatedFormattedProducts = await populateProductsSubcategory(formattedProducts);
+
     return res.status(200).json({
       success: true,
       message: "Quick products retrieved successfully",
-      data: formattedProducts,
+      data: populatedFormattedProducts,
       pagination: {
         page: Number(page),
         limit: limitNum,
