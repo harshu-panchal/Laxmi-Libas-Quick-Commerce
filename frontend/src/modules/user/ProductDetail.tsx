@@ -431,41 +431,34 @@ export default function ProductDetail() {
   };
 
   const renderDeliveryBadge = () => {
-    const productType = product?.type || product?.deliveryType;
+    const productType = product?.deliveryType || product?.type;
 
-    // 1. If product is explicitly ecommerce-only, it can never be quick delivery
-    if (productType === "ecommerce") {
+    if (productType === "ecommerce" || productType === "e-comm") {
       return (
-        <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg">
+        <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg">
           <span className="text-lg">🚚</span>
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider leading-none">
+            <span className="text-[10px] font-bold text-indigo-800 uppercase tracking-wider leading-none">
               Standard
             </span>
-            <span className="text-xs font-bold text-blue-900">
-              Courier Delivery
+            <span className="text-xs font-bold text-indigo-900">
+              E-Comm Delivery
             </span>
           </div>
         </div>
       );
     }
 
-    // 2. Otherwise (quick or both), check city match for quick delivery
-    if (!location?.city || !product?.seller?.city) return null;
-
-    const normalize = (c: string) => c.toLowerCase().trim().replace(/\s+/g, "");
-    const isQuick = normalize(location.city) === normalize(product.seller.city);
-
-    if (isQuick) {
+    if (productType === "both") {
       return (
-        <div className="flex items-center gap-1.5 bg-yellow-50 border border-yellow-100 px-2.5 py-1 rounded-lg">
+        <div className="flex items-center gap-1.5 bg-purple-50 border border-purple-100 px-2.5 py-1 rounded-lg">
           <span className="text-lg">⚡</span>
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-yellow-800 uppercase tracking-wider leading-none">
-              In your city
+            <span className="text-[10px] font-bold text-purple-800 uppercase tracking-wider leading-none">
+              Available
             </span>
-            <span className="text-xs font-bold text-yellow-900">
-              Quick Delivery
+            <span className="text-xs font-bold text-purple-900">
+              Quick & E-Comm
             </span>
           </div>
         </div>
@@ -473,14 +466,14 @@ export default function ProductDetail() {
     }
 
     return (
-      <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg">
-        <span className="text-lg">🚚</span>
+      <div className="flex items-center gap-1.5 bg-yellow-50 border border-yellow-100 px-2.5 py-1 rounded-lg">
+        <span className="text-lg">⚡</span>
         <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider leading-none">
-            Standard
+          <span className="text-[10px] font-bold text-yellow-800 uppercase tracking-wider leading-none">
+            In your city
           </span>
-          <span className="text-xs font-bold text-blue-900">
-            Courier Delivery
+          <span className="text-xs font-bold text-yellow-900">
+            Quick Delivery
           </span>
         </div>
       </div>

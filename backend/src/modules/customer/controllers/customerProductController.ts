@@ -128,13 +128,28 @@ export const getProducts = async (req: Request, res: Response) => {
     if (activeCategoryId) {
       let resolvedCatIds: mongoose.Types.ObjectId[] = [];
       if (mongoose.Types.ObjectId.isValid(activeCategoryId as string)) {
-        const parentId = new mongoose.Types.ObjectId(activeCategoryId as string);
-        resolvedCatIds = [parentId];
+        const objectId = new mongoose.Types.ObjectId(activeCategoryId as string);
+        const headerCat = await HeaderCategory.findById(objectId).select('_id');
         
-        // Find all subcategories (child categories) for this parent category
-        const childCats = await Category.find({ parentId }).select('_id');
-        if (childCats.length > 0) {
-          resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+        if (headerCat) {
+          // It's a HeaderCategory ID! Find all child Categories.
+          const categoriesInHeader = await Category.find({ headerCategoryId: headerCat._id }).select('_id');
+          const catIds = categoriesInHeader.map(c => c._id as mongoose.Types.ObjectId);
+          resolvedCatIds = [...catIds];
+          
+          if (catIds.length > 0) {
+            const childCats = await Category.find({ parentId: { $in: catIds } }).select('_id');
+            if (childCats.length > 0) {
+              resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+            }
+          }
+        } else {
+          // Standard Category ID
+          resolvedCatIds = [objectId];
+          const childCats = await Category.find({ parentId: objectId }).select('_id');
+          if (childCats.length > 0) {
+            resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+          }
         }
       } else {
         const resolvedCat = await Category.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
@@ -354,12 +369,6 @@ export const getProducts = async (req: Request, res: Response) => {
         const sellerCity = seller?.city ? normalizeCity(seller.city) : '';
         const userCity = userCityParam ? normalizeCity(userCityParam as string) : '';
         
-        let deliveryInfo = { 
-          type: 'standard' as string, 
-          label: 'Standard Delivery', 
-          time: '3-5 days' 
-        };
-
         let distance = null;
         if (userLat && userLng && seller?.location?.coordinates) {
           distance = calculateDistance(
@@ -368,25 +377,47 @@ export const getProducts = async (req: Request, res: Response) => {
             seller.location.coordinates[1], // lat
             seller.location.coordinates[0]  // lng
           );
-          deliveryInfo = getDeliveryTypeByDistance(distance);
-        } else if (sellerCity && userCity && sellerCity === userCity) {
-          // Fallback to same city logic if no coords
-          deliveryInfo = { type: 'quick', label: 'Quick Delivery', time: '30-45 min' };
+        }
+
+        let resolvedDeliveryType = 'e-comm';
+        let resolvedDeliveryLabel = 'E-comm';
+        let resolvedDeliveryTime = '3-5 days';
+
+        const pType = product.type || product.deliveryType;
+        if (pType === 'quick') {
+          resolvedDeliveryType = 'quick';
+          resolvedDeliveryLabel = 'Quick Delivery';
+          resolvedDeliveryTime = '30-45 min';
+        } else if (pType === 'ecommerce' || pType === 'e-comm') {
+          resolvedDeliveryType = 'e-comm';
+          resolvedDeliveryLabel = 'E-comm';
+          resolvedDeliveryTime = '3-5 days';
+        } else if (pType === 'both') {
+          const isNearby = (userLat && userLng && distance !== null && distance <= 40) || (sellerCity && userCity && sellerCity === userCity);
+          if (isNearby) {
+            resolvedDeliveryType = 'quick';
+            resolvedDeliveryLabel = 'Quick Delivery';
+            resolvedDeliveryTime = '30-45 min';
+          } else {
+            resolvedDeliveryType = 'e-comm';
+            resolvedDeliveryLabel = 'E-comm';
+            resolvedDeliveryTime = '3-5 days';
+          }
         }
 
         return {
           productId: product._id,
           ...product,
           distance,
-          nearbyAvailable: deliveryInfo.type === 'quick',
+          nearbyAvailable: resolvedDeliveryType === 'quick',
           ecommerceAvailable,
-          quickDeliveryAvailable: deliveryInfo.type === 'quick',
+          quickDeliveryAvailable: resolvedDeliveryType === 'quick',
           isSameCity: sellerCity === userCity,
-          deliveryType: deliveryInfo.type,
-          deliveryLabel: deliveryInfo.label,
+          deliveryType: resolvedDeliveryType,
+          deliveryLabel: resolvedDeliveryLabel,
           quickPrice: product.discPrice || product.price,
           ecommercePrice: product.discPrice || product.price,
-          deliveryTimeQuick: deliveryInfo.time,
+          deliveryTimeQuick: resolvedDeliveryTime,
           deliveryTimeEcommerce: '3-5 days',
         };
       });
@@ -791,6 +822,21 @@ export const getQuickProducts = async (req: Request, res: Response) => {
         isSameCity
       });
 
+      let resolvedDeliveryType = 'quick';
+      let resolvedDeliveryLabel = 'Quick Delivery';
+      const pType = product.type || product.deliveryType;
+      
+      if (pType === 'ecommerce' || pType === 'e-comm') {
+        resolvedDeliveryType = 'e-comm';
+        resolvedDeliveryLabel = 'E-comm';
+      } else if (pType === 'quick') {
+        resolvedDeliveryType = 'quick';
+        resolvedDeliveryLabel = 'Quick Delivery';
+      } else if (pType === 'both') {
+        resolvedDeliveryType = 'quick'; // In quick section, prioritize quick
+        resolvedDeliveryLabel = 'Quick Delivery';
+      }
+
       return {
         productId: product._id,
         ...product,
@@ -798,8 +844,8 @@ export const getQuickProducts = async (req: Request, res: Response) => {
         ecommerceAvailable: product.type === 'both',
         quickDeliveryAvailable: true,
         isSameCity,
-        deliveryType: 'quick',
-        deliveryLabel: 'Quick Delivery',
+        deliveryType: resolvedDeliveryType,
+        deliveryLabel: resolvedDeliveryLabel,
         quickPrice: product.discPrice || product.price,
         ecommercePrice: product.discPrice || product.price,
         deliveryTimeQuick: '30-45 min',

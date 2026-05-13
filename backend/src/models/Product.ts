@@ -139,7 +139,7 @@ export interface IProduct extends Document {
 
   type: "quick" | "ecommerce" | "both";
   isQuickEligible?: boolean;
-  deliveryType?: "quick" | "ecommerce" | "both";
+  deliveryType?: "quick" | "ecommerce" | "both" | "e-comm";
   availablePincodes?: string[];
   courierAvailable?: boolean;
   city?: string;
@@ -461,9 +461,9 @@ const ProductSchema = new Schema<IProduct>(
       default: false,
     },
     deliveryType: {
-      type: String,
-      enum: ["quick", "ecommerce", "both"],
-      default: "ecommerce",
+       type: String,
+       enum: ["quick", "ecommerce", "both", "e-comm"],
+       default: "e-comm",
     },
     availablePincodes: {
       type: [String],
@@ -545,12 +545,15 @@ ProductSchema.pre("save", function (next) {
   if (!doc.seller && doc.sellerId) doc.seller = doc.sellerId;
 
   // Sync isQuickEligible and deliveryType for full compatibility
-  if (doc.type === "quick" || doc.type === "both") {
+  if (doc.type === "quick") {
     doc.isQuickEligible = true;
     doc.deliveryType = "quick";
-  } else {
+  } else if (doc.type === "ecommerce") {
     doc.isQuickEligible = false;
-    doc.deliveryType = "ecommerce";
+    doc.deliveryType = "e-comm";
+  } else if (doc.type === "both") {
+    doc.isQuickEligible = true;
+    doc.deliveryType = "both";
   }
 
   // Validation Logic based on Type

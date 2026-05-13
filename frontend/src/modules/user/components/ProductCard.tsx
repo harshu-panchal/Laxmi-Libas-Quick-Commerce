@@ -250,7 +250,8 @@ export default function ProductCard({
   };
 
   // Distance and schema-based delivery logic
-  const isQuickAvailable = (product as any).isQuickEligible === true || (product as any).deliveryType === 'quick' || product.type === 'quick' || product.type === 'both';
+  const pDeliveryType = (product as any).deliveryType || product.type;
+  const isEcomm = pDeliveryType === 'e-comm' || pDeliveryType === 'ecommerce';
 
   return (
     <motion.div
@@ -302,16 +303,22 @@ export default function ProductCard({
         <div className="p-2 md:p-3 flex-1 flex flex-col">
           {/* Delivery Logic Badge */}
           <div className="flex items-center gap-1 mb-1">
-            {isQuickAvailable ? (
-              <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-yellow-100 rounded-md">
-                <span className="text-[7px] md:text-[8px] font-black text-yellow-700 uppercase tracking-tighter flex items-center gap-0.5">
-                  ⚡ Quick Delivery
+            {isEcomm ? (
+              <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 rounded-md">
+                <span className="text-[7px] md:text-[8px] font-black text-blue-600 uppercase tracking-tighter">
+                  🚚 E-Comm
+                </span>
+              </div>
+            ) : pDeliveryType === 'both' ? (
+              <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-50 rounded-md">
+                <span className="text-[7px] md:text-[8px] font-black text-purple-600 uppercase tracking-tighter flex items-center gap-0.5">
+                  ⚡ Quick & 🚚 E-Comm
                 </span>
               </div>
             ) : (
-              <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 rounded-md">
-                <span className="text-[7px] md:text-[8px] font-black text-blue-600 uppercase tracking-tighter">
-                  🚚 Standard Delivery
+              <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-yellow-100 rounded-md">
+                <span className="text-[7px] md:text-[8px] font-black text-yellow-700 uppercase tracking-tighter flex items-center gap-0.5">
+                  ⚡ Quick Delivery
                 </span>
               </div>
             )}
@@ -384,7 +391,7 @@ export default function ProductCard({
                 disabled={((product.stock !== undefined && product.stock <= 0) || product.status === "Sold out")}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleAddType(e, isQuickAvailable ? 'quick' : 'ecommerce');
+                  handleAddType(e, isEcomm ? 'ecommerce' : 'quick');
                 }}
                 className="border-neutral-200 text-neutral-900 bg-white font-black text-[9px] md:text-[10px] h-7 px-3 rounded-lg hover:bg-neutral-50 shadow-sm transition-all"
               >
