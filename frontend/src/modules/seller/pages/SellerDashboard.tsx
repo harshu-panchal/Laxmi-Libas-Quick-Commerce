@@ -44,6 +44,7 @@ export default function SellerDashboard() {
   const [inventoryInsights, setInventoryInsights] = useState<InventoryInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [soundUnlocked, setSoundUnlocked] = useState(() => localStorage.getItem('sound_unlocked') === 'true');
 
   // Listen for real-time notifications
   useSellerSocket((notification) => {
@@ -248,6 +249,49 @@ export default function SellerDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Sound Alerts Activation Banner */}
+      {!soundUnlocked && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-teal-600 via-emerald-600 to-indigo-600 text-white p-6 rounded-[2rem] shadow-xl border border-teal-500/20 flex flex-col md:flex-row justify-between items-center gap-6 cursor-pointer hover:shadow-2xl transition-all duration-300 relative overflow-hidden"
+          onClick={() => {
+            try {
+              const audio = new Audio('/assets/sound/seller_alert.mp3');
+              audio.volume = 0.8;
+              audio.play().then(() => {
+                setSoundUnlocked(true);
+                localStorage.setItem('sound_unlocked', 'true');
+                toast.success("🔊 Order sound alerts activated successfully!");
+              }).catch((err) => {
+                console.warn("Audio unlock failed:", err);
+                toast.error("Please click 'Activate Now' button to unlock sound notifications.");
+              });
+            } catch (err) {
+              console.error(err);
+            }
+          }}
+        >
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-white text-2xl animate-bounce shadow-inner">
+              🔔
+            </div>
+            <div>
+              <h4 className="font-extrabold text-base tracking-tight">Enable Real-Time Order Sound Alerts</h4>
+              <p className="text-xs text-white/90 font-medium mt-1 max-w-xl">
+                To play rich ring alerts automatically on every incoming customer order, your browser requires a one-click initialization activation.
+              </p>
+            </div>
+          </div>
+          <button className="relative z-10 px-6 py-3.5 bg-white text-teal-700 font-extrabold text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:bg-neutral-50 transition-all hover:scale-105 active:scale-95 duration-300 flex-shrink-0">
+            Activate Now
+          </button>
+          
+          {/* Decorative Background Glows */}
+          <div className="absolute right-[-10%] top-[-20%] w-[15rem] h-[15rem] bg-gradient-to-br from-white/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+        </motion.div>
+      )}
 
       {/* Multi-Vertical Navigation */}
       {(() => {

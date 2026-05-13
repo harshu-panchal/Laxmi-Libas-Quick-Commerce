@@ -259,8 +259,10 @@ export const getHomeContent = async (req: Request, res: Response) => {
     let nearbySellerIds: mongoose.Types.ObjectId[] = [];
     if (userLat !== null && userLng !== null) {
       nearbySellerIds = await findSellersWithinRange(userLat, userLng);
-    } else {
-      // If no location provided, fallback to all approved sellers to show content
+    }
+    
+    // Fallback: If no nearby sellers are found (or no coordinates provided), fallback to all approved sellers so products are ALWAYS shown
+    if (nearbySellerIds.length === 0) {
       const sellers = await Seller.find({ status: "Approved" }).select("_id");
       nearbySellerIds = sellers.map(s => s._id as mongoose.Types.ObjectId);
     }
@@ -795,15 +797,52 @@ export const getStoreProducts = async (req: Request, res: Response) => {
         isSellerStore = true;
         console.log(`[getStoreProducts] Found seller store: ${sellerDoc.storeName}`);
 
+        // Fetch categories dynamically for this seller's products
+        const sellerProductCats = await Product.distinct("category", {
+          status: "Active",
+          publish: true,
+          $or: [
+            { seller: sellerDoc._id },
+            { sellerId: sellerDoc._id }
+          ]
+        });
+        const sellerCategories = await Category.find({
+          _id: { $in: sellerProductCats },
+          status: "Active"
+        }).select("name slug image icon").lean();
+
+        // Check if any product of this seller is Quick Commerce eligible
+        const hasQuickProducts = await Product.exists({
+          status: "Active",
+          publish: true,
+          isQuickEligible: true,
+          $or: [
+            { seller: sellerDoc._id },
+            { sellerId: sellerDoc._id }
+          ]
+        });
+
+        const banners = sellerDoc.storeBanner ? [sellerDoc.storeBanner] : [];
+        if (sellerDoc.logo && banners.length === 0) {
+          banners.push(sellerDoc.logo);
+        }
+        // Fallback banner if empty
+        if (banners.length === 0) {
+          banners.push("https://res.cloudinary.com/dummyimage/600x400/000/fff&text=Welcome+To+Store");
+        }
+
         shopData = {
           name: sellerDoc.storeName,
           image: sellerDoc.storeBanner || sellerDoc.logo || '',
           description: sellerDoc.storeDescription || 'Premier seller storefront',
-          rating: 4.8, // Elite default storefront rating
+          rating: (sellerDoc as any).rating || 4.8, // Elite default storefront rating
           city: sellerDoc.city || '',
-          deliveryType: sellerDoc.businessTypes?.includes('commerce') ? 'Same-City Delivery' : 'Standard Shipping',
+          deliveryType: hasQuickProducts ? 'Same-City Quick Delivery' : 'Standard Shipping',
+          isQuickEligible: !!hasQuickProducts,
           isSellerStore: true,
-          sellerId: sellerDoc._id.toString()
+          sellerId: sellerDoc._id.toString(),
+          banners,
+          storeCategories: sellerCategories
         };
 
         // For direct seller store, show all approved/published products belonging to this seller
@@ -855,19 +894,17 @@ export const getStoreProducts = async (req: Request, res: Response) => {
       const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
       console.log(`[getStoreProducts] Found ${nearbySellerIds.length} sellers within range`);
 
-      if (nearbySellerIds.length > 0) {
-        // Filter products by sellers within range AND approved status
-        const approvedSellers = await Seller.find({ status: "Approved" }).select("_id");
-        const approvedIds = approvedSellers.map(s => s._id.toString());
-        
-        const validSellers = nearbySellerIds.filter(id => approvedIds.includes(id.toString()));
-        
-        if (validSellers.length > 0) {
-          query.seller = { $in: validSellers };
-        } else {
-          query.seller = { $in: [] };
-        }
+      const approvedSellers = await Seller.find({ status: "Approved" }).select("_id");
+      const approvedIds = approvedSellers.map(s => s._id.toString());
+      
+      let validSellers = nearbySellerIds.filter(id => approvedIds.includes(id.toString()));
+      
+      if (validSellers.length === 0) {
+        console.log(`[getStoreProducts] No sellers found within local range of customer. Falling back to show all approved sellers.`);
+        validSellers = approvedSellers.map(s => s._id);
       }
+      
+      query.seller = { $in: validSellers };
     } else {
       // If no location provided, still show all products (but only from approved sellers)
       console.log(`[getStoreProducts] No location provided, showing all matching products from approved sellers`);

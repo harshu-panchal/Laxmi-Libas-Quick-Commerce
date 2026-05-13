@@ -10,8 +10,9 @@ interface LazyImageProps {
 }
 
 /**
- * High-performance Progressive Lazy Loading Image component
- * Uses native browser lazy-loading, async decoding, and CSS Shimmer placeholders
+ * High-performance Progressive Loading Image component
+ * Programmatically preloads images to ensure reliability under all scrolling conditions,
+ * bypassing native browser lazy-loading bugs in scrollable elements/flex grids.
  */
 export default function LazyImage({
   src,
@@ -24,10 +25,25 @@ export default function LazyImage({
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
-  // Reset loading states when src changes to support category/filter switching
+  // Programmatically preload image to bypass browser lazy viewport issues
   useEffect(() => {
+    if (!src) {
+      setIsLoaded(false);
+      setHasError(false);
+      return;
+    }
+
     setIsLoaded(false);
     setHasError(false);
+
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      setIsLoaded(true);
+    };
+    img.onerror = () => {
+      setHasError(true);
+    };
   }, [src]);
 
   return (
@@ -53,7 +69,6 @@ export default function LazyImage({
         src={src || placeholder || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"%3E%3C/svg%3E'}
         alt={alt}
         className={`${className} ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'} transition-all duration-300 ease-out`}
-        loading="lazy"
         decoding="async"
         onLoad={() => setIsLoaded(true)}
         onError={(e) => {
@@ -73,4 +88,3 @@ export default function LazyImage({
     </div>
   );
 }
-

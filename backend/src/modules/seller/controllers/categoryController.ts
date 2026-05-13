@@ -294,60 +294,91 @@ export const getAllSubcategories = asyncHandler(
       limit = "100",
       sortBy = "name",
       sortOrder = "asc",
+      categoryId
     } = req.query;
 
-    const query: any = {};
-
-    // Search filter
-    if (search) {
-      query.name = { $regex: search, $options: "i" };
-    }
-
-    // Pagination
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = parseInt(limit as string) || 100;
     const skip = (pageNum - 1) * limitNum;
 
-    // Sort
-    const sort: any = {};
-    const sortField =
-      sortBy === "subcategoryName" ? "name" : (sortBy as string);
-    sort[sortField] = sortOrder === "asc" ? 1 : -1;
+    const searchPattern = search ? { $regex: search as string, $options: "i" } : null;
 
-    // Fetch subcategories from the SubCategory model instead of Category model
-    // This fixes the issue where subcategories created by Admin (in SubCategory collection)
-    // were not visible to Sellers because this controller was looking in Category collection
-    const subcategories = await SubCategory.find(query)
+    // 1. Query Category collection for hierarchical child categories (where parentId is NOT null)
+    const catQuery: any = { parentId: { $ne: null }, status: "Active" };
+    if (searchPattern) catQuery.name = searchPattern;
+    if (categoryId && mongoose.Types.ObjectId.isValid(categoryId as string)) {
+      catQuery.parentId = new mongoose.Types.ObjectId(categoryId as string);
+    }
+
+    const categorySubcategories = await Category.find(catQuery)
+      .populate("parentId", "name")
+      .lean();
+
+    // 2. Query legacy SubCategory collection as fallback
+    const subQuery: any = {};
+    if (searchPattern) subQuery.name = searchPattern;
+    if (categoryId && mongoose.Types.ObjectId.isValid(categoryId as string)) {
+      subQuery.category = new mongoose.Types.ObjectId(categoryId as string);
+    }
+
+    const legacySubcategories = await SubCategory.find(subQuery)
       .populate("category", "name image")
-      .sort(sort)
-      .skip(skip)
-      .limit(limitNum);
+      .lean();
 
-    // Get product counts and format response
-    const subcategoriesWithCounts = await Promise.all(
-      subcategories.map(async (subcategory) => {
-        const productCount = await Product.countDocuments({
-          subcategory: subcategory._id, // Note: Product model uses 'subcategory', not 'subcategoryId'
-        });
+    // Map and combine
+    const combined = [
+      ...categorySubcategories.map((c: any) => ({
+        id: c._id,
+        _id: c._id,
+        categoryName: c.parentId?.name || "Category",
+        subcategoryName: c.name,
+        subcategoryImage: c.image || "",
+        order: c.order || 0
+      })),
+      ...legacySubcategories.map((s: any) => ({
+        id: s._id,
+        _id: s._id,
+        categoryName: s.category?.name || "Category",
+        subcategoryName: s.name,
+        subcategoryImage: s.image || "",
+        order: s.order || 0
+      }))
+    ];
 
-        const parentCategory = subcategory.category as any;
+    // Deduplicate by id
+    const unique = Array.from(new Map(combined.map(item => [item.id.toString(), item])).values());
 
-        return {
-          id: subcategory._id,
-          categoryName: parentCategory?.name || "Unknown",
-          subcategoryName: subcategory.name,
-          subcategoryImage: subcategory.image || "",
-          totalProduct: productCount,
-        };
+    // Sort combined list
+    const sortField = sortBy === "subcategoryName" ? "subcategoryName" : "subcategoryName";
+    unique.sort((a, b) => {
+      const valA = (a as any)[sortField];
+      const valB = (b as any)[sortField];
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return sortOrder === "desc" ? valB.localeCompare(valA) : valA.localeCompare(valB);
+      }
+      return sortOrder === "desc" ? (valB > valA ? 1 : -1) : (valA > valB ? 1 : -1);
+    });
+
+    // Final slice and count products
+    const finalSubcats = await Promise.all(
+      unique.slice(skip, skip + limitNum).map(async (sub) => {
+        try {
+          const count = await Product.countDocuments({
+            $or: [{ subcategory: sub._id }, { category: sub._id }]
+          });
+          return { ...sub, totalProduct: count };
+        } catch (e) {
+          return sub;
+        }
       })
     );
 
-    const total = await SubCategory.countDocuments(query);
+    const total = unique.length;
 
     return res.status(200).json({
       success: true,
       message: "Subcategories fetched successfully",
-      data: subcategoriesWithCounts,
+      data: finalSubcats,
       pagination: {
         page: pageNum,
         limit: limitNum,

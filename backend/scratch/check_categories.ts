@@ -1,44 +1,46 @@
-import mongoose from 'mongoose';
-import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env' });
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import Category from "../src/models/Category";
+import SubCategory from "../src/models/SubCategory";
 
-const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/laxmart';
+dotenv.config();
 
-const CategorySchema = new mongoose.Schema({
-    name: String,
-    slug: String,
-    parentId: mongoose.Schema.Types.ObjectId,
-    headerCategoryId: mongoose.Schema.Types.ObjectId,
-}, { strict: false });
+const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/NewDatabaseName";
 
-const HeaderCategorySchema = new mongoose.Schema({
-    name: String,
-    slug: String,
-    status: String,
-}, { strict: false });
+async function main() {
+  await mongoose.connect(uri);
+  console.log("Connected to MongoDB");
 
-const Category = mongoose.model('Category', CategorySchema);
-const HeaderCategory = mongoose.model('HeaderCategory', HeaderCategorySchema);
+  const catId = "69f5ebaf162529539725eafe";
+  const subcatId = "69f5ebe3162529539725eb93";
 
-async function check() {
-    try {
-        await mongoose.connect(mongoUri);
-        console.log('Connected to DB');
+  const catInCat = await Category.findById(catId);
+  console.log("Category ID in Category model:", catInCat ? catInCat.name : "NOT FOUND");
 
-        const rootCats = await Category.find({ parentId: null });
-        console.log(`Found ${rootCats.length} root categories:`);
-        
-        const headerCats = await HeaderCategory.find({ status: 'Published' });
-        console.log(`Found ${headerCats.length} published header categories:`);
+  const subInCat = await Category.findById(subcatId);
+  console.log("Subcategory ID in Category model:", subInCat ? subInCat.name : "NOT FOUND");
 
-        for (const cat of rootCats) {
-            console.log(`- ${cat.name} (Header: ${cat.headerCategoryId || 'NONE'})`);
-        }
+  const subInSub = await SubCategory.findById(subcatId);
+  console.log("Subcategory ID in SubCategory model:", subInSub ? subInSub.name : "NOT FOUND");
 
-        await mongoose.disconnect();
-    } catch (err) {
-        console.error(err);
-    }
+  // Let's list all Category names
+  const allCats = await Category.find().select("name slug parentId");
+  console.log("\n=== ALL CATEGORIES ===");
+  allCats.forEach(c => {
+    console.log(`- ${c.name} (${c._id}) slug: ${c.slug} parent: ${c.parentId}`);
+  });
+
+  // Let's list all SubCategory names
+  const allSubs = await SubCategory.find().populate("category", "name");
+  console.log("\n=== ALL SUBCATEGORIES ===");
+  allSubs.forEach(s => {
+    console.log(`- ${s.name} (${s._id}) category: ${s.category ? (s.category as any).name : "N/A"}`);
+  });
+
+  await mongoose.disconnect();
 }
 
-check();
+main().catch(err => {
+  console.error(err);
+  mongoose.disconnect();
+});

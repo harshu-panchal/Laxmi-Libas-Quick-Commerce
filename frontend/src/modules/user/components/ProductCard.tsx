@@ -29,6 +29,16 @@ interface ProductCardProps {
   categoryStyle?: boolean;
 }
 
+const getProductImage = (product: any): string => {
+  if (product?.mainImage && product.mainImage !== 'undefined' && product.mainImage !== 'null') {
+    return product.mainImage;
+  }
+  if (product?.imageUrl && product.imageUrl !== 'undefined' && product.imageUrl !== 'null') {
+    return product.imageUrl;
+  }
+  return '';
+};
+
 export default function ProductCard({
   product,
   showBadge = false,
@@ -256,9 +266,9 @@ export default function ProductCard({
         className="cursor-pointer flex-1 flex flex-col"
       >
         <div className={`w-full ${categoryStyle ? 'h-24 md:h-32' : 'h-32 md:h-40'} bg-neutral-50 flex items-center justify-center overflow-hidden relative`}>
-          {product.imageUrl || product.mainImage ? (
+          {getProductImage(product) ? (
             <LazyImage
-              src={product.imageUrl || product.mainImage || ''}
+              src={getProductImage(product)}
               alt={product.name || product.productName || 'Product'}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
@@ -464,7 +474,7 @@ export default function ProductCard({
           <div className="px-6 space-y-6">
             <div className="flex items-center gap-4 p-3 bg-neutral-50 rounded-2xl">
               <div className="w-16 h-16 bg-white rounded-xl overflow-hidden border border-neutral-100 flex-shrink-0">
-                <LazyImage src={product.imageUrl || product.mainImage || ''} alt={product.name || ''} className="w-full h-full object-cover" />
+                <LazyImage src={getProductImage(product)} alt={product.name || ''} className="w-full h-full object-cover" />
               </div>
               <div>
                 <h4 className="font-bold text-neutral-900 line-clamp-1">{product.name || product.productName}</h4>

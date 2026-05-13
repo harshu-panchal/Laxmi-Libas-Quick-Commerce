@@ -25,14 +25,18 @@ export default function Wishlist() {
         longitude: location?.longitude
       });
       if (res.success && res.data) {
-        setProducts(res.data.products.map(p => ({
-          ...p,
-          id: p._id || (p as any).id,
-          name: p.productName || (p as any).name,
-          imageUrl: p.mainImageUrl || p.mainImage || (p as any).imageUrl,
-          price: (p as any).price || (p as any).variations?.[0]?.price || 0,
-          pack: (p as any).pack || (p as any).variations?.[0]?.name || 'Standard'
-        })) as any);
+        setProducts(res.data.products.map(p => {
+          const mainImg = p.mainImage || p.mainImageUrl || (p as any).imageUrl;
+          const sanitizedImage = (mainImg && mainImg !== 'undefined' && mainImg !== 'null') ? mainImg : '';
+          return {
+            ...p,
+            id: p._id || (p as any).id,
+            name: p.productName || (p as any).name,
+            imageUrl: sanitizedImage,
+            price: (p as any).price || (p as any).variations?.[0]?.price || 0,
+            pack: (p as any).pack || (p as any).variations?.[0]?.name || 'Standard'
+          };
+        }) as any);
       }
     } catch (error: any) {
       console.error('Failed to fetch wishlist:', error);

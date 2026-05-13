@@ -111,14 +111,20 @@ export default function ProductDetail() {
             ...(productData.galleryImages ||
               productData.galleryImageUrls ||
               []),
-          ].filter(Boolean);
+          ].filter(img => img && img !== "undefined" && img !== "null");
+
+          const getSanitizedImage = (data: any) => {
+            if (data.mainImage && data.mainImage !== 'undefined' && data.mainImage !== 'null') return data.mainImage;
+            if (data.imageUrl && data.imageUrl !== 'undefined' && data.imageUrl !== 'null') return data.imageUrl;
+            return '';
+          };
 
           setProduct({
             ...productData,
             // Ensure all critical fields have safe defaults
             id: productData._id || productData.id,
             name: productData.productName || productData.name || "Product",
-            imageUrl: productData.mainImage || productData.imageUrl || "",
+            imageUrl: getSanitizedImage(productData),
             allImages: allImages,
             price: productData.price || 0,
             mrp: productData.mrp || productData.price || 0,

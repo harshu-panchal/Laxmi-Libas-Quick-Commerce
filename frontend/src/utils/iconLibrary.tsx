@@ -8,6 +8,64 @@ export interface IconDef {
 }
 
 export const ICON_LIBRARY: IconDef[] = [
+    {
+        name: 'fashion',
+        label: 'Fashion',
+        tags: ['fashion', 'clothing', 'apparel', 'shirt', 'wear'],
+        svg: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.62 2v2a2 2 0 00.5 1.3L5 11.5V20a2 2 0 002 2h10a2 2 0 002-2v-8.5l2.5-2.74a2 2 0 00.5-1.3v-2a2 2 0 00-1.62-2z" />
+                <path d="M12 2v4M9 6h6" />
+            </svg>
+        )
+    },
+    {
+        name: 'footwear',
+        label: 'Footwear',
+        tags: ['footwear', 'shoe', 'shoes', 'sneakers', 'sandals'],
+        svg: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 17h18l-1-4h-5l-2-3-4 1-3 3-3 3Z" />
+                <path d="M6 14h6 M8 12h4" />
+            </svg>
+        )
+    },
+    {
+        name: 'kitchen',
+        label: 'Kitchen / Restaurant',
+        tags: ['kitchen', 'restaurant', 'food', 'cook', 'chef'],
+        svg: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 18h18" />
+                <path d="M5 18c0-3.8 3.1-7 7-7s7 3.2 7 7" />
+                <path d="M12 11V9a1 1 0 1 1 2 0v2" />
+            </svg>
+        )
+    },
+    {
+        name: 'sports',
+        label: 'Sports',
+        tags: ['sports', 'game', 'ball', 'play', 'fitness'],
+        svg: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M6 12A6 6 0 0118 12M12 6a6 6 0 000 12" />
+            </svg>
+        )
+    },
+    {
+        name: 'grocery',
+        label: 'Grocery',
+        tags: ['grocery', 'food', 'market', 'basket', 'shop'],
+        svg: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 8h16l-2 10H6L4 8Z" />
+                <path d="M9 8V4h6v4" />
+                <path d="M6 8l3 6M18 8l-3 6" />
+                <path d="M12 8v10" />
+            </svg>
+        )
+    },
     // --- GROCERY & FOOD ---
     {
         name: 'grocery-basket',

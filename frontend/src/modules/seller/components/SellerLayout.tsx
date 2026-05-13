@@ -1,4 +1,4 @@
-import { ReactNode, useState, useCallback } from 'react';
+import { ReactNode, useState, useCallback, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import SellerHeader from './SellerHeader';
 import SellerSidebar from './SellerSidebar';
@@ -13,8 +13,21 @@ interface SellerLayoutProps {
 export default function SellerLayout({ children }: SellerLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeNotification, setActiveNotification] = useState<SellerNotification | null>(null);
+  const [isAudioBlocked, setIsAudioBlocked] = useState(false);
   const { user } = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+    // Check if the browser blocks audio autoplay
+    const testAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
+    testAudio.play()
+      .then(() => {
+        setIsAudioBlocked(false);
+      })
+      .catch(() => {
+        setIsAudioBlocked(true);
+      });
+  }, []);
 
   const handleNotificationReceived = useCallback((notification: SellerNotification) => {
     setActiveNotification(notification);
@@ -30,17 +43,46 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
     setActiveNotification(null);
   };
 
+  const unlockAudio = () => {
+    const testAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
+    testAudio.play()
+      .then(() => {
+        setIsAudioBlocked(false);
+        console.log("🔊 Audio Context successfully unlocked by user click.");
+      })
+      .catch((err) => {
+        console.error("🔊 Audio unlock failed:", err);
+      });
+  };
+
   const sellerStatus = user?.status || 'Pending';
   const isDashboard = location.pathname === '/seller' || location.pathname === '/seller/';
   const isRestricted = sellerStatus !== 'Approved' && !isDashboard;
 
   return (
-    <div className="flex min-h-screen bg-neutral-50">
-      {/* Real-time Notification Alert */}
-      <SellerNotificationAlert
-        notification={activeNotification}
-        onClose={closeNotification}
-      />
+    <div className="flex flex-col min-h-screen bg-neutral-50 w-full">
+      {/* Audio permission unlock banner */}
+      {isAudioBlocked && (
+        <div 
+          onClick={unlockAudio}
+          className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-4 py-2 text-center text-xs sm:text-sm font-bold flex items-center justify-center gap-2 cursor-pointer hover:from-amber-600 hover:to-orange-700 transition-all shadow-md select-none sticky top-0 z-[99999] animate-pulse"
+        >
+          <span className="text-base">🔊</span>
+          <span>Click here to enable sound notifications for new orders</span>
+          <button 
+            className="ml-3 bg-white text-orange-600 px-2 py-0.5 rounded text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-sm hover:scale-105 active:scale-95 transition-all"
+          >
+            Enable Sound
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-1 min-h-0 relative w-full">
+        {/* Real-time Notification Alert */}
+        <SellerNotificationAlert
+          notification={activeNotification}
+          onClose={closeNotification}
+        />
 
       {/* Overlay for mobile */}
       {isSidebarOpen && (
@@ -105,6 +147,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
             children
           )}
         </main>
+      </div>
       </div>
     </div>
   );

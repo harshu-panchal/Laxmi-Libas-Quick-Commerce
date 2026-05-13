@@ -14,7 +14,6 @@ export default function SellerReturnRequest() {
     const [currentPage, setCurrentPage] = useState(1);
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-
     // Fetch return requests from API
     useEffect(() => {
         const fetchReturnRequests = async () => {

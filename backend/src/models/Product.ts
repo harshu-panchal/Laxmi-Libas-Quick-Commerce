@@ -627,7 +627,6 @@ ProductSchema.pre("save", function (next) {
   }
   next();
 });
-
 // Indexes for faster queries
 ProductSchema.index({ seller: 1, status: 1 });
 ProductSchema.index({ category: 1 });

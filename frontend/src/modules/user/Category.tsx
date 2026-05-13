@@ -153,37 +153,7 @@ export default function CategoryPage() {
   // Client-side filtering removed in favor of backend subcategory filtering
   // Categorize products into Quick and Ecommerce
   const { quickProducts, ecommerceProducts } = useMemo(() => {
-    const getCategoryId = (p: any) => {
-      if (!p) return "";
-      if (p.category) {
-        if (typeof p.category === "object") return p.category._id?.toString() || "";
-        return p.category.toString();
-      }
-      if (p.categoryId) {
-        if (typeof p.categoryId === "object") return p.categoryId._id?.toString() || "";
-        return p.categoryId.toString();
-      }
-      return "";
-    };
-
-    const activeId = category?._id || category?.id || id;
-    const activeIdStr = activeId?.toString();
-    const isObjectId = activeIdStr ? /^[0-9a-fA-F]{24}$/.test(activeIdStr) : false;
-
-    const baseProducts = activeId 
-      ? products.filter(p => {
-          const catId = getCategoryId(p);
-          if (isObjectId) {
-            return catId === activeIdStr;
-          }
-          const pSlug = (p.category && typeof p.category === 'object' ? p.category.slug : '') || 
-                        (p.categoryId && typeof p.categoryId === 'object' ? p.categoryId.slug : '');
-          if (pSlug && activeIdStr) {
-            return pSlug.toLowerCase() === activeIdStr.toLowerCase();
-          }
-          return true;
-        })
-      : products;
+    const baseProducts = products;
 
     if (isQuickSection) {
       return {
@@ -196,7 +166,7 @@ export default function CategoryPage() {
       quickProducts: baseProducts.filter(p => p.type === 'quick' || !p.type || p.type === 'both'),
       ecommerceProducts: baseProducts.filter(p => p.type === 'ecommerce' || p.type === 'both')
     };
-  }, [products, category, id, isQuickSection]);
+  }, [products, isQuickSection]);
 
   if ((categoryLoading || loading) && !products.length && !category) {
     return null; // Let global IconLoader handle it
@@ -242,31 +212,7 @@ export default function CategoryPage() {
     const activeIdStr = activeId?.toString();
     const isObjectId = activeIdStr ? /^[0-9a-fA-F]{24}$/.test(activeIdStr) : false;
 
-    const categoryProducts = products.filter((p) => {
-      const getCategoryId = (prod: any) => {
-        if (!prod) return "";
-        if (prod.category) {
-          if (typeof prod.category === "object") return prod.category._id?.toString() || "";
-          return prod.category.toString();
-        }
-        if (prod.categoryId) {
-          if (typeof prod.categoryId === "object") return prod.categoryId._id?.toString() || "";
-          return prod.categoryId.toString();
-        }
-        return "";
-      };
-      
-      const catId = getCategoryId(p);
-      if (isObjectId) {
-        return catId === activeIdStr;
-      }
-      const pSlug = (p.category && typeof p.category === 'object' ? p.category.slug : '') || 
-                    (p.categoryId && typeof p.categoryId === 'object' ? p.categoryId.slug : '');
-      if (pSlug && activeIdStr) {
-        return pSlug.toLowerCase() === activeIdStr.toLowerCase();
-      }
-      return true;
-    });
+    const categoryProducts = products;
     const filterMap = new Map<string, number>();
 
     categoryProducts.forEach((product) => {
@@ -470,9 +416,9 @@ export default function CategoryPage() {
                     />
                   </svg>
                 </button>
-                {category?.icon && isUrl(category.icon) && (
+                {(category?.icon || category?.image) && isUrl(category?.icon || category?.image) && (
                   <img
-                    src={category.icon}
+                    src={category?.icon || category?.image}
                     alt=""
                     className="w-6 h-6 md:w-8 md:h-8 object-contain rounded-md"
                     onError={(e) => {

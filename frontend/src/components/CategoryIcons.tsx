@@ -14,6 +14,28 @@ export const CategoryIcons = {
       <line x1="9" y1="15" x2="15" y2="15" />
     </svg>
   ),
+  Fastion: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M9 4h6l3 3v2l-3-1v9H9v-9l-3 1V7l3-3Z" />
+      <path d="M9 15h6v2H9v-2Z" fill="#ffec00" stroke="none" />
+      <line x1="9" y1="15" x2="15" y2="15" />
+    </svg>
+  ),
+  Footwear: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M4 16h16a1 1 0 0 0 1-1l-1-5a2 2 0 0 0-2-2h-3l-2-2a2 2 0 0 0-3 0L6 10H4a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2Z" />
+      <path d="M6 10s2 2 3 4M10 10s1 2 2 4" />
+      <path d="M14 16c2.5 0 4.5-1.5 5.5-3" strokeWidth="1" stroke="#ffec00" fill="#ffec00" />
+    </svg>
+  ),
+  Restaurant: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M3 18h18" />
+      <path d="M5 18a7 7 0 0 1 14 0H5Z" fill="#ffec00" stroke="none" opacity="0.5" />
+      <path d="M5 18c0-3.8 3.1-7 7-7s7 3.2 7 7" />
+      <path d="M12 11V9a1 1 0 1 1 2 0v2" />
+    </svg>
+  ),
   Mobiles: ({ className = "w-6 h-6" }: { className?: string }) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <rect x="7" y="3" width="10" height="18" rx="2" />

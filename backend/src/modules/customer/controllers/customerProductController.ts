@@ -128,16 +128,37 @@ export const getProducts = async (req: Request, res: Response) => {
     if (activeCategoryId) {
       let resolvedCatIds: mongoose.Types.ObjectId[] = [];
       if (mongoose.Types.ObjectId.isValid(activeCategoryId as string)) {
-        resolvedCatIds = [new mongoose.Types.ObjectId(activeCategoryId as string)];
+        const parentId = new mongoose.Types.ObjectId(activeCategoryId as string);
+        resolvedCatIds = [parentId];
+        
+        // Find all subcategories (child categories) for this parent category
+        const childCats = await Category.find({ parentId }).select('_id');
+        if (childCats.length > 0) {
+          resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+        }
       } else {
         const resolvedCat = await Category.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
         if (resolvedCat) {
           resolvedCatIds = [resolvedCat._id as mongoose.Types.ObjectId];
+          // Find all subcategories (child categories) for this parent category
+          const childCats = await Category.find({ parentId: resolvedCat._id }).select('_id');
+          if (childCats.length > 0) {
+            resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+          }
         } else {
           const resolvedHeader = await HeaderCategory.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
           if (resolvedHeader) {
             const categoriesInHeader = await Category.find({ headerCategoryId: resolvedHeader._id }).select('_id');
-            resolvedCatIds = categoriesInHeader.map(c => c._id as mongoose.Types.ObjectId);
+            const catIds = categoriesInHeader.map(c => c._id as mongoose.Types.ObjectId);
+            resolvedCatIds = [...catIds];
+            
+            // Also find children of these categories
+            if (catIds.length > 0) {
+              const childCats = await Category.find({ parentId: { $in: catIds } }).select('_id');
+              if (childCats.length > 0) {
+                resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+              }
+            }
           }
         }
       }
@@ -264,7 +285,10 @@ export const getProducts = async (req: Request, res: Response) => {
           { availablePincodes: userPincode },
           { availablePincodes: "*" },
           { availablePincodes: "all" },
-          { availablePincodes: "national" }
+          { availablePincodes: "national" },
+          { availablePincodes: { $regex: /^(all|national|india|any|global|unrestricted|every|world)/i } },
+          { availablePincodes: { $size: 0 } },
+          { availablePincodes: { $exists: false } }
         ]
       };
       ecommerceProducts = await Product.find(ecomQuery)
@@ -297,7 +321,24 @@ export const getProducts = async (req: Request, res: Response) => {
     }
 
     // ── Merge and deduplicate by _id ─────────────────────────────────────────
-    const allRaw = [...quickProducts, ...ecommerceProducts, ...fallbackProducts];
+    let allRaw = [...quickProducts, ...ecommerceProducts, ...fallbackProducts];
+
+    // Fallback: If no products matched geolocation/pincode filters, return all active products in category
+    if (allRaw.length === 0) {
+      console.log(`[getProducts] No products matched location/pincode filters. Returning all active products under parent category/subcategory.`);
+      allRaw = await Product.find(baseQuery)
+        .populate('category', 'name')
+        .populate('categoryId', 'name')
+        .populate('subcategory', 'name')
+        .populate('subCategoryId', 'name')
+        .populate('seller', 'storeName location serviceRadiusKm city')
+        .populate('sellerId', 'storeName location serviceRadiusKm city')
+        .sort(sort)
+        .limit(limitNum)
+        .skip(skip)
+        .lean();
+    }
+
     const seen = new Set<string>();
     const hybridProducts = allRaw
       .filter((p: any) => {
@@ -608,16 +649,37 @@ export const getQuickProducts = async (req: Request, res: Response) => {
     if (activeCategoryId) {
       let resolvedCatIds: mongoose.Types.ObjectId[] = [];
       if (mongoose.Types.ObjectId.isValid(activeCategoryId as string)) {
-        resolvedCatIds = [new mongoose.Types.ObjectId(activeCategoryId as string)];
+        const parentId = new mongoose.Types.ObjectId(activeCategoryId as string);
+        resolvedCatIds = [parentId];
+        
+        // Find all subcategories (child categories) for this parent category
+        const childCats = await Category.find({ parentId }).select('_id');
+        if (childCats.length > 0) {
+          resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+        }
       } else {
         const resolvedCat = await Category.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
         if (resolvedCat) {
           resolvedCatIds = [resolvedCat._id as mongoose.Types.ObjectId];
+          // Find all subcategories (child categories) for this parent category
+          const childCats = await Category.find({ parentId: resolvedCat._id }).select('_id');
+          if (childCats.length > 0) {
+            resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+          }
         } else {
           const resolvedHeader = await HeaderCategory.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
           if (resolvedHeader) {
             const categoriesInHeader = await Category.find({ headerCategoryId: resolvedHeader._id }).select('_id');
-            resolvedCatIds = categoriesInHeader.map(c => c._id as mongoose.Types.ObjectId);
+            const catIds = categoriesInHeader.map(c => c._id as mongoose.Types.ObjectId);
+            resolvedCatIds = [...catIds];
+            
+            // Also find children of these categories
+            if (catIds.length > 0) {
+              const childCats = await Category.find({ parentId: { $in: catIds } }).select('_id');
+              if (childCats.length > 0) {
+                resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+              }
+            }
           }
         }
       }

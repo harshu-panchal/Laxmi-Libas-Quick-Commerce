@@ -15,7 +15,6 @@ async function seedTargetUsers() {
     console.log("Connected to Database.");
 
     const mobile = "7894561230";
-
     // 1. Seed Customer
     console.log("Seeding Customer...");
     const existingCustomer = await Customer.findOne({ phone: mobile });

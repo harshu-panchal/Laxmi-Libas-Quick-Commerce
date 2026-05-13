@@ -33,7 +33,21 @@ interface CategoryTabBarProps {
     categories?: any[]; // Accept both internal Category and HeaderCategory from API
 }
 
-const mapHeaderCategoryToIcon = (name: string, slug: string, iconName: string, theme?: string) => {
+const mapHeaderCategoryToIcon = (name: string, slug: string, iconName: string, theme?: string, image?: string) => {
+    if (image && (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('/'))) {
+        return (
+            <img 
+                src={image} 
+                alt={name} 
+                className="w-full h-full object-cover rounded-full" 
+                onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "https://cdn-icons-png.flaticon.com/512/263/263142.png";
+                }}
+            />
+        );
+    }
+
     // 1. Try to find a premium icon by exact slug, name, or theme
     const premiumKeys = Object.keys(CategoryIcons);
     const match = premiumKeys.find(key => 
@@ -79,7 +93,7 @@ export default function CategoryTabBar({
                     id: cat._id || cat.id || `temp-${Math.random()}`,
                     name: cat.name || 'Category',
                     slug: cat.slug || cat._id || 'all',
-                    icon: mapHeaderCategoryToIcon(cat.name, (cat.slug || 'all'), cat.iconName, cat.theme)
+                    icon: mapHeaderCategoryToIcon(cat.name, (cat.slug || 'all'), cat.iconName, cat.theme, cat.image || cat.icon)
                 };
             });
 
