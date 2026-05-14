@@ -270,6 +270,23 @@ export const addToCart = async (req: Request, res: Response) => {
         let cart = await Cart.findOne({ customer: userId });
         if (!cart) {
             cart = await Cart.create({ customer: userId, items: [], total: 0 });
+        } else {
+            // Check existing cart items to ensure single-vendor ordering
+            const existingCartItems = await CartItem.find({ cart: cart._id }).populate('product');
+            if (existingCartItems.length > 0) {
+                const firstItemProduct = existingCartItems[0].product as any;
+                if (firstItemProduct && firstItemProduct.seller && product.seller) {
+                    const existingSellerId = firstItemProduct.seller._id ? firstItemProduct.seller._id.toString() : firstItemProduct.seller.toString();
+                    const newSellerId = product.seller._id ? product.seller._id.toString() : product.seller.toString();
+                    if (existingSellerId !== newSellerId) {
+                        return res.status(400).json({
+                            success: false,
+                            message: 'You can only order from a single vendor at a time. Please complete or clear your current order to purchase from this vendor.',
+                            errorCode: 'DIFFERENT_SELLER'
+                        });
+                    }
+                }
+            }
         }
 
         // Check if item already exists in cart with SAME delivery type
