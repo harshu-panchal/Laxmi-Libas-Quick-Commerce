@@ -157,10 +157,8 @@ export const getCategoriesWithSubs = async (_req: Request, res: Response) => {
         // Sort by order
         uniqueSubs.sort((a, b) => a.order - b.order);
 
-        // Keep only subcategories that have at least one product
-        const filteredSubs = uniqueSubs.filter((sub) =>
-          subcategoryCountMap.has(sub._id.toString())
-        );
+        // Keep all active subcategories visible
+        const filteredSubs = uniqueSubs;
 
         const directCategoryCount =
           categoryCountMap.get(category._id.toString()) || 0;
@@ -170,11 +168,6 @@ export const getCategoriesWithSubs = async (_req: Request, res: Response) => {
           0
         );
         const totalProducts = directCategoryCount + subsProductCount;
-
-        // Exclude category if no products in category or its subcategories
-        if (totalProducts === 0) {
-          return null;
-        }
 
         return {
           ...category,
@@ -276,34 +269,97 @@ export const getCategoryById = async (req: Request, res: Response) => {
     }
 
     if (!category) {
-      // Check if it's a subcategory
+      // Check if it's a subcategory (by ObjectId or Slug)
+      let subcategory: any = null;
       if (mongoose.Types.ObjectId.isValid(id)) {
-        const subcategory = await SubCategory.findById(id).lean();
-        if (subcategory) {
-          // Find the parent category
-          category = await Category.findById(subcategory.category).lean();
-          if (category) {
-            // Return both for the frontend to decide
-            const subcategories = await SubCategory.find({
-              category: category._id,
-            })
-              .select("name image order category")
-              .sort({
-                order: 1,
-              });
-            return res.status(200).json({
-              success: true,
-              data: {
-                category,
-                subcategories,
-                currentSubcategory: subcategory,
-              },
-            });
-          }
+        subcategory = await SubCategory.findById(id).lean();
+      }
+      if (!subcategory) {
+        subcategory = await SubCategory.findOne({ slug: { $regex: new RegExp(`^${id}$`, "i") } }).lean();
+      }
+      if (!subcategory) {
+        let namePattern = id.replace(/[-_]/g, " ");
+        subcategory = await SubCategory.findOne({ name: { $regex: new RegExp(`^${namePattern}$`, "i") } }).lean();
+      }
+
+      if (subcategory) {
+        // Find the parent category (could be Category or HeaderCategory)
+        let parentCat = await Category.findById(subcategory.category).lean();
+        if (!parentCat) {
+          parentCat = await HeaderCategory.findById(subcategory.category).lean() as any;
+        }
+
+        if (parentCat) {
+          // Query Category model for hierarchical subcategories (children)
+          const catId = parentCat._id;
+          const categorySubcategories = await Category.find({
+            $or: [
+              { parentId: { $in: [catId, catId.toString()] } },
+              { headerCategoryId: { $in: [catId, catId.toString()] } }
+            ],
+            status: "Active"
+          })
+            .select("name image order slug icon")
+            .sort({ order: 1 })
+            .lean();
+
+          const parentCatIds = categorySubcategories.map(c => c._id);
+          const allCatIdsForSub = [catId, catId.toString(), ...parentCatIds, ...parentCatIds.map(id => id.toString())];
+
+          const oldSubcategories = await SubCategory.find({
+            category: { $in: allCatIdsForSub }
+          })
+            .select("name image order slug")
+            .sort({ order: 1 })
+            .lean();
+
+          const combined = [
+            ...categorySubcategories.map(cat => ({
+              _id: cat._id,
+              id: cat._id,
+              name: cat.name,
+              slug: cat.slug || cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+              image: cat.image || "",
+              order: cat.order || 0,
+              icon: (cat as any).icon || ""
+            })),
+            ...oldSubcategories.map(sub => ({
+              _id: sub._id,
+              id: sub._id,
+              name: sub.name,
+              slug: (sub as any).slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+              image: sub.image || "",
+              order: sub.order || 0,
+              icon: ""
+            }))
+          ];
+
+          const seenSubs = new Set<string>();
+          const subcategoriesMerged = combined.filter(sub => {
+            const idStr = sub._id.toString();
+            if (seenSubs.has(idStr)) return false;
+            seenSubs.add(idStr);
+            return true;
+          });
+
+          subcategoriesMerged.sort((a, b) => a.order - b.order);
+
+          const responseData = {
+            category: parentCat,
+            subcategories: subcategoriesMerged,
+            currentSubcategory: subcategory,
+          };
+
+          cache.set(cacheKey, responseData, 10 * 60 * 1000);
+
+          return res.status(200).json({
+            success: true,
+            data: responseData,
+          });
         }
       }
 
-      console.log(`[getCategoryById] Category not found: ${id}`);
+      console.log(`[getCategoryById] Category/Subcategory not found: ${id}`);
       return res.status(404).json({
         success: false,
         message: `Category not found: ${id}`,
@@ -338,9 +394,12 @@ export const getCategoryById = async (req: Request, res: Response) => {
       })
       .lean();
 
+    const parentCatIds = categorySubcategories.map(c => c._id);
+    const allCatIdsForSub = [catId, catId.toString(), ...parentCatIds, ...parentCatIds.map(id => id.toString())];
+
     // Query SubCategory model for legacy subcategories
     const oldSubcategories = await SubCategory.find({
-      category: { $in: [catId, catId.toString()] }
+      category: { $in: allCatIdsForSub }
     })
       .select("name image order slug")
       .sort({

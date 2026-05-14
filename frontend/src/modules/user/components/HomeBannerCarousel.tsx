@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getActiveBanners, Banner } from '../../../services/api/bannerService';
 import { useNavigate } from 'react-router-dom';
 
-export default function HomeBannerCarousel() {
+export default function HomeBannerCarousel({ activeTab = "all" }: { activeTab?: string }) {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -10,12 +10,17 @@ export default function HomeBannerCarousel() {
 
   const fetchBanners = async () => {
     try {
-      const response = await getActiveBanners('Home Page');
+      setLoading(true);
+      const locationParam = activeTab === "all" ? "Home Page" : activeTab;
+      const response = await getActiveBanners(locationParam);
       if (response.success && response.data.length > 0) {
         setBanners(response.data);
+      } else {
+        setBanners([]);
       }
     } catch (error) {
       console.error('Failed to fetch home banners', error);
+      setBanners([]);
     } finally {
       setLoading(false);
     }
@@ -23,7 +28,7 @@ export default function HomeBannerCarousel() {
 
   useEffect(() => {
     fetchBanners();
-  }, []);
+  }, [activeTab]);
 
   const nextSlide = useCallback(() => {
     if (banners.length === 0) return;

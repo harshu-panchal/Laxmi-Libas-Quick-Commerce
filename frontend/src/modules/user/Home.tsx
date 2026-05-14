@@ -75,7 +75,8 @@ export default function Home() {
           slug,
           location?.latitude,
           location?.longitude,
-          location?.city
+          location?.city,
+          false
         );
 
         if (response.success && response.data) {
@@ -318,7 +319,7 @@ export default function Home() {
       />
 
       {/* Premium Home Banner Carousel - Restored as per request */}
-      <HomeBannerCarousel />
+      <HomeBannerCarousel activeTab={activeTab} />
 
       {/* Main content area */}
       <div

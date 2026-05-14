@@ -12,7 +12,6 @@ async function run() {
     }
 
     await mongoose.connect(uri);
-
     try {
         const db = mongoose.connection.db;
         const ordersCollection = db.collection("orders");
@@ -21,18 +20,16 @@ async function run() {
         await ordersCollection.updateOne(
             { _id: orderId },
             {
-                $set: { 
-                    status: "Shipped",
-                    trackingId: "DLV1778234751214161",
-                    courierPartner: "Delhivery"
-                }
+                $set: { status: "Accepted" },
+                $unset: { trackingStatus: "", trackingId: "", courierPartner: "" },
+                $pull: { trackingHistory: { status: "Shipped" } }
             }
         );
 
-        console.log("✅ Order 69fdb19537ef103b137d79f3 successfully linked to tracking ID DLV1778234751214161!");
+        console.log("✅ Order 69fdb19537ef103b137d79f3 successfully reset to 'Accepted' in database!");
 
     } catch (err) {
-        console.error("❌ Error setting tracking ID:", err);
+        console.error("❌ Error resetting order:", err);
     } finally {
         await mongoose.disconnect();
     }

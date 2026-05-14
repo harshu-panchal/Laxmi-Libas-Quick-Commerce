@@ -141,6 +141,9 @@ export default function AdminBanners() {
                 <h3 className="font-bold mb-1">
                   {banner.title || "Untitled Banner"}
                 </h3>
+                <p className="text-xs font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded inline-block mb-1 capitalize">
+                  {banner.pageLocation === "Home Page" ? "Home Page (All)" : banner.pageLocation}
+                </p>
                 <p className="text-sm text-neutral-500 mb-2">
                   Order: {banner.order} |{" "}
                   {banner.isActive ? "Active" : "Inactive"}
@@ -303,7 +306,7 @@ export default function AdminBanners() {
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Page Location
+                  Page Location / Header Category
                 </label>
                 <select
                   value={formData.pageLocation}
@@ -312,7 +315,12 @@ export default function AdminBanners() {
                   }
                   className="w-full p-2 border rounded-lg"
                 >
-                  <option value="Home Page">Home Page</option>
+                  <option value="Home Page">Home Page (All)</option>
+                  <option value="fastion">Fashion</option>
+                  <option value="footwear">Footwear</option>
+                  <option value="grocery">Grocery</option>
+                  <option value="sports">Sports</option>
+                  <option value="restaurant">Restaurant</option>
                   <option value="Category Page">Category Page</option>
                   <option value="Product Detail">Product Detail</option>
                 </select>

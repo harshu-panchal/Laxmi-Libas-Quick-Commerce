@@ -15,114 +15,193 @@ import { findSellersWithinRange } from "../../../utils/locationHelper";
 
 // Helper function to fetch data for a home section based on its configuration
 async function fetchSectionData(
-  section: any
+  section: any,
+  headerCategoryFound?: any
 ): Promise<any[]> {
   try {
     const { categories, subCategories, displayType, limit } = section;
 
-    // If displayType is "subcategories", fetch subcategories
-    // If displayType is "subcategories", fetch subcategories
-    // If displayType is "subcategories", fetch subcategories
-    if (displayType === "subcategories") {
-      let subcategoryQuery: any = {};
-      let specificIds: string[] = [];
+    if (displayType === "subcategories" || displayType === "categories") {
+      // If we are viewing a Header Category page (like Fashion), override the section to ONLY show top-level categories! E.g. no subcategories!
+      if (headerCategoryFound) {
+        const dynamicCats = await Category.find({
+          headerCategoryId: headerCategoryFound._id,
+          status: "Active",
+          parentId: null
+        }).select("name image slug order").sort({ order: 1 }).limit(100).lean();
+
+        return dynamicCats.map((c: any) => {
+          const cSlug = c.slug || c._id.toString();
+          return {
+            id: c._id.toString(),
+            categoryId: cSlug,
+            name: c.name,
+            image: c.image || "",
+            slug: cSlug,
+            type: "category"
+          };
+        });
+      }
+
       let results: any[] = [];
-      let parentCategoryIds: string[] = [];
+      let existingIds: string[] = [];
+      let existingSlugs: string[] = [];
 
-      // If specific subcategories are selected, use them
-      if (subCategories && subCategories.length > 0) {
-        specificIds = subCategories
-          .map((sub: any) => (sub ? (sub._id || sub).toString() : null))
-          .filter((id: any) => id);
-
-        if (specificIds.length > 0) {
-          subcategoryQuery._id = { $in: specificIds };
-        }
-      }
-
-      // If no specific subcategories selected, fallback to fetching by parent categories
-      if (specificIds.length === 0 && categories && categories.length > 0) {
-        parentCategoryIds = categories
-          .map((cat: any) => (cat ? (cat._id || cat).toString() : null))
-          .filter((id: any) => id);
-
-        if (parentCategoryIds.length > 0) {
-          subcategoryQuery.category = { $in: parentCategoryIds };
-        }
-      }
-
-      // 1. Fetch from SubCategory collection
-      if (Object.keys(subcategoryQuery).length > 0) {
-        const subcategories = await SubCategory.find(subcategoryQuery)
-          .select("name image order category")
+      // 1. If displayType === "categories" and specific categories selected
+      if (displayType === "categories" && categories && categories.length > 0) {
+        const categoryIds = categories.map((cat: any) => cat._id || cat);
+        const fetchedCategories = await Category.find({
+          _id: { $in: categoryIds },
+          status: "Active",
+        })
+          .select("name image slug order")
           .sort({ order: 1 })
-          .limit(limit || 10)
+          .limit(100)
           .lean();
 
-        const mappedSubs = subcategories.map((sub: any) => ({
-          id: sub._id.toString(),
-          subcategoryId: sub._id.toString(),
-          categoryId: sub.category?.toString() || "",
-          name: sub.name,
-          image: sub.image || "",
-          slug: sub.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-          type: "subcategory",
-        }));
-
-        results.push(...mappedSubs);
+        fetchedCategories.forEach((c: any) => {
+          const cSlug = c.slug || c._id.toString();
+          existingIds.push(c._id.toString());
+          existingSlugs.push(cSlug.toLowerCase());
+          results.push({
+            id: c._id.toString(),
+            categoryId: cSlug,
+            name: c.name,
+            image: c.image || "",
+            slug: cSlug,
+            type: "category",
+          });
+        });
       }
 
-      // 2. Fallback or Specific ID check in Category Collection
+      // 2. If displayType === "subcategories"
+      if (displayType === "subcategories") {
+        let subcategoryQuery: any = {};
+        let specificIds: string[] = [];
+        let parentCategoryIds: string[] = [];
 
-      // Case A: Specific IDs were provided but not found in SubCategory
-      if (specificIds.length > 0) {
-        const foundSubIds = results.map(r => r.id);
-        const missingIds = specificIds.filter(id => !foundSubIds.includes(id));
+        if (subCategories && subCategories.length > 0) {
+          specificIds = subCategories
+            .map((sub: any) => (sub ? (sub._id || sub).toString() : null))
+            .filter((id: any) => id);
 
-        if (missingIds.length > 0) {
-          const foundCategories = await Category.find({ _id: { $in: missingIds }, status: "Active" })
-            .select("name image slug")
+          if (specificIds.length > 0) {
+            subcategoryQuery._id = { $in: specificIds };
+          }
+        }
+
+        if (specificIds.length === 0 && categories && categories.length > 0) {
+          parentCategoryIds = categories
+            .map((cat: any) => (cat ? (cat._id || cat).toString() : null))
+            .filter((id: any) => id);
+
+          if (parentCategoryIds.length > 0) {
+            subcategoryQuery.category = { $in: parentCategoryIds };
+          }
+        }
+
+        if (Object.keys(subcategoryQuery).length > 0) {
+          const subcategories = await SubCategory.find(subcategoryQuery)
+            .select("name image order category slug")
+            .sort({ order: 1 })
+            .limit(100)
             .lean();
 
-          const mappedCats = foundCategories.map((c: any) => ({
-            id: c._id.toString(),
-            categoryId: c.slug || c._id.toString(),
-            name: c.name,
-            image: c.image,
-            slug: c.slug,
-            type: "category",
-          }));
+          subcategories.forEach((sub: any) => {
+            const sSlug = (sub as any).slug || sub.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+            if (!existingIds.includes(sub._id.toString())) {
+              existingIds.push(sub._id.toString());
+              existingSlugs.push(sSlug.toLowerCase());
+              results.push({
+                id: sub._id.toString(),
+                subcategoryId: sub._id.toString(),
+                categoryId: sub.category?.toString() || "",
+                name: sub.name,
+                image: sub.image || "",
+                slug: sSlug,
+                type: "subcategory",
+              });
+            }
+          });
+        }
 
-          results.push(...mappedCats);
+        if (specificIds.length > 0) {
+          const missingIds = specificIds.filter(id => !existingIds.includes(id));
+          if (missingIds.length > 0) {
+            const foundCategories = await Category.find({ _id: { $in: missingIds }, status: "Active" })
+              .select("name image slug order")
+              .lean();
+
+            foundCategories.forEach((c: any) => {
+              const cSlug = c.slug || c._id.toString();
+              existingIds.push(c._id.toString());
+              existingSlugs.push(cSlug.toLowerCase());
+              results.push({
+                id: c._id.toString(),
+                categoryId: cSlug,
+                name: c.name,
+                image: c.image || "",
+                slug: cSlug,
+                type: "category",
+              });
+            });
+          }
+        } else if (parentCategoryIds.length > 0) {
+          const childCategories = await Category.find({
+            parentId: { $in: parentCategoryIds },
+            status: "Active"
+          })
+            .select("name image slug parentId order")
+            .sort({ order: 1 })
+            .limit(100)
+            .lean();
+
+          childCategories.forEach((c: any) => {
+            const cSlug = c.slug || c._id.toString();
+            if (!existingIds.includes(c._id.toString())) {
+              existingIds.push(c._id.toString());
+              existingSlugs.push(cSlug.toLowerCase());
+              results.push({
+                id: c._id.toString(),
+                categoryId: cSlug,
+                name: c.name,
+                image: c.image || "",
+                slug: cSlug,
+                type: "category",
+              });
+            }
+          });
         }
       }
-      // Case B: No specific IDs, so we relied on parentCategoryIds. 
-      // We found SubCategories (maybe), but we ALSO need to check for child Categories (self-referenced).
-      else if (parentCategoryIds.length > 0) {
-        // Search Category collection where parentId matches
-        const childCategories = await Category.find({
-          parentId: { $in: parentCategoryIds },
-          status: "Active"
-        })
-          .select("name image slug parentId")
-          .sort({ order: 1 })
-          .limit(limit || 10)
-          .lean();
 
-        const mappedChildCats = childCategories.map((c: any) => ({
-          id: c._id.toString(),
-          categoryId: c.slug || c._id.toString(),
-          name: c.name,
-          image: c.image,
-          slug: c.slug,
-          type: "category", // navigate as category
-        }));
+      // CRITICAL DYNAMIC BEHAVIOR: Always fetch all active top-level Categories under that header category so admin additions appear instantly!
+      const targetHeaderId = section.targetHeaderCategory;
+      if (targetHeaderId) {
+        const dynamicCats = await Category.find({
+          headerCategoryId: targetHeaderId,
+          status: "Active",
+          parentId: null
+        }).select("name image slug order").sort({ order: 1 }).limit(100).lean();
 
-        results.push(...mappedChildCats);
+        dynamicCats.forEach((c: any) => {
+          const cSlug = c.slug || c._id.toString();
+          if (!existingIds.includes(c._id.toString()) && !existingSlugs.includes(cSlug.toLowerCase())) {
+            existingIds.push(c._id.toString());
+            existingSlugs.push(cSlug.toLowerCase());
+            results.push({
+              id: c._id.toString(),
+              categoryId: cSlug,
+              name: c.name,
+              image: c.image || "",
+              slug: cSlug,
+              type: "category"
+            });
+          }
+        });
       }
+
       return results;
     }
-
     // If displayType is "products", fetch products
     if (displayType === "products") {
       const query: any = {
@@ -204,35 +283,6 @@ async function fetchSectionData(
           seller: p.seller,
         };
       });
-    }
-
-    // If displayType is "categories", fetch the selected categories themselves
-    if (displayType === "categories") {
-      // If categories are specified, fetch those specific categories
-      if (categories && categories.length > 0) {
-        const categoryIds = categories.map((cat: any) => cat._id || cat);
-
-        const fetchedCategories = await Category.find({
-          _id: { $in: categoryIds },
-          status: "Active",
-        })
-          .select("name image slug")
-          .sort({ order: 1 })
-          .limit(limit || 8)
-          .lean();
-
-        return fetchedCategories.map((c: any) => ({
-          id: c._id.toString(),
-          categoryId: c.slug || c._id.toString(), // Use slug for SEO-friendly URLs, fallback to _id
-          name: c.name,
-          image: c.image,
-          slug: c.slug,
-          type: "category",
-        }));
-      } else {
-        // If no categories specified, return empty array
-        return [];
-      }
     }
 
     // If displayType is "banners", return the banners from the section itself
@@ -466,55 +516,77 @@ export const getHomeContent = async (req: Request, res: Response) => {
     }));
 
     // 8. Promo Cards - Strict Filtering by Header Category
-    const promoCardQuery: any = {
-      status: "Active",
-      parentId: null,
-    };
-
+    let promoCards: any[] = [];
     if (headerCategorySlug && headerCategorySlug !== "all") {
       const headerCategory = await HeaderCategory.findOne({
         slug: (headerCategorySlug as string).toLowerCase().trim(),
         status: "Published",
       }).lean();
 
-      if (headerCategory) {
-        promoCardQuery.headerCategoryId = headerCategory._id;
+      let targetHeaderId = headerCategory ? headerCategory._id : null;
+
+      const promoCardQuery: any = {
+        status: "Active",
+        parentId: null,
+      };
+
+      if (targetHeaderId) {
+        promoCardQuery.headerCategoryId = targetHeaderId;
       } else {
-        // Try fallback to slug
         promoCardQuery.slug = (headerCategorySlug as string).toLowerCase().trim();
       }
-    } else {
-      promoCardQuery.headerCategoryId = { $exists: true, $ne: null };
-    }
 
-    const categoriesWithHeaderCategory = await Category.find(promoCardQuery)
-      .populate("headerCategoryId", "name status")
-      .sort({ order: 1 })
-      .limit(4)
-      .lean();
+      const categoriesWithHeaderCategory = await Category.find(promoCardQuery)
+        .populate("headerCategoryId", "name status")
+        .sort({ order: 1 })
+        .limit(100)
+        .lean();
 
-    const promoCards = await Promise.all(
-      categoriesWithHeaderCategory.map(async (category: any) => {
-        const childCategories = await Category.find({
-          parentId: category._id,
-          status: "Active",
+      const combinedCategories = categoriesWithHeaderCategory.map(c => ({
+        _id: c._id,
+        name: c.name,
+        slug: c.slug || c._id.toString(),
+        isSub: false
+      }));
+
+      // Deduplicate by slug/id
+      const seenPromoSlugs = new Set<string>();
+      const uniqueCombined = combinedCategories.filter(item => {
+        const key = item.slug.toLowerCase();
+        if (seenPromoSlugs.has(key)) return false;
+        seenPromoSlugs.add(key);
+        return true;
+      });
+
+      promoCards = await Promise.all(
+        uniqueCombined.map(async (item: any) => {
+          let subcategoryImages: string[] = [];
+          if (item.isSub) {
+            subcategoryImages = item.image ? [item.image] : [];
+          } else {
+            const childCategories = await Category.find({
+              parentId: item._id,
+              status: "Active",
+            })
+              .select("name image _id")
+              .sort({ order: 1 })
+              .limit(4)
+              .lean();
+            subcategoryImages = childCategories.map((child: any) => child.image).filter(Boolean).slice(0, 4);
+          }
+
+          return {
+            id: item._id.toString(),
+            badge: "Up to 55% OFF",
+            title: item.name,
+            categoryId: item._id.toString(),
+            slug: item.slug,
+            bgColor: "bg-yellow-50",
+            subcategoryImages,
+          };
         })
-          .select("name image _id")
-          .sort({ order: 1 })
-          .limit(4)
-          .lean();
-
-        return {
-          id: category._id.toString(),
-          badge: "Up to 55% OFF",
-          title: category.name,
-          categoryId: category._id.toString(),
-          slug: category.slug || category._id.toString(),
-          bgColor: "bg-yellow-50",
-          subcategoryImages: childCategories.map((child: any) => child.image).filter(Boolean).slice(0, 4),
-        };
-      })
-    );
+      );
+    }
 
     // 9. Dynamic Home Sections
     let homeSectionQuery: any = { isActive: true };
@@ -572,7 +644,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
 
     const dynamicSections = await Promise.all(
       homeSections.map(async (section: any) => {
-        const sectionData = await fetchSectionData(section);
+        const sectionData = await fetchSectionData(section, headerCategoryFound);
         return {
           id: section._id.toString(),
           title: section.title,
@@ -592,10 +664,36 @@ export const getHomeContent = async (req: Request, res: Response) => {
       // Find all categories linked to this header category
       const categoriesInHeader = await Category.find({ 
         headerCategoryId: headerCategoryFound._id,
-        status: "Active" 
-      }).select("_id");
+        status: "Active",
+        parentId: null
+      }).select("_id name image slug order").sort({ order: 1 }).lean();
       
       const categoryIds = categoriesInHeader.map(c => c._id);
+
+      const fallbackTiles: any[] = [];
+      categoriesInHeader.forEach(c => {
+        const cSlug = c.slug || c._id.toString();
+        fallbackTiles.push({
+          id: c._id.toString(),
+          categoryId: cSlug,
+          name: c.name,
+          image: c.image || "",
+          slug: cSlug,
+          type: "category"
+        });
+      });
+
+      if (fallbackTiles.length > 0) {
+        dynamicSections.push({
+          id: "header-category-tiles",
+          title: `Explore Categories`,
+          slug: "header-category-tiles",
+          displayType: "subcategories",
+          bannerData: undefined,
+          columns: 4,
+          data: fallbackTiles
+        });
+      }
       
       const prodQuery: any = { 
         $or: [
@@ -694,8 +792,6 @@ export const getStoreProducts = async (req: Request, res: Response) => {
     let query: any = {
       status: "Active",
       publish: true,
-      // Only show shop-by-store-only products in shop by store section
-      isShopByStoreOnly: true,
     };
 
     console.log(`[getStoreProducts] Looking for shop with storeId: ${storeId}`);
@@ -750,32 +846,32 @@ export const getStoreProducts = async (req: Request, res: Response) => {
 
       // If shop has specific products assigned, use those
       if (productIds.length > 0) {
-        query._id = { $in: productIds };
-        // Also filter by shopId to ensure products belong to this shop
-        query.shopId = shopId;
-        console.log(`[getStoreProducts] Filtering by product IDs: ${productIds.length} products and shopId: ${shopId}`);
+        query = {
+          status: "Active",
+          publish: true,
+          _id: { $in: productIds }
+        };
+        console.log(`[getStoreProducts] Filtering by assigned product IDs: ${productIds.length} products`);
       }
       // Otherwise, filter by shopId and category/subcategory
       else {
-        // Filter by shopId to show only products assigned to this shop
-        query.shopId = shopId;
-        console.log(`[getStoreProducts] Filtering by shopId: ${shopId}`);
-
+        const orConditions: any[] = [{ shopId: shopId }];
         if (shop.category) {
           const categoryId = (shop.category as any)._id || (shop.category as any);
-          query.category = categoryId;
-          console.log(`[getStoreProducts] Also filtering by category: ${categoryId}`);
-
-          // If subcategory is also specified, filter by both
           if (shop.subCategory) {
             const subCategoryId = (shop.subCategory as any)._id || (shop.subCategory as any);
-            query.$or = [
-              { category: categoryId, shopId: shopId },
-              { subcategory: subCategoryId, shopId: shopId },
-            ];
-            console.log(`[getStoreProducts] Also filtering by subcategory: ${subCategoryId}`);
+            orConditions.push({ category: categoryId, subcategory: subCategoryId });
+          } else {
+            orConditions.push({ category: categoryId });
           }
         }
+
+        query = {
+          status: "Active",
+          publish: true,
+          $or: orConditions
+        };
+        console.log(`[getStoreProducts] Filtering by shopId or category`);
       }
     } else {
       // Not a campaign shop. Check if it's a Seller Storefront

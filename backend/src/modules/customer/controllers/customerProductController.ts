@@ -142,6 +142,10 @@ export const getProducts = async (req: Request, res: Response) => {
             if (childCats.length > 0) {
               resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
             }
+            const legacySubs = await SubCategory.find({ category: { $in: catIds } }).select('_id');
+            if (legacySubs.length > 0) {
+              resolvedCatIds.push(...legacySubs.map(s => s._id as mongoose.Types.ObjectId));
+            }
           }
         } else {
           // Standard Category ID
@@ -149,6 +153,10 @@ export const getProducts = async (req: Request, res: Response) => {
           const childCats = await Category.find({ parentId: objectId }).select('_id');
           if (childCats.length > 0) {
             resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+          }
+          const legacySubs = await SubCategory.find({ category: objectId }).select('_id');
+          if (legacySubs.length > 0) {
+            resolvedCatIds.push(...legacySubs.map(s => s._id as mongoose.Types.ObjectId));
           }
         }
       } else {
@@ -159,6 +167,10 @@ export const getProducts = async (req: Request, res: Response) => {
           const childCats = await Category.find({ parentId: resolvedCat._id }).select('_id');
           if (childCats.length > 0) {
             resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+          }
+          const legacySubs = await SubCategory.find({ category: resolvedCat._id }).select('_id');
+          if (legacySubs.length > 0) {
+            resolvedCatIds.push(...legacySubs.map(s => s._id as mongoose.Types.ObjectId));
           }
         } else {
           const resolvedHeader = await HeaderCategory.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
@@ -173,6 +185,10 @@ export const getProducts = async (req: Request, res: Response) => {
               if (childCats.length > 0) {
                 resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
               }
+              const legacySubs = await SubCategory.find({ category: { $in: catIds } }).select('_id');
+              if (legacySubs.length > 0) {
+                resolvedCatIds.push(...legacySubs.map(s => s._id as mongoose.Types.ObjectId));
+              }
             }
           }
         }
@@ -182,7 +198,10 @@ export const getProducts = async (req: Request, res: Response) => {
         andConditions.push({
           $or: [
             { category: { $in: resolvedCatIds } },
-            { categoryId: { $in: resolvedCatIds } }
+            { categoryId: { $in: resolvedCatIds } },
+            { subcategory: { $in: resolvedCatIds } },
+            { subcategoryId: { $in: resolvedCatIds } },
+            { subCategoryId: { $in: resolvedCatIds } }
           ]
         });
       }
@@ -680,13 +699,36 @@ export const getQuickProducts = async (req: Request, res: Response) => {
     if (activeCategoryId) {
       let resolvedCatIds: mongoose.Types.ObjectId[] = [];
       if (mongoose.Types.ObjectId.isValid(activeCategoryId as string)) {
-        const parentId = new mongoose.Types.ObjectId(activeCategoryId as string);
-        resolvedCatIds = [parentId];
+        const objectId = new mongoose.Types.ObjectId(activeCategoryId as string);
+        const headerCat = await HeaderCategory.findById(objectId).select('_id');
         
-        // Find all subcategories (child categories) for this parent category
-        const childCats = await Category.find({ parentId }).select('_id');
-        if (childCats.length > 0) {
-          resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+        if (headerCat) {
+          // It's a HeaderCategory ID! Find all child Categories.
+          const categoriesInHeader = await Category.find({ headerCategoryId: headerCat._id }).select('_id');
+          const catIds = categoriesInHeader.map(c => c._id as mongoose.Types.ObjectId);
+          resolvedCatIds = [...catIds];
+          
+          if (catIds.length > 0) {
+            const childCats = await Category.find({ parentId: { $in: catIds } }).select('_id');
+            if (childCats.length > 0) {
+              resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+            }
+            const legacySubs = await SubCategory.find({ category: { $in: catIds } }).select('_id');
+            if (legacySubs.length > 0) {
+              resolvedCatIds.push(...legacySubs.map(s => s._id as mongoose.Types.ObjectId));
+            }
+          }
+        } else {
+          // Standard Category ID
+          resolvedCatIds = [objectId];
+          const childCats = await Category.find({ parentId: objectId }).select('_id');
+          if (childCats.length > 0) {
+            resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+          }
+          const legacySubs = await SubCategory.find({ category: objectId }).select('_id');
+          if (legacySubs.length > 0) {
+            resolvedCatIds.push(...legacySubs.map(s => s._id as mongoose.Types.ObjectId));
+          }
         }
       } else {
         const resolvedCat = await Category.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
@@ -696,6 +738,10 @@ export const getQuickProducts = async (req: Request, res: Response) => {
           const childCats = await Category.find({ parentId: resolvedCat._id }).select('_id');
           if (childCats.length > 0) {
             resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
+          }
+          const legacySubs = await SubCategory.find({ category: resolvedCat._id }).select('_id');
+          if (legacySubs.length > 0) {
+            resolvedCatIds.push(...legacySubs.map(s => s._id as mongoose.Types.ObjectId));
           }
         } else {
           const resolvedHeader = await HeaderCategory.findOne({ slug: (activeCategoryId as string).toLowerCase().trim() }).select('_id');
@@ -710,6 +756,10 @@ export const getQuickProducts = async (req: Request, res: Response) => {
               if (childCats.length > 0) {
                 resolvedCatIds.push(...childCats.map(c => c._id as mongoose.Types.ObjectId));
               }
+              const legacySubs = await SubCategory.find({ category: { $in: catIds } }).select('_id');
+              if (legacySubs.length > 0) {
+                resolvedCatIds.push(...legacySubs.map(s => s._id as mongoose.Types.ObjectId));
+              }
             }
           }
         }
@@ -719,7 +769,10 @@ export const getQuickProducts = async (req: Request, res: Response) => {
         quickAndConditions.push({
           $or: [
             { category: { $in: resolvedCatIds } },
-            { categoryId: { $in: resolvedCatIds } }
+            { categoryId: { $in: resolvedCatIds } },
+            { subcategory: { $in: resolvedCatIds } },
+            { subcategoryId: { $in: resolvedCatIds } },
+            { subCategoryId: { $in: resolvedCatIds } }
           ]
         });
       }
@@ -762,7 +815,8 @@ export const getQuickProducts = async (req: Request, res: Response) => {
     }
 
     // Filter strictly by same-city sellers (only show products from sellers matching the user's city)
-    const userCity = userCityParam ? normalizeCity(userCityParam as string) : "";
+    const rawCity = userCityParam as string;
+    const userCity = (rawCity && rawCity !== 'undefined' && rawCity !== 'null') ? normalizeCity(rawCity) : "";
     if (userCity) {
       const sellersInCity = await Seller.find({ 
         city: { $regex: new RegExp(`^${userCity}$`, 'i') }, 
