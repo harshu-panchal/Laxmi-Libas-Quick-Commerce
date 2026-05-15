@@ -7,7 +7,7 @@ import { getSubcategories } from "../../../services/api/categoryService";
 import { apiCache } from "../../../utils/apiCache";
 import { useLocation } from "../../../hooks/useLocation";
 import { calculateProductPrice } from "../../../utils/priceUtils";
-import { isClothingRelated } from "../../../utils/clothingUtils";
+
 
 
 interface PromoCard {

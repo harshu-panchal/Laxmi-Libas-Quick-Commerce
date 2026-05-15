@@ -9,7 +9,7 @@ import { appConfig } from '../../../services/configService';
 import { getCategories } from '../../../services/api/customerProductService';
 import { Category } from '../../../types/domain';
 import CategoryTabBar from '../../../components/CategoryTabBar';
-import { isClothingRelated } from '../../../utils/clothingUtils';
+
 import CompactLocationHeader from '../../../components/CompactLocationHeader';
 
 

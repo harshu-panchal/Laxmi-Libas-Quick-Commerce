@@ -241,9 +241,23 @@ export const getProducts = async (req: Request, res: Response) => {
       baseQuery.$and = andConditions;
     }
 
-    // Support text-based full text searches if provided
+    // Support text-based search with regex for better partial matches and single-character searches
     if (search && String(search).trim()) {
-      baseQuery.$text = { $search: String(search).trim() };
+      const searchStr = String(search).trim();
+      const searchRegex = new RegExp(searchStr, "i");
+      
+      andConditions.push({
+        $or: [
+          { productName: { $regex: searchRegex } },
+          { smallDescription: { $regex: searchRegex } },
+          { description: { $regex: searchRegex } },
+          { tags: { $regex: searchRegex } },
+          { brandName: { $regex: searchRegex } },
+          { sku: { $regex: searchRegex } },
+          { barcode: { $regex: searchRegex } },
+          { pack: { $regex: searchRegex } }
+        ]
+      });
     }
 
     let sort: any = { createdAt: -1 };
@@ -255,7 +269,7 @@ export const getProducts = async (req: Request, res: Response) => {
     } else if (activeSort === 'newest') {
       sort = { createdAt: -1 };
     } else if (search && String(search).trim()) {
-      sort = { score: { $meta: "textScore" } };
+      sort = { createdAt: -1 };
     }
 
     // ── Fetch Quick (location-based) products ───────────────────────────────
@@ -809,9 +823,23 @@ export const getQuickProducts = async (req: Request, res: Response) => {
       query.$and = quickAndConditions;
     }
 
-    // Text search if search query is provided
+    // Support text-based search with regex for better partial matches and single-character searches
     if (search && String(search).trim()) {
-      query.$text = { $search: String(search).trim() };
+      const searchStr = String(search).trim();
+      const searchRegex = new RegExp(searchStr, "i");
+      
+      quickAndConditions.push({
+        $or: [
+          { productName: { $regex: searchRegex } },
+          { smallDescription: { $regex: searchRegex } },
+          { description: { $regex: searchRegex } },
+          { tags: { $regex: searchRegex } },
+          { brandName: { $regex: searchRegex } },
+          { sku: { $regex: searchRegex } },
+          { barcode: { $regex: searchRegex } },
+          { pack: { $regex: searchRegex } }
+        ]
+      });
     }
 
     // Filter strictly by same-city sellers (only show products from sellers matching the user's city)
@@ -841,7 +869,7 @@ export const getQuickProducts = async (req: Request, res: Response) => {
     } else if (activeSort === 'newest') {
       sort = { createdAt: -1 };
     } else if (search && String(search).trim()) {
-      sort = { score: { $meta: "textScore" } };
+      sort = { createdAt: -1 };
     }
 
     const [products, total] = await Promise.all([

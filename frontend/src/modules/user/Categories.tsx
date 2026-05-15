@@ -1,85 +1,95 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { getHomeContent } from "../../services/api/customerHomeService";
+import { getCategories, getCategoryById } from "../../services/api/customerProductService";
 import { useLocation } from "../../hooks/useLocation";
 import { useCart } from "../../context/CartContext";
-import { isClothingRelated } from "../../utils/clothingUtils";
-import { CLOTHING_MOCK_DATA } from "../../utils/clothingMockData";
-import ProductCard from "./components/ProductCard";
 import { Search, Camera, ShoppingCart, ChevronRight } from "lucide-react";
 
 
 export default function Categories() {
   const { location } = useLocation();
   const [loading, setLoading] = useState(true);
+  const [subLoading, setSubLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [homeData, setHomeData] = useState<any>({
-    homeSections: [],
-    categories: [],
-  });
+  const [rootCategories, setRootCategories] = useState<any[]>([]);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const { cart } = useCart();
   const navigate = useNavigate();
+
+  // Fetch root categories on mount
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchRoots = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await getHomeContent(
-          undefined,
-          location?.latitude || undefined,
-          location?.longitude || undefined
-        );
+        // Use tree=true to get hierarchy or just get root categories
+        const response = await getCategories();
         if (response.success && response.data) {
-
-
-          const filteredData = {
-            ...response.data,
-            categories: response.data.categories || [],
-            homeSections: (response.data.homeSections || [])
-              .map((section: any) => ({
-                ...section,
-                data: section.data || []
-              }))
-              .filter((section: any) => {
-                return (section.data && section.data.length > 0) || section.displayType === "banners";
-              }),
-          };
-          setHomeData(filteredData);
-          if (filteredData.categories && filteredData.categories.length > 0 && !selectedCategoryId) {
-            setSelectedCategoryId(filteredData.categories[0].slug || filteredData.categories[0]._id);
+          // Filter to only show root categories if the backend returns all
+          const roots = response.data.filter((cat: any) => !cat.parentId);
+          setRootCategories(roots);
+          
+          if (roots.length > 0 && !selectedCategoryId) {
+            setSelectedCategoryId(roots[0].slug || roots[0]._id);
           }
         } else {
-          setError("Failed to load categories. Please try again.");
+          setError("Failed to load categories.");
         }
       } catch (error) {
-        console.error("Failed to fetch home content:", error);
-        setError("Network error. Please check your connection.");
+        console.error("Failed to fetch root categories:", error);
+        setError("Network error.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [location?.latitude, location?.longitude]);
+    fetchRoots();
+  }, []);
 
-  if (loading && !homeData.homeSections?.length && !homeData.categories?.length) {
-    return null; // Let global IconLoader handle it
+  // Fetch subcategories when selected category changes
+  useEffect(() => {
+    const fetchSubs = async () => {
+      if (!selectedCategoryId) return;
+
+      try {
+        setSubLoading(true);
+        const response = await getCategoryById(selectedCategoryId);
+        if (response.success && response.data) {
+          setSubcategories(response.data.subcategories || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch subcategories:", error);
+      } finally {
+        setSubLoading(false);
+      }
+    };
+
+    fetchSubs();
+  }, [selectedCategoryId]);
+
+  const cartItemsCount = cart?.items?.reduce((acc, item) => acc + (item.quantity || 0), 0) || 0;
+
+  const currentCategory = useMemo(() => 
+    rootCategories.find((cat: any) => (cat.slug || cat._id) === selectedCategoryId),
+  [rootCategories, selectedCategoryId]);
+
+  if (loading && rootCategories.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-dark"></div>
+      </div>
+    );
   }
 
-  if (error && !homeData.homeSections?.length && !homeData.categories?.length) {
+  if (error && rootCategories.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center bg-white">
-        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-4">
-          <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Oops! Something went wrong</h3>
-        <p className="text-gray-600 mb-6 max-w-xs">{error}</p>
+        <p className="text-gray-600 mb-6">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-primary-dark text-white rounded-full font-medium hover:bg-yellow-700 transition-colors"
+          className="px-6 py-2 bg-primary-dark text-white rounded-full"
         >
           Try Refreshing
         </button>
@@ -87,24 +97,16 @@ export default function Categories() {
     );
   }
 
-
-  const cartItemsCount = cart?.items?.reduce((acc, item) => acc + (item.quantity || 0), 0) || 0;
-
-  const currentCategory = homeData.categories?.find((cat: any) => (cat.slug || cat._id) === selectedCategoryId);
-
   return (
     <div className="flex flex-col h-screen bg-white overflow-hidden">
-      {/* Premium Header */}
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-neutral-100 shrink-0">
         <h1 className="text-xl font-bold text-neutral-900">All Categories</h1>
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/search')} className="p-1 hover:bg-neutral-50 rounded-full transition-colors">
+          <button onClick={() => navigate('/search')} className="p-1">
             <Search size={22} className="text-neutral-700" />
           </button>
-          <button className="p-1 hover:bg-neutral-50 rounded-full transition-colors">
-            <Camera size={22} className="text-neutral-700" />
-          </button>
-          <button onClick={() => navigate('/cart')} className="p-1 relative hover:bg-neutral-50 rounded-full transition-colors">
+          <button onClick={() => navigate('/cart')} className="p-1 relative">
             <ShoppingCart size={22} className="text-neutral-700" />
             {cartItemsCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full border-2 border-white">
@@ -115,45 +117,33 @@ export default function Categories() {
         </div>
       </div>
 
-      {/* Main Content Area: Sidebar + Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar (Left) */}
+        {/* Sidebar */}
         <div className="w-24 bg-neutral-50 overflow-y-auto scrollbar-hide border-r border-neutral-100">
-          {homeData.categories
-            ?.filter((cat: any) => isClothingRelated(cat.name) || isClothingRelated(cat.slug))
-            .map((cat: any) => {
+          {rootCategories.map((cat: any) => {
             const id = cat.slug || cat._id;
             const isActive = selectedCategoryId === id;
             
-            const isUrl = (str: string | undefined) => {
-              if (!str) return false;
-              return str.startsWith("http://") || str.startsWith("https://") || str.startsWith("/") || str.startsWith("data:") || str.includes(".");
-            };
-
             return (
               <button
                 key={id}
                 onClick={() => setSelectedCategoryId(id)}
-                className={`w-full flex flex-col items-center py-4 px-2 relative transition-all ${isActive ? 'bg-white shadow-[0_4px_12px_rgba(0,0,0,0.05)]' : 'transparent'
-                  }`}
+                className={`w-full flex flex-col items-center py-4 px-2 relative transition-all ${isActive ? 'bg-white' : 'transparent'}`}
               >
                 {isActive && (
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-dark rounded-r-full" />
                 )}
-                <div className={`w-12 h-12 rounded-xl mb-1.5 flex items-center justify-center overflow-hidden border-2 transition-all ${isActive ? 'border-primary-dark scale-110 shadow-sm' : 'border-neutral-200'
-                  }`}>
+                <div className={`w-12 h-12 rounded-xl mb-1.5 flex items-center justify-center overflow-hidden border-2 transition-all ${isActive ? 'border-primary-dark scale-110' : 'border-neutral-200'}`}>
                   <img
-                    src={cat.image || (cat.icon && isUrl(cat.icon) ? cat.icon : "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png")}
+                    src={cat.image || cat.icon || "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png"}
                     alt={cat.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png";
+                      (e.target as HTMLImageElement).src = "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png";
                     }}
                   />
                 </div>
-                <span className={`text-[10px] leading-tight text-center font-bold tracking-tight ${isActive ? 'text-primary-dark capitalize' : 'text-neutral-500 capitalize'
-                  }`}>
+                <span className={`text-[10px] leading-tight text-center font-bold tracking-tight ${isActive ? 'text-primary-dark capitalize' : 'text-neutral-500 capitalize'}`}>
                   {cat.name}
                 </span>
               </button>
@@ -161,104 +151,61 @@ export default function Categories() {
           })}
         </div>
 
-        {/* Content (Right) */}
+        {/* Subcategories Content */}
         <div className="flex-1 overflow-y-auto bg-white p-4 pb-24 scrollbar-hide">
           {selectedCategoryId ? (
-            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-              {/* Category Breadcrumb/Title */}
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="flex items-center justify-between pb-2 border-b border-neutral-50">
-                <h2 className="text-lg font-bold text-neutral-900 capitalize italic">
+                <h2 className="text-lg font-bold text-neutral-900 capitalize">
                   {currentCategory?.name || 'Explore'}
                 </h2>
                 <button
                   onClick={() => navigate(`/category/${selectedCategoryId}`)}
-                  className="flex items-center text-xs font-semibold text-primary-dark hover:gap-1 transition-all"
+                  className="flex items-center text-xs font-semibold text-primary-dark"
                 >
-                  View All <ChevronRight size={14} />
+                  View All Products <ChevronRight size={14} />
                 </button>
               </div>
 
-              {/* Popular Stores Section (Circles) */}
-              <section>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-neutral-800 tracking-tight">Popular Store</h3>
+              {subLoading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-dark"></div>
                 </div>
+              ) : subcategories.length > 0 ? (
                 <div className="grid grid-cols-3 gap-y-6 gap-x-4">
-                  {((homeData.homeSections
-                          ?.filter((s: any) => s.displayType === 'categories' || s.displayType === 'banners')
-                          ?.flatMap((s: any) => s.data)
-                          ?.filter((item: any) => isClothingRelated(item.name) || isClothingRelated(item.title) || isClothingRelated(item.slug))
-                          ?.slice(0, 6)) || []
-                    ).map((item: any, idx: number) => (
-                        <button 
-                          key={idx}
-                          className="flex flex-col items-center gap-2 group"
-                          onClick={() => navigate(item.type === 'category' ? `/category/${item.categoryId}` : '/')}
-                        >
-                          <div className="w-16 h-16 rounded-2xl bg-neutral-50 border border-neutral-100 flex items-center justify-center overflow-hidden group-active:scale-95 transition-transform shadow-sm">
-                            <img 
-                              src={item.image || item.imageUrl || "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png"} 
-                              alt={item.name} 
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <span className="text-[10px] font-bold text-neutral-700 text-center leading-tight">
-                            {item.name || item.title || 'Special'}
-                          </span>
-                        </button>
-                      ))}
-                </div>
-              </section>
-
-              {/* New & Upcoming Launches (Grid with badges) */}
-              <section>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-neutral-800 tracking-tight">New & Upcoming Launches</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {((homeData.homeSections
-                          ?.find((s: any) => s.displayType === 'products')
-                          ?.data
-                          ?.filter((p: any) => isClothingRelated(p.name) || isClothingRelated(p.category?.name))
-                          ?.slice(0, 4)) || []
-                    ).map((product: any, idx: number) => (
-                        <div key={idx} className="relative group">
-                          <div className="absolute top-2 left-2 z-10">
-                            <span className={`${idx % 2 === 0 ? 'bg-emerald-500' : 'bg-primary-dark'} text-white text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm uppercase`}>
-                              {idx % 2 === 0 ? 'NOTIFY ME' : 'BUY NOW'}
-                            </span>
-                          </div>
-                          <ProductCard
-                            product={product}
-                            compact={true}
-                            categoryStyle={true}
-                            showBadge={false}
-                          />
-                        </div>
-                      ))}
-                </div>
-              </section>
-
-              {/* Recently Viewed / Stores */}
-              <section className="pb-10">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-neutral-800 tracking-tight">Recently Viewed Stores</h3>
-                </div>
-                <div className="flex overflow-x-auto gap-4 scrollbar-hide pb-2">
-                  {homeData.categories
-                    ?.filter((cat: any) => isClothingRelated(cat.name) || isClothingRelated(cat.slug))
-                    ?.slice(0, 5)
-                    .map((cat: any, idx: number) => (
-                    <div key={idx} className="shrink-0 w-28 aspect-[4/5] rounded-xl bg-neutral-50 overflow-hidden border border-neutral-100">
-                      <img
-                        src={cat.image}
-                        alt={cat.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                  {subcategories.map((sub: any) => (
+                    <button 
+                      key={sub._id}
+                      className="flex flex-col items-center gap-2 group"
+                      onClick={() => navigate(`/category/${sub.slug || sub._id}`)}
+                    >
+                      <div className="w-16 h-16 rounded-2xl bg-neutral-50 border border-neutral-100 flex items-center justify-center overflow-hidden group-active:scale-95 transition-transform shadow-sm">
+                        <img 
+                          src={sub.image || "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png"} 
+                          alt={sub.name} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://res.cloudinary.com/laxmart/image/upload/v1711966732/placeholder.png";
+                          }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold text-neutral-700 text-center leading-tight line-clamp-2">
+                        {sub.name}
+                      </span>
+                    </button>
                   ))}
                 </div>
-              </section>
+              ) : (
+                <div className="text-center py-12 text-neutral-400">
+                  <p className="text-sm">No subcategories found for this section.</p>
+                  <button 
+                    onClick={() => navigate(`/category/${selectedCategoryId}`)}
+                    className="mt-4 text-xs font-bold text-primary-dark underline"
+                  >
+                    View All Products
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center justify-center h-full text-neutral-400 font-medium">
