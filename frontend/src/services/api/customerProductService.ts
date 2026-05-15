@@ -6,6 +6,7 @@ export interface Category {
     _id: string; // MongoDB ID
     id?: string; // Virtual ID
     name: string;
+    slug?: string;
     parent?: string | null;
     image?: string;
     icon?: string;
