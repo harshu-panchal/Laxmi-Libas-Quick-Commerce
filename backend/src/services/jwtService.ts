@@ -6,6 +6,8 @@ export interface TokenPayload {
   userType: UserType;
   role?: string;
   categoryId?: string;
+  name?: string;
+  email?: string;
 }
 
 const JWT_SECRET = (process.env.JWT_SECRET || 'your-secret-key-change-in-production').trim();

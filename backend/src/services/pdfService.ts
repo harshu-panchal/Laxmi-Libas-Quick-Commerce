@@ -51,10 +51,10 @@ export class PDFService {
 
       // Table Header
       const tableTop = 320;
-      doc.fontSize(10).text('Product', 50, tableTop, { bold: true });
-      doc.text('Price', 250, tableTop, { bold: true });
-      doc.text('Qty', 350, tableTop, { bold: true });
-      doc.text('Total', 450, tableTop, { bold: true });
+      doc.fontSize(10).text('Product', 50, tableTop);
+      doc.text('Price', 250, tableTop);
+      doc.text('Qty', 350, tableTop);
+      doc.text('Total', 450, tableTop);
 
       doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
 
@@ -88,11 +88,11 @@ export class PDFService {
         currentHeight += 15;
       }
 
-      doc.fontSize(12).text('Total:', 350, currentHeight, { bold: true });
-      doc.text(`₹${order.total.toFixed(2)}`, 450, currentHeight, { bold: true });
+      doc.fontSize(12).text('Total:', 350, currentHeight);
+      doc.text(`₹${order.total.toFixed(2)}`, 450, currentHeight);
 
       // Footer
-      doc.fontSize(10).text('This is a computer-generated invoice and does not require a signature.', 50, 700, { align: 'center', color: 'gray' });
+      doc.fontSize(10).fillColor('gray').text('This is a computer-generated invoice and does not require a signature.', 50, 700, { align: 'center' });
 
       doc.end();
     });
@@ -111,7 +111,7 @@ export class PDFService {
       doc.on('error', reject);
 
       // Label Header
-      doc.fontSize(18).text('LaxMart Shipping', { align: 'center', bold: true });
+      doc.fontSize(18).text('LaxMart Shipping', { align: 'center' });
       doc.moveTo(20, 50).lineTo(380, 50).stroke();
 
       // Tracking ID
@@ -121,7 +121,7 @@ export class PDFService {
 
       // Ship To
       doc.fontSize(12).text('SHIP TO:', { underline: true });
-      doc.fontSize(14).text(order.customerName, { bold: true });
+      doc.fontSize(14).text(order.customerName);
       doc.fontSize(12).text(order.deliveryAddress.address);
       doc.text(`${order.deliveryAddress.city}, ${order.deliveryAddress.pincode}`);
       doc.text(`${order.deliveryAddress.state || ''}`);
@@ -165,12 +165,12 @@ export class PDFService {
       doc.on('error', reject);
 
       // Header
-      doc.fontSize(20).text('STAY SUMMARY & INVOICE', { align: 'center', bold: true });
+      doc.fontSize(20).text('STAY SUMMARY & INVOICE', { align: 'center' });
       doc.moveDown();
 
       // Hotel Info
       const hotel = booking.hotelId;
-      doc.fontSize(14).text(hotel?.name || 'Hotel Partner', { align: 'right', bold: true });
+      doc.fontSize(14).text(hotel?.name || 'Hotel Partner', { align: 'right' });
       doc.fontSize(10).text(hotel?.address || '', { align: 'right' });
       doc.text(`${hotel?.city || ''}, ${hotel?.pincode || ''}`, { align: 'right' });
       doc.moveDown();
@@ -184,10 +184,10 @@ export class PDFService {
 
       // Stay Details Table
       const tableTop = 230;
-      doc.fontSize(12).text('Description', 50, tableTop, { bold: true });
-      doc.text('Rooms', 250, tableTop, { bold: true });
-      doc.text('Guests', 350, tableTop, { bold: true });
-      doc.text('Total', 450, tableTop, { bold: true });
+      doc.fontSize(12).text('Description', 50, tableTop);
+      doc.text('Rooms', 250, tableTop);
+      doc.text('Guests', 350, tableTop);
+      doc.text('Total', 450, tableTop);
 
       doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
 
@@ -202,11 +202,11 @@ export class PDFService {
 
       // Summary
       doc.moveDown(4);
-      doc.fontSize(12).text(`Grand Total: ₹${booking.totalAmount.toFixed(2)}`, { align: 'right', bold: true });
+      doc.fontSize(12).text(`Grand Total: ₹${booking.totalAmount.toFixed(2)}`, { align: 'right' });
       doc.fontSize(10).text(`Payment Status: ${booking.paymentStatus}`, { align: 'right' });
 
       // Footer
-      doc.fontSize(10).text('Thank you for choosing LaxMart Travel. Hope to see you again!', 50, 700, { align: 'center', color: 'gray' });
+      doc.fontSize(10).fillColor('gray').text('Thank you for choosing LaxMart Travel. Hope to see you again!', 50, 700, { align: 'center' });
 
       doc.end();
     });
@@ -225,23 +225,23 @@ export class PDFService {
       doc.on('error', reject);
 
       // Header
-      doc.fontSize(18).text('PASSENGER MANIFEST', { align: 'center', bold: true });
+      doc.fontSize(18).text('PASSENGER MANIFEST', { align: 'center' });
       doc.moveDown();
 
       // Bus & Trip Info
-      doc.fontSize(12).text(`Bus: ${bus.busName} (${bus.busNumber})`, { bold: true });
+      doc.fontSize(12).text(`Bus: ${bus.busName} (${bus.busNumber})`);
       doc.text(`Route: ${bus.from} to ${bus.to}`);
       doc.text(`Departure: ${new Date(bus.departureTime).toLocaleString()}`);
       doc.moveDown();
 
       // Manifest Table
       const tableTop = 150;
-      doc.fontSize(10).text('S.No', 50, tableTop, { bold: true });
-      doc.text('Passenger Name', 100, tableTop, { bold: true });
-      doc.text('Phone', 300, tableTop, { bold: true });
-      doc.text('Seat(s)', 450, tableTop, { bold: true });
-      doc.text('Status', 550, tableTop, { bold: true });
-      doc.text('Amount', 650, tableTop, { bold: true });
+      doc.fontSize(10).text('S.No', 50, tableTop);
+      doc.text('Passenger Name', 100, tableTop);
+      doc.text('Phone', 300, tableTop);
+      doc.text('Seat(s)', 450, tableTop);
+      doc.text('Status', 550, tableTop);
+      doc.text('Amount', 650, tableTop);
 
       doc.moveTo(50, tableTop + 15).lineTo(750, tableTop + 15).stroke();
 
@@ -264,7 +264,7 @@ export class PDFService {
 
       // Summary
       doc.moveDown();
-      doc.text(`Total Passengers: ${bookings.length}`, { bold: true });
+      doc.text(`Total Passengers: ${bookings.length}`);
 
       doc.end();
     });
@@ -287,13 +287,13 @@ export class PDFService {
       const route = schedule?.routeId;
 
       // Ticket Header
-      doc.fontSize(22).text('E-TICKET', { align: 'center', bold: true });
+      doc.fontSize(22).text('E-TICKET', { align: 'center' });
       doc.fontSize(10).text('LaxMart Travel', { align: 'center' });
       doc.moveDown();
 
       // Trip Summary
       doc.rect(50, 100, 500, 100).fill('#f9f9f9').stroke('#eeeeee');
-      doc.fillColor('black').fontSize(14).text(`${route?.from || 'Source'} \u2192 ${route?.to || 'Destination'}`, 60, 115, { bold: true });
+      doc.fillColor('black').fontSize(14).text(`${route?.from || 'Source'} \u2192 ${route?.to || 'Destination'}`, 60, 115);
       doc.fontSize(10).text(`Operator: ${bus?.operatorName || 'Laxmi Travels'}`, 60, 135);
       doc.text(`Bus: ${bus?.busName || 'Deluxe'} (${bus?.busNumber || ''})`, 60, 150);
       doc.text(`Date & Time: ${new Date(schedule?.departureDate).toLocaleDateString()} at ${schedule?.departureTime}`, 60, 165);
@@ -311,12 +311,12 @@ export class PDFService {
       doc.moveDown(2);
       doc.fontSize(12).text('BOARDING & DROPOFF', { underline: true });
       doc.moveDown();
-      doc.fontSize(10).text(`Pickup: ${booking.pickupPoint}`, { bold: true });
-      doc.text(`Dropoff: ${booking.dropoffPoint}`, { bold: true });
+      doc.fontSize(10).text(`Pickup: ${booking.pickupPoint}`);
+      doc.text(`Dropoff: ${booking.dropoffPoint}`);
 
       // Important Instructions
       doc.moveDown(3);
-      doc.fontSize(8).fillColor('gray').text('IMPORTANT INSTRUCTIONS:', { bold: true });
+      doc.fontSize(8).fillColor('gray').text('IMPORTANT INSTRUCTIONS:');
       doc.text('1. Please carry a valid government ID proof.');
       doc.text('2. Reach the boarding point 15 minutes before departure.');
       doc.text('3. This ticket is non-transferable.');

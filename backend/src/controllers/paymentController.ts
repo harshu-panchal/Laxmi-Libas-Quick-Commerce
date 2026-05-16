@@ -97,12 +97,12 @@ export const getPaymentStatus = async (req: Request, res: Response) => {
         }
 
         // Trigger downstream actions on first successful payment confirmation
-        if (result.justPaid) {
+        if ((result as any).justPaid) {
             try {
                 const io: SocketIOServer = req.app.get('io') as SocketIOServer;
 
                 // Product orders
-                const ordersToNotify = result.allOrders || (result.order ? [result.order] : []);
+                const ordersToNotify = (result as any).allOrders || ((result as any).order ? [(result as any).order] : []);
                 for (const order of ordersToNotify) {
                     if (io) await notifySellersOfOrderUpdate(io, order, 'NEW_ORDER');
                     const custId = order.customer?.toString();
@@ -117,13 +117,13 @@ export const getPaymentStatus = async (req: Request, res: Response) => {
                 }
 
                 // Hotel bookings
-                if (result.booking && (result.booking as any).hotelId) {
-                    console.log(`[PaymentController] Hotel booking ${(result.booking as any)._id} payment confirmed`);
+                if ((result as any).booking && (result as any).booking.hotelId) {
+                    console.log(`[PaymentController] Hotel booking ${(result as any).booking._id} payment confirmed`);
                 }
 
                 // Bus bookings
-                if (result.booking && (result.booking as any).busId) {
-                    console.log(`[PaymentController] Bus booking ${(result.booking as any)._id} payment confirmed`);
+                if ((result as any).booking && (result as any).booking.busId) {
+                    console.log(`[PaymentController] Bus booking ${(result as any).booking._id} payment confirmed`);
                 }
             } catch (notifErr) {
                 console.error('[PaymentController] Notification error (non-fatal):', notifErr);
@@ -133,7 +133,7 @@ export const getPaymentStatus = async (req: Request, res: Response) => {
         return res.status(200).json({
             success: true,
             status: result.status,   // 'success' | 'failed' | 'pending'
-            data: result.raw,
+            data: (result as any).raw,
         });
 
     } catch (error: any) {
@@ -157,11 +157,11 @@ export const phonePeCallback = async (req: Request, res: Response) => {
 
         if (!result.success) {
             console.error('[PaymentController] Webhook processing error:', result.message);
-        } else if (result.justPaid) {
+        } else if ((result as any).justPaid) {
             try {
                 const io: SocketIOServer = req.app.get('io') as SocketIOServer;
 
-                const ordersToNotify = result.allOrders || (result.order ? [result.order] : []);
+                const ordersToNotify = (result as any).allOrders || ((result as any).order ? [(result as any).order] : []);
                 for (const order of ordersToNotify) {
                     if (io) await notifySellersOfOrderUpdate(io, order, 'NEW_ORDER');
                     io.to(`order-${order._id}`).emit('payment-confirmed', {
@@ -170,8 +170,8 @@ export const phonePeCallback = async (req: Request, res: Response) => {
                     });
                 }
 
-                if (result.booking) {
-                    console.log(`[PaymentController] Webhook: booking ${(result.booking as any)._id} confirmed`);
+                if ((result as any).booking) {
+                    console.log(`[PaymentController] Webhook: booking ${(result as any).booking._id} confirmed`);
                 }
             } catch (notifErr) {
                 console.error('[PaymentController] Webhook notification error:', notifErr);

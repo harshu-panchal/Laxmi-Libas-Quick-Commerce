@@ -391,10 +391,10 @@ async function commitBookingResources(payment: any) {
             const schedule = await BusSchedule.findById(booking.scheduleId);
             if (!schedule) return;
 
-            const seatNums = booking.seats.map(s => s.seatNumber);
+            const seatNums = booking.seats.map((s: any) => s.seatNumber);
             
             // Mark seats as booked
-            schedule.seats = schedule.seats.map(s => {
+            schedule.seats = schedule.seats.map((s: any) => {
                 if (seatNums.includes(s.seatNumber)) {
                     return { ...s, isBooked: true };
                 }

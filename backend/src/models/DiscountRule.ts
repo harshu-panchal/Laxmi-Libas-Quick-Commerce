@@ -6,6 +6,9 @@ export interface IDiscountRule extends Document {
     categoryId?: mongoose.Types.ObjectId;
     sellerId?: mongoose.Types.ObjectId;
     productId?: mongoose.Types.ObjectId;
+    startDate?: Date;
+    expiryDate?: Date;
+    usageLimit?: number;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;

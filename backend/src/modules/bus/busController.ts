@@ -101,7 +101,7 @@ export const searchBuses = asyncHandler(async (req: Request, res: Response) => {
       date: s.departureDate.toLocaleDateString(),
       basePrice: s.basePrice,
       amenities: bus.amenities,
-      availableSeats: s.seats.filter(st => !st.isBooked).length
+      availableSeats: s.seats.filter((st: any) => !st.isBooked).length
     };
   });
 
@@ -192,7 +192,7 @@ export const createBusBooking = asyncHandler(async (req: Request, res: Response)
 
   // Check if seats are still available (Checking permanent bookings)
   const seatNumbersToBook = seats.map((s: any) => s.seatNumber);
-  const alreadyBooked = schedule.seats.filter(s => s.isBooked && seatNumbersToBook.includes(s.seatNumber));
+  const alreadyBooked = schedule.seats.filter((s: any) => s.isBooked && seatNumbersToBook.includes(s.seatNumber));
 
   if (alreadyBooked.length > 0) {
     res.status(400).json({ success: false, message: 'Some seats are already booked' });
@@ -308,8 +308,8 @@ export const updateBookingStatus = asyncHandler(async (req: Request, res: Respon
   if (status === 'confirmed') {
     const schedule = await BusSchedule.findById(booking.scheduleId);
     if (schedule) {
-      const seatNums = booking.seats.map(s => s.seatNumber);
-      schedule.seats = schedule.seats.map(s => {
+      const seatNums = booking.seats.map((s: any) => s.seatNumber);
+      schedule.seats = schedule.seats.map((s: any) => {
         if (seatNums.includes(s.seatNumber)) {
           return { ...s, isBooked: true };
         }

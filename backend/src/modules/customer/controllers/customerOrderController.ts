@@ -322,7 +322,7 @@ export const cancelOrder = async (req: Request, res: Response) => {
                     `Auto Refund for order cancellation: ORD-${String(order._id).slice(-6).toUpperCase()}`
                 );
                 order.refundStatus = 'Refunded';
-                order.paymentStatus = 'Refunded';
+                order.paymentStatus = 'Refunded' as any;
             } catch (walletErr) {
                 console.error('[AutoRefund] Wallet credit failed, setting status to Pending:', walletErr);
                 order.refundStatus = 'Pending';

@@ -302,3 +302,11 @@ export const finalizeOrderCreation = async (
     if (session) session.endSession();
   }
 };
+
+/**
+ * Stub: Handles financial state transitions when order status changes (e.g. Delivered → commission distribution).
+ * Extend this function with actual logic as needed.
+ */
+export async function processOrderStatusTransition(orderId: string, newStatus: string, previousStatus: string): Promise<void> {
+    console.log(`[orderService] Status transition: ${previousStatus} → ${newStatus} for order ${orderId}`);
+}

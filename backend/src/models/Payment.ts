@@ -2,6 +2,8 @@ import mongoose, { Document, Schema } from "mongoose";
 
 export interface IPayment extends Document {
   orderId: mongoose.Types.ObjectId;
+  hotelBookingId?: mongoose.Types.ObjectId;
+  busBookingId?: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
 
   // Payment Info

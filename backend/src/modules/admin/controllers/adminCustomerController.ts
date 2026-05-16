@@ -331,7 +331,7 @@ export const getCustomerUnifiedHistory = asyncHandler(async (req: Request, res: 
             id: ord._id,
             type: "Food / Grocery Order",
             date: ord.orderDate || (ord as any).createdAt,
-            amount: ord.totalAmount,
+            amount: (ord as any).totalAmount,
             status: ord.status,
             payment: ord.paymentStatus,
             title: `Order #${(ord as any).orderId || ord._id.toString().slice(-6).toUpperCase()}`,

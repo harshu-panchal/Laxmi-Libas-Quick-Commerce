@@ -480,7 +480,7 @@ export const getBusStats = asyncHandler(async (req: Request, res: Response) => {
     let bookedSeatsCount = 0;
 
     schedules.forEach(sched => {
-        sched.seats.forEach(seat => {
+        sched.seats.forEach((seat: any) => {
             totalSeatsCount++;
             if (seat.isBooked) bookedSeatsCount++;
         });

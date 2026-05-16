@@ -242,7 +242,7 @@ export const getHotels = async (req: Request, res: Response) => {
           .lean();
 
         if (cheapestRoom) {
-          hotel.basePrice = cheapestRoom.pricePerNight;
+          hotel.basePrice = (cheapestRoom as any).pricePerNight;
         }
       }
       return hotel;

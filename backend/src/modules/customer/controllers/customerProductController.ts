@@ -498,6 +498,9 @@ export const getProductById = async (req: Request, res: Response) => {
         "storeName mobile city fssaiLicNo address location serviceRadiusKm status"
       );
 
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found or unavailable' });
+    }
     const seller = product.seller as any;
     if (seller && seller.city) {
       seller.city = normalizeCity(seller.city);

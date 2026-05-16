@@ -71,7 +71,7 @@ async function generateDeliveryOtpForCustomers() {
 
     // Verify by showing a few examples
     const updatedSamples = await Customer.find({
-      _id: { $in: customersWithoutOtp.slice(0, 3).map((c) => c._id) },
+      _id: { $in: allCustomers.slice(0, 3).map((c) => c._id) },
     }).select("name phone deliveryOtp");
 
     if (updatedSamples.length > 0) {

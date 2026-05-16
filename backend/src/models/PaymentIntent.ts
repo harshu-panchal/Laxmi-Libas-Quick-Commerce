@@ -28,7 +28,7 @@ const PaymentIntentSchema = new Schema<IPaymentIntent>(
       required: true,
     },
     items: {
-      type: [Schema.Types.Mixed],
+      type: [Schema.Types.Mixed] as any,
       required: true,
     },
     address: {

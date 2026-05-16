@@ -129,7 +129,7 @@ export interface IOrder extends Document {
   cancellationReason?: string;
   cancelledAt?: Date;
   cancelledBy?: mongoose.Types.ObjectId;
-  refundStatus?: "Pending" | "Processing" | "Completed" | "Failed";
+  refundStatus?: "Pending" | "Processing" | "Completed" | "Failed" | "Refunded";
   refundAmount?: number;
   refundedAt?: Date;
 
@@ -142,6 +142,7 @@ export interface IOrder extends Document {
   parentOrderId?: string; // Links split orders for unified payment
   orderType: "quick" | "standard" | "ecommerce";
   deliveryType: "instant" | "courier";
+  deliveryFlow?: string; // 'auto' | 'courier' | 'ecommerce'
   courierPartner?: string;
   trackingId?: string;
   trackingStatus?: string;
@@ -520,6 +521,10 @@ const OrderSchema = new Schema<IOrder>(
       enum: ["instant", "courier"],
       required: true,
       default: "instant",
+    },
+    deliveryFlow: {
+      type: String,
+      trim: true,
     },
     courierPartner: {
       type: String,

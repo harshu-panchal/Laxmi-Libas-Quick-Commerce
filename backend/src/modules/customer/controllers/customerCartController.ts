@@ -107,7 +107,9 @@ const calculateDeliveryStuff = async (total: number, items: any[], userLat: numb
 
         if (isDistanceBased && userLat !== null && userLng !== null) {
             const config = settings.deliveryConfig;
-            
+            if (!config) {
+                estimatedDeliveryFee = settings.deliveryCharges || 0;
+            } else {
             const sellers = await Seller.find({
                 _id: { $in: uniqueSellerIds.map(id => new mongoose.Types.ObjectId(id)) }
             }).select('location latitude longitude storeName');
@@ -148,6 +150,7 @@ const calculateDeliveryStuff = async (total: number, items: any[], userLat: numb
             const MAX_DELIVERY_FEE = 500; // reasonable overall cap
             estimatedDeliveryFee = Math.min(MAX_DELIVERY_FEE, totalFee);
             console.log(`[Delivery] Cumulative Distance Fee for ${sellers.length} sellers: ${totalFee}, Capped: ${estimatedDeliveryFee}`);
+            } // close else (config exists)
         } else {
             // Fixed delivery charge per unique seller in the cart
             const fixedChargePerSeller = settings.deliveryCharges || 0;

@@ -60,8 +60,8 @@ export const startCourierSyncJob = () => {
                         order.trackingHistory.push({
                             status: courierStatus,
                             location: scanData.Status?.Location || 'N/A',
-                            time: new Date(),
-                            source: 'Poll'
+                            description: 'Poll',
+                            timestamp: new Date(),
                         });
 
                         await order.save();

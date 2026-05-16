@@ -10,6 +10,7 @@ export interface IHotelBooking extends Document {
   totalAmount: number;
   paymentStatus: 'Pending' | 'Success' | 'Failed';
   bookingStatus: 'LOCKED' | 'Confirmed' | 'Cancelled' | 'CheckedIn' | 'CheckedOut';
+  expiresAt?: Date;
   merchantOrderId?: string; // PhonePe MT... id for callback lookup
   transactionId?: string;
   createdAt: Date;

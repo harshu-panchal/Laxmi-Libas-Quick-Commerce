@@ -75,7 +75,6 @@ async function run() {
         categoryId: p.categoryId,
         subcategory: p.subcategory,
         subCategoryId: p.subCategoryId,
-        headerCategory: p.headerCategory,
         headerCategoryId: p.headerCategoryId,
         seller: p.seller,
         sellerId: p.sellerId
@@ -103,7 +102,7 @@ async function run() {
             storeName: sellerDoc.storeName,
             city: sellerDoc.city,
             status: sellerDoc.status,
-            isActive: sellerDoc.isActive,
+            isActive: (sellerDoc as any).isActive,
             location: sellerDoc.location,
             wasUpdated: updated
           });

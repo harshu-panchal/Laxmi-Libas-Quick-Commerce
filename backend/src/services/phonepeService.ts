@@ -206,7 +206,7 @@ export const checkPhonePeStatus = async (merchantOrderId: string) => {
 
         if (state === 'COMPLETED') {
             const txnId = (response as any)?.data?.transactionId || (response as any)?.transactionId || merchantOrderId;
-            const result = await _markBookingPaid(merchantOrderId, txnId, paymentType);
+            const result = await _markBookingPaid(merchantOrderId, txnId, paymentType) || {};
             return {
                 success: true,
                 status: (result.justPaid || result.order || result.booking) ? 'success' : 'failed',
@@ -416,6 +416,9 @@ async function _markBookingPaid(
             };
         }
     }
+
+    // Default return if payment record not found (existingPayment was null)
+    return { booking: null, order: null, allOrders: [], justPaid: false };
 }
 
 // ─── Internal: Mark Booking Failed ───────────────────────────────────────────

@@ -46,6 +46,8 @@ export interface IHotel extends Document {
     verified: boolean;
   };
   status: 'Pending' | 'Approved' | 'Rejected' | 'Blocked' | 'Draft';
+  stars?: number;
+  basePrice?: number;
   rating: number;
   reviewsCount: number;
   createdAt: Date;
@@ -170,10 +172,11 @@ HotelSchema.index({ status: 1 });
 
 // Sync location from structuredLocation
 HotelSchema.pre('save', function(next) {
-  if (this.structuredLocation && this.structuredLocation.coordinates) {
-    const { lat, lng } = this.structuredLocation.coordinates;
+  const self = this as any;
+  if (self.structuredLocation && self.structuredLocation.coordinates) {
+    const { lat, lng } = self.structuredLocation.coordinates;
     if (lat && lng) {
-      this.location = {
+      self.location = {
         type: 'Point',
         coordinates: [lng, lat]
       };
@@ -184,20 +187,21 @@ HotelSchema.pre('save', function(next) {
 
 // Normalize city and state before saving
 HotelSchema.pre('save', function(next) {
-  if (this.city) {
-    this.city = this.city
+  const self = this as any;
+  if (self.city) {
+    self.city = self.city
       .trim()
       .toLowerCase()
       .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   }
-  if (this.state) {
-    this.state = this.state
+  if (self.state) {
+    self.state = self.state
       .trim()
       .toLowerCase()
       .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   }
   next();

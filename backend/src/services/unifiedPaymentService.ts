@@ -248,8 +248,8 @@ const updatePaymentSuccess = async (payment: any, transactionId: string) => {
             try {
                 const schedule = await BusSchedule.findById(booking.scheduleId);
                 if (schedule) {
-                    const seatNums = booking.seats.map(s => s.seatNumber);
-                    schedule.seats = schedule.seats.map(s => {
+                    const seatNums = booking.seats.map((s: any) => s.seatNumber);
+                    schedule.seats = schedule.seats.map((s: any) => {
                         if (seatNums.includes(s.seatNumber)) return { ...s, isBooked: true };
                         return s;
                     });

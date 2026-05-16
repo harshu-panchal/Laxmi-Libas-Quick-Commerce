@@ -8,7 +8,7 @@ import mongoose from 'mongoose';
 export async function notifySellersOfOrderUpdate(
     io: SocketIOServer,
     order: any,
-    type: 'NEW_ORDER' | 'STATUS_UPDATE' | 'ORDER_CANCELLED'
+    type: 'NEW_ORDER' | 'STATUS_UPDATE' | 'ORDER_CANCELLED' | 'BROADCAST_FAILED'
 ): Promise<void> {
     try {
         if (!io) {
@@ -35,7 +35,8 @@ export async function notifySellersOfOrderUpdate(
 
         console.log(`🔔 Notifying ${sellerIds.length} sellers about ${type} for order ${order.orderNumber}`);
 
-        for (const sellerId of sellerIds) {
+        for (const _sid of sellerIds) {
+            const sellerId = _sid as string;
             // Get only items belonging to this seller
             const sellerSpecificItems = orderItems.filter((item: any) => item.seller.toString() === sellerId);
 

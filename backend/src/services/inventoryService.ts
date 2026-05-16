@@ -130,8 +130,8 @@ export class InventoryService {
     if (!schedule) throw new Error('Bus schedule not found');
 
     const bookedSeats = schedule.seats
-      .filter(s => seatNumbers.includes(s.seatNumber) && s.isBooked)
-      .map(s => s.seatNumber);
+      .filter((s: any) => seatNumbers.includes(s.seatNumber) && s.isBooked)
+      .map((s: any) => s.seatNumber);
 
     if (bookedSeats.length > 0) {
       throw new Error(`Seats ${bookedSeats.join(', ')} are already booked.`);
