@@ -198,10 +198,18 @@ export default function ProductDetail() {
   const isVariantAvailable =
     selectedVariant?.status !== "Sold out" && variantStock > 0;
 
-  // Get all images for gallery
+  // Get all images and video for gallery
   const allImages =
     product?.allImages || [product?.imageUrl || ""].filter(Boolean);
-  const currentImage = allImages[selectedImageIndex] || product?.imageUrl || "";
+  
+  const allMedia = [
+    ...allImages.map((url: string) => ({ type: "image", url })),
+  ];
+  if (product?.productVideoUrl) {
+    allMedia.push({ type: "video", url: product.productVideoUrl });
+  }
+
+  const currentMedia = allMedia[selectedImageIndex] || { type: "image", url: product?.imageUrl || "" };
 
   // Minimum swipe distance (in pixels)
   const minSwipeDistance = 50;
@@ -225,7 +233,7 @@ export default function ProductDetail() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    if (isLeftSwipe && selectedImageIndex < allImages.length - 1) {
+    if (isLeftSwipe && selectedImageIndex < allMedia.length - 1) {
       setIsTransitioning(true);
       setSelectedImageIndex(selectedImageIndex + 1);
       setTimeout(() => setIsTransitioning(false), 300);
@@ -558,8 +566,8 @@ export default function ProductDetail() {
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
             style={{
-              touchAction: allImages.length > 1 ? "pan-x" : "pan-y pinch-zoom",
-              cursor: allImages.length > 1 ? "grab" : "default",
+              touchAction: allMedia.length > 1 ? "pan-x" : "pan-y pinch-zoom",
+              cursor: allMedia.length > 1 ? "grab" : "default",
             }}
           >
             {/* Image Container with swipe animation - Mobile swipe carousel */}
@@ -569,20 +577,31 @@ export default function ProductDetail() {
                 transform: `translateX(-${selectedImageIndex * 100}%)`,
               }}
             >
-              {allImages.map((image: string, index: number) => (
+              {allMedia.map((media: any, index: number) => (
                 <div
                   key={index}
                   className="w-full h-full flex-shrink-0 flex items-center justify-center relative"
                   style={{ minWidth: "100%" }}
                 >
-                  {image ? (
-                    <img
-                      src={image}
-                      alt={`${product.name} - Image ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                      draggable={false}
-                    />
+                  {media.url ? (
+                    media.type === "video" ? (
+                      <video
+                        src={media.url}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={media.url}
+                        alt={`${product.name} - Image ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        draggable={false}
+                      />
+                    )
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-neutral-400 text-6xl">
                       {(product.name || product.productName || "?")
@@ -596,13 +615,24 @@ export default function ProductDetail() {
 
             {/* Desktop: Single image display */}
             <div className="hidden md:flex w-full h-full items-center justify-center">
-              {currentImage ? (
-                <img
-                  src={currentImage}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+              {currentMedia.url ? (
+                currentMedia.type === "video" ? (
+                  <video
+                    src={currentMedia.url}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={currentMedia.url}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                )
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-neutral-400 text-6xl">
                   {(product.name || product.productName || "?")
@@ -613,7 +643,7 @@ export default function ProductDetail() {
             </div>
 
             {/* Image Gallery Navigation - Only show if multiple images */}
-            {allImages.length > 1 && (
+            {allMedia.length > 1 && (
               <>
                 {/* Previous Image Button - Desktop only */}
                 {selectedImageIndex > 0 && (
@@ -645,7 +675,7 @@ export default function ProductDetail() {
                 )}
 
                 {/* Next Image Button - Desktop only */}
-                {selectedImageIndex < allImages.length - 1 && (
+                {selectedImageIndex < allMedia.length - 1 && (
                   <button
                     onClick={() => {
                       setIsTransitioning(true);
@@ -675,7 +705,7 @@ export default function ProductDetail() {
 
                 {/* Image Indicators - Show on both mobile and desktop */}
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                  {allImages.map((_: string, index: number) => (
+                  {allMedia.map((_: any, index: number) => (
                     <button
                       key={index}
                       onClick={() => {
@@ -696,7 +726,7 @@ export default function ProductDetail() {
           </div>
 
           {/* Thumbnail Gallery - Show below main image if multiple images */}
-          {allImages.length > 1 && (
+          {allMedia.length > 1 && (
             <div className="px-4 py-2 bg-white/50 backdrop-blur-sm mb-4">
               {/* Mobile swipe hint */}
               <div className="md:hidden flex items-center justify-center gap-1 mb-2">
@@ -721,7 +751,7 @@ export default function ProductDetail() {
                 </span>
               </div>
               <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 scroll-smooth">
-                {allImages.map((image: string, index: number) => (
+                {allMedia.map((media: any, index: number) => (
                   <button
                     key={index}
                     onClick={() => {
@@ -729,17 +759,25 @@ export default function ProductDetail() {
                       setSelectedImageIndex(index);
                       setTimeout(() => setIsTransitioning(false), 300);
                     }}
-                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${index === selectedImageIndex
+                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all relative ${index === selectedImageIndex
                         ? "border-primary-dark ring-2 ring-yellow-200"
                         : "border-neutral-200 hover:border-neutral-300"
                       }`}
                   >
-                    <img
-                      src={image}
-                      alt={`${product.name} - Image ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
+                    {media.type === "video" ? (
+                      <div className="w-full h-full bg-black flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white opacity-80" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M4 4l12 6-12 6z" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <img
+                        src={media.url}
+                        alt={`${product.name} - Image ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
                   </button>
                 ))}
               </div>

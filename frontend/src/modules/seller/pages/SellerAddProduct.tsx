@@ -110,6 +110,7 @@ export default function SellerAddProduct() {
     experience: "",
     availability: "",
     colorGroupId: "",
+    isAvailable: true,
     // Hybrid Delivery Flow
     deliveryType: "quick",
     availablePincodes: "",
@@ -287,6 +288,7 @@ export default function SellerAddProduct() {
               serviceName: product.serviceName || "",
               experience: product.experience || "",
               availability: product.availability || "",
+              isAvailable: product.stock > 0,
               productVideoUrl: (product as any).productVideoUrl || "",
               colorGroupId: product.colorGroupId || "",
               deliveryType: (product as any).type || "quick",
@@ -406,6 +408,7 @@ export default function SellerAddProduct() {
 
   const categoryType = getCategoryType(categoryName);
   const isProduce = categoryName.toLowerCase().includes("fruit") || categoryName.toLowerCase().includes("vegetable");
+  const isRestaurantItem = categoryName.toLowerCase().includes("restaurant") || categoryName.toLowerCase().includes("food") || categoryName.toLowerCase().includes("hotel") || categoryName.toLowerCase().includes("pizza") || categoryName.toLowerCase().includes("burger") || categoryName.toLowerCase().includes("cafe");
 
   // Auto-sync header category when category changes
   useEffect(() => {
@@ -813,6 +816,8 @@ export default function SellerAddProduct() {
         experience: formData.experience || undefined,
         availability: formData.availability || undefined,
         colorGroupId: formData.colorGroupId || undefined,
+        isRestaurantItem: isRestaurantItem,
+        isAvailable: formData.isAvailable,
 
         // Hybrid Delivery Configuration
         type: (formData.deliveryType as "quick" | "ecommerce" | "both") || "quick",
@@ -914,6 +919,7 @@ export default function SellerAddProduct() {
               serviceName: "",
               experience: "",
               availability: "",
+              isAvailable: true,
             });
             setVariations([]);
             setMainImageFile(null);
@@ -1202,6 +1208,22 @@ export default function SellerAddProduct() {
                       className={`w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${formData.discountType === "none" ? "bg-neutral-100 cursor-not-allowed text-neutral-400" : ""}`}
                     />
                   </div>
+                {isRestaurantItem ? (
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Availability
+                    </label>
+                    <select
+                      name="isAvailable"
+                      value={formData.isAvailable ? "true" : "false"}
+                      onChange={(e) => setFormData(prev => ({ ...prev, isAvailable: e.target.value === "true" }))}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                    >
+                      <option value="true">Available</option>
+                      <option value="false">Out of Stock</option>
+                    </select>
+                  </div>
+                ) : (
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
                       Base Stock
@@ -1215,7 +1237,8 @@ export default function SellerAddProduct() {
                       className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
-                </div>
+                )}
+              </div>
 
                 {formData.discountType !== "none" && (
                   <div className="p-3 bg-teal-50 border border-teal-200 text-teal-800 rounded-lg text-sm font-medium flex items-center justify-between">
@@ -1466,99 +1489,7 @@ export default function SellerAddProduct() {
             </div>
           )}
 
-          {/* Delivery Configuration Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-            <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
-              <h2 className="text-lg font-semibold">Delivery Configuration</h2>
-            </div>
-            <div className="p-4 sm:p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Delivery Type <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {["quick", "ecommerce", "both"].map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, deliveryType: t }))}
-                        className={`py-3 px-4 rounded-xl border-2 transition-all font-medium capitalize ${
-                          formData.deliveryType === t
-                            ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
-                            : "border-neutral-200 text-neutral-500 hover:border-neutral-300 bg-white"
-                        }`}
-                      >
-                        {t === "both" ? "Hybrid (Both)" : t}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {(formData.deliveryType === "quick" || formData.deliveryType === "both") && (
-                  <div className="md:col-span-2 p-4 bg-orange-50 border border-orange-100 rounded-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-3">
-                      <div className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Quick Commerce Active</div>
-                    </div>
-                    <h4 className="text-sm font-semibold text-orange-800 mb-4 flex items-center gap-2">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                        Select Shop Location & Radius
-                    </h4>
-                    
-                    <div className="mb-4">
-                      <GoogleMapPicker 
-                        initialLat={formData.latitude ? parseFloat(formData.latitude) : undefined}
-                        initialLng={formData.longitude ? parseFloat(formData.longitude) : undefined}
-                        initialRadius={formData.radius ? parseInt(formData.radius) : 10}
-                        onLocationChange={(lat, lng, address) => {
-                          setFormData(prev => ({
-                            ...prev,
-                            latitude: lat.toString(),
-                            longitude: lng.toString(),
-                            shopAddress: address
-                          }));
-                        }}
-                        onRadiusChange={(radius) => {
-                          setFormData(prev => ({ ...prev, radius: radius.toString() }));
-                        }}
-                      />
-                    </div>
-                    
-                    {formData.shopAddress && (
-                      <div className="mt-3 bg-white p-3 rounded-lg border border-orange-200 text-sm text-neutral-700">
-                        <span className="font-bold text-orange-600 block text-xs uppercase mb-1">Detected Address:</span>
-                        {formData.shopAddress}
-                      </div>
-                    )}
-                    
-                    <p className="mt-3 text-[10px] text-orange-700 italic">
-                      * Customers within this radius will see your products for 10-minute delivery.
-                    </p>
-                  </div>
-                )}
-
-                {(formData.deliveryType === "ecommerce" || formData.deliveryType === "both") && (
-                  <div className="md:col-span-2 p-4 bg-blue-50 border border-blue-100 rounded-xl">
-                    <h4 className="text-sm font-semibold text-blue-800 mb-2">Ecommerce (National) Reach</h4>
-                    <div>
-                      <label className="block text-xs font-bold text-neutral-500 uppercase mb-1">Serviceable Pincodes</label>
-                      <textarea
-                        name="availablePincodes"
-                        value={formData.availablePincodes}
-                        onChange={handleChange}
-                        placeholder="302001, 302015, 110001 (separate with commas)"
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm h-20 resize-none"
-                      />
-                      <p className="mt-1 text-[10px] text-blue-700 italic">
-                        * Enter all pincodes where national courier delivery is available for this product.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
+          {/* Delivery Configuration Section - Removed as per user request to use silent profile syncing */}
           {/* Add Images Section */}
           <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
             <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">

@@ -858,9 +858,8 @@ export const getQuickProducts = async (req: Request, res: Response) => {
       query.seller = { $in: sellerIds };
       console.log(`[getQuickProducts] Strictly restricting to ${sellerIds.length} sellers in user city "${userCity}":`, sellerIds);
     } else {
-      // If city is not provided, find approved sellers globally
-      const approvedSellers = await Seller.find({ status: 'Approved' }).select('_id');
-      query.seller = { $in: approvedSellers.map(s => s._id) };
+      // If city is not provided, DO NOT show any quick products because same-city is strictly required
+      query.seller = { $in: [] };
     }
 
     let sort: any = { createdAt: -1 };

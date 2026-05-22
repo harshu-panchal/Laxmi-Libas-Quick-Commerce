@@ -139,6 +139,7 @@ export interface IProduct extends Document {
 
   type: "quick" | "ecommerce" | "both";
   isQuickEligible?: boolean;
+  isRestaurantItem?: boolean;
   deliveryType?: "quick" | "ecommerce" | "both" | "e-comm";
   availablePincodes?: string[];
   courierAvailable?: boolean;
@@ -460,6 +461,10 @@ const ProductSchema = new Schema<IProduct>(
       type: Boolean,
       default: false,
     },
+    isRestaurantItem: {
+      type: Boolean,
+      default: false,
+    },
     deliveryType: {
        type: String,
        enum: ["quick", "ecommerce", "both", "e-comm"],
@@ -624,8 +629,8 @@ ProductSchema.pre("save", function (next) {
     }
   }
 
-  // Auto-disable if out of stock
-  if (doc.stock <= 0) {
+  // Auto-disable if out of stock, unless it's a restaurant item (which should show as 'Out of Stock' but remain active)
+  if (doc.stock <= 0 && !doc.isRestaurantItem) {
     doc.status = "Inactive";
   }
   next();

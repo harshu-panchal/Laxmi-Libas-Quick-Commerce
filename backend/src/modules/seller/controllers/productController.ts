@@ -83,7 +83,19 @@ export const createProduct = asyncHandler(
     // 3. Set Price and Stock and Discounts
     newProductData.price = productData.price;
     newProductData.discPrice = productData.discPrice || 0;
-    newProductData.stock = parseInt(productData.stock) || 0;
+
+    if (productData.isRestaurantItem === true || productData.isRestaurantItem === "true") {
+      newProductData.isRestaurantItem = true;
+      if (productData.isAvailable !== undefined) {
+        newProductData.stock = String(productData.isAvailable) === 'true' ? 100 : 0;
+      } else {
+        newProductData.stock = parseInt(productData.stock) || 0;
+      }
+    } else {
+      newProductData.isRestaurantItem = false;
+      newProductData.stock = parseInt(productData.stock) || 0;
+    }
+
     newProductData.discountType = productData.discountType || "none";
     newProductData.discountValue = Number(productData.discountValue || productData.discount || 0);
 
@@ -95,7 +107,8 @@ export const createProduct = asyncHandler(
       "dealOfDay", "status", "manufacturer", "madeIn", "requiresApproval", "tags",
       "sellerId", "seller", "headerCategoryId", "category", "subcategory", "brand",
       "mainImage", "galleryImages", "variations", "variationType", "type",
-      "availablePincodes", "courierAvailable", "latitude", "longitude", "discountType", "discountValue", "discount"
+      "availablePincodes", "courierAvailable", "latitude", "longitude", "discountType", "discountValue", "discount",
+      "isRestaurantItem", "isAvailable"
     ];
 
     const attributes: any = {};
@@ -387,6 +400,13 @@ export const updateProduct = asyncHandler(
     if (updateData.productVideoUrl === null || updateData.productVideoUrl === "") {
       updateData.productVideoUrl = null;
     }
+    
+    if (updateData.isRestaurantItem !== undefined) {
+      updateData.isRestaurantItem = updateData.isRestaurantItem === true || updateData.isRestaurantItem === "true";
+      if (updateData.isRestaurantItem && updateData.isAvailable !== undefined) {
+        updateData.stock = String(updateData.isAvailable) === 'true' ? 100 : 0;
+      }
+    }
 
     // Fetch seller for status check
     const SellerModel = require("../../../models/Seller").default;
@@ -450,7 +470,8 @@ export const updateProduct = asyncHandler(
       "dealOfDay", "status", "manufacturer", "madeIn", "requiresApproval", "tags",
       "sellerId", "seller", "headerCategoryId", "category", "subcategory", "brand",
       "mainImage", "galleryImages", "variations", "variationType", "type",
-      "availablePincodes", "courierAvailable", "latitude", "longitude", "discountType", "discountValue", "discount"
+      "availablePincodes", "courierAvailable", "latitude", "longitude", "discountType", "discountValue", "discount",
+      "isRestaurantItem", "isAvailable"
     ];
 
     const attributes: any = {};
