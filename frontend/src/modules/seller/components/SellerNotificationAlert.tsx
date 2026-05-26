@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SellerNotification } from '../hooks/useSellerSocket';
 import { updateOrderStatus } from '../../../services/api/orderService';
 import { useNavigate } from 'react-router-dom';
+import { playOrderAlertSound, stopOrderAlertSound } from '../../../utils/orderAlertSound';
 
 interface SellerNotificationAlertProps {
   notification: SellerNotification | null;
@@ -10,7 +11,6 @@ interface SellerNotificationAlertProps {
 
 const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notification, onClose }) => {
   const [volume, setVolume] = useState(0.8);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -19,6 +19,7 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
     setLoading(true);
     try {
       await updateOrderStatus(notification.orderId, { status: status as any });
+      stopOrderAlertSound();
       onClose();
       // Optionally navigate to order detail or just close
       if (status === 'Accepted') {
@@ -34,31 +35,25 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
   };
 
   useEffect(() => {
-    if (notification) {
-      // Play sound when notification arrives
-      if (audioRef.current) {
-        audioRef.current.volume = volume;
-        audioRef.current.play().catch(err => console.error('Error playing sound:', err));
-      }
+    if (notification?.type === 'NEW_ORDER') {
+      playOrderAlertSound({ variant: 'seller', volume, loop: true }).catch((err) =>
+        console.error('Error playing order alert:', err)
+      );
     }
-  }, [notification]);
+    return () => {
+      stopOrderAlertSound();
+    };
+  }, [notification, volume]);
 
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
-    }
-  }, [volume]);
+  const handleClose = () => {
+    stopOrderAlertSound();
+    onClose();
+  };
 
   if (!notification) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm">
-      <audio
-        ref={audioRef}
-        src="/assets/sound/seller_alert.mp3"
-        loop
-      />
-
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-300">
         {/* Header */}
         <div className={`px-6 py-4 flex items-center justify-between ${notification.type === 'NEW_ORDER' ? 'bg-teal-600' : 'bg-blue-600'} text-white`}>
@@ -77,7 +72,7 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-white hover:bg-white hover:bg-opacity-10 p-1 rounded-full transition-colors"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -183,7 +178,7 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
              </div>
           ) : (
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform active:scale-95 bg-blue-600 hover:bg-blue-700"
             >
               Acknowledge & Dismiss

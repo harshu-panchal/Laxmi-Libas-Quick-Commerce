@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSellerSocket } from '../hooks/useSellerSocket';
+import { unlockOrderAlertSound, playOrderAlertSound } from '../../../utils/orderAlertSound';
 import { toast } from 'react-hot-toast';
 import { getMyHotels, getHotelBookings } from '../../../services/api/hotelPartnerService';
 
@@ -256,20 +257,14 @@ export default function SellerDashboard() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-r from-teal-600 via-emerald-600 to-indigo-600 text-white p-6 rounded-[2rem] shadow-xl border border-teal-500/20 flex flex-col md:flex-row justify-between items-center gap-6 cursor-pointer hover:shadow-2xl transition-all duration-300 relative overflow-hidden"
-          onClick={() => {
-            try {
-              const audio = new Audio('/assets/sound/seller_alert.mp3');
-              audio.volume = 0.8;
-              audio.play().then(() => {
-                setSoundUnlocked(true);
-                localStorage.setItem('sound_unlocked', 'true');
-                toast.success("🔊 Order sound alerts activated successfully!");
-              }).catch((err) => {
-                console.warn("Audio unlock failed:", err);
-                toast.error("Please click 'Activate Now' button to unlock sound notifications.");
-              });
-            } catch (err) {
-              console.error(err);
+          onClick={async () => {
+            const unlocked = await unlockOrderAlertSound();
+            if (unlocked) {
+              await playOrderAlertSound({ variant: 'seller', volume: 0.8 });
+              setSoundUnlocked(true);
+              toast.success("🔊 Order sound alerts activated successfully!");
+            } else {
+              toast.error("Please click 'Activate Now' to enable sound notifications.");
             }
           }}
         >

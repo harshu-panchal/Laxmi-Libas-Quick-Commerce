@@ -5,6 +5,7 @@ import SellerSidebar from './SellerSidebar';
 import { useSellerSocket, SellerNotification } from '../hooks/useSellerSocket';
 import SellerNotificationAlert from './SellerNotificationAlert';
 import { useAuth } from '../../../context/AuthContext';
+import { unlockOrderAlertSound } from '../../../utils/orderAlertSound';
 
 interface SellerLayoutProps {
   children: ReactNode;
@@ -18,41 +19,33 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   const location = useLocation();
 
   useEffect(() => {
-    // Check if the browser blocks audio autoplay
-    const testAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
-    testAudio.play()
-      .then(() => {
-        setIsAudioBlocked(false);
-      })
-      .catch(() => {
-        setIsAudioBlocked(true);
+    unlockOrderAlertSound()
+      .then((ok) => setIsAudioBlocked(!ok))
+      .catch(() => setIsAudioBlocked(true));
 
-        // Setup global interaction listener to auto-unlock on first user interaction anywhere on the page
-        const unlock = () => {
-          const unlockAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
-          unlockAudio.play()
-            .then(() => {
-              setIsAudioBlocked(false);
-              console.log("🔊 Audio Context successfully unlocked by global user click.");
-              cleanup();
-            })
-            .catch((err) => {
-              console.warn("🔊 Audio unlock attempt failed:", err.message);
-            });
-        };
+    const unlock = () => {
+      unlockOrderAlertSound()
+        .then((ok) => {
+          if (ok) {
+            setIsAudioBlocked(false);
+            console.log('🔊 Audio context unlocked by user interaction.');
+            cleanup();
+          }
+        })
+        .catch((err) => console.warn('🔊 Audio unlock attempt failed:', err?.message || err));
+    };
 
-        const cleanup = () => {
-          window.removeEventListener('click', unlock);
-          window.removeEventListener('touchstart', unlock);
-          window.removeEventListener('keydown', unlock);
-        };
+    const cleanup = () => {
+      window.removeEventListener('click', unlock);
+      window.removeEventListener('touchstart', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
 
-        window.addEventListener('click', unlock);
-        window.addEventListener('touchstart', unlock);
-        window.addEventListener('keydown', unlock);
+    window.addEventListener('click', unlock);
+    window.addEventListener('touchstart', unlock);
+    window.addEventListener('keydown', unlock);
 
-        return cleanup;
-      });
+    return cleanup;
   }, []);
 
   const handleNotificationReceived = useCallback((notification: SellerNotification) => {
@@ -70,15 +63,14 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   };
 
   const unlockAudio = () => {
-    const testAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
-    testAudio.play()
-      .then(() => {
-        setIsAudioBlocked(false);
-        console.log("🔊 Audio Context successfully unlocked by user click.");
+    unlockOrderAlertSound()
+      .then((ok) => {
+        if (ok) {
+          setIsAudioBlocked(false);
+          console.log('🔊 Audio context unlocked by user click.');
+        }
       })
-      .catch((err) => {
-        console.error("🔊 Audio unlock failed:", err);
-      });
+      .catch((err) => console.error('🔊 Audio unlock failed:', err));
   };
 
   const sellerStatus = user?.status || 'Pending';

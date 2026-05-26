@@ -242,6 +242,71 @@ function copyDeliveryIcon() {
   }
 }
 
+/** Generate a short alert WAV for order notifications (production fallback). */
+function writeAlertWav(filePath, frequencies, toneDurationSec = 0.22, gapSec = 0.08) {
+  const sampleRate = 44100;
+  const toneSamples = Math.floor(sampleRate * toneDurationSec);
+  const gapSamples = Math.floor(sampleRate * gapSec);
+  const totalSamples = frequencies.length * toneSamples + (frequencies.length - 1) * gapSamples;
+  const dataSize = totalSamples * 2;
+  const buffer = Buffer.alloc(44 + dataSize);
+
+  buffer.write('RIFF', 0);
+  buffer.writeUInt32LE(36 + dataSize, 4);
+  buffer.write('WAVE', 8);
+  buffer.write('fmt ', 12);
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(sampleRate * 2, 28);
+  buffer.writeUInt16LE(2, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write('data', 36);
+  buffer.writeUInt32LE(dataSize, 40);
+
+  let offset = 44;
+  frequencies.forEach((freq, index) => {
+    for (let i = 0; i < toneSamples; i++) {
+      const t = i / sampleRate;
+      const envelope = Math.min(1, i / (sampleRate * 0.01)) * Math.min(1, (toneSamples - i) / (sampleRate * 0.04));
+      const sample = Math.sin(2 * Math.PI * freq * t) * envelope * 0.45;
+      buffer.writeInt16LE(Math.max(-32767, Math.min(32767, Math.floor(sample * 32767))), offset);
+      offset += 2;
+    }
+    if (index < frequencies.length - 1) {
+      for (let i = 0; i < gapSamples; i++) {
+        buffer.writeInt16LE(0, offset);
+        offset += 2;
+      }
+    }
+  });
+
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(filePath, buffer);
+  console.log(`Generated alert sound: ${path.basename(filePath)}`);
+}
+
+function copyOrderAlertSounds() {
+  const soundDir = path.join(publicAssetsDir, 'sound');
+  if (!fs.existsSync(soundDir)) {
+    fs.mkdirSync(soundDir, { recursive: true });
+  }
+
+  const sellerWav = path.join(soundDir, 'seller_alert.wav');
+  const deliveryWav = path.join(soundDir, 'delivery-alert.wav');
+
+  if (!fs.existsSync(sellerWav)) {
+    writeAlertWav(sellerWav, [1046.5, 783.99, 1046.5]);
+  }
+  if (!fs.existsSync(deliveryWav)) {
+    writeAlertWav(deliveryWav, [880, 880, 988, 988], 0.14, 0.06);
+  }
+}
+
 // Main execution
 console.log('Starting image copy process...');
 copyCategoryImages();
@@ -251,5 +316,6 @@ copyShopByStoreImages();
 copyLoginVideo();
 copyDhakadsnazzyLogo();
 copyDeliveryIcon();
+copyOrderAlertSounds();
 console.log('Image copy completed!');
 

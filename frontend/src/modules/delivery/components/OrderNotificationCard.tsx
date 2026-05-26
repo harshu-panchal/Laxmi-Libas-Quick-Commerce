@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { OrderNotificationData } from '../../../services/api/delivery/deliveryOrderNotificationService';
+import { playOrderAlertSound, stopOrderAlertSound, unlockOrderAlertSound } from '../../../utils/orderAlertSound';
 
 interface OrderNotificationCardProps {
     notification: OrderNotificationData;
@@ -13,7 +14,6 @@ export default function OrderNotificationCard({
     onAccept,
     onReject,
 }: OrderNotificationCardProps) {
-    const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [hasUserInteracted, setHasUserInteracted] = useState(false);
     const [audioError, setAudioError] = useState<string | null>(null);
@@ -30,135 +30,53 @@ export default function OrderNotificationCard({
         }
     }, []);
 
-    // Initialize audio with better error handling
     useEffect(() => {
-        const audio = new Audio('/assets/sound/delivery-alert.mp3');
-        audio.loop = true;
-        audio.volume = 0.8;
-
-        // Set up error handlers
-        const handleAudioError = (error: Event) => {
-            console.error('Audio error:', error);
-            setAudioError('Audio file could not be loaded');
-        };
-
-        const handleAudioAbort = () => {
-            console.log('Audio playback aborted');
-        };
-
-        const handleAudioStalled = () => {
-            console.log('Audio playback stalled');
-        };
-
-        audio.addEventListener('error', handleAudioError);
-        audio.addEventListener('abort', handleAudioAbort);
-        audio.addEventListener('stalled', handleAudioStalled);
-
-        audioRef.current = audio;
-
-        // Vibrate when notification appears
         vibrate();
 
-        // Try to play audio with better permission handling
-        const playAudio = async () => {
-            try {
-                // Check if audio is ready
-                if (audio.readyState >= 2) {
-                    await audio.play();
-                    setHasUserInteracted(true);
-                    setAudioError(null);
-                } else {
-                    // Wait for audio to load
-                    audio.addEventListener('canplaythrough', async () => {
-                        try {
-                            await audio.play();
-                            setHasUserInteracted(true);
-                            setAudioError(null);
-                        } catch (playError: any) {
-                            console.log('Audio autoplay blocked:', playError);
-                            if (playError.name === 'NotAllowedError') {
-                                setAudioError('Tap to enable sound');
-                            } else if (playError.name === 'NotSupportedError') {
-                                setAudioError('Audio not supported');
-                            }
-                        }
-                    }, { once: true });
-
-                    // Load the audio
-                    audio.load();
-                }
-            } catch (error: any) {
-                console.log('Audio autoplay blocked:', error);
-                if (error.name === 'NotAllowedError') {
-                    setAudioError('Tap to enable sound');
-                } else if (error.name === 'NotSupportedError') {
-                    setAudioError('Audio not supported');
-                } else {
-                    setAudioError('Audio playback failed');
-                }
-            }
-        };
-
-        playAudio();
+        playOrderAlertSound({ variant: 'delivery', volume: 0.8, loop: true })
+            .then(() => {
+                setHasUserInteracted(true);
+                setAudioError(null);
+            })
+            .catch(() => setAudioError('Tap to enable sound'));
 
         return () => {
-            audio.removeEventListener('error', handleAudioError);
-            audio.removeEventListener('abort', handleAudioAbort);
-            audio.removeEventListener('stalled', handleAudioStalled);
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current = null;
-            }
+            stopOrderAlertSound();
         };
     }, [vibrate]);
 
-    // Play audio on user interaction with better error handling
     const handleUserInteraction = async () => {
-        if (!hasUserInteracted && audioRef.current) {
-            try {
-                // Ensure audio is loaded
-                if (audioRef.current.readyState < 2) {
-                    audioRef.current.load();
-                }
-                await audioRef.current.play();
+        if (!hasUserInteracted) {
+            const unlocked = await unlockOrderAlertSound();
+            if (unlocked) {
+                await playOrderAlertSound({ variant: 'delivery', volume: 0.8, loop: true });
                 setHasUserInteracted(true);
                 setAudioError(null);
-            } catch (error: any) {
-                console.error('Failed to play audio:', error);
-                if (error.name === 'NotAllowedError') {
-                    setAudioError('Audio permission denied');
-                } else if (error.name === 'NotSupportedError') {
-                    setAudioError('Audio not supported on this device');
-                } else {
-                    setAudioError('Failed to play audio');
-                }
+            } else {
+                setAudioError('Tap to enable sound');
             }
         }
     };
 
-    // Stop audio when component unmounts or notification is dismissed
-    useEffect(() => {
-        return () => {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-            }
-        };
-    }, []);
+    const pauseAlert = () => {
+        stopOrderAlertSound();
+        if ('vibrate' in navigator) {
+            navigator.vibrate(0);
+        }
+    };
+
+    const resumeAlert = () => {
+        if (hasUserInteracted) {
+            playOrderAlertSound({ variant: 'delivery', volume: 0.8, loop: true }).catch(console.error);
+            vibrate();
+        }
+    };
 
     const handleAccept = async () => {
         if (isProcessing) return;
 
         setIsProcessing(true);
-        // Stop audio and vibration
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-        }
-        // Stop any ongoing vibration
-        if ('vibrate' in navigator) {
-            navigator.vibrate(0);
-        }
+        pauseAlert();
 
         try {
             const result = await onAccept(notification.orderId);
@@ -168,21 +86,13 @@ export default function OrderNotificationCard({
                     alert(result.message || 'Failed to accept order');
                 }
                 setIsProcessing(false);
-                // Resume audio if accept failed
-                if (audioRef.current && hasUserInteracted) {
-                    audioRef.current.play().catch(console.error);
-                    vibrate(); // Resume vibration
-                }
+                resumeAlert();
             }
         } catch (error) {
             console.error('Error accepting order:', error);
             alert('Failed to accept order');
             setIsProcessing(false);
-            // Resume audio if accept failed
-            if (audioRef.current && hasUserInteracted) {
-                audioRef.current.play().catch(console.error);
-                vibrate(); // Resume vibration
-            }
+            resumeAlert();
         }
     };
 
@@ -190,15 +100,7 @@ export default function OrderNotificationCard({
         if (isProcessing) return;
 
         setIsProcessing(true);
-        // Stop audio and vibration
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-        }
-        // Stop any ongoing vibration
-        if ('vibrate' in navigator) {
-            navigator.vibrate(0);
-        }
+        pauseAlert();
 
         try {
             const result = await onReject(notification.orderId);
@@ -207,20 +109,12 @@ export default function OrderNotificationCard({
                 if (result.message !== 'Order notification not found') {
                     alert(result.message || 'Failed to reject order');
                 }
-                // Resume audio if reject failed
-                if (audioRef.current && hasUserInteracted) {
-                    audioRef.current.play().catch(console.error);
-                    vibrate(); // Resume vibration
-                }
+                resumeAlert();
             }
         } catch (error) {
             console.error('Error rejecting order:', error);
             alert('Failed to reject order');
-            // Resume audio if reject failed
-            if (audioRef.current && hasUserInteracted) {
-                audioRef.current.play().catch(console.error);
-                vibrate(); // Resume vibration
-            }
+            resumeAlert();
         } finally {
             setIsProcessing(false);
         }

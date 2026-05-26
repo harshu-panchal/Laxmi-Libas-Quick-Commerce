@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../../../context/AuthContext';
 import { getSocketBaseURL } from '../../../services/api/config';
+import { playOrderAlertSound } from '../../../utils/orderAlertSound';
 
 export interface SellerNotification {
     type: 'NEW_ORDER' | 'STATUS_UPDATE';
@@ -65,17 +66,13 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
         });
 
         const playNotificationSound = () => {
-            try {
-                const audio = new Audio('/assets/sound/seller_alert.mp3');
-                audio.play().catch(e => console.warn('🔊 Sound play failed (user interaction required):', e.message));
-            } catch (err) {
-                console.error('🔊 Error playing notification sound:', err);
-            }
+            playOrderAlertSound({ variant: 'seller', volume: 0.8 }).catch((e) =>
+                console.warn('🔊 Sound play failed (user interaction may be required):', e?.message || e)
+            );
         };
 
         const handleNewOrder = (notification: any) => {
             console.log('🔔 New order notification received:', notification);
-            playNotificationSound();
             if (onNotificationReceived) {
                 onNotificationReceived({
                     type: 'NEW_ORDER',
