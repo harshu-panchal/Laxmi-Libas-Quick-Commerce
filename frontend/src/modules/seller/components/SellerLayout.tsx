@@ -19,20 +19,17 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   const location = useLocation();
 
   useEffect(() => {
-    unlockOrderAlertSound()
-      .then((ok) => setIsAudioBlocked(!ok))
-      .catch(() => setIsAudioBlocked(true));
+    setIsAudioBlocked(!localStorage.getItem('sound_unlocked'));
 
     const unlock = () => {
-      unlockOrderAlertSound()
+      unlockOrderAlertSound('seller')
         .then((ok) => {
           if (ok) {
             setIsAudioBlocked(false);
-            console.log('🔊 Audio context unlocked by user interaction.');
             cleanup();
           }
         })
-        .catch((err) => console.warn('🔊 Audio unlock attempt failed:', err?.message || err));
+        .catch((err) => console.warn('Audio unlock attempt failed:', err?.message || err));
     };
 
     const cleanup = () => {
@@ -41,9 +38,11 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       window.removeEventListener('keydown', unlock);
     };
 
-    window.addEventListener('click', unlock);
-    window.addEventListener('touchstart', unlock);
-    window.addEventListener('keydown', unlock);
+    if (localStorage.getItem('sound_unlocked') !== 'true') {
+      window.addEventListener('click', unlock, { once: false });
+      window.addEventListener('touchstart', unlock, { once: false });
+      window.addEventListener('keydown', unlock, { once: false });
+    }
 
     return cleanup;
   }, []);
@@ -63,14 +62,11 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   };
 
   const unlockAudio = () => {
-    unlockOrderAlertSound()
-      .then((ok) => {
-        if (ok) {
-          setIsAudioBlocked(false);
-          console.log('🔊 Audio context unlocked by user click.');
-        }
-      })
-      .catch((err) => console.error('🔊 Audio unlock failed:', err));
+    unlockOrderAlertSound('seller').then((ok) => {
+      if (ok) {
+        setIsAudioBlocked(false);
+      }
+    });
   };
 
   const sellerStatus = user?.status || 'Pending';

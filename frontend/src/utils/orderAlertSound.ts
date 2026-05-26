@@ -2,32 +2,45 @@ type AlertVariant = 'seller' | 'delivery';
 
 let sharedContext: AudioContext | null = null;
 let loopIntervalId: ReturnType<typeof setInterval> | null = null;
-let fallbackAudio: HTMLAudioElement | null = null;
 let isUnlocked = false;
-
-const SOUND_PATHS: Record<AlertVariant, string> = {
-  seller: '/assets/sound/seller_alert.wav',
-  delivery: '/assets/sound/delivery-alert.wav',
-};
 
 function getAudioContext(): AudioContext {
   if (!sharedContext) {
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) {
+      throw new Error('Web Audio API is not supported in this browser');
+    }
     sharedContext = new Ctx();
   }
   return sharedContext;
 }
 
-function playTone(ctx: AudioContext, frequency: number, startTime: number, duration: number, volume: number) {
+async function ensureContextRunning(): Promise<AudioContext> {
+  const ctx = getAudioContext();
+  if (ctx.state === 'suspended') {
+    await ctx.resume();
+  }
+  return ctx;
+}
+
+function playTone(
+  ctx: AudioContext,
+  frequency: number,
+  startTime: number,
+  duration: number,
+  volume: number
+) {
   const oscillator = ctx.createOscillator();
   const gain = ctx.createGain();
   oscillator.type = 'sine';
   oscillator.frequency.value = frequency;
   oscillator.connect(gain);
   gain.connect(ctx.destination);
-  gain.gain.setValueAtTime(0.0001, startTime);
-  gain.gain.exponentialRampToValueAtTime(Math.max(volume, 0.0001), startTime + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(volume, startTime + 0.02);
+  gain.gain.linearRampToValueAtTime(0, startTime + duration);
   oscillator.start(startTime);
   oscillator.stop(startTime + duration + 0.05);
 }
@@ -46,37 +59,16 @@ function playWebRing(ctx: AudioContext, variant: AlertVariant, volume: number) {
   }
 }
 
-async function tryFileFallback(variant: AlertVariant, volume: number, loop: boolean): Promise<boolean> {
+/** Unlock audio after a user gesture (required by browsers). Plays a short test ring. */
+export async function unlockOrderAlertSound(variant: AlertVariant = 'seller'): Promise<boolean> {
   try {
-    stopOrderAlertSound();
-    const audio = new Audio(SOUND_PATHS[variant]);
-    audio.volume = volume;
-    audio.loop = loop;
-    fallbackAudio = audio;
-    await audio.play();
-    return true;
-  } catch {
-    fallbackAudio = null;
-    return false;
-  }
-}
-
-/** Unlock audio after a user gesture (required by browsers). */
-export async function unlockOrderAlertSound(): Promise<boolean> {
-  try {
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') {
-      await ctx.resume();
-    }
-    const buffer = ctx.createBuffer(1, 1, 22050);
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(ctx.destination);
-    source.start(0);
+    const ctx = await ensureContextRunning();
+    playWebRing(ctx, variant, 0.5);
     isUnlocked = true;
     localStorage.setItem('sound_unlocked', 'true');
     return true;
-  } catch {
+  } catch (error) {
+    console.warn('Order alert sound unlock failed:', error);
     return false;
   }
 }
@@ -85,7 +77,7 @@ export function isOrderAlertSoundUnlocked(): boolean {
   return isUnlocked || localStorage.getItem('sound_unlocked') === 'true';
 }
 
-/** Play order alert ring (Web Audio; falls back to wav in public/assets/sound). */
+/** Play order alert ring using Web Audio only (no external audio files). */
 export async function playOrderAlertSound(options?: {
   variant?: AlertVariant;
   volume?: number;
@@ -94,23 +86,16 @@ export async function playOrderAlertSound(options?: {
   const { variant = 'seller', volume = 0.8, loop = false } = options ?? {};
 
   const playOnce = async () => {
-    try {
-      const ctx = getAudioContext();
-      if (ctx.state === 'suspended') {
-        await ctx.resume();
-      }
-      playWebRing(ctx, variant, volume);
-      isUnlocked = true;
-    } catch {
-      await tryFileFallback(variant, volume, false);
-    }
+    const ctx = await ensureContextRunning();
+    playWebRing(ctx, variant, volume);
+    isUnlocked = true;
   };
 
   if (loop) {
     stopOrderAlertSound();
     await playOnce();
     loopIntervalId = setInterval(() => {
-      playOnce().catch(() => {});
+      playOnce().catch((err) => console.warn('Looping order alert failed:', err));
     }, 2200);
     return;
   }
@@ -118,15 +103,10 @@ export async function playOrderAlertSound(options?: {
   await playOnce();
 }
 
-/** Stop looping alert and any file-based playback. */
+/** Stop looping alert playback. */
 export function stopOrderAlertSound(): void {
   if (loopIntervalId) {
     clearInterval(loopIntervalId);
     loopIntervalId = null;
-  }
-  if (fallbackAudio) {
-    fallbackAudio.pause();
-    fallbackAudio.currentTime = 0;
-    fallbackAudio = null;
   }
 }

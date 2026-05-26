@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSellerSocket } from '../hooks/useSellerSocket';
-import { unlockOrderAlertSound, playOrderAlertSound } from '../../../utils/orderAlertSound';
+import { unlockOrderAlertSound } from '../../../utils/orderAlertSound';
 import { toast } from 'react-hot-toast';
 import { getMyHotels, getHotelBookings } from '../../../services/api/hotelPartnerService';
 
@@ -257,14 +257,19 @@ export default function SellerDashboard() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-r from-teal-600 via-emerald-600 to-indigo-600 text-white p-6 rounded-[2rem] shadow-xl border border-teal-500/20 flex flex-col md:flex-row justify-between items-center gap-6 cursor-pointer hover:shadow-2xl transition-all duration-300 relative overflow-hidden"
-          onClick={async () => {
-            const unlocked = await unlockOrderAlertSound();
-            if (unlocked) {
-              await playOrderAlertSound({ variant: 'seller', volume: 0.8 });
+          onClick={async (e) => {
+            e.stopPropagation();
+            try {
+              const unlocked = await unlockOrderAlertSound('seller');
+              if (!unlocked) {
+                toast.error('Could not enable sound. Try again or check browser permissions.');
+                return;
+              }
               setSoundUnlocked(true);
-              toast.success("🔊 Order sound alerts activated successfully!");
-            } else {
-              toast.error("Please click 'Activate Now' to enable sound notifications.");
+              toast.success('Order sound alerts activated!');
+            } catch (err) {
+              console.error('Sound activation failed:', err);
+              toast.error('Could not enable sound on this browser.');
             }
           }}
         >
