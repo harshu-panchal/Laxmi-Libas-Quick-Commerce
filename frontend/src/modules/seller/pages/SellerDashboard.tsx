@@ -34,6 +34,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSellerSocket } from '../hooks/useSellerSocket';
 import OrderSoundEnableBanner from '../../../components/OrderSoundEnableBanner';
+import { toast } from 'react-hot-toast';
 import { getMyHotels, getHotelBookings } from '../../../services/api/hotelPartnerService';
 
 export default function SellerDashboard() {
