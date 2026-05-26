@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SellerNotification } from '../hooks/useSellerSocket';
 import { updateOrderStatus } from '../../../services/api/orderService';
 import { useNavigate } from 'react-router-dom';
-import { playOrderAlertSound, stopOrderAlertSound } from '../../../utils/orderAlertSound';
+import { isOrderAlertSoundUnlocked, playOrderAlertSound, stopOrderAlertSound } from '../../../utils/orderAlertSound';
 
 interface SellerNotificationAlertProps {
   notification: SellerNotification | null;
@@ -35,10 +35,8 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
   };
 
   useEffect(() => {
-    if (notification?.type === 'NEW_ORDER') {
-      playOrderAlertSound({ variant: 'seller', volume, loop: true }).catch((err) =>
-        console.error('Error playing order alert:', err)
-      );
+    if (notification?.type === 'NEW_ORDER' && isOrderAlertSoundUnlocked('seller')) {
+      playOrderAlertSound({ variant: 'seller', volume, loop: true });
     }
     return () => {
       stopOrderAlertSound();

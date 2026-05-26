@@ -9,6 +9,8 @@ import OrderNotificationCard from './OrderNotificationCard';
 import { AnimatePresence } from 'framer-motion';
 import AwaitingApproval from '../pages/AwaitingApproval';
 import IconLoader from '../../../components/loaders/IconLoader';
+import OrderSoundTopBar from '../../../components/OrderSoundTopBar';
+import OrderSoundEnableBanner from '../../../components/OrderSoundEnableBanner';
 
 interface DeliveryLayoutContentProps {
   children: ReactNode;
@@ -49,7 +51,11 @@ function DeliveryLayoutContent({ children }: DeliveryLayoutContentProps) {
 
   return (
     <div className={`flex flex-col min-h-screen bg-neutral-100 transition-all duration-300 ${!isOnline ? 'grayscale' : ''}`}>
+      <OrderSoundTopBar variant="delivery" />
       <main className="flex-1 overflow-y-auto scrollbar-hide pb-20">
+        <div className="px-4 pt-3 max-w-lg mx-auto">
+          <OrderSoundEnableBanner variant="delivery" />
+        </div>
         {children}
       </main>
       <DeliveryBottomNav />

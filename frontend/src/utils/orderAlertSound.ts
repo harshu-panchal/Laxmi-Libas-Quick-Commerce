@@ -1,8 +1,12 @@
-type AlertVariant = 'seller' | 'delivery';
+export type AlertVariant = 'seller' | 'delivery';
 
 let sharedContext: AudioContext | null = null;
 let loopIntervalId: ReturnType<typeof setInterval> | null = null;
-let isUnlocked = false;
+const unlockedVariants = new Set<AlertVariant>();
+
+function storageKey(variant: AlertVariant): string {
+  return `sound_unlocked_${variant}`;
+}
 
 function getAudioContext(): AudioContext {
   if (!sharedContext) {
@@ -15,14 +19,6 @@ function getAudioContext(): AudioContext {
     sharedContext = new Ctx();
   }
   return sharedContext;
-}
-
-async function ensureContextRunning(): Promise<AudioContext> {
-  const ctx = getAudioContext();
-  if (ctx.state === 'suspended') {
-    await ctx.resume();
-  }
-  return ctx;
 }
 
 function playTone(
@@ -59,51 +55,66 @@ function playWebRing(ctx: AudioContext, variant: AlertVariant, volume: number) {
   }
 }
 
-/** Unlock audio after a user gesture (required by browsers). Plays a short test ring. */
-export async function unlockOrderAlertSound(variant: AlertVariant = 'seller'): Promise<boolean> {
+/**
+ * Call directly inside a click/tap handler (sync) so the browser keeps the user-gesture chain.
+ */
+export function primeOrderAlertSound(variant: AlertVariant = 'seller'): boolean {
   try {
-    const ctx = await ensureContextRunning();
-    playWebRing(ctx, variant, 0.5);
-    isUnlocked = true;
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+      void ctx.resume();
+    }
+    playWebRing(ctx, variant, 0.65);
+    unlockedVariants.add(variant);
+    localStorage.setItem(storageKey(variant), 'true');
     localStorage.setItem('sound_unlocked', 'true');
     return true;
   } catch (error) {
-    console.warn('Order alert sound unlock failed:', error);
+    console.warn('Order alert sound prime failed:', error);
     return false;
   }
 }
 
-export function isOrderAlertSoundUnlocked(): boolean {
-  return isUnlocked || localStorage.getItem('sound_unlocked') === 'true';
+export async function unlockOrderAlertSound(variant: AlertVariant = 'seller'): Promise<boolean> {
+  return primeOrderAlertSound(variant);
 }
 
-/** Play order alert ring using Web Audio only (no external audio files). */
-export async function playOrderAlertSound(options?: {
+export function isOrderAlertSoundUnlocked(variant: AlertVariant = 'seller'): boolean {
+  if (unlockedVariants.has(variant)) return true;
+  if (localStorage.getItem(storageKey(variant)) === 'true') return true;
+  // Legacy key from earlier builds
+  return localStorage.getItem('sound_unlocked') === 'true';
+}
+
+export function playOrderAlertSound(options?: {
   variant?: AlertVariant;
   volume?: number;
   loop?: boolean;
-}): Promise<void> {
+}): void {
   const { variant = 'seller', volume = 0.8, loop = false } = options ?? {};
 
-  const playOnce = async () => {
-    const ctx = await ensureContextRunning();
-    playWebRing(ctx, variant, volume);
-    isUnlocked = true;
+  const playOnce = () => {
+    try {
+      const ctx = getAudioContext();
+      if (ctx.state === 'suspended') {
+        void ctx.resume();
+      }
+      playWebRing(ctx, variant, volume);
+    } catch (error) {
+      console.warn('Order alert playback failed:', error);
+    }
   };
 
   if (loop) {
     stopOrderAlertSound();
-    await playOnce();
-    loopIntervalId = setInterval(() => {
-      playOnce().catch((err) => console.warn('Looping order alert failed:', err));
-    }, 2200);
+    playOnce();
+    loopIntervalId = setInterval(playOnce, 2200);
     return;
   }
 
-  await playOnce();
+  playOnce();
 }
 
-/** Stop looping alert playback. */
 export function stopOrderAlertSound(): void {
   if (loopIntervalId) {
     clearInterval(loopIntervalId);

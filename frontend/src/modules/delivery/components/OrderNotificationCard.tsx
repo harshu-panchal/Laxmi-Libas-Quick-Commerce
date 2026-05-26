@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { OrderNotificationData } from '../../../services/api/delivery/deliveryOrderNotificationService';
-import { playOrderAlertSound, stopOrderAlertSound, unlockOrderAlertSound } from '../../../utils/orderAlertSound';
+import {
+  isOrderAlertSoundUnlocked,
+  playOrderAlertSound,
+  primeOrderAlertSound,
+  stopOrderAlertSound,
+} from '../../../utils/orderAlertSound';
 
 interface OrderNotificationCardProps {
     notification: OrderNotificationData;
@@ -33,23 +38,24 @@ export default function OrderNotificationCard({
     useEffect(() => {
         vibrate();
 
-        playOrderAlertSound({ variant: 'delivery', volume: 0.8, loop: true })
-            .then(() => {
-                setHasUserInteracted(true);
-                setAudioError(null);
-            })
-            .catch(() => setAudioError('Tap to enable sound'));
+        if (isOrderAlertSoundUnlocked('delivery')) {
+            playOrderAlertSound({ variant: 'delivery', volume: 0.85, loop: true });
+            setHasUserInteracted(true);
+            setAudioError(null);
+        } else {
+            setAudioError('Tap card to enable sound');
+        }
 
         return () => {
             stopOrderAlertSound();
         };
     }, [vibrate]);
 
-    const handleUserInteraction = async () => {
+    const handleUserInteraction = () => {
         if (!hasUserInteracted) {
-            const unlocked = await unlockOrderAlertSound();
-            if (unlocked) {
-                await playOrderAlertSound({ variant: 'delivery', volume: 0.8, loop: true });
+            const ok = primeOrderAlertSound('delivery');
+            if (ok) {
+                playOrderAlertSound({ variant: 'delivery', volume: 0.85, loop: true });
                 setHasUserInteracted(true);
                 setAudioError(null);
             } else {
@@ -66,8 +72,8 @@ export default function OrderNotificationCard({
     };
 
     const resumeAlert = () => {
-        if (hasUserInteracted) {
-            playOrderAlertSound({ variant: 'delivery', volume: 0.8, loop: true }).catch(console.error);
+        if (hasUserInteracted || isOrderAlertSoundUnlocked('delivery')) {
+            playOrderAlertSound({ variant: 'delivery', volume: 0.85, loop: true });
             vibrate();
         }
     };

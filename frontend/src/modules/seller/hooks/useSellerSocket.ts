@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../../../context/AuthContext';
 import { getSocketBaseURL } from '../../../services/api/config';
-import { playOrderAlertSound } from '../../../utils/orderAlertSound';
-
 export interface SellerNotification {
     type: 'NEW_ORDER' | 'STATUS_UPDATE';
     orderId: string;
@@ -65,12 +63,6 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
             console.log('📦 Joined seller notification room:', data.sellerId);
         });
 
-        const playNotificationSound = () => {
-            playOrderAlertSound({ variant: 'seller', volume: 0.8 }).catch((e) =>
-                console.warn('🔊 Sound play failed (user interaction may be required):', e?.message || e)
-            );
-        };
-
         const handleNewOrder = (notification: any) => {
             console.log('🔔 New order notification received:', notification);
             if (onNotificationReceived) {
@@ -84,11 +76,6 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
         newSocket.on('seller-notification', (notification: SellerNotification) => {
             console.log('🔔 New seller notification received:', notification);
             
-            // Play sound for new orders
-            if (notification.type === 'NEW_ORDER') {
-                playNotificationSound();
-            }
-
             if (onNotificationReceived) {
                 onNotificationReceived(notification);
             }

@@ -1,11 +1,11 @@
-import { ReactNode, useState, useCallback, useEffect } from 'react';
+import { ReactNode, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import SellerHeader from './SellerHeader';
 import SellerSidebar from './SellerSidebar';
 import { useSellerSocket, SellerNotification } from '../hooks/useSellerSocket';
 import SellerNotificationAlert from './SellerNotificationAlert';
 import { useAuth } from '../../../context/AuthContext';
-import { unlockOrderAlertSound } from '../../../utils/orderAlertSound';
+import OrderSoundTopBar from '../../../components/OrderSoundTopBar';
 
 interface SellerLayoutProps {
   children: ReactNode;
@@ -14,38 +14,8 @@ interface SellerLayoutProps {
 export default function SellerLayout({ children }: SellerLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeNotification, setActiveNotification] = useState<SellerNotification | null>(null);
-  const [isAudioBlocked, setIsAudioBlocked] = useState(false);
   const { user } = useAuth();
   const location = useLocation();
-
-  useEffect(() => {
-    setIsAudioBlocked(!localStorage.getItem('sound_unlocked'));
-
-    const unlock = () => {
-      unlockOrderAlertSound('seller')
-        .then((ok) => {
-          if (ok) {
-            setIsAudioBlocked(false);
-            cleanup();
-          }
-        })
-        .catch((err) => console.warn('Audio unlock attempt failed:', err?.message || err));
-    };
-
-    const cleanup = () => {
-      window.removeEventListener('click', unlock);
-      window.removeEventListener('touchstart', unlock);
-      window.removeEventListener('keydown', unlock);
-    };
-
-    if (localStorage.getItem('sound_unlocked') !== 'true') {
-      window.addEventListener('click', unlock, { once: false });
-      window.addEventListener('touchstart', unlock, { once: false });
-      window.addEventListener('keydown', unlock, { once: false });
-    }
-
-    return cleanup;
-  }, []);
 
   const handleNotificationReceived = useCallback((notification: SellerNotification) => {
     setActiveNotification(notification);
@@ -61,35 +31,13 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
     setActiveNotification(null);
   };
 
-  const unlockAudio = () => {
-    unlockOrderAlertSound('seller').then((ok) => {
-      if (ok) {
-        setIsAudioBlocked(false);
-      }
-    });
-  };
-
   const sellerStatus = user?.status || 'Pending';
   const isDashboard = location.pathname === '/seller' || location.pathname === '/seller/';
   const isRestricted = sellerStatus !== 'Approved' && !isDashboard;
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50 w-full">
-      {/* Audio permission unlock banner */}
-      {isAudioBlocked && (
-        <div 
-          onClick={unlockAudio}
-          className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-4 py-2 text-center text-xs sm:text-sm font-bold flex items-center justify-center gap-2 cursor-pointer hover:from-amber-600 hover:to-orange-700 transition-all shadow-md select-none sticky top-0 z-[99999] animate-pulse"
-        >
-          <span className="text-base">🔊</span>
-          <span>Click here to enable sound notifications for new orders</span>
-          <button 
-            className="ml-3 bg-white text-orange-600 px-2 py-0.5 rounded text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-sm hover:scale-105 active:scale-95 transition-all"
-          >
-            Enable Sound
-          </button>
-        </div>
-      )}
+      <OrderSoundTopBar variant="seller" />
 
       <div className="flex flex-1 min-h-0 relative w-full">
         {/* Real-time Notification Alert */}
