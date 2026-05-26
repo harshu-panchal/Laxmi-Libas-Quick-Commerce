@@ -56,6 +56,7 @@ export default function OrderSoundEnableBanner({ variant, className = '' }: Orde
         <div>
           <h4 className="font-extrabold text-sm sm:text-base tracking-tight">{title}</h4>
           <p className="text-xs text-white/90 font-medium mt-1 max-w-xl">{description}</p>
+          <p className="text-[10px] text-white/50 mt-1 font-mono">Build {__APP_BUILD_TAG__}</p>
         </div>
       </div>
 
