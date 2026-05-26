@@ -11,6 +11,7 @@ interface OrderSoundEnableBannerProps {
   className?: string;
 }
 
+/** Full-width button so the entire banner is tappable (fixes mobile / overlay click issues). */
 export default function OrderSoundEnableBanner({ variant, className = '' }: OrderSoundEnableBannerProps) {
   const [dismissed, setDismissed] = useState(() => isOrderAlertSoundUnlocked(variant));
 
@@ -37,15 +38,19 @@ export default function OrderSoundEnableBanner({ variant, className = '' }: Orde
 
   const description =
     variant === 'seller'
-      ? 'Tap the button below once so your browser can play a ring on every new customer order.'
-      : 'Tap the button below once so you hear a ring when a new delivery order arrives.';
+      ? 'Tap anywhere on this card once — you should hear a test ring. New orders will ring automatically after that.'
+      : 'Tap anywhere on this card once — you should hear a test ring when new delivery orders arrive.';
 
   return (
-    <div
-      className={`bg-gradient-to-r from-teal-600 via-emerald-600 to-indigo-600 text-white p-5 sm:p-6 rounded-[2rem] shadow-xl border border-teal-500/20 flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden ${className}`}
+    <button
+      type="button"
+      onClick={handleActivate}
+      className={`w-full text-left bg-gradient-to-r from-teal-600 via-emerald-600 to-indigo-600 text-white p-5 sm:p-6 rounded-[2rem] shadow-xl border border-teal-500/20 flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden cursor-pointer hover:shadow-2xl transition-all touch-manipulation ${className}`}
+      style={{ WebkitTapHighlightColor: 'transparent' }}
+      aria-label="Activate order sound alerts"
     >
-      <div className="flex items-center gap-4 relative z-10 pointer-events-none">
-        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl animate-bounce shadow-inner">
+      <div className="flex items-center gap-4 relative z-10">
+        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl animate-bounce shadow-inner shrink-0">
           🔔
         </div>
         <div>
@@ -54,19 +59,14 @@ export default function OrderSoundEnableBanner({ variant, className = '' }: Orde
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={handleActivate}
-        className="relative z-20 px-6 py-3.5 bg-white text-teal-700 font-extrabold text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:bg-neutral-50 transition-all hover:scale-105 active:scale-95 flex-shrink-0 touch-manipulation"
-        style={{ WebkitTapHighlightColor: 'transparent' }}
-      >
+      <span className="relative z-10 px-6 py-3.5 bg-white text-teal-700 font-extrabold text-xs uppercase tracking-widest rounded-2xl shadow-xl shrink-0 pointer-events-none">
         Activate Now
-      </button>
+      </span>
 
       <div
         className="absolute right-[-10%] top-[-20%] w-[15rem] h-[15rem] bg-gradient-to-br from-white/10 to-transparent rounded-full blur-2xl pointer-events-none"
         aria-hidden
       />
-    </div>
+    </button>
   );
 }

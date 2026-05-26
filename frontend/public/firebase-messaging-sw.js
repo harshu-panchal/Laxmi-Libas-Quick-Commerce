@@ -1,3 +1,6 @@
+// Bump this when deploying frontend fixes (forces SW refresh on clients)
+const SW_CACHE_VERSION = 'order-sound-v3';
+
 // Import Firebase scripts for service worker
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
@@ -61,7 +64,13 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// Service worker activation
+self.addEventListener('install', (event) => {
+    console.log('[firebase-messaging-sw.js] Installing', SW_CACHE_VERSION);
+    self.skipWaiting();
+});
+
+// Service worker activation — take control immediately after deploy
 self.addEventListener('activate', (event) => {
-    console.log('[firebase-messaging-sw.js] Service worker activated');
+    console.log('[firebase-messaging-sw.js] Activated', SW_CACHE_VERSION);
+    event.waitUntil(self.clients.claim());
 });

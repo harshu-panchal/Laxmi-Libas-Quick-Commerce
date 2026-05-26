@@ -10,7 +10,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.laxmart.s
 async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
     if ('serviceWorker' in navigator) {
         try {
-            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+                updateViaCache: 'none',
+            });
+            await registration.update();
             console.log('✅ Service Worker registered:', registration);
             return registration;
         } catch (error) {

@@ -20,3 +20,12 @@ ReactDOM.createRoot(rootElement!).render(
   </React.StrictMode>,
 )
 
+// After deploy: refresh service worker so live users get new JS (not stale cached app)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => {
+      registration.update().catch(() => {})
+    })
+  })
+}
+
