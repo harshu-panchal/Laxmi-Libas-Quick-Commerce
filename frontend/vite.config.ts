@@ -4,7 +4,12 @@ import path from 'path'
 import { serveAssetsPlugin } from './vite-plugin-serve-assets'
 
 // https://vitejs.dev/config/
+const APP_BUILD_TAG = 'order-sound-v4';
+
 export default defineConfig({
+  define: {
+    __APP_BUILD_TAG__: JSON.stringify(APP_BUILD_TAG),
+  },
   plugins: [
     react({
       // Ensure React Fast Refresh works properly
