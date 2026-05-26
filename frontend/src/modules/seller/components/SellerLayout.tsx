@@ -26,6 +26,32 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
       })
       .catch(() => {
         setIsAudioBlocked(true);
+
+        // Setup global interaction listener to auto-unlock on first user interaction anywhere on the page
+        const unlock = () => {
+          const unlockAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
+          unlockAudio.play()
+            .then(() => {
+              setIsAudioBlocked(false);
+              console.log("🔊 Audio Context successfully unlocked by global user click.");
+              cleanup();
+            })
+            .catch((err) => {
+              console.warn("🔊 Audio unlock attempt failed:", err.message);
+            });
+        };
+
+        const cleanup = () => {
+          window.removeEventListener('click', unlock);
+          window.removeEventListener('touchstart', unlock);
+          window.removeEventListener('keydown', unlock);
+        };
+
+        window.addEventListener('click', unlock);
+        window.addEventListener('touchstart', unlock);
+        window.addEventListener('keydown', unlock);
+
+        return cleanup;
       });
   }, []);
 

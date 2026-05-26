@@ -17,9 +17,13 @@ async function seedTargetUsers() {
     const mobile = "7894561230";
     // 1. Seed Customer
     console.log("Seeding Customer...");
-    const existingCustomer = await Customer.findOne({ phone: mobile });
-    if (existingCustomer) {
-      console.log(`Customer with mobile ${mobile} already exists.`);
+    let customer = await Customer.findOne({ phone: mobile });
+    if (customer) {
+      customer.status = "Active";
+      customer.name = "Test Customer";
+      customer.email = "customer789@laxmilibas.com";
+      await customer.save();
+      console.log(`✓ Customer with mobile ${mobile} updated to Active.`);
     } else {
       await Customer.create({
         name: "Test Customer",
@@ -33,54 +37,64 @@ async function seedTargetUsers() {
 
     // 2. Seed Seller
     console.log("Seeding Seller...");
-    const existingSeller = await Seller.findOne({ mobile });
-    if (existingSeller) {
-      console.log(`Seller with mobile ${mobile} already exists.`);
+    let seller = await Seller.findOne({ mobile });
+    // Find or create a category for Seller
+    let category = await Category.findOne();
+    if (!category) {
+      category = await Category.create({
+        name: "Default Category",
+        description: "Default Category for seeding",
+        status: "Active",
+      });
+      console.log(`✓ Created default Category: ${category.name}`);
+    }
+
+    const hashedPassword = await bcrypt.hash("password123", 10);
+    const sellerData = {
+      sellerName: "Test Seller",
+      storeName: "Laxmi Libas Test Store",
+      mobile: mobile,
+      email: "seller789@laxmilibas.com",
+      category: category._id,
+      address: "Test Store Address, Main Market",
+      status: "Approved" as const,
+      commission: 10,
+      balance: 1000,
+      businessType: "product" as const,
+    };
+
+    if (seller) {
+      Object.assign(seller, sellerData);
+      await seller.save();
+      console.log(`✓ Seller with mobile ${mobile} updated to Approved.`);
     } else {
-      // Find or create a category for Seller
-      let category = await Category.findOne();
-      if (!category) {
-        category = await Category.create({
-          name: "Default Category",
-          description: "Default Category for seeding",
-          status: "Active",
-        });
-        console.log(`✓ Created default Category: ${category.name}`);
-      }
-
-      const hashedPassword = await bcrypt.hash("password123", 10);
-
       await Seller.create({
-        sellerName: "Test Seller",
-        storeName: "Laxmi Libas Test Store",
-        mobile: mobile,
-        email: "seller789@laxmilibas.com",
+        ...sellerData,
         password: hashedPassword,
-        category: category._id,
-        address: "Test Store Address, Main Market",
-        status: "Approved",
-        commission: 10,
-        balance: 1000,
-        businessType: "product",
       });
       console.log(`✓ Seller created successfully with mobile ${mobile}`);
     }
 
     // 3. Seed Delivery Boy
     console.log("Seeding Delivery Boy...");
-    const existingDelivery = await Delivery.findOne({ mobile });
-    if (existingDelivery) {
-      console.log(`Delivery partner with mobile ${mobile} already exists.`);
+    let delivery = await Delivery.findOne({ mobile });
+    const deliveryData = {
+      name: "Test Delivery Partner",
+      mobile: mobile,
+      email: "delivery789@laxmilibas.com",
+      status: "Approved" as const,
+      balance: 200,
+      cashCollected: 0,
+    };
+
+    if (delivery) {
+      Object.assign(delivery, deliveryData);
+      await delivery.save();
+      console.log(`✓ Delivery partner with mobile ${mobile} updated to Approved.`);
     } else {
-      const hashedPassword = await bcrypt.hash("password123", 10);
       await Delivery.create({
-        name: "Test Delivery Partner",
-        mobile: mobile,
-        email: "delivery789@laxmilibas.com",
+        ...deliveryData,
         password: hashedPassword,
-        status: "Approved",
-        balance: 200,
-        cashCollected: 0,
       });
       console.log(`✓ Delivery partner created successfully with mobile ${mobile}`);
     }
