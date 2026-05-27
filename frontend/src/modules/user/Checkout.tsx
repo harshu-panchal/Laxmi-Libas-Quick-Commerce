@@ -38,6 +38,11 @@ import { calculateProductPrice } from "../../utils/priceUtils";
 import { createOrder } from "../../services/api/customerOrderService";
 import { normalizeCity } from "../../utils/locationUtils";
 
+/** Set VITE_ENABLE_COD=false in .env to hide Cash on Delivery at checkout */
+const CHECKOUT_COD_ENABLED =
+  import.meta.env.VITE_ENABLE_COD !== "false" &&
+  import.meta.env.VITE_ENABLE_COD !== "0";
+
 // const STORAGE_KEY = 'saved_address'; // Removed
 
 // Similar products helper removed - using API
@@ -1779,34 +1784,86 @@ export default function Checkout() {
         <h2 className="text-sm font-bold text-neutral-900 mb-3">
           Payment Method
         </h2>
-        <div className="flex flex-col gap-3">
-          <div
-            className="flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all border-primary-dark bg-yellow-50 text-yellow-700 w-full relative overflow-hidden group">
-            <div className="absolute top-2 right-2 flex items-center gap-1 bg-primary-dark text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6L9 17l-5-5"/>
-              </svg>
-              Selected
-            </div>
-            <div className="w-10 h-10 rounded-full mb-2.5 flex items-center justify-center bg-primary-dark shadow-md">
+        <div className={`grid gap-3 ${CHECKOUT_COD_ENABLED ? "grid-cols-2" : "grid-cols-1"}`}>
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("Online")}
+            className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all w-full relative overflow-hidden ${
+              paymentMethod === "Online"
+                ? "border-primary-dark bg-yellow-50 text-yellow-700"
+                : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"
+            }`}
+          >
+            {paymentMethod === "Online" && (
+              <div className="absolute top-2 right-2 flex items-center gap-1 bg-primary-dark text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                Selected
+              </div>
+            )}
+            <div
+              className={`w-10 h-10 rounded-full mb-2.5 flex items-center justify-center shadow-md ${
+                paymentMethod === "Online" ? "bg-primary-dark" : "bg-neutral-200"
+              }`}
+            >
               <svg
                 width="22"
                 height="22"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="white"
+                stroke={paymentMethod === "Online" ? "white" : "currentColor"}
                 strokeWidth="2"
                 strokeLinecap="round"
-                strokeLinejoin="round">
+                strokeLinejoin="round"
+              >
                 <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
                 <line x1="1" y1="10" x2="23" y2="10" />
               </svg>
             </div>
-            <span className="text-sm font-bold uppercase">Online Payment</span>
-            <p className="text-[10px] mt-1 font-medium opacity-80">
-              Cards, UPI, NetBanking, Wallets
+            <span className="text-sm font-bold uppercase">Online</span>
+            <p className="text-[10px] mt-1 font-medium opacity-80 text-center">
+              UPI, Cards, NetBanking
             </p>
-          </div>
+          </button>
+
+          {CHECKOUT_COD_ENABLED && (
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("COD")}
+              className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all w-full relative overflow-hidden ${
+                paymentMethod === "COD"
+                  ? "border-primary-dark bg-yellow-50 text-yellow-700"
+                  : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"
+              }`}
+            >
+              {paymentMethod === "COD" && (
+                <div className="absolute top-2 right-2 flex items-center gap-1 bg-primary-dark text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                  Selected
+                </div>
+              )}
+              <div
+                className={`w-10 h-10 rounded-full mb-2.5 flex items-center justify-center shadow-md ${
+                  paymentMethod === "COD" ? "bg-primary-dark" : "bg-neutral-200"
+                }`}
+              >
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke={paymentMethod === "COD" ? "white" : "currentColor"}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="12" y1="1" x2="12" y2="23" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
+              <span className="text-sm font-bold uppercase">Cash on Delivery</span>
+              <p className="text-[10px] mt-1 font-medium opacity-80 text-center">
+                Pay when order arrives
+              </p>
+            </button>
+          )}
         </div>
       </div>
 
