@@ -338,7 +338,8 @@ async function _markBookingPaid(
                 const intent = await PaymentIntent.findOne({ merchantOrderId });
                 if (intent && intent.status === 'Pending') {
                 const { finalizeOrderCreation } = require('./orderService');
-                const io = (global as any).io; // We'll need a way to get IO, maybe global for now or pass it down
+                const { getIo } = require('../utils/socketEmitter');
+                const io = getIo();
                 
                 const createdOrders = await finalizeOrderCreation(intent.userId.toString(), {
                     items: intent.items,

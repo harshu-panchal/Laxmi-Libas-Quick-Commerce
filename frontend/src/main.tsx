@@ -20,7 +20,7 @@ ReactDOM.createRoot(rootElement!).render(
   </React.StrictMode>,
 )
 
-// Verify live deploy: console should show order-sound-v4 (not old SellerDashboard-XYorot2c.js)
+// Verify live deploy: console should show order-sound-v5
 console.info('[LaxMart] frontend build:', __APP_BUILD_TAG__);
 
 // After deploy: refresh service worker so live users get new JS (not stale cached app)

@@ -65,6 +65,36 @@ router.get("/health", (_req, res) => {
   });
 });
 
+/** Local dev only: push seller socket notification for an existing order */
+router.post("/dev/replay-seller-notify/:orderId", async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ success: false, message: "Not found" });
+  }
+  const key = req.headers["x-dev-key"];
+  if (key !== (process.env.DEV_REPLAY_KEY || "local-dev-replay")) {
+    return res.status(403).json({ success: false, message: "Forbidden" });
+  }
+  const io = req.app.get("io");
+  if (!io) {
+    return res.status(503).json({ success: false, message: "Socket server not ready" });
+  }
+  const Order = (await import("../models/Order")).default;
+  const order = await Order.findById(req.params.orderId).populate({
+    path: "items",
+    populate: { path: "seller" },
+  });
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Order not found" });
+  }
+  const { notifySellersOfOrderUpdate } = await import("../services/sellerNotificationService");
+  await notifySellersOfOrderUpdate(io, order, "NEW_ORDER");
+  return res.json({
+    success: true,
+    orderNumber: order.orderNumber,
+    message: "Seller notification replayed",
+  });
+});
+
 // Public Configuration routes
 router.get("/config/public", configController.getPublicConfig);
 

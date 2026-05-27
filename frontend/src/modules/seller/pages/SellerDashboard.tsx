@@ -32,8 +32,7 @@ import {
   Percent
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSellerSocket } from '../hooks/useSellerSocket';
-import OrderSoundEnableBanner from '../../../components/OrderSoundEnableBanner';
+import type { SellerNotification } from '../hooks/useSellerSocket';
 import { toast } from 'react-hot-toast';
 import { getMyHotels, getHotelBookings } from '../../../services/api/hotelPartnerService';
 
@@ -46,16 +45,20 @@ export default function SellerDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Listen for real-time notifications
-  useSellerSocket((notification) => {
-    if (notification.type === 'NEW_ORDER') {
-      toast.success(`New Order Received! #${notification.orderNumber || notification.orderId}`, {
-        duration: 5000,
-        position: 'top-right',
-      });
-      setRefreshTrigger(prev => prev + 1);
-    }
-  });
+  useEffect(() => {
+    const onNewOrder = (e: Event) => {
+      const notification = (e as CustomEvent<SellerNotification>).detail;
+      if (notification?.type === 'NEW_ORDER') {
+        toast.success(`New Order Received! #${notification.orderNumber || notification.orderId}`, {
+          duration: 5000,
+          position: 'top-right',
+        });
+        setRefreshTrigger((prev) => prev + 1);
+      }
+    };
+    window.addEventListener('seller-new-order', onNewOrder);
+    return () => window.removeEventListener('seller-new-order', onNewOrder);
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [isShopOpen, setIsShopOpen] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
@@ -249,8 +252,6 @@ export default function SellerDashboard() {
           </button>
         </div>
       </div>
-
-      <OrderSoundEnableBanner variant="seller" />
 
       {/* Multi-Vertical Navigation */}
       {(() => {

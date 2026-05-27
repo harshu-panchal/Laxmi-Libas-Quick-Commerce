@@ -1,190 +1,236 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { SellerNotification } from '../hooks/useSellerSocket';
 import { updateOrderStatus } from '../../../services/api/orderService';
 import { useNavigate } from 'react-router-dom';
-import { isOrderAlertSoundUnlocked, playOrderAlertSound, stopOrderAlertSound } from '../../../utils/orderAlertSound';
+import {
+  isOrderAlertSoundUnlocked,
+  playOrderAlertSound,
+  primeOrderAlertSound,
+  stopOrderAlertSound,
+} from '../../../utils/orderAlertSound';
 
 interface SellerNotificationAlertProps {
-  notification: SellerNotification | null;
+  notification: SellerNotification;
   onClose: () => void;
 }
 
 const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notification, onClose }) => {
-  const [volume, setVolume] = useState(0.8);
+  const [volume] = useState(0.85);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const vibrationPatternRef = useRef<number[]>([200, 100, 200, 100, 200]);
+
+  const vibrate = useCallback((pattern?: number | number[]) => {
+    if ('vibrate' in navigator) {
+      try {
+        navigator.vibrate(pattern || vibrationPatternRef.current);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
+
+  const shouldPlayRing = notification.type === 'NEW_ORDER';
+  const showSellerActions = notification.status === 'Received';
+
+  useEffect(() => {
+    if (!shouldPlayRing) return;
+
+    vibrate();
+    playOrderAlertSound({ variant: 'seller', volume, loop: true });
+    if (isOrderAlertSoundUnlocked('seller')) {
+      setHasUserInteracted(true);
+      setAudioError(null);
+    } else {
+      setAudioError('Tap popup to enable sound');
+    }
+
+    return () => {
+      stopOrderAlertSound();
+    };
+  }, [notification.orderId, shouldPlayRing, vibrate, volume]);
+
+  const handleUserInteraction = () => {
+    if (!hasUserInteracted) {
+      const ok = primeOrderAlertSound('seller');
+      if (ok) {
+        playOrderAlertSound({ variant: 'seller', volume, loop: true });
+        setHasUserInteracted(true);
+        setAudioError(null);
+      } else {
+        setAudioError('Tap to enable sound');
+      }
+    }
+  };
+
+  const handleClose = () => {
+    stopOrderAlertSound();
+    if ('vibrate' in navigator) navigator.vibrate(0);
+    onClose();
+  };
 
   const handleStatusUpdate = async (status: string) => {
-    if (!notification) return;
     setLoading(true);
+    stopOrderAlertSound();
+    if ('vibrate' in navigator) navigator.vibrate(0);
     try {
-      await updateOrderStatus(notification.orderId, { status: status as any });
-      stopOrderAlertSound();
+      await updateOrderStatus(notification.orderId, { status: status as 'Accepted' | 'Rejected' });
       onClose();
-      // Optionally navigate to order detail or just close
       if (status === 'Accepted') {
-         navigate(`/seller/orders/${notification.orderId}`);
+        navigate(`/seller/orders/${notification.orderId}`);
       }
-    } catch (error: any) {
-      console.error('Error updating status:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update order status';
-      alert(errorMessage);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      alert(err.response?.data?.message || 'Failed to update order status');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (notification?.type === 'NEW_ORDER' && isOrderAlertSoundUnlocked('seller')) {
-      playOrderAlertSound({ variant: 'seller', volume, loop: true });
-    }
-    return () => {
-      stopOrderAlertSound();
-    };
-  }, [notification, volume]);
-
-  const handleClose = () => {
-    stopOrderAlertSound();
-    onClose();
+  const customer = notification.customer || {
+    name: 'Customer',
+    email: '',
+    phone: '',
+    address: { address: '', city: '', pincode: '' },
   };
 
-  if (!notification) return null;
-
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-300">
-        {/* Header */}
-        <div className={`px-6 py-4 flex items-center justify-between ${notification.type === 'NEW_ORDER' ? 'bg-teal-600' : 'bg-blue-600'} text-white`}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={handleUserInteraction}
+      onTouchStart={handleUserInteraction}
+    >
+      <motion.div
+        initial={{ scale: 0.92, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.92, y: 20 }}
+        className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border-2 border-teal-500"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className={`px-6 py-4 flex items-center justify-between ${
+            showSellerActions ? 'bg-teal-600' : 'bg-blue-600'
+          } text-white`}
+        >
           <div className="flex items-center gap-3">
-            <div className="bg-white bg-opacity-20 p-2 rounded-full">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
+            <div className="relative">
+              <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+              <div className="absolute inset-0 w-3 h-3 bg-white rounded-full animate-ping opacity-75" />
             </div>
             <div>
               <h2 className="text-xl font-bold">
-                {notification.type === 'NEW_ORDER' ? 'New Order Received!' : 'Order Status Updated'}
+                {showSellerActions ? 'New Order Received!' : 'Order Status Updated'}
               </h2>
               <p className="text-sm opacity-90">#{notification.orderNumber}</p>
             </div>
           </div>
+          {(audioError || !hasUserInteracted) && shouldPlayRing && (
+            <span className="text-xs bg-white/20 px-2 py-1 rounded">{audioError || 'Tap for sound'}</span>
+          )}
           <button
+            type="button"
             onClick={handleClose}
-            className="text-white hover:bg-white hover:bg-opacity-10 p-1 rounded-full transition-colors"
+            className="text-white hover:bg-white/10 p-1 rounded-full ml-2"
+            aria-label="Close"
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            ✕
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-6 max-h-[70vh] overflow-y-auto">
-          {/* Volume Control */}
-          <div className="mb-6 bg-neutral-50 p-3 rounded-lg flex items-center gap-4">
-            <span className="text-neutral-500">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-              </svg>
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={volume}
-              onChange={(e) => setVolume(parseFloat(e.target.value))}
-              className="flex-1 accent-teal-600"
-            />
-          </div>
-
-          {/* Customer Info */}
+          {showSellerActions && (
+            <p className="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Agar aap 2 minute ke andar accept nahi karte, order automatically accept ho jayega.
+            </p>
+          )}
           <section className="mb-6">
-            <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-3">Customer Information</h3>
+            <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-3">
+              Customer Information
+            </h3>
             <div className="bg-neutral-50 rounded-lg p-4">
-              <p className="font-bold text-neutral-800 text-lg">{notification.customer.name}</p>
-              <p className="text-neutral-600 flex items-center gap-2 mt-1">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                </svg>
-                {notification.customer.phone}
-              </p>
-              <div className="text-neutral-600 flex items-start gap-2 mt-2">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-1 flex-shrink-0">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-                <span>
-                  {notification.customer.address.address}, {notification.customer.address.city}, {notification.customer.address.pincode}
-                  {notification.customer.address.landmark && <span className="block text-sm text-neutral-400 mt-0.5">Landmark: {notification.customer.address.landmark}</span>}
+              <p className="font-bold text-neutral-800 text-lg">{customer.name}</p>
+              {customer.phone && (
+                <p className="text-neutral-600 mt-1">📞 {customer.phone}</p>
+              )}
+              {customer.address?.address && (
+                <p className="text-neutral-600 mt-2 text-sm">
+                  📍 {customer.address.address}, {customer.address.city}, {customer.address.pincode}
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-3">
+              Order Details
+            </h3>
+            <div className="space-y-3">
+              {(notification.items || []).map((item, index) => (
+                <div
+                  key={index}
+                  className="flex justify-between items-start py-2 border-b border-neutral-100 last:border-0"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-neutral-800">{item.productName}</p>
+                    <p className="text-sm text-neutral-500">
+                      Qty: {item.quantity} × ₹{Number(item.price).toFixed(2)}
+                    </p>
+                  </div>
+                  <p className="font-bold text-neutral-800">₹{Number(item.total).toFixed(2)}</p>
+                </div>
+              ))}
+              <div className="flex justify-between items-center pt-4 border-t-2 border-neutral-100">
+                <span className="text-lg font-bold text-neutral-800">Total (Your Items)</span>
+                <span className="text-2xl font-black text-teal-600">
+                  ₹{Number(notification.totalAmount || 0).toFixed(2)}
                 </span>
               </div>
             </div>
           </section>
-
-          {/* Order Details */}
-          <section>
-            <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-3">Order Details</h3>
-            <div className="space-y-3">
-              {notification.items.map((item, index) => (
-                <div key={index} className="flex justify-between items-start py-2 border-b border-neutral-100 last:border-0">
-                  <div className="flex-1">
-                    <p className="font-medium text-neutral-800">{item.productName}</p>
-                    <p className="text-sm text-neutral-500">
-                      Qty: {item.quantity} × ₹{item.price.toFixed(2)}
-                      {item.variation && <span className="ml-2 px-1.5 py-0.5 bg-neutral-100 rounded text-[10px]">{item.variation}</span>}
-                    </p>
-                  </div>
-                  <p className="font-bold text-neutral-800">₹{item.total.toFixed(2)}</p>
-                </div>
-              ))}
-
-              <div className="flex justify-between items-center pt-4 mt-2 border-t-2 border-neutral-100">
-                <span className="text-lg font-bold text-neutral-800">Total (Your Items)</span>
-                <span className="text-2xl font-black text-teal-600">₹{notification.totalAmount.toFixed(2)}</span>
-              </div>
-            </div>
-          </section>
         </div>
 
-        {/* Footer */}
         <div className="p-6 bg-neutral-50 border-t border-neutral-200">
-
-          {notification.type === 'NEW_ORDER' ? (
-             <div className="flex gap-4">
-               <button
-                 onClick={() => handleStatusUpdate('Accepted')}
-                 disabled={loading}
-                 className="flex-1 py-4 rounded-xl font-bold text-white shadow-lg bg-teal-600 hover:bg-teal-700 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-               >
-                 {loading ? 'Please wait...' : 'Accept Order'}
-               </button>
-               <button
-                 onClick={() => {
-                   if (window.confirm('Are you sure you want to reject this order?')) {
-                     handleStatusUpdate('Rejected');
-                   }
-                 }}
-                 disabled={loading}
-                 className="flex-1 py-4 rounded-xl font-bold text-white shadow-lg bg-red-600 hover:bg-red-700 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-               >
-                 {loading ? 'Please wait...' : 'Reject Order'}
-               </button>
-             </div>
+          {showSellerActions ? (
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => handleStatusUpdate('Accepted')}
+                disabled={loading}
+                className="flex-1 py-4 rounded-xl font-bold text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-50"
+              >
+                {loading ? 'Please wait...' : 'Accept Order'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Reject this order?')) {
+                    void handleStatusUpdate('Rejected');
+                  }
+                }}
+                disabled={loading}
+                className="flex-1 py-4 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+              >
+                {loading ? 'Please wait...' : 'Reject Order'}
+              </button>
+            </div>
           ) : (
             <button
+              type="button"
               onClick={handleClose}
-              className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform active:scale-95 bg-blue-600 hover:bg-blue-700"
+              className="w-full py-4 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700"
             >
               Acknowledge & Dismiss
             </button>
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

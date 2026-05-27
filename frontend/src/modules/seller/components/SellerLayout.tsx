@@ -1,34 +1,23 @@
-import { ReactNode, useState, useCallback } from 'react';
+import { ReactNode, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import SellerHeader from './SellerHeader';
 import SellerSidebar from './SellerSidebar';
-import { useSellerSocket, SellerNotification } from '../hooks/useSellerSocket';
-import SellerNotificationAlert from './SellerNotificationAlert';
 import { useAuth } from '../../../context/AuthContext';
 import OrderSoundTopBar from '../../../components/OrderSoundTopBar';
+import OrderSoundEnableBanner from '../../../components/OrderSoundEnableBanner';
+import { SellerNotificationProvider } from '../../../context/SellerNotificationContext';
 
 interface SellerLayoutProps {
   children: ReactNode;
 }
 
-export default function SellerLayout({ children }: SellerLayoutProps) {
+function SellerLayoutContent({ children }: SellerLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeNotification, setActiveNotification] = useState<SellerNotification | null>(null);
   const { user } = useAuth();
   const location = useLocation();
 
-  const handleNotificationReceived = useCallback((notification: SellerNotification) => {
-    setActiveNotification(notification);
-  }, []);
-
-  useSellerSocket(handleNotificationReceived);
-
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
-  };
-
-  const closeNotification = () => {
-    setActiveNotification(null);
   };
 
   const sellerStatus = user?.status || 'Pending';
@@ -36,16 +25,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   const isRestricted = sellerStatus !== 'Approved' && !isDashboard;
 
   return (
-    <div className="flex flex-col min-h-screen bg-neutral-50 w-full">
-      <OrderSoundTopBar variant="seller" />
-
-      <div className="flex flex-1 min-h-0 relative w-full">
-        {/* Real-time Notification Alert */}
-        <SellerNotificationAlert
-          notification={activeNotification}
-          onClose={closeNotification}
-        />
-
+    <>
       {/* Overlay for mobile */}
       {isSidebarOpen && (
         <div
@@ -72,6 +52,9 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 bg-neutral-50 min-w-0">
+          <div className="mb-4 max-w-3xl">
+            <OrderSoundEnableBanner variant="seller" />
+          </div>
           {isRestricted ? (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 bg-white rounded-2xl shadow-sm border border-neutral-100 max-w-2xl mx-auto my-10">
               <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 mb-6">
@@ -110,8 +93,20 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
           )}
         </main>
       </div>
+    </>
+  );
+}
+
+export default function SellerLayout({ children }: SellerLayoutProps) {
+  return (
+    <SellerNotificationProvider>
+      <div className="flex flex-col min-h-screen bg-neutral-50 w-full">
+        <OrderSoundTopBar variant="seller" />
+        <div className="flex flex-1 min-h-0 relative w-full">
+          <SellerLayoutContent>{children}</SellerLayoutContent>
+        </div>
       </div>
-    </div>
+    </SellerNotificationProvider>
   );
 }
 

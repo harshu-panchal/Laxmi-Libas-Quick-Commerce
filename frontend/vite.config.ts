@@ -4,7 +4,7 @@ import path from 'path'
 import { serveAssetsPlugin } from './vite-plugin-serve-assets'
 
 // https://vitejs.dev/config/
-const APP_BUILD_TAG = 'order-sound-v4';
+const APP_BUILD_TAG = 'order-sound-v5';
 
 export default defineConfig({
   define: {

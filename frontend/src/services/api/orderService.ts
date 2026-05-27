@@ -116,6 +116,42 @@ export const getOrders = async (params?: GetOrdersParams): Promise<ApiResponse<O
   return response.data;
 };
 
+/** Received orders waiting for seller accept (popup + ring fallback). */
+export const getPendingOrderNotifications = async (): Promise<
+  ApiResponse<Record<string, unknown>[]>
+> => {
+  try {
+    const response = await api.get<ApiResponse<Record<string, unknown>[]>>(
+      '/orders/pending-notifications'
+    );
+    return response.data;
+  } catch {
+    // Fallback when backend route not deployed yet: list Received orders
+    const list = await getOrders({
+      status: 'Received',
+      limit: 10,
+      sortBy: 'orderDate',
+      sortOrder: 'desc',
+    });
+    const notifications = (list.data || []).map((o) => ({
+      type: 'NEW_ORDER',
+      orderId: o.id,
+      orderNumber: o.orderId,
+      status: 'Received',
+      paymentStatus: 'Paid',
+      customer: {
+        name: o.customerName || 'Customer',
+        email: '',
+        phone: o.customerPhone || '',
+        address: { address: '', city: '', pincode: '' },
+      },
+      items: [],
+      totalAmount: o.amount,
+    }));
+    return { success: true, message: 'OK', data: notifications };
+  }
+};
+
 /**
  * Get order by ID
  */

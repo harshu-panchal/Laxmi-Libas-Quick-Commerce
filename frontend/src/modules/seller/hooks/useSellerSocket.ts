@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../../../context/AuthContext';
 import { getSocketBaseURL } from '../../../services/api/config';
+import { isOrderAlertSoundUnlocked, playOrderAlertSound } from '../../../utils/orderAlertSound';
+
 export interface SellerNotification {
     type: 'NEW_ORDER' | 'STATUS_UPDATE';
     orderId: string;
@@ -75,7 +77,11 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
 
         newSocket.on('seller-notification', (notification: SellerNotification) => {
             console.log('🔔 New seller notification received:', notification);
-            
+
+            if (notification.type === 'NEW_ORDER' && isOrderAlertSoundUnlocked('seller')) {
+                playOrderAlertSound({ variant: 'seller', volume: 0.85 });
+            }
+
             if (onNotificationReceived) {
                 onNotificationReceived(notification);
             }

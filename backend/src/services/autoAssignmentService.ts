@@ -23,19 +23,50 @@ export const autoAssignDeliveryBoy = async (orderId: string, io?: SocketIOServer
     // Find nearest online and approved delivery boy within 10km
     const maxDistanceInMeters = 10000; 
     
-    const nearbyDeliveryBoys = await Delivery.find({
-      status: "Approved",
-      isOnline: true,
-      location: {
-        $near: {
-          $geometry: {
-            type: "Point",
-            coordinates: [longitude, latitude], // [long, lat]
+    let nearbyDeliveryBoys: any[] = [];
+    try {
+      nearbyDeliveryBoys = await Delivery.find({
+        status: "Approved",
+        isOnline: true,
+        location: {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: [longitude, latitude], // [long, lat]
+            },
+            $maxDistance: maxDistanceInMeters,
           },
-          $maxDistance: maxDistanceInMeters,
         },
-      },
-    }).limit(5);
+      }).limit(5);
+    } catch (geoErr: any) {
+      if (geoErr?.code === 291 || geoErr?.codeName === 'NoQueryExecutionPlans') {
+        const all = await Delivery.find({
+          status: 'Approved',
+          isOnline: true,
+          'location.coordinates.0': { $exists: true },
+        }).limit(20);
+        const R = 6371;
+        nearbyDeliveryBoys = all
+          .map((db) => {
+            const [lng, lat] = db.location?.coordinates || [0, 0];
+            const dLat = ((lat - latitude) * Math.PI) / 180;
+            const dLng = ((lng - longitude) * Math.PI) / 180;
+            const a =
+              Math.sin(dLat / 2) ** 2 +
+              Math.cos((latitude * Math.PI) / 180) *
+                Math.cos((lat * Math.PI) / 180) *
+                Math.sin(dLng / 2) ** 2;
+            const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return { doc: db, distKm };
+          })
+          .filter((x) => x.distKm <= maxDistanceInMeters / 1000)
+          .sort((a, b) => a.distKm - b.distKm)
+          .slice(0, 5)
+          .map((x) => x.doc);
+      } else {
+        throw geoErr;
+      }
+    }
 
     if (nearbyDeliveryBoys.length === 0) {
       console.log(`[AutoAssign] No nearby delivery boys found for Order ${order.orderNumber}`);

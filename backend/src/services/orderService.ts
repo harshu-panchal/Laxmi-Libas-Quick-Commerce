@@ -142,6 +142,7 @@ export const finalizeOrderCreation = async (
         parentOrderId: parentOrderId,
         orderType: config.type as 'quick' | 'ecommerce',
         deliveryType: config.flow as 'instant' | 'courier',
+        deliveryFlow: config.type === 'quick' ? 'auto' : 'courier',
         type: 'product',
         deliveryInstructions: deliveryInstructions || '',
         tip: tip || 0,
@@ -263,26 +264,25 @@ export const finalizeOrderCreation = async (
 
     if (session) await session.commitTransaction();
 
-    // Trigger notifications if Paid or COD
+    // Notify sellers when order is placed (Paid or COD). Delivery is notified only after seller accepts.
     if (paymentStatus === 'Paid' || paymentMethod === 'COD') {
-      const { autoAssignDeliveryBoy } = await import("./autoAssignmentService");
-      
       for (const order of createdOrders) {
         try {
           if (io) {
-            const savedOrder = await Order.findById(order._id).lean();
-            if (savedOrder) {
-               await notifySellersOfOrderUpdate(io, savedOrder, 'NEW_ORDER');
-               
-               // Auto-assign if quick
-               if (order.orderType === 'quick') {
-                 await autoAssignDeliveryBoy(order._id.toString(), io);
-               }
+            const fullOrder = await Order.findById(order._id)
+              .populate({ path: 'items', populate: { path: 'seller' } })
+              .lean();
+
+            if (fullOrder) {
+              await notifySellersOfOrderUpdate(io, fullOrder, 'NEW_ORDER');
+              console.log(`[OrderService] Seller NEW_ORDER notification sent for ${order.orderNumber}`);
             }
           }
           await sendNotification('Customer', userId, 'Order Placed!', `Your ${order.orderType} order ${order.orderNumber} is placed.`, { type: 'Order', link: `/orders/${order._id}` });
           await sendBroadcastNotification('Admin', 'New Order Received!', `Order ${order.orderNumber} has been placed.`, { type: 'Order', link: `/orders/${order._id}`, priority: 'High' });
-        } catch (e) { }
+        } catch (e) {
+          console.error(`[OrderService] Post-order notification failed for ${order.orderNumber}:`, e);
+        }
       }
     }
 

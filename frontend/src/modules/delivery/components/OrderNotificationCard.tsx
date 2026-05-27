@@ -38,8 +38,8 @@ export default function OrderNotificationCard({
     useEffect(() => {
         vibrate();
 
+        playOrderAlertSound({ variant: 'delivery', volume: 0.85, loop: true });
         if (isOrderAlertSoundUnlocked('delivery')) {
-            playOrderAlertSound({ variant: 'delivery', volume: 0.85, loop: true });
             setHasUserInteracted(true);
             setAudioError(null);
         } else {

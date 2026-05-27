@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   getOrders,
+  getPendingOrderNotifications,
   getOrderById,
   updateOrderStatus,
   shipOrder,
@@ -19,6 +20,9 @@ router.use(requireUserType("Seller"));
 
 // Get seller's orders with filters
 router.get("/", getOrders);
+
+// Pending Received orders for real-time popup fallback
+router.get("/pending-notifications", getPendingOrderNotifications);
 
 // Get order by ID
 router.get("/:id", getOrderById);

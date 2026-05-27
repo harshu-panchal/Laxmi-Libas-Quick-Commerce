@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getOrders, Order, GetOrdersParams } from '../../../services/api/orderService';
-import { useSellerSocket } from '../hooks/useSellerSocket';
+import type { SellerNotification } from '../hooks/useSellerSocket';
 
 
 type SortField = 'orderId' | 'deliveryDate' | 'orderDate' | 'status' | 'amount';
@@ -13,12 +13,16 @@ export default function SellerOrders() {
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Listen for real-time notifications
-  useSellerSocket((notification) => {
-    if (notification.type === 'NEW_ORDER') {
-      setRefreshTrigger(prev => prev + 1);
-    }
-  });
+  useEffect(() => {
+    const onNewOrder = (e: Event) => {
+      const notification = (e as CustomEvent<SellerNotification>).detail;
+      if (notification?.type === 'NEW_ORDER') {
+        setRefreshTrigger((prev) => prev + 1);
+      }
+    };
+    window.addEventListener('seller-new-order', onNewOrder);
+    return () => window.removeEventListener('seller-new-order', onNewOrder);
+  }, []);
   const [error, setError] = useState<string>('');
   const [dateRange, setDateRange] = useState('');
   const [status, setStatus] = useState('All Status');

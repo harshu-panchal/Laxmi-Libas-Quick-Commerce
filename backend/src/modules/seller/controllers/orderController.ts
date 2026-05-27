@@ -4,7 +4,7 @@ import OrderItem from "../../../models/OrderItem";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import Seller from "../../../models/Seller";
 import WalletTransaction from "../../../models/WalletTransaction";
-import { notifyDeliveryBoysOfNewOrder } from "../../../services/orderNotificationService";
+import { notifyDeliveryBoysOfNewOrder, calculateEstimatedDeliveryBoyEarning } from "../../../services/orderNotificationService";
 import { Server as SocketIOServer } from "socket.io";
 import { DelhiveryService } from "../../../services/shipping/DelhiveryService";
 
@@ -49,6 +49,7 @@ export const getOrders = asyncHandler(
       // Map frontend status to backend status
       const statusMapping: Record<string, string> = {
         'Pending': 'Pending',
+        'Received': 'Received',
         'Accepted': 'Accepted',
         'On the way': 'On the way',
         'Out For Delivery': 'Out for Delivery',
@@ -124,13 +125,61 @@ export const getOrders = asyncHandler(
   }
 );
 
+/** Pending Received orders for seller popup + ring (polling fallback when socket misses event) */
+async function handleGetPendingOrderNotifications(req: Request, res: Response) {
+  const sellerId = (req as any).user.userId;
+
+  const orderIds = await OrderItem.find({ seller: sellerId }).distinct("order");
+  if (!orderIds.length) {
+    return res.status(200).json({ success: true, data: [] });
+  }
+
+  const orders = await Order.find({
+    _id: { $in: orderIds },
+    status: "Received",
+    $or: [
+      { paymentStatus: { $in: ["Paid", "settled"] } },
+      { paymentMethod: "COD" },
+    ],
+  })
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .lean();
+
+  const { buildSellerNotificationPayload } = await import(
+    "../../../services/sellerNotificationService"
+  );
+
+  const notifications = [];
+  for (const order of orders) {
+    const items = await OrderItem.find({ order: order._id, seller: sellerId }).lean();
+    if (!items.length) continue;
+    notifications.push(
+      buildSellerNotificationPayload(order, sellerId, items, "NEW_ORDER")
+    );
+  }
+
+  return res.status(200).json({
+    success: true,
+    data: notifications,
+  });
+}
+
+export const getPendingOrderNotifications = asyncHandler(handleGetPendingOrderNotifications);
+
 /**
  * Get order by ID with populated order items, customer, and delivery info
  */
 export const getOrderById = asyncHandler(
   async (req: Request, res: Response) => {
-    const sellerId = (req as any).user.userId;
     const { id } = req.params;
+
+    // Safety: if /:id catches this slug, delegate instead of casting invalid ObjectId
+    if (id === 'pending-notifications') {
+      return handleGetPendingOrderNotifications(req, res);
+    }
+
+    const sellerId = (req as any).user.userId;
 
     // Get order with populated data checking either _id or orderNumber
     const orderQuery = id.startsWith('ORD') ? { orderNumber: id } : { _id: id };
@@ -270,9 +319,21 @@ export const updateOrderStatus = asyncHandler(
       });
     }
 
-    // Check if status is already the same
-    // Check if status is already the same (Allow re-triggering Accepted status for notifications)
-    if (order.status === status && status !== 'Accepted') {
+    if (status === 'Accepted' && order.status !== 'Received') {
+      return res.status(400).json({
+        success: false,
+        message: `Order cannot be accepted. Current status: ${order.status}`,
+      });
+    }
+
+    if (status === 'Rejected' && order.status !== 'Received') {
+      return res.status(400).json({
+        success: false,
+        message: `Order cannot be rejected. Current status: ${order.status}`,
+      });
+    }
+
+    if (order.status === status) {
       console.log(`ℹ️ [Seller Order Update] Status already ${status} for Order ${id}`);
       return res.status(400).json({
         success: false,
@@ -332,10 +393,6 @@ export const updateOrderStatus = asyncHandler(
       try {
         const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
         if (io) {
-          // Need to fetch full order with details for the notification service
-          // Using lean() to get a plain JS object which is what the service expects mostly,
-          // but checking the service implementation, it uses .items mainly for seller location.
-          // We should ensure the passed order object has populated items with sellers.
           const fullOrder = await Order.findById(order._id)
             .populate({
               path: 'items',
@@ -344,14 +401,30 @@ export const updateOrderStatus = asyncHandler(
             .lean();
 
           if (fullOrder) {
-            // Automatic Assignment Mode: Always notify delivery boys on seller acceptance
-            await notifyDeliveryBoysOfNewOrder(io, fullOrder);
-            console.log(`Automatic delivery notification triggered for Accepted order ${order.orderNumber}`);
+            if (order.deliveryBoy) {
+              const assignedId = order.deliveryBoy.toString();
+              const earning = await calculateEstimatedDeliveryBoyEarning(fullOrder);
+              io.to(`delivery-${assignedId}`).emit('new-order', {
+                orderId: order._id.toString(),
+                orderNumber: order.orderNumber,
+                customerName: order.customerName,
+                customerPhone: order.customerPhone,
+                deliveryAddress: order.deliveryAddress,
+                total: order.total,
+                subtotal: order.subtotal,
+                shipping: order.shipping,
+                deliveryBoyEarning: earning,
+                createdAt: order.createdAt,
+              });
+              console.log(`Re-notified assigned delivery partner ${assignedId} for order ${order.orderNumber}`);
+            } else {
+              await notifyDeliveryBoysOfNewOrder(io, fullOrder);
+              console.log(`Delivery broadcast triggered for Accepted order ${order.orderNumber}`);
+            }
           }
         }
       } catch (notifyError) {
         console.error('Error notifying delivery boys on seller acceptance:', notifyError);
-        // Don't fail the request, just log
       }
     }
 

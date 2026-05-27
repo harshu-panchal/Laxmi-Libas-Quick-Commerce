@@ -11,8 +11,8 @@ export class OrderCleanupService {
     private static interval: NodeJS.Timeout | null = null;
     private static io: SocketIOServer | null = null;
 
-    // Timeouts in minutes (1 minute = 60 seconds for seller acceptance)
-    private static readonly SELLER_ACCEPTANCE_TIMEOUT = 1;
+    /** Minutes to wait in Received before auto-accepting (seller can accept sooner manually). */
+    private static readonly SELLER_ACCEPTANCE_TIMEOUT = 2;
     private static readonly DELIVERY_ASSIGNMENT_TIMEOUT = 30;
 
     /**
@@ -22,9 +22,11 @@ export class OrderCleanupService {
         this.io = io;
         if (this.interval) return;
 
-        console.log('🔄 Order Cleanup Service started (Interval: 15 seconds)');
+        console.log(
+            `🔄 Order Cleanup Service started (Interval: 15 seconds) | SELLER_ACCEPTANCE_TIMEOUT=${this.SELLER_ACCEPTANCE_TIMEOUT}min`
+        );
         
-        // Run every 15 seconds to be highly responsive to the 60 seconds auto-accept rule
+        // Run every 15 seconds to be responsive to the 2-minute auto-accept rule
         this.interval = setInterval(() => {
             this.runCleanup();
         }, 15 * 1000);
@@ -52,19 +54,22 @@ export class OrderCleanupService {
         try {
             const now = new Date();
 
-            // 1. Handle Seller Acceptance Timeout (Status: 'Received') - Auto Accept after 60 seconds
-            const sellerTimeoutDate = new Date(now.getTime() - this.SELLER_ACCEPTANCE_TIMEOUT * 60 * 1000);
-            const stuckReceivedOrders = await Order.find({
-                status: 'Received',
-                $or: [
-                    { paymentStatus: { $in: ['Paid', 'settled'] } },
-                    { paymentMethod: 'COD' }
-                ],
-                createdAt: { $lt: sellerTimeoutDate }
-            });
-
-            for (const order of stuckReceivedOrders) {
-                await this.autoAcceptOrder(order);
+            // 1. Seller acceptance — manual only (SELLER_ACCEPTANCE_TIMEOUT = 0 disables auto-accept)
+            const stuckReceivedOrders: any[] = [];
+            if (this.SELLER_ACCEPTANCE_TIMEOUT > 0) {
+                const sellerTimeoutDate = new Date(now.getTime() - this.SELLER_ACCEPTANCE_TIMEOUT * 60 * 1000);
+                const timedOut = await Order.find({
+                    status: 'Received',
+                    $or: [
+                        { paymentStatus: { $in: ['Paid', 'settled'] } },
+                        { paymentMethod: 'COD' }
+                    ],
+                    createdAt: { $lt: sellerTimeoutDate }
+                });
+                for (const order of timedOut) {
+                    await this.autoAcceptOrder(order);
+                }
+                stuckReceivedOrders.push(...timedOut);
             }
 
             // 2. Handle Delivery Assignment Timeout (Status: 'Accepted' but no deliveryBoy)
@@ -81,7 +86,7 @@ export class OrderCleanupService {
             }
 
             if (stuckReceivedOrders.length > 0 || stuckAcceptedOrders.length > 0) {
-                const msg = `🧹 [Cleanup] Processed ${stuckReceivedOrders.length} seller auto-accepts and ${stuckAcceptedOrders.length} delivery timeouts. (Cut-off: ${sellerTimeoutDate.toISOString()})`;
+                const msg = `🧹 [Cleanup] Processed ${stuckReceivedOrders.length} seller auto-accepts and ${stuckAcceptedOrders.length} delivery timeouts.`;
                 debugLog(msg);
                 console.log(msg);
             }
@@ -96,12 +101,12 @@ export class OrderCleanupService {
      */
     private static async autoAcceptOrder(order: any) {
         try {
+            const timeoutMin = this.SELLER_ACCEPTANCE_TIMEOUT;
             order.status = 'Accepted';
-            order.adminNotes = (order.adminNotes ? order.adminNotes + '\n' : '') + `[${new Date().toISOString()}] Auto-accepted: Seller did not accept within 60 seconds.`;
+            order.adminNotes = (order.adminNotes ? order.adminNotes + '\n' : '') + `[${new Date().toISOString()}] Auto-accepted: Seller did not accept within ${timeoutMin} minutes.`;
             await order.save();
 
-            const orderId = order._id.toString();
-            console.log(`✅ [Cleanup] Order ${order.orderNumber} auto-accepted because seller did not accept within 60 seconds.`);
+            console.log(`✅ [Cleanup] Order ${order.orderNumber} auto-accepted (seller timeout: ${timeoutMin} min).`);
 
             // Notify Sellers (to stop ringing and update status on seller UI)
             if (this.io) {

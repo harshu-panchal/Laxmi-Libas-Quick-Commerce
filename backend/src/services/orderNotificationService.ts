@@ -113,6 +113,35 @@ export async function findAvailableDeliveryBoys(): Promise<mongoose.Types.Object
  * Uses the delivery boy's location from the Delivery model (preferred)
  * or falls back to DeliveryTracking
  */
+/** Manual distance filter when MongoDB has no 2dsphere index on deliveries.location */
+async function findDeliveryBoysNearLocationManual(
+    latitude: number,
+    longitude: number,
+    radiusKm: number
+): Promise<{ deliveryBoyId: mongoose.Types.ObjectId; distance: number }[]> {
+    const candidates = await Delivery.find({
+        isOnline: true,
+        status: 'Approved',
+        'location.coordinates.0': { $exists: true },
+        'location.coordinates.1': { $exists: true },
+    }).select('_id location');
+
+    const nearby: { deliveryBoyId: mongoose.Types.ObjectId; distance: number }[] = [];
+    for (const db of candidates) {
+        if (!db.location?.coordinates) continue;
+        const [dbLng, dbLat] = db.location.coordinates;
+        const distance = calculateDistance(latitude, longitude, dbLat, dbLng);
+        if (distance <= radiusKm) {
+            nearby.push({ deliveryBoyId: db._id as mongoose.Types.ObjectId, distance });
+        }
+    }
+    nearby.sort((a, b) => a.distance - b.distance);
+    if (nearby.length > 0) {
+        debugLog(`📍 Found ${nearby.length} delivery boys via manual distance (no geo index)`);
+    }
+    return nearby;
+}
+
 export async function findDeliveryBoysNearLocation(
     latitude: number,
     longitude: number,
@@ -122,19 +151,27 @@ export async function findDeliveryBoysNearLocation(
         // 1. Try to find delivery boys using the new GeoJSON location field in Delivery model
         const nearbyDeliveryBoys: { deliveryBoyId: mongoose.Types.ObjectId; distance: number }[] = [];
 
-        const deliveryBoysWithLocation = await Delivery.find({
-            isOnline: true,
-            status: 'Approved',
-            location: {
-                $near: {
-                    $geometry: {
-                        type: "Point",
-                        coordinates: [longitude, latitude]
-                    },
-                    $maxDistance: radiusKm * 1000 // Convert km to meters
+        let deliveryBoysWithLocation: any[] = [];
+        try {
+            deliveryBoysWithLocation = await Delivery.find({
+                isOnline: true,
+                status: 'Approved',
+                location: {
+                    $near: {
+                        $geometry: {
+                            type: "Point",
+                            coordinates: [longitude, latitude]
+                        },
+                        $maxDistance: radiusKm * 1000 // Convert km to meters
+                    }
                 }
+            }).select('_id location');
+        } catch (geoErr: any) {
+            if (geoErr?.code === 291 || geoErr?.codeName === 'NoQueryExecutionPlans') {
+                return findDeliveryBoysNearLocationManual(latitude, longitude, radiusKm);
             }
-        }).select('_id location');
+            throw geoErr;
+        }
 
         if (deliveryBoysWithLocation.length > 0) {
             for (const db of deliveryBoysWithLocation) {
@@ -338,9 +375,15 @@ export async function notifyDeliveryBoysOfNewOrder(
     order: any
 ): Promise<void> {
     try {
-        // Skip notification if delivery flow is not 'auto' (e.g. Courier/Ecommerce)
-        if (order.deliveryFlow && order.deliveryFlow !== 'auto') {
-            debugLog(`ℹ️ [Notification] Skipping delivery boy notification for order ${order.orderNumber}. Delivery Flow: ${order.deliveryFlow}`);
+        // Skip courier / ecommerce orders (not local delivery partners)
+        if (
+            order.orderType === 'ecommerce' ||
+            order.deliveryType === 'courier' ||
+            (order.deliveryFlow && order.deliveryFlow !== 'auto')
+        ) {
+            debugLog(
+                `ℹ️ [Notification] Skipping delivery notification for ${order.orderNumber} (type=${order.orderType}, flow=${order.deliveryFlow || 'n/a'})`
+            );
             return;
         }
 
@@ -507,13 +550,20 @@ export async function handleOrderAcceptance(
             return { success: false, message: 'Order not found' };
         }
 
-        // Prevent acceptance of non-auto delivery orders (like courier/ecommerce)
-        if (order.deliveryFlow && order.deliveryFlow !== 'auto') {
+        // Prevent acceptance of courier / ecommerce orders
+        if (
+            order.orderType === 'ecommerce' ||
+            order.deliveryType === 'courier' ||
+            (order.deliveryFlow && order.deliveryFlow !== 'auto')
+        ) {
             return { success: false, message: 'This order is not for local delivery' };
         }
 
-        // Check if order already has a delivery boy assigned
+        // Already assigned — allow same partner to accept again (e.g. after auto-assign)
         if (order.deliveryBoy) {
+            if (order.deliveryBoy.toString() === normalizedDeliveryBoyId) {
+                return { success: true, message: 'Order already assigned to you' };
+            }
             return { success: false, message: 'Order already assigned to another delivery boy' };
         }
 
