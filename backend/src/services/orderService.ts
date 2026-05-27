@@ -10,6 +10,8 @@ import { InventoryService } from "./inventoryService";
 import { notifySellersOfOrderUpdate } from "./sellerNotificationService";
 import { sendNotification, sendBroadcastNotification } from "./notificationService";
 import { Server as SocketIOServer } from "socket.io";
+import AppSettings from "../models/AppSettings";
+import { calculateCustomerDeliveryFee } from "./deliveryFeeService";
 
 export const finalizeOrderCreation = async (
   userId: string,
@@ -85,6 +87,31 @@ export const finalizeOrderCreation = async (
       { type: 'ecommerce', items: ecommerceItems, flow: 'courier' }
     ].filter(config => config.items.length > 0);
 
+    // Server-side delivery fee (ignore inflated client values e.g. old 500 cap)
+    let orderSubtotalForFees = 0;
+    const feeLineItems: { product: { seller: unknown } }[] = [];
+    for (const item of items) {
+      const product = productsMap.get((item.product.id || item.product._id).toString());
+      if (!product) continue;
+      feeLineItems.push({ product: { seller: product.seller } });
+      let itemPrice = (product.discPrice && product.discPrice > 0) ? product.discPrice : product.price;
+      orderSubtotalForFees += itemPrice * (Number(item.quantity) || 1);
+    }
+
+    const serverFees = await calculateCustomerDeliveryFee(
+      orderSubtotalForFees,
+      feeLineItems,
+      deliveryLat || null,
+      deliveryLng || null
+    );
+    const appSettings = await AppSettings.getSettings();
+    const serverQuickDeliveryFee = serverFees.estimatedDeliveryFee;
+    const serverPlatformFee = serverFees.platformFee ?? fees?.platformFee ?? 0;
+    const serverEcomShippingFee =
+      serverFees.freeDeliveryThreshold > 0 && orderSubtotalForFees >= serverFees.freeDeliveryThreshold
+        ? 0
+        : appSettings.deliveryCharges || 0;
+
     for (const config of splitConfigs) {
       // Smart Delivery Estimation
       let estimatedDeliveryDateValue: Date = new Date();
@@ -134,8 +161,8 @@ export const finalizeOrderCreation = async (
         status: 'Received',
         subtotal: 0,
         tax: 0,
-        shipping: config.type === 'quick' ? (fees?.deliveryFee || 0) : (fees?.ecomShippingFee || 40),
-        platformFee: config.type === 'quick' ? (fees?.platformFee || 0) : 0,
+        shipping: config.type === 'quick' ? serverQuickDeliveryFee : serverEcomShippingFee,
+        platformFee: config.type === 'quick' ? serverPlatformFee : 0,
         discount: 0,
         total: 0,
         items: [],

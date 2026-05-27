@@ -407,8 +407,10 @@ export default function Checkout() {
   // Ecom shipping usually has its own fee if far away, adding placeholder for now
   const ecomShippingCharge =
     ecommerceShippingItems.length > 0
-      ? (discountedTotal >= freeDeliveryThreshold ? 0 : 40)
-      : 0; 
+      ? discountedTotal >= freeDeliveryThreshold
+        ? 0
+        : appConfig.deliveryFee
+      : 0;
 
   const subtotalBeforeCoupon =
     discountedTotal + handlingCharge + deliveryCharge + ecomShippingCharge;

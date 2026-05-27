@@ -4,10 +4,8 @@ import Cart from '../../../models/Cart';
 import CartItem from '../../../models/CartItem';
 import Product from '../../../models/Product';
 // import { findSellersWithinRange } from '../../../utils/locationHelper';
-import mongoose from 'mongoose';
 import AppSettings from '../../../models/AppSettings';
-import { getRoadDistances } from '../../../services/mapService';
-import Seller from '../../../models/Seller';
+import { calculateCustomerDeliveryFee } from '../../../services/deliveryFeeService';
 
 // Helper to calculate item price matching frontend logic
 const calculateItemPrice = (product: any, variation?: string) => {
@@ -68,103 +66,19 @@ const calculateCartTotal = async (cartId: any) => {
     return total;
 };
 
-// Helper to calculate delivery fee
+// Helper to calculate delivery fee (admin settings — single charge per order)
 const calculateDeliveryStuff = async (total: number, items: any[], userLat: number | null, userLng: number | null) => {
-    let estimatedDeliveryFee = 0;
-    let platformFee = 0;
-    let freeDeliveryThreshold = 0;
-
     try {
-        const settings = await AppSettings.getSettings();
-        platformFee = settings.platformFee || 0;
-        freeDeliveryThreshold = settings.freeDeliveryThreshold || 0;
-
-        // Check free delivery threshold
-        if (freeDeliveryThreshold > 0 && total >= freeDeliveryThreshold) {
-            estimatedDeliveryFee = 0;
-            return { estimatedDeliveryFee, platformFee, freeDeliveryThreshold };
-        }
-
-        // Identify unique sellers
-        const sellerMap = new Map<string, any>();
-        items.forEach((item: any) => {
-            const seller = item.product?.seller;
-            if (seller) {
-                const id = typeof seller === 'object' ? (seller._id || seller.id) : seller;
-                if (id) {
-                    sellerMap.set(id.toString(), seller);
-                }
-            }
-        });
-
-        const uniqueSellerIds = Array.from(sellerMap.keys());
-
-        if (uniqueSellerIds.length === 0) {
-            return { estimatedDeliveryFee, platformFee, freeDeliveryThreshold };
-        }
-
-        const isDistanceBased = settings.deliveryConfig?.isDistanceBased === true;
-
-        if (isDistanceBased && userLat !== null && userLng !== null) {
-            const config = settings.deliveryConfig;
-            if (!config) {
-                estimatedDeliveryFee = settings.deliveryCharges || 0;
-            } else {
-            const sellers = await Seller.find({
-                _id: { $in: uniqueSellerIds.map(id => new mongoose.Types.ObjectId(id)) }
-            }).select('location latitude longitude storeName');
-
-            let totalFee = 0;
-
-            for (const seller of sellers) {
-                let lat, lng;
-                const loc = seller.location;
-                if (loc && loc.coordinates && loc.coordinates.length === 2) {
-                    lng = loc.coordinates[0];
-                    lat = loc.coordinates[1];
-                } else if (seller.latitude && seller.longitude) {
-                    lat = parseFloat(seller.latitude);
-                    lng = parseFloat(seller.longitude);
-                }
-
-                let sellerFee = config.baseCharge || 0;
-
-                if (lat && lng) {
-                    const distances = await getRoadDistances(
-                        [{ lat, lng }],
-                        { lat: userLat, lng: userLng },
-                        config.googleMapsKey
-                    );
-
-                    if (distances && distances.length > 0) {
-                        const distance = distances[0];
-                        const billableDistance = Math.min(50, distance);
-                        const extraKm = Math.max(0, billableDistance - config.baseDistance);
-                        sellerFee = Math.ceil(config.baseCharge + (extraKm * config.kmRate));
-                        console.log(`[Delivery] Seller: ${seller.storeName}, Distance: ${distance.toFixed(2)}km, Fee: ${sellerFee}`);
-                    }
-                }
-                totalFee += sellerFee;
-            }
-
-            const MAX_DELIVERY_FEE = 500; // reasonable overall cap
-            estimatedDeliveryFee = Math.min(MAX_DELIVERY_FEE, totalFee);
-            console.log(`[Delivery] Cumulative Distance Fee for ${sellers.length} sellers: ${totalFee}, Capped: ${estimatedDeliveryFee}`);
-            } // close else (config exists)
-        } else {
-            // Fixed delivery charge per unique seller in the cart
-            const fixedChargePerSeller = settings.deliveryCharges || 0;
-            estimatedDeliveryFee = fixedChargePerSeller * uniqueSellerIds.length;
-            console.log(`[Delivery] Cumulative Fixed Fee for ${uniqueSellerIds.length} sellers: ${estimatedDeliveryFee}`);
-        }
+        return await calculateCustomerDeliveryFee(total, items, userLat, userLng);
     } catch (err) {
-        console.error("Error calculating delivery stuff:", err);
+        console.error('Error calculating delivery stuff:', err);
+        const settings = await AppSettings.getSettings();
+        return {
+            estimatedDeliveryFee: settings.deliveryCharges || 0,
+            platformFee: settings.platformFee || 0,
+            freeDeliveryThreshold: settings.freeDeliveryThreshold || 0,
+        };
     }
-    return {
-        estimatedDeliveryFee,
-        platformFee,
-        freeDeliveryThreshold
-    };
 };
 
 // Get current user's cart
