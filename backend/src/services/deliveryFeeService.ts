@@ -60,59 +60,8 @@ export async function calculateCustomerDeliveryFee(
     return { estimatedDeliveryFee: 0, platformFee, freeDeliveryThreshold };
   }
 
-  if (settings.deliveryConfig?.isDistanceBased !== true) {
-    return { estimatedDeliveryFee: flatFee, platformFee, freeDeliveryThreshold };
-  }
-
-  const config = settings.deliveryConfig;
-  const baseCharge = config.baseCharge ?? flatFee;
-  const baseDistance = config.baseDistance ?? 0;
-  const kmRate = config.kmRate ?? 0;
-
-  const sellerIds = collectUniqueSellerIds(items);
-  if (sellerIds.length === 0) {
-    return { estimatedDeliveryFee: baseCharge, platformFee, freeDeliveryThreshold };
-  }
-
-  if (userLat == null || userLng == null) {
-    return { estimatedDeliveryFee: baseCharge, platformFee, freeDeliveryThreshold };
-  }
-
-  const sellers = await Seller.find({
-    _id: { $in: sellerIds.map((id) => new mongoose.Types.ObjectId(id)) },
-  }).select('location latitude longitude storeName');
-
-  let bestFee: number | null = null;
-
-  for (const seller of sellers) {
-    const coords = getSellerCoords(seller);
-    if (!coords) continue;
-
-    let fee = baseCharge;
-
-    try {
-      const distances = await getRoadDistances(
-        [{ lat: coords.lat, lng: coords.lng }],
-        { lat: userLat, lng: userLng },
-        config.googleMapsKey
-      );
-
-      if (distances?.length) {
-        const billableDistance = Math.min(50, distances[0]);
-        const extraKm = Math.max(0, billableDistance - baseDistance);
-        fee = Math.ceil(baseCharge + extraKm * kmRate);
-      }
-    } catch {
-      /* use baseCharge for this seller */
-    }
-
-    if (bestFee === null || fee < bestFee) {
-      bestFee = fee;
-    }
-  }
-
   return {
-    estimatedDeliveryFee: bestFee ?? baseCharge,
+    estimatedDeliveryFee: flatFee,
     platformFee,
     freeDeliveryThreshold,
   };

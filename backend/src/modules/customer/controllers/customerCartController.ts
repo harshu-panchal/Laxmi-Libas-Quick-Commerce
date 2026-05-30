@@ -95,7 +95,7 @@ export const getCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp variations category seller status publish discPrice',
+                select: 'productName price mainImage stock pack mrp variations category seller status publish discPrice type deliveryType',
                 populate: {
                     path: 'seller',
                     select: 'city storeName location'
@@ -244,7 +244,7 @@ export const addToCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp variations category seller status publish discPrice'
+                select: 'productName price mainImage stock pack mrp variations category seller status publish discPrice type deliveryType'
             }
         });
 
@@ -312,7 +312,7 @@ export const updateCartItem = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp variations category seller status publish discPrice',
+                select: 'productName price mainImage stock pack mrp variations category seller status publish discPrice type deliveryType',
                 populate: {
                     path: 'seller',
                     select: 'city storeName location'
@@ -376,7 +376,7 @@ export const removeFromCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp variations category seller status publish discPrice',
+                select: 'productName price mainImage stock pack mrp variations category seller status publish discPrice type deliveryType',
                 populate: {
                     path: 'seller',
                     select: 'city storeName location'

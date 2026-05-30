@@ -28,7 +28,30 @@ Console error `Audio unlock failed: NotSupportedError` only exists on the **old*
 
 If you still see `SellerDashboard-XYorot2c.js` in the stack trace, production is **still not updated**.
 
-## Manual upload (cPanel / FTP)
+## Manual upload (cPanel / FTP / VPS nginx)
+
+**Important:** `git push` only updates GitHub. Your VPS does **not** auto-update until you run deploy on the server.
+
+Live check right now:
+- If `https://laxmart.store` still serves old `index-*.js` (Last-Modified not today), production is stale.
+
+### One-command deploy on Linux VPS (SSH)
+
+```bash
+cd ~/Laxmi-Libas-Quick-Commerce   # your clone path
+bash scripts/deploy-server.sh
+```
+
+Set paths if needed:
+
+```bash
+export REPO_DIR=/home/user/Laxmi-Libas-Quick-Commerce
+export WEB_ROOT=/var/www/laxmart.store/html
+export PM2_APP=laxmart-backend
+bash scripts/deploy-server.sh
+```
+
+### Manual steps (same result)
 
 ```bash
 cd frontend
@@ -36,3 +59,13 @@ npm run build
 ```
 
 Upload **all files** inside `frontend/dist/` to your web root (replace old files).
+
+Backend on server:
+
+```bash
+cd backend
+git pull origin main
+npm install
+npm run build
+pm2 restart laxmart-backend
+```

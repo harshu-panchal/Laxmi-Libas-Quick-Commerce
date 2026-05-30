@@ -108,7 +108,7 @@ export const finalizeOrderCreation = async (
     const serverQuickDeliveryFee = serverFees.estimatedDeliveryFee;
     const serverPlatformFee = serverFees.platformFee ?? fees?.platformFee ?? 0;
     const serverEcomShippingFee =
-      serverFees.freeDeliveryThreshold > 0 && orderSubtotalForFees >= serverFees.freeDeliveryThreshold
+      (serverFees.freeDeliveryThreshold > 0 && orderSubtotalForFees >= serverFees.freeDeliveryThreshold) || quickItems.length > 0
         ? 0
         : appSettings.deliveryCharges || 0;
 

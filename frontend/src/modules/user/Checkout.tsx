@@ -401,21 +401,14 @@ export default function Checkout() {
 
   // Use dynamic delivery fee if available (and valid), otherwise fallback to static config
   const deliveryCharge =
-    quickDeliveryItems.length > 0
-      ? (displayCart.estimatedDeliveryFee !== undefined
-        ? displayCart.estimatedDeliveryFee
-        : discountedTotal >= freeDeliveryThreshold
-          ? 0
-          : appConfig.deliveryFee)
-      : 0;
-
-  // Ecom shipping usually has its own fee if far away, adding placeholder for now
-  const ecomShippingCharge =
-    ecommerceShippingItems.length > 0
-      ? discountedTotal >= freeDeliveryThreshold
+    displayCart.estimatedDeliveryFee !== undefined
+      ? displayCart.estimatedDeliveryFee
+      : (discountedTotal >= freeDeliveryThreshold
         ? 0
-        : appConfig.deliveryFee
-      : 0;
+        : appConfig.deliveryFee);
+
+  // Set standard shipping charge to 0 to prevent stacked delivery charges
+  const ecomShippingCharge = 0;
 
   const subtotalBeforeCoupon =
     discountedTotal + handlingCharge + deliveryCharge + ecomShippingCharge;
