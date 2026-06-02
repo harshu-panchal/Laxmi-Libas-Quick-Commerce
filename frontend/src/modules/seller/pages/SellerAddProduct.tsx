@@ -738,6 +738,48 @@ export default function SellerAddProduct() {
 
 
 
+      // Always resolve location from seller profile for quick/hybrid products.
+      // This ensures product submit does not fail even if local form state misses lat/lng.
+      let resolvedLatitude = formData.latitude;
+      let resolvedLongitude = formData.longitude;
+      let resolvedShopAddress = formData.shopAddress;
+      let resolvedRadius = formData.radius;
+
+      if (
+        (formData.deliveryType === "quick" || formData.deliveryType === "both") &&
+        (!resolvedLatitude || !resolvedLongitude)
+      ) {
+        try {
+          const sellerProfile = await getSellerProfile();
+          const sellerData = sellerProfile?.data;
+          const locationCoords = sellerData?.location?.coordinates || [];
+          const profileLat =
+            sellerData?.latitude ??
+            (locationCoords[1] != null ? String(locationCoords[1]) : "");
+          const profileLng =
+            sellerData?.longitude ??
+            (locationCoords[0] != null ? String(locationCoords[0]) : "");
+
+          if (profileLat && profileLng) {
+            resolvedLatitude = String(profileLat);
+            resolvedLongitude = String(profileLng);
+            resolvedShopAddress =
+              sellerData?.address || sellerData?.searchLocation || sellerData?.city || resolvedShopAddress;
+            resolvedRadius = String(sellerData?.serviceRadiusKm || resolvedRadius || "40");
+
+            setFormData((prev) => ({
+              ...prev,
+              latitude: resolvedLatitude,
+              longitude: resolvedLongitude,
+              shopAddress: resolvedShopAddress,
+              radius: resolvedRadius,
+            }));
+          }
+        } catch (profileErr) {
+          console.warn("Could not sync seller location during submit:", profileErr);
+        }
+      }
+
       // Prepare product data for API
       const tagsArray = formData.tags
         ? formData.tags
@@ -832,10 +874,10 @@ export default function SellerAddProduct() {
         availablePincodes: formData.availablePincodes 
           ? formData.availablePincodes.split(",").map(p => p.trim()).filter(Boolean) 
           : [],
-        latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
-        longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
-        radius: formData.radius ? parseFloat(formData.radius) : undefined,
-        shopAddress: formData.shopAddress || undefined,
+        latitude: resolvedLatitude ? parseFloat(resolvedLatitude) : undefined,
+        longitude: resolvedLongitude ? parseFloat(resolvedLongitude) : undefined,
+        radius: resolvedRadius ? parseFloat(resolvedRadius) : undefined,
+        shopAddress: resolvedShopAddress || undefined,
       };
 
       // Create or Update product via API
@@ -945,11 +987,23 @@ export default function SellerAddProduct() {
         setUploadError(response.message || "Failed to create product");
       }
     } catch (error: any) {
-      setUploadError(
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to upload images. Please try again."
-      );
+      const rawMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to upload images. Please try again.";
+
+      const lowerMessage = String(rawMessage).toLowerCase();
+      if (
+        lowerMessage.includes("latitude") &&
+        lowerMessage.includes("longitude") &&
+        lowerMessage.includes("quick")
+      ) {
+        setUploadError(
+          "Store location is being synced from your seller profile. Please retry once."
+        );
+      } else {
+        setUploadError(rawMessage);
+      }
     } finally {
       setUploading(false);
     }
