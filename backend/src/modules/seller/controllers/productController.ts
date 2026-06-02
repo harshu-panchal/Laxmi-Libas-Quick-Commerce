@@ -23,13 +23,13 @@ function resolveSellerLatLng(seller: any): { latitude?: number; longitude?: numb
   return {};
 }
 
-/** Fill product location from seller store profile when not provided on the product. */
-function applySellerLocationToProduct(productData: any, seller: any) {
+/** Fill product location from seller store profile. */
+function applySellerLocationToProduct(productData: any, seller: any, force = false) {
   const { latitude, longitude } = resolveSellerLatLng(seller);
-  if (!productData.latitude && latitude != null) {
+  if ((force || !productData.latitude) && latitude != null) {
     productData.latitude = latitude;
   }
-  if (!productData.longitude && longitude != null) {
+  if ((force || !productData.longitude) && longitude != null) {
     productData.longitude = longitude;
   }
   const sellerCity =
@@ -37,17 +37,17 @@ function applySellerLocationToProduct(productData: any, seller: any) {
     (seller.structuredLocation as any)?.city ||
     seller.searchLocation ||
     seller.locationName;
-  if (!productData.city && sellerCity) {
+  if ((force || !productData.city) && sellerCity) {
     productData.city = sellerCity;
   }
   const pincode = (seller.structuredLocation as any)?.pincode || seller.pincode;
-  if (!productData.pincode && pincode) {
+  if ((force || !productData.pincode) && pincode) {
     productData.pincode = pincode;
   }
-  if (!productData.radius && seller.serviceRadiusKm) {
+  if ((force || !productData.radius) && seller.serviceRadiusKm) {
     productData.radius = seller.serviceRadiusKm;
   }
-  if (!productData.shopAddress && (seller.address || seller.searchLocation)) {
+  if ((force || !productData.shopAddress) && (seller.address || seller.searchLocation)) {
     productData.shopAddress = seller.address || seller.searchLocation;
   }
 }
@@ -230,20 +230,11 @@ export const createProduct = asyncHandler(
     }
 
     // Auto-populate store location from seller profile (registered in seller panel)
-    applySellerLocationToProduct(newProductData, seller);
+    // Force seller profile location on create so product always uses seller's saved location.
+    applySellerLocationToProduct(newProductData, seller, true);
 
-    const productType = newProductData.type || "quick";
-    if (
-      (productType === "quick" || productType === "both") &&
-      ((newProductData.latitude == null || newProductData.longitude == null) &&
-        !newProductData.city)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Store location is not set on your seller profile. Please set city or map location in Account Settings, then add products.",
-      });
-    }
+    // Do not block product creation on location fields.
+    // Seller location is best-effort synced from profile above.
 
     try {
       const product = await Product.create(newProductData);

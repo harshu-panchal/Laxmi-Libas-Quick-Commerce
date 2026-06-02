@@ -563,21 +563,14 @@ ProductSchema.pre("save", function (next) {
 
   // Validation Logic based on Type
   if (doc.type === "quick") {
-    const hasLatLng = doc.latitude != null && doc.longitude != null;
-    const hasCity = typeof doc.city === "string" && doc.city.trim().length > 0;
-    if (!hasLatLng && !hasCity) {
-      return next(new Error("Location is required for Quick Commerce products (city or latitude/longitude)"));
-    }
+    // Location is optional for quick products at creation time.
+    // If coordinates are present they are stored; otherwise product can still be created.
   } else if (doc.type === "ecommerce") {
     if (!doc.availablePincodes || doc.availablePincodes.length === 0) {
       return next(new Error("At least one available pincode is required for Ecommerce products"));
     }
   } else if (doc.type === "both") {
-    const hasLatLng = doc.latitude != null && doc.longitude != null;
-    const hasCity = typeof doc.city === "string" && doc.city.trim().length > 0;
-    if (!hasLatLng && !hasCity) {
-      return next(new Error("Location is required for Hybrid products (both): city or latitude/longitude"));
-    }
+    // For hybrid products, only pincode list is strictly required.
     if (!doc.availablePincodes || doc.availablePincodes.length === 0) {
       return next(new Error("Pincodes are required for Hybrid products (both)"));
     }
