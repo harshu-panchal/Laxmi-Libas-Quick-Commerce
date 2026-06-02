@@ -563,16 +563,20 @@ ProductSchema.pre("save", function (next) {
 
   // Validation Logic based on Type
   if (doc.type === "quick") {
-    if (!doc.latitude || !doc.longitude) {
-      return next(new Error("Location (latitude and longitude) is required for Quick Commerce products"));
+    const hasLatLng = doc.latitude != null && doc.longitude != null;
+    const hasCity = typeof doc.city === "string" && doc.city.trim().length > 0;
+    if (!hasLatLng && !hasCity) {
+      return next(new Error("Location is required for Quick Commerce products (city or latitude/longitude)"));
     }
   } else if (doc.type === "ecommerce") {
     if (!doc.availablePincodes || doc.availablePincodes.length === 0) {
       return next(new Error("At least one available pincode is required for Ecommerce products"));
     }
   } else if (doc.type === "both") {
-    if (!doc.latitude || !doc.longitude) {
-      return next(new Error("Location is required for Hybrid products (both)"));
+    const hasLatLng = doc.latitude != null && doc.longitude != null;
+    const hasCity = typeof doc.city === "string" && doc.city.trim().length > 0;
+    if (!hasLatLng && !hasCity) {
+      return next(new Error("Location is required for Hybrid products (both): city or latitude/longitude"));
     }
     if (!doc.availablePincodes || doc.availablePincodes.length === 0) {
       return next(new Error("Pincodes are required for Hybrid products (both)"));

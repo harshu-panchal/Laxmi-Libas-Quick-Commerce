@@ -32,8 +32,13 @@ function applySellerLocationToProduct(productData: any, seller: any) {
   if (!productData.longitude && longitude != null) {
     productData.longitude = longitude;
   }
-  if (!productData.city && seller.city) {
-    productData.city = seller.city;
+  const sellerCity =
+    seller.city ||
+    (seller.structuredLocation as any)?.city ||
+    seller.searchLocation ||
+    seller.locationName;
+  if (!productData.city && sellerCity) {
+    productData.city = sellerCity;
   }
   const pincode = (seller.structuredLocation as any)?.pincode || seller.pincode;
   if (!productData.pincode && pincode) {
@@ -230,12 +235,13 @@ export const createProduct = asyncHandler(
     const productType = newProductData.type || "quick";
     if (
       (productType === "quick" || productType === "both") &&
-      (!newProductData.latitude || !newProductData.longitude)
+      ((newProductData.latitude == null || newProductData.longitude == null) &&
+        !newProductData.city)
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Store location is not set on your seller profile. Please update your location in Account Settings, then add products.",
+          "Store location is not set on your seller profile. Please set city or map location in Account Settings, then add products.",
       });
     }
 
