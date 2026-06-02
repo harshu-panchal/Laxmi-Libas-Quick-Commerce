@@ -97,12 +97,8 @@ const SellerAccountSettings = () => {
             setSaveLoading(true);
             setError('');
 
-            // Validate location if address is being updated
-            if (sellerData.searchLocation && (!sellerData.latitude || !sellerData.longitude)) {
-                setError('Please select a valid location using the map picker');
-                setSaveLoading(false);
-                return;
-            }
+            // Manual address entry should be allowed even without map coordinates.
+            // Coordinates are optional and only used when seller pins location on map.
 
             // Validate service radius
             const radius = parseFloat(sellerData.serviceRadiusKm);
@@ -118,6 +114,8 @@ const SellerAccountSettings = () => {
                 address: finalAddress,
                 searchLocation: finalAddress,
                 serviceRadiusKm: radius,
+                latitude: sellerData.latitude || undefined,
+                longitude: sellerData.longitude || undefined,
             };
 
             const response = await updateSellerProfile(updateData);

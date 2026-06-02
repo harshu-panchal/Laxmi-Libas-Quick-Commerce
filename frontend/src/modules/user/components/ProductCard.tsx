@@ -67,6 +67,7 @@ export default function ProductCard({
   const imageRef = useRef<HTMLImageElement>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [videoLoadFailed, setVideoLoadFailed] = useState(false);
   // Single ref to track any cart operation in progress for this product
   const isOperationPendingRef = useRef(false);
   const [isVariantSheetOpen, setIsVariantSheetOpen] = useState(false);
@@ -252,6 +253,8 @@ export default function ProductCard({
   // Distance and schema-based delivery logic
   const pDeliveryType = (product as any).deliveryType || product.type;
   const isEcomm = pDeliveryType === 'e-comm' || pDeliveryType === 'ecommerce';
+  const productVideoUrl = ((product as any).productVideoUrl || '').trim();
+  const showCardVideo = Boolean(productVideoUrl) && !videoLoadFailed;
 
   return (
     <motion.div
@@ -267,7 +270,18 @@ export default function ProductCard({
         className="cursor-pointer flex-1 flex flex-col"
       >
         <div className={`w-full ${categoryStyle ? 'h-24 md:h-32' : 'h-32 md:h-40'} bg-neutral-50 flex items-center justify-center overflow-hidden relative`}>
-          {getProductImage(product) ? (
+          {showCardVideo ? (
+            <video
+              src={productVideoUrl}
+              className="w-full h-full object-cover"
+              autoPlay
+              loop
+              muted
+              playsInline
+              controls={false}
+              onError={() => setVideoLoadFailed(true)}
+            />
+          ) : getProductImage(product) ? (
             <LazyImage
               src={getProductImage(product)}
               alt={product.name || product.productName || 'Product'}

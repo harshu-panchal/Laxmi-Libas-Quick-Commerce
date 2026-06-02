@@ -32,6 +32,7 @@ export interface Product {
   }>;
   imageUrl?: string;
   mainImage?: string;
+  productVideoUrl?: string;
   categoryId: string;
   category?: Category;
   tags?: string[];

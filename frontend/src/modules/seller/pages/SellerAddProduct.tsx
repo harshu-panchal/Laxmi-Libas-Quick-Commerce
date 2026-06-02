@@ -627,6 +627,14 @@ export default function SellerAddProduct() {
     e.target.value = "";
   };
 
+  const handleVideoUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value.trim();
+    setVideoFile(null);
+    setVideoUploadProgress(0);
+    setFormData((prev) => ({ ...prev, productVideoUrl: url }));
+    setVideoPreview(url);
+  };
+
   const removeVideo = () => {
     if (videoPreview && videoPreview.startsWith("blob:")) {
       URL.revokeObjectURL(videoPreview);
@@ -1551,7 +1559,31 @@ export default function SellerAddProduct() {
             </div>
           )}
 
-          {/* Delivery Configuration Section - Removed as per user request to use silent profile syncing */}
+          {/* Delivery Type Selection */}
+          <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+            <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+              <h2 className="text-lg font-semibold">Delivery Type</h2>
+            </div>
+            <div className="p-4 sm:p-6">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Select Product Delivery Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="deliveryType"
+                value={formData.deliveryType}
+                onChange={handleChange}
+                className="w-full md:w-80 px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+              >
+                <option value="quick">Quick Delivery</option>
+                <option value="ecommerce">E-commerce</option>
+                <option value="both">Quick + E-commerce</option>
+              </select>
+              <p className="text-xs text-neutral-500 mt-2">
+                Quick products use your seller location. E-commerce products use serviceable pincodes.
+              </p>
+            </div>
+          </div>
+
           {/* Add Images Section */}
           <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
             <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
@@ -1739,6 +1771,24 @@ export default function SellerAddProduct() {
                 <h2 className="text-lg font-semibold">Product Video (Optional)</h2>
               </div>
               <div className="p-4 sm:p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Video URL (Optional)
+                  </label>
+                  <input
+                    type="url"
+                    name="productVideoUrl"
+                    value={formData.productVideoUrl}
+                    onChange={handleVideoUrlChange}
+                    placeholder="Paste direct video URL (mp4/webm/mov)"
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    disabled={uploading}
+                  />
+                  <p className="text-xs text-neutral-500 mt-1">
+                    You can upload a file below or paste a video URL here.
+                  </p>
+                </div>
+
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-sm text-blue-800">
                     <strong>Tip:</strong> Upload a short product demo video (MP4, MOV, AVI, WEBM, MKV) up to <strong>100MB</strong>. Videos help customers make better purchase decisions.
