@@ -14,6 +14,10 @@ import { getPendingOrderNotifications } from '../services/api/orderService';
 import { subscribeSellerNotifications, getSellerSocket } from '../services/sellerSocketManager';
 import type { SellerNotification } from '../modules/seller/hooks/useSellerSocket';
 import SellerNotificationAlert from '../modules/seller/components/SellerNotificationAlert';
+import {
+  isOrderAlertSoundUnlocked,
+  playOrderAlertSound,
+} from '../utils/orderAlertSound';
 
 const POLL_MS = 6000;
 const DISMISSED_KEY = 'seller_dismissed_orders';
@@ -105,6 +109,12 @@ export function SellerNotificationProvider({ children }: { children: ReactNode }
 
     console.log('🔔 Seller order alert:', notification.orderNumber);
     dispatchSellerNewOrderEvent(notification);
+
+    if (notification.type === 'NEW_ORDER' || notification.status === 'Received') {
+      if (isOrderAlertSoundUnlocked('seller')) {
+        playOrderAlertSound({ variant: 'seller', volume: 0.85, loop: false });
+      }
+    }
 
     setNotifState((prev) => {
       const sameId = (n: SellerNotification) => n.orderId === notification.orderId;

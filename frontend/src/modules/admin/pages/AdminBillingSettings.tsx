@@ -24,6 +24,7 @@ export default function AdminBillingSettings() {
     const [deliveryBoyKmRate, setDeliveryBoyKmRate] = useState<number>(0);
     const [googleMapsKey, setGoogleMapsKey] = useState<string>('');
     const [assignmentMode, setAssignmentMode] = useState<'Automatic' | 'Manual'>('Automatic');
+    const [maxConcurrentOrdersPerBoy, setMaxConcurrentOrdersPerBoy] = useState<number>(3);
 
     useEffect(() => {
         fetchSettings();
@@ -52,6 +53,7 @@ export default function AdminBillingSettings() {
                     setDeliveryBoyKmRate(data.deliveryConfig.deliveryBoyKmRate || 0);
                     setGoogleMapsKey(data.deliveryConfig.googleMapsKey || import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '');
                     setAssignmentMode(data.deliveryConfig.assignmentMode || 'Automatic');
+                    setMaxConcurrentOrdersPerBoy(data.deliveryConfig.maxConcurrentOrdersPerBoy ?? 3);
                 } else {
                     // If no config exists, try to pre-fill from env
                     setGoogleMapsKey(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '');
@@ -82,7 +84,8 @@ export default function AdminBillingSettings() {
                     kmRate,
                     deliveryBoyKmRate,
                     googleMapsKey,
-                    assignmentMode
+                    assignmentMode,
+                    maxConcurrentOrdersPerBoy,
                 }
             };
 
@@ -259,6 +262,23 @@ export default function AdminBillingSettings() {
                                 </div>
                             </label>
                         </div>
+                    </div>
+
+                    <div className="max-w-md">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Max active orders per delivery partner
+                        </label>
+                        <input
+                            type="number"
+                            min={1}
+                            max={10}
+                            value={maxConcurrentOrdersPerBoy}
+                            onChange={(e) => setMaxConcurrentOrdersPerBoy(Number(e.target.value))}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-yellow-500 focus:border-yellow-500"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                            How many orders a partner can accept at once (recommended: 2–3).
+                        </p>
                     </div>
 
                     {!isDistanceBased ? (

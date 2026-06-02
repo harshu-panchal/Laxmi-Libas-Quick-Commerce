@@ -24,7 +24,9 @@ export default function OrderSoundEnableBanner({ variant, className = '' }: Orde
       toast.success(
         variant === 'seller'
           ? 'Order sound alerts activated!'
-          : 'Delivery order alerts activated!'
+          : variant === 'delivery'
+            ? 'Delivery order alerts activated!'
+            : 'Order update sounds activated!'
       );
     } else {
       toast.error('Could not enable sound. Check volume and browser permissions.');
@@ -34,12 +36,16 @@ export default function OrderSoundEnableBanner({ variant, className = '' }: Orde
   const title =
     variant === 'seller'
       ? 'Enable Real-Time Order Sound Alerts'
-      : 'Enable New Order Sound Alerts';
+      : variant === 'delivery'
+        ? 'Enable New Order Sound Alerts'
+        : 'Enable Order Update Sounds';
 
   const description =
     variant === 'seller'
       ? 'Tap anywhere on this card once — you should hear a test ring. New orders will ring automatically after that.'
-      : 'Tap anywhere on this card once — you should hear a test ring when new delivery orders arrive.';
+      : variant === 'delivery'
+        ? 'Tap anywhere on this card once — you should hear a test ring when new delivery orders arrive.'
+        : 'Tap once to hear a test chime. You will get sounds when your order status changes.';
 
   return (
     <button

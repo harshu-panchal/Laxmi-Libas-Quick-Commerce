@@ -6,12 +6,14 @@ import { useAuth } from '../../../context/AuthContext';
 import OrderSoundTopBar from '../../../components/OrderSoundTopBar';
 import OrderSoundEnableBanner from '../../../components/OrderSoundEnableBanner';
 import { SellerNotificationProvider } from '../../../context/SellerNotificationContext';
+import { useOrderSoundGestureUnlock } from '../../../hooks/useOrderSoundGestureUnlock';
 
 interface SellerLayoutProps {
   children: ReactNode;
 }
 
 function SellerLayoutContent({ children }: SellerLayoutProps) {
+  useOrderSoundGestureUnlock('seller');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user } = useAuth();
   const location = useLocation();

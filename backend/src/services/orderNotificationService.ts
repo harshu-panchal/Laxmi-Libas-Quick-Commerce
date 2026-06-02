@@ -68,6 +68,85 @@ export interface OrderNotificationState {
 
 export const notificationStates = new Map<string, OrderNotificationState>();
 
+/** Default cap when admin setting is missing */
+export const DEFAULT_MAX_CONCURRENT_ORDERS_PER_BOY = 3;
+
+/** Counts toward concurrent limit while partner is on a trip */
+export const ACTIVE_DELIVERY_BOY_STATUSES = [
+    'Assigned',
+    'Picked Up',
+    'In Transit',
+] as const;
+
+const TERMINAL_ORDER_STATUSES = ['Delivered', 'Cancelled', 'Rejected', 'Returned'];
+
+/**
+ * Max active orders per delivery partner (from admin settings).
+ */
+export async function getMaxConcurrentOrdersPerBoy(): Promise<number> {
+    try {
+        // @ts-ignore - getSettings is a static method
+        const settings = await AppSettings.getSettings();
+        const max = settings?.deliveryConfig?.maxConcurrentOrdersPerBoy;
+        if (typeof max === 'number' && max >= 1 && max <= 10) {
+            return max;
+        }
+    } catch (error) {
+        console.error('Error reading maxConcurrentOrdersPerBoy:', error);
+    }
+    return DEFAULT_MAX_CONCURRENT_ORDERS_PER_BOY;
+}
+
+/**
+ * How many non-completed orders this delivery partner currently has.
+ */
+export async function getActiveOrderCountForDeliveryBoy(
+    deliveryBoyId: string | mongoose.Types.ObjectId
+): Promise<number> {
+    const boyId =
+        typeof deliveryBoyId === 'string'
+            ? new mongoose.Types.ObjectId(deliveryBoyId)
+            : deliveryBoyId;
+
+    return Order.countDocuments({
+        deliveryBoy: boyId,
+        status: { $nin: TERMINAL_ORDER_STATUSES },
+        deliveryBoyStatus: { $in: [...ACTIVE_DELIVERY_BOY_STATUSES] },
+    });
+}
+
+/**
+ * Delivery partners at or above the concurrent order cap.
+ */
+async function getDeliveryBoyIdsAtCapacity(
+    deliveryBoyIds: mongoose.Types.ObjectId[]
+): Promise<Set<string>> {
+    if (deliveryBoyIds.length === 0) {
+        return new Set();
+    }
+
+    const maxConcurrent = await getMaxConcurrentOrdersPerBoy();
+
+    const activeCounts = await Order.aggregate([
+        {
+            $match: {
+                deliveryBoy: { $in: deliveryBoyIds },
+                status: { $nin: TERMINAL_ORDER_STATUSES },
+                deliveryBoyStatus: { $in: [...ACTIVE_DELIVERY_BOY_STATUSES] },
+            },
+        },
+        { $group: { _id: '$deliveryBoy', count: { $sum: 1 } } },
+    ]);
+
+    const atCapacity = new Set<string>();
+    for (const row of activeCounts) {
+        if (row.count >= maxConcurrent) {
+            atCapacity.add(row._id.toString());
+        }
+    }
+    return atCapacity;
+}
+
 /**
  * Calculate distance between two coordinates using Haversine formula
  * Returns distance in kilometers
@@ -398,31 +477,26 @@ export async function notifyDeliveryBoysOfNewOrder(
             return;
         }
 
-        // --- FILTER BUSY DELIVERY BOYS ---
-        // Check if any of these delivery boys already have an active order
-        // Active = deliveryBoyStatus is Assigned, Picked Up, or In Transit
-        const busyDeliveryBoys = await Order.find({
-            deliveryBoy: { $in: nearbyDeliveryBoyIds },
-            deliveryBoyStatus: { $in: ['Assigned', 'Picked Up', 'In Transit'] },
-            // Double check status to be sure we don't count completed/cancelled ones just in case statuses are out of sync
-            status: { $nin: ['Delivered', 'Cancelled', 'Rejected', 'Returned'] }
-        }).distinct('deliveryBoy');
+        // Skip partners who already hold max concurrent active orders (default 3)
+        const maxConcurrent = await getMaxConcurrentOrdersPerBoy();
+        const atCapacityIds = await getDeliveryBoyIdsAtCapacity(nearbyDeliveryBoyIds);
 
-        if (busyDeliveryBoys.length > 0) {
-            const busyIdsSet = new Set(busyDeliveryBoys.map(id => id.toString()));
-
+        if (atCapacityIds.size > 0) {
             const originalCount = nearbyDeliveryBoyIds.length;
-            nearbyDeliveryBoyIds = nearbyDeliveryBoyIds.filter(id => !busyIdsSet.has(id.toString()));
-
-            debugLog(`ℹ️ Filtered out ${originalCount - nearbyDeliveryBoyIds.length} busy delivery boys. Active: ${nearbyDeliveryBoyIds.length}`);
-
-            if (nearbyDeliveryBoyIds.length === 0) {
-                debugLog('⚠️ All nearby delivery boys are currently busy with other orders. Notifying them anyway to allow queuing.');
-                // Proceed with original list if filtered list is empty
-                nearbyDeliveryBoyIds = originalNearbyIds;
-            }
+            nearbyDeliveryBoyIds = nearbyDeliveryBoyIds.filter(
+                (id) => !atCapacityIds.has(id.toString())
+            );
+            debugLog(
+                `ℹ️ Filtered ${originalCount - nearbyDeliveryBoyIds.length} partners at max capacity (${maxConcurrent}). Eligible: ${nearbyDeliveryBoyIds.length}`
+            );
         }
-        // ---------------------------------
+
+        if (nearbyDeliveryBoyIds.length === 0) {
+            debugLog(
+                `⚠️ No delivery partners under max capacity (${maxConcurrent}) for order ${order.orderNumber}`
+            );
+            return;
+        }
 
         // Calculate estimated delivery boy earning for this order
         const deliveryBoyEarning = await calculateEstimatedDeliveryBoyEarning(order);
@@ -567,6 +641,15 @@ export async function handleOrderAcceptance(
             return { success: false, message: 'Order already assigned to another delivery boy' };
         }
 
+        const maxConcurrent = await getMaxConcurrentOrdersPerBoy();
+        const activeCount = await getActiveOrderCountForDeliveryBoy(normalizedDeliveryBoyId);
+        if (activeCount >= maxConcurrent) {
+            return {
+                success: false,
+                message: `You already have ${activeCount} active orders (maximum ${maxConcurrent}). Complete or deliver one before accepting more.`,
+            };
+        }
+
         // Assign order to delivery boy
         order.deliveryBoy = new mongoose.Types.ObjectId(normalizedDeliveryBoyId);
         order.deliveryBoyStatus = 'Assigned';
@@ -609,6 +692,18 @@ export async function handleOrderAcceptance(
             deliveryBoyId: normalizedDeliveryBoyId,
             message: 'Delivery boy accepted your order. Tracking started.',
         });
+
+        try {
+            const { notifyCustomerOrderUpdate } = await import('./customerOrderNotificationService');
+            await notifyCustomerOrderUpdate(
+                io,
+                order,
+                'Delivery partner assigned',
+                `A delivery partner accepted order #${order.orderNumber} and is on the way.`
+            );
+        } catch (custErr) {
+            console.error('Customer notification after delivery accept failed:', custErr);
+        }
 
         console.log(`✅ Order ${orderId} accepted by delivery boy ${normalizedDeliveryBoyId} ${state ? '(Memory)' : '(DB Fallback)'}`);
         return { success: true, message: 'Order accepted successfully' };

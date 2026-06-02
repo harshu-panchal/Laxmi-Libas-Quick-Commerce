@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { OrderNotificationData } from '../services/api/delivery/deliveryOrderNotificationService';
 import { acceptOrder, rejectOrder } from '../services/api/delivery/deliveryOrderNotificationService';
 import { getSocketBaseURL } from '../services/api/config';
+import { toast } from 'react-hot-toast';
 
 interface NotificationState {
     currentNotification: OrderNotificationData | null;
@@ -254,7 +255,7 @@ export const useDeliveryOrderNotifications = () => {
         }
     }, []);
 
-    const handleAccept = useCallback(async (orderId: string, navigate?: (path: string) => void) => {
+    const handleAccept = useCallback(async (orderId: string) => {
         if (!socketRef.current || !user?.id) {
             console.warn('⚠️ [Frontend] Cannot accept order: No socket or user ID', { hasSocket: !!socketRef.current, userId: user?.id });
             return { success: false, message: 'Not connected or user not found' };
@@ -267,8 +268,14 @@ export const useDeliveryOrderNotifications = () => {
             console.log('✅ [Frontend] accept-order response:', result);
 
             if (result.success) {
-                // Clear current notification and show next from queue
+                // Clear current notification and show next from queue (accept one-by-one)
                 setState(prev => {
+                    const hasMore = prev.notificationQueue.length > 0;
+                    toast.success(
+                        hasMore
+                            ? 'Order accepted! Next notification ready.'
+                            : 'Order accepted! View it in Pending Orders.'
+                    );
                     const nextNotification = prev.notificationQueue[0] || null;
                     return {
                         ...prev,
@@ -276,11 +283,6 @@ export const useDeliveryOrderNotifications = () => {
                         notificationQueue: prev.notificationQueue.slice(1),
                     };
                 });
-
-                // Navigate to order detail page
-                if (navigate) {
-                    navigate(`/delivery/orders/${orderId}`);
-                }
             } else if (result.message === 'Order notification not found') {
                 // If notification is not found on server (stale), clear it from UI too
                 console.warn('⚠️ clearing stale notification:', orderId);

@@ -3,6 +3,50 @@ import Product from "../../../models/Product";
 import Shop from "../../../models/Shop";
 import { asyncHandler } from "../../../utils/asyncHandler";
 
+/** Resolve store coordinates from seller profile (string fields or GeoJSON location). */
+function resolveSellerLatLng(seller: any): { latitude?: number; longitude?: number } {
+  if (seller.latitude && seller.longitude) {
+    const latitude = parseFloat(seller.latitude);
+    const longitude = parseFloat(seller.longitude);
+    if (!isNaN(latitude) && !isNaN(longitude)) {
+      return { latitude, longitude };
+    }
+  }
+  const coords = seller.location?.coordinates;
+  if (Array.isArray(coords) && coords.length >= 2) {
+    const longitude = Number(coords[0]);
+    const latitude = Number(coords[1]);
+    if (!isNaN(latitude) && !isNaN(longitude)) {
+      return { latitude, longitude };
+    }
+  }
+  return {};
+}
+
+/** Fill product location from seller store profile when not provided on the product. */
+function applySellerLocationToProduct(productData: any, seller: any) {
+  const { latitude, longitude } = resolveSellerLatLng(seller);
+  if (!productData.latitude && latitude != null) {
+    productData.latitude = latitude;
+  }
+  if (!productData.longitude && longitude != null) {
+    productData.longitude = longitude;
+  }
+  if (!productData.city && seller.city) {
+    productData.city = seller.city;
+  }
+  const pincode = (seller.structuredLocation as any)?.pincode || seller.pincode;
+  if (!productData.pincode && pincode) {
+    productData.pincode = pincode;
+  }
+  if (!productData.radius && seller.serviceRadiusKm) {
+    productData.radius = seller.serviceRadiusKm;
+  }
+  if (!productData.shopAddress && (seller.address || seller.searchLocation)) {
+    productData.shopAddress = seller.address || seller.searchLocation;
+  }
+}
+
 /**
  * Create a new product
  */
@@ -180,18 +224,19 @@ export const createProduct = asyncHandler(
       newProductData.shopId = null;
     }
 
-    // Auto-populate location from seller if missing
-    if (!newProductData.city || !newProductData.pincode) {
-      newProductData.city = seller.city;
-      newProductData.pincode = (seller.structuredLocation as any)?.pincode || seller.pincode;
-      
-      // Also sync lat/lng if available in seller but missing in product
-      if (!newProductData.latitude && seller.latitude) {
-        newProductData.latitude = parseFloat(seller.latitude);
-      }
-      if (!newProductData.longitude && seller.longitude) {
-        newProductData.longitude = parseFloat(seller.longitude);
-      }
+    // Auto-populate store location from seller profile (registered in seller panel)
+    applySellerLocationToProduct(newProductData, seller);
+
+    const productType = newProductData.type || "quick";
+    if (
+      (productType === "quick" || productType === "both") &&
+      (!newProductData.latitude || !newProductData.longitude)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Store location is not set on your seller profile. Please update your location in Account Settings, then add products.",
+      });
     }
 
     try {
@@ -538,6 +583,12 @@ export const updateProduct = asyncHandler(
 
     // Apply updates
     Object.assign(product, updateData);
+
+    // Ensure quick-commerce products use seller store location when not set on product
+    const productType = updateData.type || product.type;
+    if (productType === "quick" || productType === "both") {
+      applySellerLocationToProduct(product, seller);
+    }
 
     try {
       await product.save();

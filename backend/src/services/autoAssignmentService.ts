@@ -2,7 +2,11 @@ import Delivery from "../models/Delivery";
 import Order from "../models/Order";
 import DeliveryAssignment from "../models/DeliveryAssignment";
 import { Server as SocketIOServer } from "socket.io";
-import { calculateEstimatedDeliveryBoyEarning } from "./orderNotificationService";
+import {
+  calculateEstimatedDeliveryBoyEarning,
+  getActiveOrderCountForDeliveryBoy,
+  getMaxConcurrentOrdersPerBoy,
+} from "./orderNotificationService";
 import { notifySellersOfOrderUpdate } from "./sellerNotificationService";
 
 export const autoAssignDeliveryBoy = async (orderId: string, io?: SocketIOServer) => {
@@ -73,8 +77,24 @@ export const autoAssignDeliveryBoy = async (orderId: string, io?: SocketIOServer
       return { success: false, message: "No nearby delivery boys available" };
     }
 
-    // Assign the first one (nearest)
-    const deliveryBoy = nearbyDeliveryBoys[0];
+    const maxConcurrent = await getMaxConcurrentOrdersPerBoy();
+    let deliveryBoy: (typeof nearbyDeliveryBoys)[0] | null = null;
+
+    for (const candidate of nearbyDeliveryBoys) {
+      const activeCount = await getActiveOrderCountForDeliveryBoy(candidate._id);
+      if (activeCount < maxConcurrent) {
+        deliveryBoy = candidate;
+        break;
+      }
+    }
+
+    if (!deliveryBoy) {
+      console.log(
+        `[AutoAssign] All nearby partners at max capacity (${maxConcurrent}) for Order ${order.orderNumber}`
+      );
+      return { success: false, message: "No delivery partners available under order limit" };
+    }
+
     const deliveryBoyId = deliveryBoy._id;
 
     order.deliveryBoy = deliveryBoyId as any;

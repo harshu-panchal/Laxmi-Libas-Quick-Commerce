@@ -2,12 +2,13 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import DeliveryHeader from '../components/DeliveryHeader';
 import DeliveryBottomNav from '../components/DeliveryBottomNav';
-import { getPendingOrders } from '../../../services/api/delivery/deliveryService';
+import { getPendingOrders, getDashboardStats } from '../../../services/api/delivery/deliveryService';
 import { useDeliverySocket } from '../hooks/useDeliverySocket';
 
 export default function DeliveryPendingOrders() {
   const navigate = useNavigate();
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  const [capacity, setCapacity] = useState<{ active: number; max: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -22,8 +23,17 @@ export default function DeliveryPendingOrders() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const data = await getPendingOrders();
+        const [data, dash] = await Promise.all([
+          getPendingOrders(),
+          getDashboardStats().catch(() => null),
+        ]);
         setPendingOrders(data);
+        if (dash && typeof dash.activeOrderCount === 'number') {
+          setCapacity({
+            active: dash.activeOrderCount,
+            max: dash.maxConcurrentOrders ?? 3,
+          });
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to load pending orders');
       } finally {
@@ -90,6 +100,12 @@ export default function DeliveryPendingOrders() {
           </button>
           <h2 className="text-neutral-900 text-xl font-semibold">Today's Pending Orders</h2>
         </div>
+
+        {capacity && (
+          <p className="text-sm text-neutral-600 mb-4 -mt-2">
+            Active deliveries: <span className="font-semibold text-teal-700">{capacity.active}</span> / {capacity.max}
+          </p>
+        )}
 
         {pendingOrders.length > 0 ? (
           <div className="space-y-3">

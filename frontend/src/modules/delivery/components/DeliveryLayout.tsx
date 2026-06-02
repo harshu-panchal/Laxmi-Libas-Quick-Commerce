@@ -1,5 +1,4 @@
 import { ReactNode, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import DeliveryBottomNav from './DeliveryBottomNav';
 import { DeliveryStatusProvider, useDeliveryStatus } from '../context/DeliveryStatusContext';
 import { DeliveryUserProvider, useDeliveryUser } from '../context/DeliveryUserContext';
@@ -11,13 +10,14 @@ import AwaitingApproval from '../pages/AwaitingApproval';
 import IconLoader from '../../../components/loaders/IconLoader';
 import OrderSoundTopBar from '../../../components/OrderSoundTopBar';
 import OrderSoundEnableBanner from '../../../components/OrderSoundEnableBanner';
+import { useOrderSoundGestureUnlock } from '../../../hooks/useOrderSoundGestureUnlock';
 
 interface DeliveryLayoutContentProps {
   children: ReactNode;
 }
 
 function DeliveryLayoutContent({ children }: DeliveryLayoutContentProps) {
-  const navigate = useNavigate();
+  useOrderSoundGestureUnlock('delivery');
   const { isOnline, status, isLoading } = useDeliveryStatus();
   const { setUserName } = useDeliveryUser();
   const {
@@ -66,7 +66,7 @@ function DeliveryLayoutContent({ children }: DeliveryLayoutContentProps) {
           <OrderNotificationCard
             key={currentNotification.orderId}
             notification={currentNotification}
-            onAccept={(orderId) => acceptOrder(orderId, navigate)}
+            onAccept={(orderId) => acceptOrder(orderId)}
             onReject={rejectOrder}
           />
         )}

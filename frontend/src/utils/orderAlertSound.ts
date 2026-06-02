@@ -1,4 +1,4 @@
-export type AlertVariant = 'seller' | 'delivery';
+export type AlertVariant = 'seller' | 'delivery' | 'customer';
 
 let sharedContext: AudioContext | null = null;
 let loopIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -47,11 +47,14 @@ function playWebRing(ctx: AudioContext, variant: AlertVariant, volume: number) {
     playTone(ctx, 1046.5, now, 0.28, volume);
     playTone(ctx, 783.99, now + 0.32, 0.28, volume);
     playTone(ctx, 1046.5, now + 0.64, 0.38, volume);
-  } else {
+  } else if (variant === 'delivery') {
     playTone(ctx, 880, now, 0.14, volume);
     playTone(ctx, 880, now + 0.2, 0.14, volume);
     playTone(ctx, 988, now + 0.45, 0.14, volume);
     playTone(ctx, 988, now + 0.62, 0.14, volume);
+  } else {
+    playTone(ctx, 659.25, now, 0.2, volume * 0.85);
+    playTone(ctx, 783.99, now + 0.22, 0.25, volume * 0.9);
   }
 }
 
@@ -67,7 +70,11 @@ export function primeOrderAlertSound(variant: AlertVariant = 'seller'): boolean 
     playWebRing(ctx, variant, 0.65);
     unlockedVariants.add(variant);
     localStorage.setItem(storageKey(variant), 'true');
-    localStorage.setItem('sound_unlocked', 'true');
+    if (variant === 'customer') {
+      localStorage.setItem('sound_unlocked_customer', 'true');
+    } else {
+      localStorage.setItem('sound_unlocked', 'true');
+    }
     return true;
   } catch (error) {
     console.warn('Order alert sound prime failed:', error);
@@ -82,8 +89,14 @@ export async function unlockOrderAlertSound(variant: AlertVariant = 'seller'): P
 export function isOrderAlertSoundUnlocked(variant: AlertVariant = 'seller'): boolean {
   if (unlockedVariants.has(variant)) return true;
   if (localStorage.getItem(storageKey(variant)) === 'true') return true;
-  // Legacy key from earlier builds
-  return localStorage.getItem('sound_unlocked') === 'true';
+  // Legacy key from earlier builds (seller + delivery shared)
+  if (variant !== 'customer' && localStorage.getItem('sound_unlocked') === 'true') {
+    return true;
+  }
+  if (localStorage.getItem('sound_unlocked_customer') === 'true') {
+    return true;
+  }
+  return false;
 }
 
 export function playOrderAlertSound(options?: {

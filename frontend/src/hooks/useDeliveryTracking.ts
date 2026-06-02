@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 // @ts-ignore - socket.io-client types may not be available
 import { io, Socket } from 'socket.io-client'
 import { getSocketBaseURL } from '../services/api/config'
+import {
+    isOrderAlertSoundUnlocked,
+    playOrderAlertSound,
+} from '../utils/orderAlertSound'
 
 interface LocationUpdate {
     orderId: string
@@ -104,7 +108,9 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
 
         socket.on('delivery-boy-accepted', (data: any) => {
             console.log('✅ Delivery boy accepted order:', data)
-            // Start tracking when delivery boy accepts
+            if (isOrderAlertSoundUnlocked('customer')) {
+                playOrderAlertSound({ variant: 'customer', volume: 0.75 })
+            }
             setTrackingData(prev => ({
                 ...prev,
                 isConnected: true,
@@ -185,6 +191,9 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
 
         socket.on('order-status-update', (data: any) => {
             console.log('📡 Order status updated via socket:', data)
+            if (isOrderAlertSoundUnlocked('customer')) {
+                playOrderAlertSound({ variant: 'customer', volume: 0.7 })
+            }
             setTrackingData(prev => ({
                 ...prev,
                 orderStatus: data.status,

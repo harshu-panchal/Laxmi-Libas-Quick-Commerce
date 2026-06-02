@@ -86,6 +86,7 @@ export interface AppSettings {
     kmRate: number;
     deliveryBoyKmRate?: number;
     assignmentMode?: "Automatic" | "Manual";
+    maxConcurrentOrdersPerBoy?: number;
   };
   gstEnabled: boolean;
   gstRate?: number;

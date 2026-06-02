@@ -11,6 +11,9 @@ import { useThemeContext } from '../context/ThemeContext';
 import ServiceNotAvailable from './ServiceNotAvailable';
 import CompactLocationHeader from './CompactLocationHeader';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import OrderSoundTopBar from './OrderSoundTopBar';
+import { useOrderSoundGestureUnlock } from '../hooks/useOrderSoundGestureUnlock';
 
 
 interface AppLayoutProps {
@@ -30,6 +33,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [showLocationRequest, setShowLocationRequest] = useState(false);
   const { currentTheme } = useThemeContext();
   const { showToast } = useToast();
+  const { isAuthenticated, user } = useAuth();
+  const isCustomerUser =
+    isAuthenticated && (!user?.userType || user?.userType === 'Customer');
+  useOrderSoundGestureUnlock(isCustomerUser ? 'customer' : null);
 
   // Monitor network online/offline status
   useEffect(() => {
@@ -186,6 +193,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="flex flex-col min-h-screen w-full overflow-x-hidden">
+      {isCustomerUser && <OrderSoundTopBar variant="customer" />}
       {/* Desktop Container Wrapper */}
       <div className="md:w-full md:bg-white md:min-h-screen overflow-x-hidden">
         <div className="md:w-full md:min-h-screen md:flex md:flex-col overflow-x-hidden">

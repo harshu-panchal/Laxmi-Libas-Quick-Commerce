@@ -180,6 +180,25 @@ export const initializeSocket = (httpServer: HttpServer) => {
             socket.leave(`order-${orderId}`);
         });
 
+        // Customer / any user joins personal notification room (FCM + in-app bell)
+        socket.on('join-user-room', (userId: string) => {
+            const normalizedUserId = String(userId).trim();
+            const authUserId = (socket as any).user?.userId
+                ? String((socket as any).user.userId).trim()
+                : '';
+            if (authUserId && authUserId !== normalizedUserId) {
+                console.warn(
+                    `⚠️ join-user-room id mismatch: token=${authUserId}, payload=${normalizedUserId}`
+                );
+            }
+            socket.join(`user-${normalizedUserId}`);
+            console.log(`👤 User joined notification room: user-${normalizedUserId}`);
+            socket.emit('joined-user-room', {
+                success: true,
+                userId: normalizedUserId,
+            });
+        });
+
         // Delivery partner joins their active deliveries room
         socket.on('join-delivery-room', (deliveryPartnerId: string) => {
             console.log(`🛵 Delivery partner joined: ${deliveryPartnerId}`);

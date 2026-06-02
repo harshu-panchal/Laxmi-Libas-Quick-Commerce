@@ -22,6 +22,9 @@ export interface DeliveryDashboardStats {
   todayDeliveredCount: number;
   totalDeliveredCount: number;
   pendingOrdersList: any[]; // Define stricter type if needed
+  activeOrderCount?: number;
+  maxConcurrentOrders?: number;
+  canAcceptMoreOrders?: boolean;
 }
 
 // --- Dashboard ---

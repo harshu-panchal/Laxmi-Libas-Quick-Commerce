@@ -3,6 +3,10 @@ import { asyncHandler } from "../../../utils/asyncHandler";
 import Delivery from "../../../models/Delivery";
 import Order from "../../../models/Order";
 import mongoose from "mongoose";
+import {
+  getActiveOrderCountForDeliveryBoy,
+  getMaxConcurrentOrdersPerBoy,
+} from "../../../services/orderNotificationService";
 
 /**
  * Get Dashboard Stats
@@ -242,6 +246,9 @@ export const getDashboardStats = asyncHandler(
       console.error("Error fetching wallet balance for dashboard:", error);
     }
 
+    const activeOrderCount = await getActiveOrderCountForDeliveryBoy(deliveryId);
+    const maxConcurrentOrders = await getMaxConcurrentOrdersPerBoy();
+
     return res.status(200).json({
       success: true,
       data: {
@@ -257,6 +264,9 @@ export const getDashboardStats = asyncHandler(
         todayDeliveredCount: result.todayDeliveredCount,
         totalDeliveredCount: result.totalDeliveredCount,
         pendingOrdersList: formattedPendingList,
+        activeOrderCount,
+        maxConcurrentOrders,
+        canAcceptMoreOrders: activeOrderCount < maxConcurrentOrders,
       },
     });
   },

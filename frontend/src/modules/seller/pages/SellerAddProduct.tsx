@@ -29,9 +29,9 @@ import {
   HeaderCategory,
 } from "../../../services/api/headerCategoryService";
 import { useAuth } from "../../../context/AuthContext";
+import { getSellerProfile } from "../../../services/api/auth/sellerAuthService";
 
 import DynamicCategoryFields from "../components/DynamicCategoryFields";
-import GoogleMapPicker from "../../../components/common/GoogleMapPicker";
 
 export default function SellerAddProduct() {
   const navigate = useNavigate();
@@ -328,26 +328,43 @@ export default function SellerAddProduct() {
     }
   }, [id]);
   
-  // Auto-fill delivery location from seller profile for new products
+  // Auto-fill delivery location from seller profile (Account Settings / registration)
   useEffect(() => {
-    if (!id && user && !formData.latitude && !formData.longitude) {
-      // Check for lat/long in user profile
-      const userLat = (user as any).latitude || (user as any).structuredLocation?.lat;
-      const userLng = (user as any).longitude || (user as any).structuredLocation?.lng;
-      const userAddress = (user as any).address || (user as any).structuredLocation?.address || (user as any).city || "";
-      const userRadius = (user as any).serviceRadiusKm || (user as any).radius || "40";
+    if (id) return;
 
-      if (userLat && userLng) {
-        setFormData(prev => ({
-          ...prev,
-          latitude: userLat.toString(),
-          longitude: userLng.toString(),
-          shopAddress: userAddress,
-          radius: userRadius.toString()
-        }));
+    const loadSellerLocation = async () => {
+      try {
+        const response = await getSellerProfile();
+        if (!response.success || !response.data) return;
+
+        const data = response.data;
+        const locationCoords = data.location?.coordinates || [];
+        const lat =
+          data.latitude ||
+          (locationCoords[1] != null ? String(locationCoords[1]) : "");
+        const lng =
+          data.longitude ||
+          (locationCoords[0] != null ? String(locationCoords[0]) : "");
+        const address =
+          data.address || data.searchLocation || data.city || "";
+        const radius = (data.serviceRadiusKm || 40).toString();
+
+        if (lat && lng) {
+          setFormData((prev) => ({
+            ...prev,
+            latitude: lat.toString(),
+            longitude: lng.toString(),
+            shopAddress: address,
+            radius,
+          }));
+        }
+      } catch (err) {
+        console.error("Error loading seller location for product:", err);
       }
-    }
-  }, [id, user, formData.latitude, formData.longitude]);
+    };
+
+    loadSellerLocation();
+  }, [id]);
 
   useEffect(() => {
     const fetchSubs = async () => {
@@ -672,15 +689,6 @@ export default function SellerAddProduct() {
       }
     }
 
-    // Delivery Type Validation
-    if (formData.deliveryType === "quick" || formData.deliveryType === "both") {
-      if (!formData.latitude || !formData.longitude) {
-        setUploadError("Latitude and Longitude are required for Quick Commerce delivery. Please select your store location on the map.");
-        setShowAdvanced(true); // Open advanced if it was hidden
-        return;
-      }
-    }
-    
     if (formData.deliveryType === "ecommerce" || formData.deliveryType === "both") {
       if (!formData.availablePincodes.trim()) {
         setUploadError("Please provide at least one serviceable pincode for Ecommerce delivery.");

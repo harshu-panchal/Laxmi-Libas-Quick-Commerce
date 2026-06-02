@@ -1,52 +1,66 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
+import { getSocketBaseURL } from '../services/api/config';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+function resolveUserId(user: { id?: string; userId?: string } | null): string {
+  if (!user) return '';
+  return String(user.id || user.userId || '').trim();
+}
 
 export const useSocket = () => {
-  const { token, user } = useAuth();
-  const socketRef = useRef<Socket | null>(null);
+  const { token, user, isAuthenticated } = useAuth();
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+
   useEffect(() => {
-    if (!token) return;
-    // Initialize socket
-    const socket = io(SOCKET_URL,{
+    if (!token || !isAuthenticated) {
+      setSocket(null);
+      setIsConnected(false);
+      return;
+    }
+
+    const userId = resolveUserId(user);
+    const socketInstance = io(getSocketBaseURL(), {
       auth: { token },
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1500,
+      timeout: 20000,
     });
-    socket.on('connect', () => {
-      console.log('Socket connected:', socket.id);
+
+    socketInstance.on('connect', () => {
+      console.log('Socket connected:', socketInstance.id);
       setIsConnected(true);
-      // Join rooms based on user role
-      if (user) {
-        socket.emit('join-user-room', user.userId);
-        if (user.userType === 'Admin') {
-          socket.emit('join-admin-room');
-        } else if (user.userType === 'Seller') {
-          socket.emit('join-seller-room', user.userId);
-        }
+
+      if (userId) {
+        socketInstance.emit('join-user-room', userId);
+      }
+      if (user?.userType === 'Admin') {
+        socketInstance.emit('join-admin-room');
+      } else if (user?.userType === 'Seller' && userId) {
+        socketInstance.emit('join-seller-room', userId);
+      } else if (user?.userType === 'Delivery' && userId) {
+        socketInstance.emit('join-delivery-notifications', userId);
       }
     });
 
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected');
+    socketInstance.on('disconnect', () => {
       setIsConnected(false);
     });
 
-    socketRef.current = socket;
+    setSocket(socketInstance);
+
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
+      socketInstance.removeAllListeners();
+      socketInstance.disconnect();
+      setSocket(null);
+      setIsConnected(false);
     };
-  }, [token, user]);
+  }, [token, isAuthenticated, user?.userType, user?.id, user?.userId]);
 
   return {
-    socket: socketRef.current,
+    socket,
     isConnected,
   };
 };

@@ -428,6 +428,44 @@ export const updateOrderStatus = asyncHandler(
       }
     }
 
+    // Notify customer on important status changes (socket + push + in-app)
+    try {
+      const io: SocketIOServer = req.app.get('io') as SocketIOServer;
+      if (io && order.customer) {
+        const { notifyCustomerOrderUpdate } = await import(
+          '../../../services/customerOrderNotificationService'
+        );
+        const customerMessages: Record<string, { title: string; body: string }> = {
+          Accepted: {
+            title: 'Order accepted',
+            body: `Your order #${order.orderNumber} was accepted by the store.`,
+          },
+          Rejected: {
+            title: 'Order rejected',
+            body: `Your order #${order.orderNumber} was rejected by the store.`,
+          },
+          'Ready for pickup': {
+            title: 'Order ready',
+            body: `Order #${order.orderNumber} is ready for pickup.`,
+          },
+          'Out for Delivery': {
+            title: 'Out for delivery',
+            body: `Order #${order.orderNumber} is on the way to you.`,
+          },
+          Delivered: {
+            title: 'Delivered',
+            body: `Order #${order.orderNumber} has been delivered.`,
+          },
+        };
+        const msg = customerMessages[status];
+        if (msg) {
+          await notifyCustomerOrderUpdate(io, order, msg.title, msg.body);
+        }
+      }
+    } catch (custNotifyErr) {
+      console.error('Customer notification on seller status update failed:', custNotifyErr);
+    }
+
     // If order is delivered, credit seller's balance
     if (status === 'Delivered' && previousStatus !== 'Delivered') {
       const seller = await Seller.findById(sellerId);

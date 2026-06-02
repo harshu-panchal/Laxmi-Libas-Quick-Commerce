@@ -5,6 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSocket } from '../hooks/useSocket';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
+import {
+  isOrderAlertSoundUnlocked,
+  playOrderAlertSound,
+  primeOrderAlertSound,
+} from '../utils/orderAlertSound';
 
 export const NotificationBell = ({ size = 24, className = "", variant = "dropdown" }: { size?: number, className?: string, variant?: "dropdown" | "static" }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -34,18 +39,48 @@ export const NotificationBell = ({ size = 24, className = "", variant = "dropdow
       socket.on('notification', (newNotif: Notification) => {
         setNotifications(prev => [newNotif, ...prev]);
         setUnreadCount(prev => prev + 1);
-        
-        // Play sound if supported
-        try {
-          const audio = new Audio('/assets/notification.mp3');
-          audio.play().catch(() => {});
-        } catch (e) {}
+
+        if (newNotif.type === 'Order' || newNotif.title?.toLowerCase().includes('order')) {
+          if (isOrderAlertSoundUnlocked('customer')) {
+            playOrderAlertSound({ variant: 'customer', volume: 0.75 });
+          }
+        }
+      });
+
+      socket.on('order-status-update', (data: { status?: string; orderNumber?: string }) => {
+        if (isOrderAlertSoundUnlocked('customer')) {
+          playOrderAlertSound({ variant: 'customer', volume: 0.7 });
+        }
+        if (data?.orderNumber && data?.status) {
+          setNotifications((prev) => [
+            {
+              _id: `live-${Date.now()}`,
+              title: 'Order update',
+              message: `Order #${data.orderNumber}: ${data.status}`,
+              type: 'Order',
+              isRead: false,
+              createdAt: new Date().toISOString(),
+              link: '',
+            } as Notification,
+            ...prev,
+          ]);
+          setUnreadCount((prev) => prev + 1);
+        }
       });
     }
 
+    const unlockOnFirstTap = () => {
+      if (!isOrderAlertSoundUnlocked('customer')) {
+        primeOrderAlertSound('customer');
+      }
+    };
+    document.addEventListener('pointerdown', unlockOnFirstTap, { once: true, passive: true });
+
     return () => {
+      document.removeEventListener('pointerdown', unlockOnFirstTap);
       if (socket) {
         socket.off('notification');
+        socket.off('order-status-update');
       }
     };
   }, [socket]);

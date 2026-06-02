@@ -288,6 +288,24 @@ export default function DeliveryDashboard() {
       <DeliveryHeader />
 
       <div className="px-4 py-4 space-y-4">
+        {typeof stats?.activeOrderCount === 'number' && (
+          <div
+            className={`rounded-xl px-4 py-3 border ${
+              stats.canAcceptMoreOrders
+                ? 'bg-teal-50 border-teal-200'
+                : 'bg-amber-50 border-amber-200'
+            }`}>
+            <p className="text-sm font-semibold text-neutral-900">
+              Active deliveries: {stats.activeOrderCount} / {stats.maxConcurrentOrders ?? 3}
+            </p>
+            <p className="text-xs text-neutral-600 mt-1">
+              {stats.canAcceptMoreOrders
+                ? 'You can accept more orders one by one from notifications.'
+                : 'Maximum reached. Complete a delivery before accepting another order.'}
+            </p>
+          </div>
+        )}
+
         {/* Daily Collection & Cash Balance Bar */}
         <SummaryBar
           leftIcon={dailyCollectionIcon}

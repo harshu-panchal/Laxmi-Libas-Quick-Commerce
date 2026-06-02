@@ -65,6 +65,8 @@ export interface IAppSettings extends Document {
     kmRate: number;
     deliveryBoyKmRate?: number;
     assignmentMode?: "Automatic" | "Manual";
+    /** Max active orders one delivery partner can hold at once (default 3). */
+    maxConcurrentOrdersPerBoy?: number;
   };
 
   // Tax Settings
@@ -347,6 +349,12 @@ const AppSettingsSchema = new Schema<IAppSettings>(
         type: String,
         enum: ["Automatic", "Manual"],
         default: "Automatic",
+      },
+      maxConcurrentOrdersPerBoy: {
+        type: Number,
+        default: 3,
+        min: [1, "Must allow at least 1 concurrent order"],
+        max: [10, "Cannot exceed 10 concurrent orders"],
       },
     },
     // Tax Settings
