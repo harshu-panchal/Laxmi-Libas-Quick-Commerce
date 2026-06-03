@@ -2,6 +2,13 @@ import { Request, Response } from "express";
 import Product from "../../../models/Product";
 import Shop from "../../../models/Shop";
 import { asyncHandler } from "../../../utils/asyncHandler";
+import { cache } from "../../../utils/cache";
+
+/** Clear all customer-facing category/product cache after product changes */
+function clearProductCache() {
+  cache.invalidatePattern(/^customer-categor/);
+  cache.invalidatePattern(/^customer-home/);
+}
 
 /** Resolve store coordinates from seller profile (string fields or GeoJSON location). */
 function resolveSellerLatLng(seller: any): { latitude?: number; longitude?: number } {
@@ -238,6 +245,9 @@ export const createProduct = asyncHandler(
 
     try {
       const product = await Product.create(newProductData);
+
+      // Clear customer-facing cache so new product shows immediately
+      clearProductCache();
 
       return res.status(201).json({
         success: true,
@@ -598,6 +608,9 @@ export const updateProduct = asyncHandler(
         .populate("brand", "name")
         .populate("tax", "name rate");
 
+      // Clear customer-facing cache so updated product shows immediately
+      clearProductCache();
+
       console.log("DEBUG updateProduct: product updated successfully");
 
       return res.status(200).json({
@@ -650,6 +663,9 @@ export const deleteProduct = asyncHandler(
       });
     }
 
+    // Clear customer-facing cache so deleted product is removed immediately
+    clearProductCache();
+
     return res.status(200).json({
       success: true,
       message: "Product deleted successfully",
@@ -674,25 +690,34 @@ export const updateStock = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
+  // Build update fields
+  const updateFields: any = {};
+
   if (stock !== undefined) {
-    product.stock = stock;
-    // Automatically update status based on stock
+    updateFields.stock = stock;
+    // Automatically determine status based on stock
     if (stock === 0) {
-      product.status = "Inactive";
-    } else if (stock > 0 && product.status === "Inactive") {
-      product.status = "Active";
+      updateFields.status = "Inactive";
+    } else if (stock > 0) {
+      // Always set Active when stock > 0 (fixes pre-save hook override issue)
+      updateFields.status = "Active";
     }
   }
+
+  // Explicit status override from request body
   if (status) {
-    product.status = status;
+    updateFields.status = status;
   }
- 
-  await product.save();
+
+  // Use updateOne directly to bypass pre-save hook which could incorrectly set Inactive
+  await Product.updateOne({ _id: id, seller: sellerId }, { $set: updateFields });
+
+  const updatedProduct = await Product.findById(id);
 
   return res.status(200).json({
     success: true,
     message: "Stock updated successfully",
-    data: product,
+    data: updatedProduct,
   });
 });
 

@@ -323,22 +323,75 @@ export const getProducts = async (req: Request, res: Response) => {
         .lean();
     }
 
+    // ── Always include type="both" + nationwide products in Quick section ──────
+    // These products can be delivered anywhere (All India) so always show in Nearby Delivery
+    // regardless of user's geo-location distance to the seller
+    {
+      const universalPincodeConditions: any[] = [
+        { availablePincodes: "*" },
+        { availablePincodes: "all" },
+        { availablePincodes: "national" },
+        { availablePincodes: { $regex: /^(all|national|india|any|global|unrestricted|every|world)/i } },
+        { availablePincodes: { $size: 0 } },
+        { availablePincodes: { $exists: false } }
+      ];
+      if (userPincode) {
+        universalPincodeConditions.unshift({ availablePincodes: userPincode });
+      }
+
+      const universalBothQuery = {
+        ...baseQuery,
+        type: 'both', // Only "both" type — pure "quick" must still be location-verified
+        $or: universalPincodeConditions
+      };
+
+      const universalBothProducts = await Product.find(universalBothQuery)
+        .populate('category', 'name')
+        .populate('categoryId', 'name')
+        .populate('subcategory', 'name')
+        .populate('subCategoryId', 'name')
+        .populate('seller', 'storeName location serviceRadiusKm city')
+        .populate('sellerId', 'storeName location serviceRadiusKm city')
+        .sort(sort)
+        .limit(limitNum)
+        .lean();
+
+      // Merge into quickProducts, deduplicating by _id
+      const existingQuickIds = new Set(quickProducts.map((p: any) => p._id.toString()));
+      for (const p of universalBothProducts) {
+        if (!existingQuickIds.has((p as any)._id.toString())) {
+          quickProducts.push(p);
+          existingQuickIds.add((p as any)._id.toString());
+        }
+      }
+    }
+
     // ── Fetch Ecommerce (pincode-based) products ────────────────────────────
+    // Always fetch universal "All India" ecommerce products (available everywhere)
+    // Additionally fetch pincode-specific products when user pincode is available
     let ecommerceProducts: any[] = [];
-    if (userPincode) {
+    {
+      // Universal delivery products — always show (availablePincodes contains "All India", "all", "*", etc.)
+      const universalPincodeConditions: any[] = [
+        { availablePincodes: "*" },
+        { availablePincodes: "all" },
+        { availablePincodes: "national" },
+        { availablePincodes: { $regex: /^(all|national|india|any|global|unrestricted|every|world)/i } },
+        { availablePincodes: { $size: 0 } },
+        { availablePincodes: { $exists: false } }
+      ];
+
+      // If user pincode provided, also include pincode-specific products
+      if (userPincode) {
+        universalPincodeConditions.unshift({ availablePincodes: userPincode });
+      }
+
       const ecomQuery = {
         ...baseQuery,
         type: { $in: ['ecommerce', 'both'] },
-        $or: [
-          { availablePincodes: userPincode },
-          { availablePincodes: "*" },
-          { availablePincodes: "all" },
-          { availablePincodes: "national" },
-          { availablePincodes: { $regex: /^(all|national|india|any|global|unrestricted|every|world)/i } },
-          { availablePincodes: { $size: 0 } },
-          { availablePincodes: { $exists: false } }
-        ]
+        $or: universalPincodeConditions
       };
+
       ecommerceProducts = await Product.find(ecomQuery)
         .populate('category', 'name')
         .populate('categoryId', 'name')
