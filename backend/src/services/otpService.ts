@@ -3,9 +3,11 @@ import Otp from '../models/Otp';
 
 // SMS India HUB Configuration
 const SMS_INDIA_HUB_API_KEY = process.env.SMS_INDIA_HUB_API_KEY;
+const SMS_INDIA_HUB_USERNAME = process.env.SMS_INDIA_HUB_USERNAME;
 const SMS_INDIA_HUB_SENDER_ID = process.env.SMS_INDIA_HUB_SENDER_ID;
 const SMS_INDIA_HUB_DLT_TEMPLATE_ID = process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID;
-const SMS_INDIA_HUB_API_URL = 'http://cloud.smsindiahub.in/vendorsms/pushsms.aspx';
+const SMS_INDIA_HUB_PE_ID = process.env.SMS_INDIA_HUB_PE_ID;
+const SMS_INDIA_HUB_API_URL = 'https://cloud.smsindiahub.in/vendorsms/pushsms.aspx';
 const API_TIMEOUT = 30000; // 30 seconds
 
 console.log(`[SMS Config] API Key: ${SMS_INDIA_HUB_API_KEY ? 'Found' : 'MISSING'}`);
@@ -55,23 +57,30 @@ function generateOTP(length: number = 4): string {
 }
 
 /**
- * Normalize mobile number to include country code (91)
+ * Normalize mobile number to include country code (91) for SMS API
  */
 function normalizeMobileNumber(mobile: string): string {
   let cleanMobile = mobile.replace(/^\+/, '').replace(/\D/g, '');
-  console.log(`[OTP] Normalizing ${mobile} -> ${cleanMobile}`);
 
-  // If it's a 10-digit Indian number, always add 91 prefix
-  // Even if it starts with 91, if length is 10, it's just a mobile number starting with 91
   if (cleanMobile.length === 10) {
     cleanMobile = '91' + cleanMobile;
+  } else if (cleanMobile.length === 12 && cleanMobile.startsWith('91')) {
+    // Already has 91 prefix
+  } else if (cleanMobile.length > 10) {
+    // Extract last 10 digits and add 91
+    cleanMobile = '91' + cleanMobile.slice(-10);
   }
 
-  if (cleanMobile.length < 12 || cleanMobile.length > 13) {
-    throw new Error(`Invalid mobile number: ${cleanMobile}. Must be 12-13 digits with country code.`);
-  }
-
+  console.log(`[OTP] Normalizing ${mobile} -> ${cleanMobile}`);
   return cleanMobile;
+}
+
+/**
+ * Extract 10-digit mobile number for DB storage and verification
+ */
+function to10DigitMobile(mobile: string): string {
+  const clean = mobile.replace(/\D/g, '');
+  return clean.slice(-10);
 }
 
 /**
@@ -79,7 +88,24 @@ function normalizeMobileNumber(mobile: string): string {
  */
 function buildOtpMessage(otp: string): string {
   const appName = process.env.APP_NAME || 'LaxMart';
-  return `Welcome to the ${appName} powered by SMSINDIAHUB. Your OTP for registration is ${otp}`;
+  if (process.env.SMS_INDIA_HUB_TEMPLATE_TEXT) {
+    let tpl = process.env.SMS_INDIA_HUB_TEMPLATE_TEXT;
+    if (tpl.includes('##var##')) {
+      const parts = tpl.split('##var##');
+      if (parts.length > 2) {
+        // First ##var## is appName, second ##var## is OTP
+        tpl = parts[0] + appName + parts[1] + otp + parts.slice(2).join('##var##');
+      } else {
+        tpl = tpl.replace(/##var##/g, otp);
+      }
+      console.log(`[SMS DLT] Final message being sent: "${tpl}"`);
+      return tpl;
+    }
+    return tpl
+      .replace(/{#var#}/g, otp)
+      .replace(/{otp}/g, otp);
+  }
+  return `Welcome to the ${appName} powered by Appzeto.Your OTP for registration is ${otp}.BGADEC`;
 }
 
 /**
@@ -100,8 +126,8 @@ function handleSmsResponse(responseData: SmsIndiaHubResponse): void {
       case '001':
         throw new Error('SMS India HUB: Account details cannot be blank.');
       case '006':
-        console.warn('⚠️ SMS India HUB: Invalid DLT template. Proceeding anyway (likely delivery OTP fallback).');
-        return; // Proceed instead of throwing
+        console.warn('⚠️ SMS India HUB: DLT template mismatch or invalid template ID.');
+        throw new Error(`SMS India HUB DLT Error: DLT Template mismatch or invalid template (Code: ${errorCode}). Check your approved DLT message text and Template ID.`);
       case '007':
         throw new Error('SMS India HUB: Invalid API key or credentials.');
       case '021':
@@ -132,13 +158,21 @@ async function sendSmsViaApi(mobile: string, message: string): Promise<void> {
   };
 
   if (SMS_INDIA_HUB_DLT_TEMPLATE_ID?.trim()) {
-    params.DLT_TE_ID = SMS_INDIA_HUB_DLT_TEMPLATE_ID.trim();
+    params.TemplateId = SMS_INDIA_HUB_DLT_TEMPLATE_ID.trim();
+  }
+
+  if (SMS_INDIA_HUB_PE_ID?.trim()) {
+    params.EntityId = SMS_INDIA_HUB_PE_ID.trim();
   }
 
   console.log(`[SMS API] Sending OTP to ${cleanMobile} using SenderID: ${SMS_INDIA_HUB_SENDER_ID}`);
   console.log(`[SMS API] Message: "${message}"`);
 
   try {
+    // Build full URL for debugging
+    const qs = Object.keys(params).map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join('&');
+    console.log(`[SMS API] Full request URL: ${SMS_INDIA_HUB_API_URL}?${qs}`);
+
     const response = await axios.get<SmsIndiaHubResponse>(SMS_INDIA_HUB_API_URL, {
       params,
       paramsSerializer: (params) => {
@@ -150,6 +184,18 @@ async function sendSmsViaApi(mobile: string, message: string): Promise<void> {
     });
 
     console.log(`[SMS API] Response Data:`, response.data);
+
+    // Handle plain-text responses (e.g., "Failed#Parameter Missing..." or "MessageId#...")
+    if (typeof response.data === 'string') {
+      const raw = response.data as string;
+      if (raw.startsWith('Failed') || raw.includes('Parameter Missing') || raw.includes('Error')) {
+        throw new Error(`SMS India HUB Error: ${raw}`);
+      }
+      // Plain-text success (e.g., "MessageId#12345")
+      console.log(`[SMS API] SMS sent successfully (plain-text response): ${raw}`);
+      return;
+    }
+
     handleSmsResponse(response.data);
   } catch (error: any) {
     console.error(`[SMS API] Request failed:`, error.message);
@@ -164,9 +210,8 @@ async function sendSmsViaApi(mobile: string, message: string): Promise<void> {
  * Save OTP to database
  */
 async function saveOtpToDb(mobile: string, otp: string, userType: UserType): Promise<void> {
-  // Normalize mobile number (remove any non-digits, ensure consistent format)
-  const normalizedMobile = mobile.replace(/\D/g, '');
-  
+  const normalizedMobile = to10DigitMobile(mobile);
+
   let otpToSave = otp;
   if (normalizedMobile === '7894561230') {
     otpToSave = '1234';
@@ -187,8 +232,7 @@ async function saveOtpToDb(mobile: string, otp: string, userType: UserType): Pro
  * Verify OTP from database
  */
 async function verifyOtpFromDb(mobile: string, otp: string, userType: UserType): Promise<boolean> {
-  // Normalize mobile number (remove any non-digits, ensure consistent format)
-  const normalizedMobile = mobile.replace(/\D/g, '');
+  const normalizedMobile = to10DigitMobile(mobile);
 
   if (normalizedMobile === '7894561230' && otp.trim() === '1234') {
     console.log(`[OTP BYPASS] Automatically verifying mobile ${normalizedMobile} for ${userType} with OTP 1234`);
@@ -253,10 +297,10 @@ export async function sendDeliveryOtpSms(mobile: string, otp: string): Promise<O
     // ALWAYS USE MOCK MODE FOR DELIVERY OTP TO AVOID DLT ERRORS
     // The user wants a 'fixed' OTP (last 4 digits of phone), so real SMS is not critical
     console.log(`[OTP DEBUG] Delivery OTP for ${mobile}: ${otp} (Bypassing real SMS to avoid DLT error)`);
-    
-    return { 
-      success: true, 
-      message: 'Delivery code is ready. Customer can verify using the last 4 digits of their phone number.' 
+
+    return {
+      success: true,
+      message: 'Delivery code is ready. Customer can verify using the last 4 digits of their phone number.'
     };
   } catch (error: any) {
     console.error('Failed to handle delivery OTP:', error);
@@ -270,7 +314,7 @@ export async function sendSmsOtp(
 ): Promise<OtpResponse> {
   try {
     let otp = generateOTP(4);
-    
+
     // Mock mode
     if (isMockMode()) {
       console.log(`[OTP DEBUG] Mock mode active for ${mobile}. Check .env for SMS keys.`);
@@ -340,7 +384,7 @@ export async function verifySmsOtp(
   }
 
   // Normalize mobile number
-  const normalizedMobile = targetMobile.replace(/\D/g, '');
+  const normalizedMobile = to10DigitMobile(targetMobile);
 
   if (normalizedMobile.length !== 10) {
     console.error('OTP verification failed - invalid mobile format:', {
@@ -414,7 +458,7 @@ export async function verifyOTP(
   }
 
   // Normalize mobile number
-  const normalizedMobile = mobile.replace(/\D/g, '');
+  const normalizedMobile = to10DigitMobile(mobile);
 
   if (normalizedMobile.length !== 10) {
     console.error('OTP verification failed - invalid mobile format:', {
