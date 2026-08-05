@@ -162,10 +162,13 @@ export const createProduct = asyncHandler(
       "productVideoUrl", "taxId", "isShopByStoreOnly", "shopId", "publish", "popular",
       "dealOfDay", "status", "manufacturer", "madeIn", "requiresApproval", "tags",
       "sellerId", "seller", "headerCategoryId", "category", "subcategory", "brand",
-      "mainImage", "galleryImages", "variations", "variationType", "type",
+      "mainImage", "galleryImages", "variations", "variationType", "type", "deliveryType",
       "availablePincodes", "courierAvailable", "latitude", "longitude", "discountType", "discountValue", "discount",
       "isRestaurantItem", "isAvailable"
     ];
+
+    newProductData.type = productData.type || productData.deliveryType || "quick";
+    newProductData.deliveryType = productData.deliveryType || productData.type || "quick";
 
     const attributes: any = {};
     Object.keys(productData).forEach(key => {
@@ -451,6 +454,12 @@ export const updateProduct = asyncHandler(
     // but handle explicit clear
     if (updateData.productVideoUrl === null || updateData.productVideoUrl === "") {
       updateData.productVideoUrl = null;
+    }
+
+    if (updateData.deliveryType || updateData.type) {
+      const resolvedType = updateData.type || updateData.deliveryType;
+      updateData.type = resolvedType;
+      updateData.deliveryType = resolvedType;
     }
     
     if (updateData.isRestaurantItem !== undefined) {

@@ -38,9 +38,9 @@ import { calculateProductPrice } from "../../utils/priceUtils";
 import { createOrder } from "../../services/api/customerOrderService";
 import { normalizeCity } from "../../utils/locationUtils";
 
-/** Set VITE_ENABLE_COD=true in .env to enable Cash on Delivery at checkout (disabled by default) */
+/** Set VITE_ENABLE_COD=false in .env to disable Cash on Delivery at checkout (enabled by default) */
 const CHECKOUT_COD_ENABLED =
-  import.meta.env.VITE_ENABLE_COD === "true";
+  import.meta.env.VITE_ENABLE_COD !== "false";
 
 // const STORAGE_KEY = 'saved_address'; // Removed
 

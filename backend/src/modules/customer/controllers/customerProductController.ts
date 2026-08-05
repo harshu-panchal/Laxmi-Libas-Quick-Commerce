@@ -733,7 +733,10 @@ export const getQuickProducts = async (req: Request, res: Response) => {
     const query: any = { 
       status: 'Active', 
       publish: true,
-      type: { $in: ['quick', 'both'] }
+      $or: [
+        { type: { $in: ['quick', 'both'] } },
+        { deliveryType: { $in: ['quick', 'both'] } }
+      ]
     };
 
     // Filter by Header Category (e.g. from top tabs)
@@ -898,7 +901,7 @@ export const getQuickProducts = async (req: Request, res: Response) => {
       });
     }
 
-    // Filter strictly by same-city sellers (only show products from sellers matching the user's city)
+    // Filter by city sellers if city param is provided, otherwise fallback to all approved sellers
     const rawCity = userCityParam as string;
     const userCity = (rawCity && rawCity !== 'undefined' && rawCity !== 'null') ? normalizeCity(rawCity) : "";
     if (userCity) {
@@ -908,11 +911,18 @@ export const getQuickProducts = async (req: Request, res: Response) => {
       }).select('_id');
       
       const sellerIds = sellersInCity.map(s => s._id);
-      query.seller = { $in: sellerIds };
-      console.log(`[getQuickProducts] Strictly restricting to ${sellerIds.length} sellers in user city "${userCity}":`, sellerIds);
+      if (sellerIds.length > 0) {
+        query.seller = { $in: sellerIds };
+      } else {
+        // Fallback to all approved sellers if no sellers in specific city
+        const approvedSellers = await Seller.find({ status: 'Approved' }).select('_id');
+        query.seller = { $in: approvedSellers.map(s => s._id) };
+      }
+      console.log(`[getQuickProducts] Restricting to sellers in user city "${userCity}":`, sellerIds);
     } else {
-      // If city is not provided, DO NOT show any quick products because same-city is strictly required
-      query.seller = { $in: [] };
+      // If city is not provided, show quick products from all approved sellers
+      const approvedSellers = await Seller.find({ status: 'Approved' }).select('_id');
+      query.seller = { $in: approvedSellers.map(s => s._id) };
     }
 
     let sort: any = { createdAt: -1 };

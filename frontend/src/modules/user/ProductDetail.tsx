@@ -372,14 +372,12 @@ export default function ProductDetail() {
     }
 
     const productType = product?.type || product?.deliveryType;
-    let selectedDeliveryType: "quick" | "ecommerce" = "ecommerce";
+    let selectedDeliveryType: "quick" | "ecommerce" = "quick";
 
-    if (productType !== "ecommerce" && location?.city && product?.seller?.city) {
-      const normalize = (c: string) => c.toLowerCase().trim().replace(/\s+/g, "");
-      const isQuick = normalize(location.city) === normalize(product.seller.city);
-      if (isQuick) {
-        selectedDeliveryType = "quick";
-      }
+    if (productType === "ecommerce") {
+      selectedDeliveryType = "ecommerce";
+    } else if (productType === "quick" || productType === "both") {
+      selectedDeliveryType = "quick";
     }
 
     // Create product with selected variant info

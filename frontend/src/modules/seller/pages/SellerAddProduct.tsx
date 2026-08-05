@@ -699,8 +699,8 @@ export default function SellerAddProduct() {
 
     if (formData.deliveryType === "ecommerce" || formData.deliveryType === "both") {
       if (!formData.availablePincodes.trim()) {
-        setUploadError("Please provide at least one serviceable pincode for Ecommerce delivery.");
-        return;
+        // Default to '*' (All India delivery) if left empty by seller
+        formData.availablePincodes = "*";
       }
     }
 
@@ -879,9 +879,10 @@ export default function SellerAddProduct() {
 
         // Hybrid Delivery Configuration
         type: (formData.deliveryType as "quick" | "ecommerce" | "both") || "quick",
+        deliveryType: (formData.deliveryType as "quick" | "ecommerce" | "both") || "quick",
         availablePincodes: formData.availablePincodes 
           ? formData.availablePincodes.split(",").map(p => p.trim()).filter(Boolean) 
-          : [],
+          : (formData.deliveryType === "ecommerce" || formData.deliveryType === "both" ? ["*"] : []),
         latitude: resolvedLatitude ? parseFloat(resolvedLatitude) : undefined,
         longitude: resolvedLongitude ? parseFloat(resolvedLongitude) : undefined,
         radius: resolvedRadius ? parseFloat(resolvedRadius) : undefined,
@@ -1564,23 +1565,44 @@ export default function SellerAddProduct() {
             <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
               <h2 className="text-lg font-semibold">Delivery Type</h2>
             </div>
-            <div className="p-4 sm:p-6">
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Select Product Delivery Type <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="deliveryType"
-                value={formData.deliveryType}
-                onChange={handleChange}
-                className="w-full md:w-80 px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
-              >
-                <option value="quick">Quick Delivery</option>
-                <option value="ecommerce">E-commerce</option>
-                <option value="both">Quick + E-commerce</option>
-              </select>
-              <p className="text-xs text-neutral-500 mt-2">
-                Quick products use your seller location. E-commerce products use serviceable pincodes.
-              </p>
+            <div className="p-4 sm:p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Select Product Delivery Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="deliveryType"
+                  value={formData.deliveryType}
+                  onChange={handleChange}
+                  className="w-full md:w-80 px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+                >
+                  <option value="quick">Quick Delivery</option>
+                  <option value="ecommerce">E-commerce</option>
+                  <option value="both">Quick + E-commerce</option>
+                </select>
+                <p className="text-xs text-neutral-500 mt-2">
+                  Quick products use your seller location. E-commerce products use serviceable pincodes.
+                </p>
+              </div>
+
+              {(formData.deliveryType === "ecommerce" || formData.deliveryType === "both") && (
+                <div className="pt-2 border-t border-neutral-100">
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                    Serviceable Pincodes for E-commerce <span className="text-teal-600 font-normal">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="availablePincodes"
+                    value={formData.availablePincodes}
+                    onChange={handleChange}
+                    placeholder="e.g. 380001, 380002 or * for All India"
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+                  />
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Enter comma-separated 6-digit pincodes. Enter <strong>*</strong> or leave blank to make product available across <strong>All India</strong>.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
