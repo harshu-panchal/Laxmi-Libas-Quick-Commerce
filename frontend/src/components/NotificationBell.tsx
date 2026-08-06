@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSocket } from '../hooks/useSocket';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
   isOrderAlertSoundUnlocked,
   playOrderAlertSound,
@@ -15,6 +16,7 @@ export const NotificationBell = ({ size = 24, className = "", variant = "dropdow
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
   const { socket } = useSocket();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -32,6 +34,8 @@ export const NotificationBell = ({ size = 24, className = "", variant = "dropdow
   };
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     fetchNotifications();
 
     // Socket listener for new notifications
@@ -83,7 +87,7 @@ export const NotificationBell = ({ size = 24, className = "", variant = "dropdow
         socket.off('order-status-update');
       }
     };
-  }, [socket]);
+  }, [socket, isAuthenticated]);
 
   // Close dropdown on click outside
   useEffect(() => {

@@ -131,7 +131,7 @@ export default function Checkout() {
   const { addOrder } = useOrders();
   const { location: userLocation } = useLocationContext();
   const { showToast: showGlobalToast } = useToast();
-  const { user, updateUser, logout } = useAuth();
+  const { user, updateUser, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [tipAmount, setTipAmount] = useState<number | null>(null);
   const [customTipAmount, setCustomTipAmount] = useState<number>(0);
@@ -528,6 +528,12 @@ export default function Checkout() {
 
   const handlePlaceOrder = async (arg?: any) => {
     if (isPlacingOrder) return;
+
+    if (!isAuthenticated) {
+      navigate("/login?redirect=/checkout");
+      return;
+    }
+
     // Only bypass if explicitly passed true (handles event objects from onClick)
     const bypassProfileCheck = arg === true;
 

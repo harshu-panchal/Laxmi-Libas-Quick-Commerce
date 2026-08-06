@@ -468,7 +468,7 @@ const ProductSchema = new Schema<IProduct>(
     deliveryType: {
        type: String,
        enum: ["quick", "ecommerce", "both", "e-comm"],
-       default: "e-comm",
+       default: "quick",
     },
     availablePincodes: {
       type: [String],

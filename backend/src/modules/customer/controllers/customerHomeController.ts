@@ -253,7 +253,7 @@ async function fetchSectionData(
       const products = await Product.find(query)
         .sort({ createdAt: -1 }) // Show newest items first
         .limit(limit || 8)
-        .select("productName mainImage price mrp discount rating reviewsCount pack seller")
+        .select("productName mainImage price mrp discount rating reviewsCount pack seller type deliveryType")
         .lean();
 
       return products.map((p: any) => {
@@ -278,7 +278,7 @@ async function fetchSectionData(
           reviewsCount: p.reviewsCount || 0,
           reviews: p.reviewsCount || 0,
           pack: p.pack || "",
-          type: "product",
+          deliveryType: p.deliveryType || p.type || "quick",
           isAvailable,
           seller: p.seller,
         };
@@ -406,7 +406,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
       .populate({
         path: "product",
         select:
-          "productName mainImage price mrp discount status publish category subcategory seller",
+          "productName mainImage price mrp discount status publish category subcategory seller type deliveryType",
         match: {
           status: "Active",
           publish: true,
@@ -436,6 +436,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
           subcategory: product.subcategory?.toString() || "",
           status: product.status,
           publish: product.publish,
+          deliveryType: product.deliveryType || product.type || "quick",
           isAvailable,
           seller: product.seller,
         };
@@ -624,6 +625,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
             price: p.price,
             discount: p.discount || (p.mrp && p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0),
             rating: p.rating || 0,
+            deliveryType: p.deliveryType || p.type || "quick",
             isAvailable: true,
             seller: p.seller,
           }));

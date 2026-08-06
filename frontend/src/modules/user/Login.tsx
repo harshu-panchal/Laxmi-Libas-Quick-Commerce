@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sendOTP, verifyOTP } from '../../services/api/auth/customerAuthService';
 import { useAuth } from '../../context/AuthContext';
@@ -206,6 +206,7 @@ const AnimatedLogoText = () => {
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login } = useAuth();
   const [mobileNumber, setMobileNumber] = useState('');
   const [showOTP, setShowOTP] = useState(false);
@@ -367,7 +368,8 @@ export default function Login() {
     const userData = (window as any).tempUserData;
     if (userData) {
       login(userData.token, userData.user);
-      navigate('/');
+      const redirect = searchParams.get('redirect');
+      navigate(redirect || '/');
     }
   };
 
