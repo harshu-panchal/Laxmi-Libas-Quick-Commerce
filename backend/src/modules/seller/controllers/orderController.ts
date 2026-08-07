@@ -385,9 +385,13 @@ export const updateOrderStatus = asyncHandler(
       }
     }
 
+    if (status === 'Accepted' && (order.orderType === 'quick' || order.orderType !== 'ecommerce')) {
+      order.deliveryFlow = 'auto';
+      order.deliveryType = 'instant';
+    }
+
     await order.save();
 
-    // Trigger delivery notification if seller accepts the order
     // Trigger delivery notification if seller accepts a QUICK order
     if (status === 'Accepted' && order.orderType !== 'ecommerce') {
       try {

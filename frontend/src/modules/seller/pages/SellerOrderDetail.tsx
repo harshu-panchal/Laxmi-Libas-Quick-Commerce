@@ -435,6 +435,71 @@ export default function SellerOrderDetail() {
               </div>
             </div>
           )}
+          {/* Progress Steps for Quick Commerce */}
+          {orderDetail.orderType === 'quick' && (() => {
+            const STATUS_WEIGHTS: Record<string, number> = {
+              'Received': 1,
+              'Accepted': 2,
+              'Picked up': 3,
+              'Out for Delivery': 3,
+              'Delivered': 4
+            };
+            
+            const currentWeight = STATUS_WEIGHTS[orderStatus] || 1;
+            
+            const steps = [
+              { id: 'Received', weight: 1, label: 'Order Received' },
+              { id: 'Accepted', weight: 2, label: 'Accepted & Broadcasted' },
+              { id: 'Out for Delivery', weight: 3, label: 'Out for Delivery' },
+              { id: 'Delivered', weight: 4, label: 'Delivered' },
+            ];
+
+            const currentWidth = 
+              orderStatus === 'Received' ? '0%' : 
+              orderStatus === 'Accepted' ? '33%' :
+              ['Picked up', 'Out for Delivery'].includes(orderStatus) ? '66%' : 
+              orderStatus === 'Delivered' ? '100%' : '0%';
+
+            return (
+              <div className="mb-8 bg-teal-50/60 p-4 rounded-2xl border border-teal-100/80">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-bold text-teal-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-ping" />
+                    Quick Commerce Delivery Status
+                  </span>
+                </div>
+                <div className="relative">
+                  <div className="absolute top-4 left-0 w-full h-1 bg-neutral-200 -z-0"></div>
+                  <div 
+                    className="absolute top-4 left-0 h-1 bg-teal-500 transition-all duration-500 -z-0"
+                    style={{ width: currentWidth }}
+                  ></div>
+                  
+                  <div className="flex justify-between relative z-10">
+                    {steps.map((step) => {
+                      const isCompleted = currentWeight >= step.weight;
+                      const isCurrent = orderStatus === step.id || (step.id === 'Out for Delivery' && orderStatus === 'Picked up');
+                      
+                      return (
+                        <div key={step.id} className="flex flex-col items-center">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
+                            isCompleted ? "bg-teal-600 border-white text-white shadow-sm font-bold" : 
+                            "bg-white border-neutral-300 text-neutral-400"
+                          } ${isCurrent ? "scale-110 ring-4 ring-teal-100 font-bold" : ""}`}>
+                            {isCompleted ? "✓" : step.weight}
+                          </div>
+                          <span className={`text-[11px] font-bold mt-1.5 ${isCompleted ? "text-teal-700" : "text-neutral-400"}`}>
+                            {step.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Progress Steps for Ecommerce */}
           {orderDetail.orderType === 'ecommerce' && (() => {
             const STATUS_WEIGHTS: Record<string, number> = {
@@ -500,14 +565,16 @@ export default function SellerOrderDetail() {
                 </div>
               </div>
             );
-          })()}   <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-neutral-50 p-4 rounded-xl border border-neutral-100">
+          })()}
+
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-neutral-50 p-4 rounded-xl border border-neutral-100">
             <div className="flex-1 w-full space-y-2">
-              <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Next Recommended Action</p>
+              <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Next Action / Status</p>
               
               {orderStatus === 'Received' ? (
                 <div className="flex gap-3">
                   <button
-                    onClick={() => handleStatusUpdate(orderDetail.orderType === 'ecommerce' ? 'Accepted' : 'Accepted')}
+                    onClick={() => handleStatusUpdate('Accepted')}
                     className="flex-1 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-xl transition-all font-bold shadow-lg shadow-teal-500/20 flex items-center justify-center gap-2"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"></path></svg>
@@ -524,6 +591,66 @@ export default function SellerOrderDetail() {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     Reject
                   </button>
+                </div>
+              ) : orderDetail.orderType === 'quick' ? (
+                <div className="w-full">
+                  {orderStatus === 'Accepted' ? (
+                    <div className="bg-teal-50 border border-teal-200 rounded-xl p-3.5 flex items-start gap-3">
+                      <div className="p-2 bg-teal-600 text-white rounded-lg flex-shrink-0 mt-0.5">
+                        <Truck size={20} />
+                      </div>
+                      <div>
+                        {orderDetail.deliveryBoyName ? (
+                          <div>
+                            <h4 className="text-sm font-bold text-teal-900">
+                              Delivery Partner Assigned: {orderDetail.deliveryBoyName}
+                            </h4>
+                            <p className="text-xs text-teal-700 mt-0.5">
+                              Phone: {orderDetail.deliveryBoyPhone || 'N/A'}. Delivery partner will arrive at your store shortly for pickup.
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <h4 className="text-sm font-bold text-teal-900 flex items-center gap-2">
+                              Order Accepted & Broadcasted
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-teal-200 text-teal-800 animate-pulse">
+                                Searching Delivery Partner
+                              </span>
+                            </h4>
+                            <p className="text-xs text-teal-700 mt-0.5">
+                              Order is accepted! We have broadcasted this order to active nearby delivery partners within 40km. Waiting for a nearby delivery partner to accept pickup.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : ['Picked up', 'Out for Delivery'].includes(orderStatus) ? (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-center gap-3">
+                      <div className="p-2 bg-blue-600 text-white rounded-lg flex-shrink-0">
+                        <Truck size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-blue-900">
+                          Out for Delivery with {orderDetail.deliveryBoyName || 'Delivery Partner'}
+                        </h4>
+                        <p className="text-xs text-blue-700">
+                          Order has been picked up from store and is currently being delivered to customer.
+                        </p>
+                      </div>
+                    </div>
+                  ) : orderStatus === 'Delivered' ? (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-center gap-3">
+                      <CheckCircle className="text-emerald-600 flex-shrink-0" size={24} />
+                      <div>
+                        <h4 className="text-sm font-bold text-emerald-900">Order Delivered Successfully</h4>
+                        <p className="text-xs text-emerald-700">Customer OTP verification completed and order fulfilled.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm font-semibold text-neutral-700">
+                      Status: <span className="font-bold">{orderStatus}</span>
+                    </div>
+                  )}
                 </div>
               ) : orderStatus === 'Accepted' && orderDetail.orderType === 'ecommerce' ? (
                 <button
