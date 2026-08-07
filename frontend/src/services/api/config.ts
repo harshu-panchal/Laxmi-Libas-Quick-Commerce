@@ -87,27 +87,32 @@ api.interceptors.response.use(
           return Promise.reject(error);
         }
 
-        const apiUrl = error.config?.url || "";
-        let redirectPath = "/login";
-
-        if (currentPath.includes("/admin/") || apiUrl.includes("/admin/")) {
-          redirectPath = "/admin/login";
-        } else if (
-          currentPath.includes("/seller/") ||
-          apiUrl.includes("/seller/") ||
-          apiUrl.includes("/sellers")
-        ) {
-          redirectPath = "/seller/login";
-        } else if (
-          currentPath.includes("/delivery/") ||
-          apiUrl.includes("/delivery/")
-        ) {
-          redirectPath = "/delivery/login";
-        }
-
+        // Always clear the stale/expired token so isAuthenticated flips to false.
         localStorage.removeItem("authToken");
         localStorage.removeItem("userData");
-        window.location.href = redirectPath;
+        window.dispatchEvent(new Event("auth:session-expired"));
+
+        const apiUrl = error.config?.url || "";
+        const isAdminContext = currentPath.includes("/admin/") || apiUrl.includes("/admin/");
+        const isSellerContext =
+          currentPath.includes("/seller/") || apiUrl.includes("/seller/") || apiUrl.includes("/sellers");
+        const isDeliveryContext = currentPath.includes("/delivery/") || apiUrl.includes("/delivery/");
+
+        // Admin/Seller/Delivery dashboards are fully gated behind login, so any
+        // 401 there means the session truly ended - a hard redirect is correct.
+        if (isAdminContext || isSellerContext || isDeliveryContext) {
+          const redirectPath = isAdminContext
+            ? "/admin/login"
+            : isSellerContext
+            ? "/seller/login"
+            : "/delivery/login";
+          window.location.href = redirectPath;
+        }
+        // For the customer app, most pages (home, browse, cart) are usable as a
+        // guest. Do NOT force-redirect here - a background call (cart/wishlist/
+        // notifications) failing with 401 shouldn't kick the user to /login.
+        // ProtectedRoute (for account pages) and explicit checkout/order gates
+        // already handle sending the user to /login when login is actually required.
       }
     }
 

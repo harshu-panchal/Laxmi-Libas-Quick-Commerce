@@ -89,6 +89,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // React immediately when the axios interceptor clears a stale/expired token,
+  // instead of waiting for a remount to notice localStorage changed.
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
+    };
+    window.addEventListener("auth:session-expired", handleSessionExpired);
+    return () =>
+      window.removeEventListener("auth:session-expired", handleSessionExpired);
+  }, []);
+
   const login = (newToken: string, userData: User) => {
     setToken(newToken);
     setUser(userData);
