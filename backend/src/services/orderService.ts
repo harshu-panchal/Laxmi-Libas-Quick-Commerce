@@ -54,20 +54,32 @@ export const finalizeOrderCreation = async (
       const sellerCity = seller?.city ? normalizeCity(seller.city) : '';
       const customerCity = address.city ? normalizeCity(address.city) : '';
 
-      // Auto-detect based on product configuration:
-      // If product.deliveryType is quick AND same city, it's quick. Otherwise ecommerce!
+      // Determine order type based on product configuration: [v2 - city check removed for explicit quick products]
+      // RULE 1: If product is explicitly marked as 'quick' or 'both', ALWAYS treat as quick
+      //         (seller listed it as quick-deliverable, city check is NOT required)
+      // RULE 2: If product.deliveryType is 'quick' but product.type is not explicitly set,
+      //         use city match as a secondary gating check
+      // RULE 3: Frontend explicit override takes priority
       let decidedType = 'ecommerce';
-      if (product.deliveryType === 'quick' || product.type === 'quick' || product.type === 'both') {
+
+      // Frontend explicit override (highest priority)
+      if (item.selectedDeliveryType === 'ecommerce' || item.selectedDeliveryType === 'standard') {
+        decidedType = 'ecommerce';
+      } else if (item.selectedDeliveryType === 'quick') {
+        // Frontend says quick → trust it
+        decidedType = 'quick';
+      } else if (product.type === 'quick' || product.type === 'both') {
+        // Product is explicitly listed as quick/both → ALWAYS quick, no city check required
+        decidedType = 'quick';
+        console.log(`[OrderType] Product ${product.productName} is type=${product.type} → quick order (no city check needed)`);
+      } else if (product.deliveryType === 'quick') {
+        // Auto-detect via deliveryType: use city proximity check
         if (sellerCity && customerCity && sellerCity === customerCity) {
           decidedType = 'quick';
+          console.log(`[OrderType] Product ${product.productName} deliveryType=quick, cities match (${sellerCity}) → quick order`);
+        } else {
+          console.log(`[OrderType] Product ${product.productName} deliveryType=quick but city mismatch (seller: ${sellerCity || 'N/A'}, customer: ${customerCity || 'N/A'}) → ecommerce`);
         }
-      }
-      
-      // Support explicit overrides from frontend
-      if (item.selectedDeliveryType === 'quick' && sellerCity && customerCity && sellerCity === customerCity) {
-        decidedType = 'quick';
-      } else if (item.selectedDeliveryType === 'ecommerce' || item.selectedDeliveryType === 'standard') {
-        decidedType = 'ecommerce';
       }
       
       if (decidedType === 'quick') quickItems.push(item);

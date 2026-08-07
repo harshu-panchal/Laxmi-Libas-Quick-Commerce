@@ -176,6 +176,7 @@ export default function SellerProductList() {
         variation: "Default",
         isPopular: product.popular,
         productId: product._id,
+        productType: product.type || 'quick',
       }];
     }
     // If product has variations, map them
@@ -196,6 +197,7 @@ export default function SellerProductList() {
         variation.title || variation.value || variation.name || "Default",
       isPopular: product.popular,
       productId: product._id,
+      productType: product.type || 'quick',
     }));
   });
 
@@ -501,6 +503,9 @@ export default function SellerProductList() {
                   <th className="p-3 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={() => handleSort("variation")}>
                     <div className="flex items-center justify-between">Variation <SortIcon column="variation" /></div>
                   </th>
+                  <th className="p-3 border border-neutral-200">
+                    <div className="flex items-center justify-between">Type</div>
+                  </th>
                   <th className="p-3 border-b border-r border-neutral-200 sticky right-0 bg-neutral-50 shadow-[-2px_0_5px_rgba(0,0,0,0.05)] z-20 min-w-[120px]">
                     <div className="flex items-center justify-center">Action</div>
                   </th>
@@ -580,6 +585,26 @@ export default function SellerProductList() {
                       <td className="p-3 align-middle border-b border-r border-neutral-200">
                         <span className="px-2 py-0.5 bg-neutral-100 rounded text-xs">{variation.variation}</span>
                       </td>
+                      <td className="p-3 align-middle border-b border-r border-neutral-200">
+                        {variation.productType === 'quick' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200 whitespace-nowrap">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                            Quick
+                          </span>
+                        )}
+                        {variation.productType === 'ecommerce' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200 whitespace-nowrap">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                            E-Commerce
+                          </span>
+                        )}
+                        {variation.productType === 'both' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200 whitespace-nowrap">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                            Both
+                          </span>
+                        )}
+                      </td>
                       <td className="p-3 align-middle border-b border-neutral-200 sticky right-0 bg-white shadow-[-2px_0_5px_rgba(0,0,0,0.05)] z-10">
                         <div className="flex items-center justify-center gap-2">
                           <button
@@ -609,7 +634,7 @@ export default function SellerProductList() {
                 {displayedVariations.length === 0 && (
                   <tr>
                     <td
-                      colSpan={12}
+                      colSpan={13}
                       className="p-8 text-center text-neutral-400 border border-neutral-200">
                       No products found.
                     </td>
