@@ -62,7 +62,7 @@ export interface OrderDetail {
     | 'Delivered'
     | 'Cancelled'
     | 'Rejected';
-  orderType: string;
+  orderType: 'quick' | 'ecommerce';
   deliveryFlow: 'auto' | 'courier';
   courierPartner?: string;
   trackingId?: string;
