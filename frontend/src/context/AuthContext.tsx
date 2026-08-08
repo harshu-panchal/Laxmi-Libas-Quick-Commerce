@@ -39,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem("userData");
     if (storedUser) {
+      try {
         const userData = JSON.parse(storedUser);
         if (userData) {
           if (!userData.id && userData._id) {
