@@ -388,6 +388,7 @@ export const updateOrderStatus = asyncHandler(
     if (status === 'Accepted' && (order.orderType === 'quick' || order.orderType !== 'ecommerce')) {
       order.deliveryFlow = 'auto';
       order.deliveryType = 'instant';
+      order.deliveryBoy = null;
     }
 
     await order.save();
