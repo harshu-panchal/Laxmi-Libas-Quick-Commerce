@@ -393,8 +393,9 @@ export const updateOrderStatus = asyncHandler(
 
     await order.save();
 
-    // Trigger delivery notification if seller accepts a QUICK order
-    if (status === 'Accepted' && order.orderType !== 'ecommerce') {
+    // Trigger delivery notification if seller accepts or advances a QUICK/local order
+    const notifyTriggerStatuses = ['Accepted', 'Preparing', 'Packed', 'Ready for pickup', 'Processing'];
+    if (notifyTriggerStatuses.includes(status) && order.orderType !== 'ecommerce') {
       try {
         const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
         if (io) {
@@ -424,12 +425,12 @@ export const updateOrderStatus = asyncHandler(
               console.log(`Re-notified assigned delivery partner ${assignedId} for order ${order.orderNumber}`);
             } else {
               await notifyDeliveryBoysOfNewOrder(io, fullOrder);
-              console.log(`Delivery broadcast triggered for Accepted order ${order.orderNumber}`);
+              console.log(`Delivery broadcast triggered for ${status} order ${order.orderNumber}`);
             }
           }
         }
       } catch (notifyError) {
-        console.error('Error notifying delivery boys on seller acceptance:', notifyError);
+        console.error('Error notifying delivery boys on seller order update:', notifyError);
       }
     }
 
@@ -655,6 +656,22 @@ export const readyForPickup = asyncHandler(
 
     order.status = 'Ready for pickup';
     await order.save();
+
+    if (!order.deliveryBoy && order.orderType !== 'ecommerce') {
+      try {
+        const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
+        if (io) {
+          const fullOrder = await Order.findById(order._id)
+            .populate({ path: 'items', populate: { path: 'seller' } })
+            .lean();
+          if (fullOrder) {
+            await notifyDeliveryBoysOfNewOrder(io, fullOrder);
+          }
+        }
+      } catch (err) {
+        console.error('Error notifying delivery boys on readyForPickup:', err);
+      }
+    }
 
     return res.status(200).json({ success: true, message: "Order marked as Ready for Pickup", data: { status: order.status } });
   }

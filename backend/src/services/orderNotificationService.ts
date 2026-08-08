@@ -470,11 +470,18 @@ export async function notifyDeliveryBoysOfNewOrder(
         
         // Find delivery boys near seller locations (within service radius)
         let nearbyDeliveryBoyIds = await findDeliveryBoysNearSellerLocations(order);
-        const originalNearbyIds = [...nearbyDeliveryBoyIds]; // Keep a copy for fallback
-
+        
+        // Fallback 1: If no delivery boys near seller location, try finding any online delivery boys
         if (nearbyDeliveryBoyIds.length === 0) {
-            debugLog('No available delivery boys to notify (even after fallback)');
-            return;
+            debugLog('⚠️ No nearby delivery boys found, falling back to all online delivery boys...');
+            nearbyDeliveryBoyIds = await findAvailableDeliveryBoys();
+        }
+
+        // Fallback 2: If still no online delivery boys, fetch all approved delivery boys
+        if (nearbyDeliveryBoyIds.length === 0) {
+            debugLog('⚠️ No online delivery boys found in DB, fetching all Approved delivery boys as safety fallback...');
+            const allApproved = await Delivery.find({ status: 'Approved' }).select('_id');
+            nearbyDeliveryBoyIds = allApproved.map(db => db._id as mongoose.Types.ObjectId);
         }
 
         // Skip partners who already hold max concurrent active orders (default 3)
@@ -483,19 +490,15 @@ export async function notifyDeliveryBoysOfNewOrder(
 
         if (atCapacityIds.size > 0) {
             const originalCount = nearbyDeliveryBoyIds.length;
-            nearbyDeliveryBoyIds = nearbyDeliveryBoyIds.filter(
+            const filtered = nearbyDeliveryBoyIds.filter(
                 (id) => !atCapacityIds.has(id.toString())
             );
+            if (filtered.length > 0) {
+                nearbyDeliveryBoyIds = filtered;
+            }
             debugLog(
-                `ℹ️ Filtered ${originalCount - nearbyDeliveryBoyIds.length} partners at max capacity (${maxConcurrent}). Eligible: ${nearbyDeliveryBoyIds.length}`
+                `ℹ️ Filtered partners at max capacity (${maxConcurrent}). Eligible: ${nearbyDeliveryBoyIds.length}`
             );
-        }
-
-        if (nearbyDeliveryBoyIds.length === 0) {
-            debugLog(
-                `⚠️ No delivery partners under max capacity (${maxConcurrent}) for order ${order.orderNumber}`
-            );
-            return;
         }
 
         // Calculate estimated delivery boy earning for this order

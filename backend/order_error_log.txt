@@ -1,0 +1,5 @@
+Error: Insufficient available stock for Shirt. Available: 0, Requested: 2
+    at InventoryService.lockProductStock (C:\Users\admin\Desktop\Laxmi-Libas-Quick-Commerce\backend\src\services\inventoryService.ts:36:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async finalizeOrderCreation (C:\Users\admin\Desktop\Laxmi-Libas-Quick-Commerce\backend\src\services\orderService.ts:81:9)
+    at async createOrder (C:\Users\admin\Desktop\Laxmi-Libas-Quick-Commerce\backend\src\modules\customer\controllers\customerOrderController.ts:56:35)

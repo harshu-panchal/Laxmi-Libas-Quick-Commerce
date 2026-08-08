@@ -219,7 +219,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
         });
 
         // Delivery boy joins notification room
-        socket.on('join-delivery-notifications', (deliveryBoyId: string) => {
+        socket.on('join-delivery-notifications', async (deliveryBoyId: string) => {
             // Normalize deliveryBoyId to string to ensure consistent room naming
             const normalizedDeliveryBoyId = String(deliveryBoyId).trim();
             console.log(`🔔 Delivery boy ${normalizedDeliveryBoyId} joined notifications room`);
@@ -227,6 +227,15 @@ export const initializeSocket = (httpServer: HttpServer) => {
             socket.join('delivery-notifications');
             socket.join(`delivery-${normalizedDeliveryBoyId}`);
             debugLog(`✅ [Socket] Delivery boy ${normalizedDeliveryBoyId} joined notification rooms`);
+
+            // Mark delivery boy as online in database automatically upon socket connection
+            try {
+                if (normalizedDeliveryBoyId && normalizedDeliveryBoyId.match(/^[0-9a-fA-F]{24}$/)) {
+                    await Delivery.findByIdAndUpdate(normalizedDeliveryBoyId, { isOnline: true });
+                }
+            } catch (err) {
+                console.error(`Failed to update isOnline for delivery boy ${normalizedDeliveryBoyId}:`, err);
+            }
 
             console.log(`✅ Delivery boy ${normalizedDeliveryBoyId} joined rooms: delivery-notifications, delivery-${normalizedDeliveryBoyId}`);
 
