@@ -257,15 +257,16 @@ export const useDeliveryOrderNotifications = () => {
     }, []);
 
     const handleAccept = useCallback(async (orderId: string) => {
-        if (!socketRef.current || !user?.id) {
-            console.warn('⚠️ [Frontend] Cannot accept order: No socket or user ID', { hasSocket: !!socketRef.current, userId: user?.id });
+        const deliveryBoyId = user?.id || (user as any)?._id;
+        if (!socketRef.current || !deliveryBoyId) {
+            console.warn('⚠️ [Frontend] Cannot accept order: No socket or user ID', { hasSocket: !!socketRef.current, userId: deliveryBoyId });
             return { success: false, message: 'Not connected or user not found' };
         }
 
         console.log('🚀 [Frontend] Attempting to accept order:', orderId, 'Socket connected:', socketRef.current.connected);
 
         try {
-            const result = await acceptOrder(socketRef.current, orderId, user.id);
+            const result = await acceptOrder(socketRef.current, orderId, deliveryBoyId);
             console.log('✅ [Frontend] accept-order response:', result);
 
             if (result.success) {
@@ -304,7 +305,8 @@ export const useDeliveryOrderNotifications = () => {
     }, [user]);
 
     const handleReject = useCallback(async (orderId: string) => {
-        if (!socketRef.current || !user?.id) {
+        const deliveryBoyId = user?.id || (user as any)?._id;
+        if (!socketRef.current || !deliveryBoyId) {
             return { success: false, message: 'Not connected or user not found', allRejected: false };
         }
 
@@ -320,7 +322,7 @@ export const useDeliveryOrderNotifications = () => {
 
         try {
             // Perform the actual rejection in the background
-            const result = await rejectOrder(socketRef.current, orderId, user.id);
+            const result = await rejectOrder(socketRef.current, orderId, deliveryBoyId);
             return result;
         } catch (error: any) {
             console.error('Failed to reject order in background:', error);
@@ -340,7 +342,8 @@ export const useDeliveryOrderNotifications = () => {
     }, []);
 
     useEffect(() => {
-        if (!isAuthenticated || user?.userType !== 'Delivery' || !user?.id) {
+        const deliveryBoyId = user?.id || (user as any)?._id;
+        if (!isAuthenticated || user?.userType !== 'Delivery' || !deliveryBoyId) {
             disconnectSocket();
             return;
         }
