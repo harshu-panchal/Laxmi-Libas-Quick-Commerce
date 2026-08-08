@@ -54,7 +54,8 @@ export const useDeliveryOrderNotifications = () => {
     }, []);
 
     const connectSocket = useCallback(() => {
-        if (!isAuthenticated || user?.userType !== 'Delivery' || !user?.id) {
+        const deliveryBoyId = user?.id || (user as any)?._id;
+        if (!isAuthenticated || user?.userType !== 'Delivery' || !deliveryBoyId) {
             return;
         }
 
@@ -89,7 +90,7 @@ export const useDeliveryOrderNotifications = () => {
             }));
 
             // Join delivery notification room
-            socket.emit('join-delivery-notifications', user.id);
+            socket.emit('join-delivery-notifications', deliveryBoyId);
         });
 
         socket.on('joined-notifications-room', (data: any) => {

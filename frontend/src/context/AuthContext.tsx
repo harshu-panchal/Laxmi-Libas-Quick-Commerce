@@ -39,12 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem("userData");
     if (storedUser) {
-      try {
         const userData = JSON.parse(storedUser);
-        // Ensure userType is set for backward compatibility
-        // If it's a customer-facing app, default to Customer if not specified
-        if (userData && !userData.userType) {
-          userData.userType = "Customer";
+        if (userData) {
+          if (!userData.id && userData._id) {
+            userData.id = userData._id;
+          }
+          if (!userData.userType) {
+            userData.userType = "Customer";
+          }
         }
         return userData;
       } catch (error) {
