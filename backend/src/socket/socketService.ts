@@ -120,7 +120,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
     // Authentication middleware
     io.use((socket, next) => {
-        const token = socket.handshake.auth.token;
+        const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization;
 
         if (!token) {
             // Allow connection but mark as unauthenticated
@@ -128,11 +128,16 @@ export const initializeSocket = (httpServer: HttpServer) => {
         }
 
         try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+            let cleanToken = String(token).trim();
+            if (cleanToken.startsWith('Bearer ')) {
+                cleanToken = cleanToken.slice(7).trim();
+            }
+            const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET as string);
             (socket as any).user = decoded;
             next();
         } catch (error) {
-            next(new Error('Authentication error'));
+            console.warn('⚠️ Socket token verification failed, proceeding unauthenticated:', (error as any)?.message);
+            next();
         }
     });
 
