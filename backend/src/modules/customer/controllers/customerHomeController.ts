@@ -16,7 +16,8 @@ import { findSellersWithinRange } from "../../../utils/locationHelper";
 // Helper function to fetch data for a home section based on its configuration
 async function fetchSectionData(
   section: any,
-  headerCategoryFound?: any
+  headerCategoryFound?: any,
+  nearbySellerIds?: mongoose.Types.ObjectId[] | null
 ): Promise<any[]> {
   try {
     const { categories, subCategories, displayType, limit } = section;
@@ -214,14 +215,16 @@ async function fetchSectionData(
         ],
       };
 
-      // We fetch these irrespective of location radius to show preview images on home page
-      // Location validation still happens at cart/order level
-      // Filter by approved sellers only
-      const approvedSellers = await Seller.find({ status: "Approved" }).select("_id");
-      if (approvedSellers.length > 0) {
-        query.seller = { $in: approvedSellers.map((s) => s._id) };
+      // Filter products by sellers within range if user coordinates are provided
+      if (nearbySellerIds !== null && nearbySellerIds !== undefined) {
+        query.seller = { $in: nearbySellerIds };
       } else {
-        return []; // No approved sellers means no products for this section
+        const approvedSellers = await Seller.find({ status: "Approved" }).select("_id");
+        if (approvedSellers.length > 0) {
+          query.seller = { $in: approvedSellers.map((s) => s._id) };
+        } else {
+          return []; // No approved sellers means no products for this section
+        }
       }
 
       if (categories && categories.length > 0) {
@@ -306,13 +309,12 @@ export const getHomeContent = async (req: Request, res: Response) => {
     const userLat = latitude ? parseFloat(latitude as string) : null;
     const userLng = longitude ? parseFloat(longitude as string) : null;
 
-    let nearbySellerIds: mongoose.Types.ObjectId[] = [];
-    if (userLat !== null && userLng !== null) {
+    let nearbySellerIds: mongoose.Types.ObjectId[] | null = null;
+    if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
       nearbySellerIds = await findSellersWithinRange(userLat, userLng);
-    }
-    
-    // Fallback: If no nearby sellers are found (or no coordinates provided), fallback to all approved sellers so products are ALWAYS shown
-    if (nearbySellerIds.length === 0) {
+      console.log(`[getHomeContent] Found ${nearbySellerIds.length} sellers within range for [${userLat}, ${userLng}]`);
+    } else {
+      // If customer has not provided location, fallback to all approved sellers
       const sellers = await Seller.find({ status: "Approved" }).select("_id");
       nearbySellerIds = sellers.map(s => s._id as mongoose.Types.ObjectId);
     }
@@ -646,7 +648,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
 
     const dynamicSections = await Promise.all(
       homeSections.map(async (section: any) => {
-        const sectionData = await fetchSectionData(section, headerCategoryFound);
+        const sectionData = await fetchSectionData(section, headerCategoryFound, nearbySellerIds);
         return {
           id: section._id.toString(),
           title: section.title,

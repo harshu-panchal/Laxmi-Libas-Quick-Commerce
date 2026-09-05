@@ -319,68 +319,17 @@ export const getProducts = async (req: Request, res: Response) => {
         .lean();
     }
 
-    // ── Always include type="both" + nationwide products in Quick section ──────
-    // These products can be delivered anywhere (All India) so always show in Nearby Delivery
-    // regardless of user's geo-location distance to the seller
-    {
-      const universalPincodeConditions: any[] = [
-        { availablePincodes: "*" },
-        { availablePincodes: "all" },
-        { availablePincodes: "national" },
-        { availablePincodes: { $regex: /^(all|national|india|any|global|unrestricted|every|world)/i } },
-        { availablePincodes: { $size: 0 } },
-        { availablePincodes: { $exists: false } }
-      ];
-      if (userPincode) {
-        universalPincodeConditions.unshift({ availablePincodes: userPincode });
-      }
-
-      const universalBothQuery = {
-        ...baseQuery,
-        type: 'both', // Only "both" type — pure "quick" must still be location-verified
-        $or: universalPincodeConditions
-      };
-
-      const universalBothProducts = await Product.find(universalBothQuery)
-        .populate('category', 'name')
-        .populate('categoryId', 'name')
-        .populate('subcategory', 'name')
-        .populate('subCategoryId', 'name')
-        .populate('seller', 'storeName location serviceRadiusKm city')
-        .populate('sellerId', 'storeName location serviceRadiusKm city')
-        .sort(sort)
-        .limit(limitNum)
-        .lean();
-
-      // Merge into quickProducts, deduplicating by _id
-      const existingQuickIds = new Set(quickProducts.map((p: any) => p._id.toString()));
-      for (const p of universalBothProducts) {
-        if (!existingQuickIds.has((p as any)._id.toString())) {
-          quickProducts.push(p);
-          existingQuickIds.add((p as any)._id.toString());
-        }
-      }
-    }
-
     // ── Fetch Ecommerce (pincode-based) products ────────────────────────────
-    // Always fetch universal "All India" ecommerce products (available everywhere)
-    // Additionally fetch pincode-specific products when user pincode is available
+    // Fetch pincode-specific products when user pincode is available, or All India products if pincode was passed
     let ecommerceProducts: any[] = [];
-    {
-      // Universal delivery products — always show (availablePincodes contains "All India", "all", "*", etc.)
+    if (userPincode) {
       const universalPincodeConditions: any[] = [
+        { availablePincodes: userPincode },
         { availablePincodes: "*" },
         { availablePincodes: "all" },
         { availablePincodes: "national" },
-        { availablePincodes: { $regex: /^(all|national|india|any|global|unrestricted|every|world)/i } },
-        { availablePincodes: { $size: 0 } },
-        { availablePincodes: { $exists: false } }
+        { availablePincodes: { $regex: /^(all|national|india|any|global|unrestricted|every|world)/i } }
       ];
-
-      // If user pincode provided, also include pincode-specific products
-      if (userPincode) {
-        universalPincodeConditions.unshift({ availablePincodes: userPincode });
-      }
 
       const ecomQuery = {
         ...baseQuery,
@@ -401,9 +350,9 @@ export const getProducts = async (req: Request, res: Response) => {
         .lean();
     }
 
-    // ── If no location/pincode given, fall back to all active products ───────
+    // ── If no location and no pincode given, fall back to all active products ───────
     let fallbackProducts: any[] = [];
-    if (!userLat && !userPincode) {
+    if (!userLat && !userPincode && !userCityParam) {
       fallbackProducts = await Product.find(baseQuery)
         .populate('category', 'name')
         .populate('categoryId', 'name')
@@ -420,21 +369,8 @@ export const getProducts = async (req: Request, res: Response) => {
     // ── Merge and deduplicate by _id ─────────────────────────────────────────
     let allRaw = [...quickProducts, ...ecommerceProducts, ...fallbackProducts];
 
-    // Fallback: If no products matched geolocation/pincode filters, return all active products in category
-    if (allRaw.length === 0) {
-      console.log(`[getProducts] No products matched location/pincode filters. Returning all active products under parent category/subcategory.`);
-      allRaw = await Product.find(baseQuery)
-        .populate('category', 'name')
-        .populate('categoryId', 'name')
-        .populate('subcategory', 'name')
-        .populate('subCategoryId', 'name')
-        .populate('seller', 'storeName location serviceRadiusKm city')
-        .populate('sellerId', 'storeName location serviceRadiusKm city')
-        .sort(sort)
-        .limit(limitNum)
-        .skip(skip)
-        .lean();
-    }
+    // Note: If user provided latitude/longitude or pincode, strictly respect the radius/pincode filter!
+    // Do NOT fall back to showing all sellers when the customer is outside the seller's service radius.
 
     const seen = new Set<string>();
     const hybridProducts = allRaw
@@ -578,44 +514,43 @@ export const getProductById = async (req: Request, res: Response) => {
       });
     }
 
-    // Parse location (unused but kept for potential future use)
-    // const userLat = latitude ? parseFloat(latitude as string) : null;
-    // const userLng = longitude ? parseFloat(longitude as string) : null;
+    const userLat = req.query.latitude ? parseFloat(req.query.latitude as string) : (req.query.lat ? parseFloat(req.query.lat as string) : null);
+    const userLng = req.query.longitude ? parseFloat(req.query.longitude as string) : (req.query.lng ? parseFloat(req.query.lng as string) : null);
 
-    // Initialize availability flag - Always true as per user request
     let isAvailableAtLocation = true;
+    let distanceKm: number | null = null;
+    const sellerRadius = (typeof seller?.serviceRadiusKm === 'number' && seller.serviceRadiusKm > 0)
+      ? seller.serviceRadiusKm
+      : 10;
 
-    // Safely get seller ID - handle both populated and unpopulated cases
-    // let sellerId: mongoose.Types.ObjectId | null = null;
-    if (seller) {
-      if (typeof seller === "object" && seller._id) {
-        // Seller is populated
-        // sellerId = seller._id;
-      } else if (seller instanceof mongoose.Types.ObjectId) {
-        // Seller is an ObjectId (not populated)
-        // sellerId = seller;
-      } else if (typeof seller === "string") {
-        // Seller is a string ID
-        // sellerId = new mongoose.Types.ObjectId(seller);
+    if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng) && seller) {
+      let sLat: number | null = null;
+      let sLng: number | null = null;
+
+      if (
+        seller.location?.coordinates &&
+        Array.isArray(seller.location.coordinates) &&
+        seller.location.coordinates.length === 2 &&
+        (seller.location.coordinates[0] !== 0 || seller.location.coordinates[1] !== 0)
+      ) {
+        sLng = Number(seller.location.coordinates[0]);
+        sLat = Number(seller.location.coordinates[1]);
+      } else if (seller.latitude && seller.longitude) {
+        const parsedLat = parseFloat(seller.latitude);
+        const parsedLng = parseFloat(seller.longitude);
+        if (!isNaN(parsedLat) && !isNaN(parsedLng) && (parsedLat !== 0 || parsedLng !== 0)) {
+          sLat = parsedLat;
+          sLng = parsedLng;
+        }
+      }
+
+      if (sLat !== null && sLng !== null) {
+        distanceKm = calculateDistance(userLat, userLng, sLat, sLng);
+        if (product.type === 'quick' || product.deliveryType === 'quick') {
+          isAvailableAtLocation = distanceKm <= sellerRadius;
+        }
       }
     }
-
-    // Location check removed as per user request to allow delivery anywhere
-    /*
-    if (
-      userLat &&
-      userLng &&
-      !isNaN(userLat) &&
-      !isNaN(userLng) &&
-      sellerId &&
-      seller?.location
-    ) {
-      const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
-      isAvailableAtLocation = nearbySellerIds.some(
-        (id) => id.toString() === sellerId!.toString()
-      );
-    }
-    */
 
     // Find similar products (by category)
     const similarProductsQuery: any = {
@@ -731,6 +666,10 @@ export const getQuickProducts = async (req: Request, res: Response) => {
       subcategory: subcategoryParam,
       headerCategory,
       city: userCityParam,
+      lat,
+      lng,
+      latitude,
+      longitude,
       search,
       limit = 20,
       page = 1,
@@ -913,26 +852,28 @@ export const getQuickProducts = async (req: Request, res: Response) => {
       });
     }
 
-    // Filter by city sellers if city param is provided, otherwise fallback to all approved sellers
+    // Filter by coordinates within seller service radius, or by city, or fallback to all approved sellers
+    const userLat = (latitude || lat) ? Number(latitude || lat) : null;
+    const userLng = (longitude || lng) ? Number(longitude || lng) : null;
     const rawCity = userCityParam as string;
     const userCity = (rawCity && rawCity !== 'undefined' && rawCity !== 'null') ? normalizeCity(rawCity) : "";
-    if (userCity) {
+
+    if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
+      const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+      // Strictly restrict to sellers whose service radius covers the customer's location
+      query.seller = { $in: nearbySellerIds };
+      console.log(`[getQuickProducts] Filtered by seller service radius for coords [${userLat}, ${userLng}]. Found ${nearbySellerIds.length} sellers in range.`);
+    } else if (userCity) {
       const sellersInCity = await Seller.find({ 
         city: { $regex: new RegExp(`^${userCity}$`, 'i') }, 
         status: 'Approved' 
       }).select('_id');
       
       const sellerIds = sellersInCity.map(s => s._id);
-      if (sellerIds.length > 0) {
-        query.seller = { $in: sellerIds };
-      } else {
-        // Fallback to all approved sellers if no sellers in specific city
-        const approvedSellers = await Seller.find({ status: 'Approved' }).select('_id');
-        query.seller = { $in: approvedSellers.map(s => s._id) };
-      }
+      query.seller = { $in: sellerIds };
       console.log(`[getQuickProducts] Restricting to sellers in user city "${userCity}":`, sellerIds);
     } else {
-      // If city is not provided, show quick products from all approved sellers
+      // If neither location nor city is provided, fallback to all approved sellers
       const approvedSellers = await Seller.find({ status: 'Approved' }).select('_id');
       query.seller = { $in: approvedSellers.map(s => s._id) };
     }

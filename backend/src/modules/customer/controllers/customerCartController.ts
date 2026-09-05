@@ -6,6 +6,7 @@ import Product from '../../../models/Product';
 // import { findSellersWithinRange } from '../../../utils/locationHelper';
 import AppSettings from '../../../models/AppSettings';
 import { calculateCustomerDeliveryFee } from '../../../services/deliveryFeeService';
+import { calculateDistance } from '../../../utils/locationHelper';
 
 // Helper to calculate item price matching frontend logic
 const calculateItemPrice = (product: any, variation?: string) => {
@@ -98,7 +99,7 @@ export const getCart = async (req: Request, res: Response) => {
                 select: 'productName price mainImage stock pack mrp variations category seller status publish discPrice type deliveryType',
                 populate: {
                     path: 'seller',
-                    select: 'city storeName location'
+                    select: 'city storeName location serviceRadiusKm latitude longitude'
                 }
             }
         });
@@ -115,10 +116,44 @@ export const getCart = async (req: Request, res: Response) => {
         for (const item of (cart.items as any)) {
             const product = item.product;
             if (product && product.status === 'Active' && product.publish) {
-                // Location filtering disabled - all active products are available
-                const isAvailable = true;
+                let isAvailable = true;
+                const seller = product.seller;
+
+                if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng) && seller) {
+                    let sLat: number | null = null;
+                    let sLng: number | null = null;
+
+                    if (
+                        seller.location?.coordinates &&
+                        Array.isArray(seller.location.coordinates) &&
+                        seller.location.coordinates.length === 2 &&
+                        (seller.location.coordinates[0] !== 0 || seller.location.coordinates[1] !== 0)
+                    ) {
+                        sLng = Number(seller.location.coordinates[0]);
+                        sLat = Number(seller.location.coordinates[1]);
+                    } else if (seller.latitude && seller.longitude) {
+                        const parsedLat = parseFloat(seller.latitude);
+                        const parsedLng = parseFloat(seller.longitude);
+                        if (!isNaN(parsedLat) && !isNaN(parsedLng) && (parsedLat !== 0 || parsedLng !== 0)) {
+                            sLat = parsedLat;
+                            sLng = parsedLng;
+                        }
+                    }
+
+                    if (sLat !== null && sLng !== null) {
+                        const dist = calculateDistance(userLat, userLng, sLat, sLng);
+                        const radius = (typeof seller.serviceRadiusKm === 'number' && seller.serviceRadiusKm > 0)
+                            ? seller.serviceRadiusKm
+                            : 10;
+                        if ((product.type === 'quick' || item.selectedDeliveryType === 'quick') && dist > radius) {
+                            isAvailable = false;
+                        }
+                    }
+                }
+
+                item.isAvailable = isAvailable;
+                filteredItems.push(item);
                 if (isAvailable) {
-                    filteredItems.push(item);
                     const price = calculateItemPrice(product, item.variation);
                     total += price * item.quantity;
                     console.log(`[DEBUG CartLoop] Item: ${product.productName}, Variant: ${item.variation}, Price: ${price}, Qty: ${item.quantity}, RunningTotal: ${total}`);
