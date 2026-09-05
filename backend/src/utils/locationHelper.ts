@@ -51,12 +51,60 @@ export async function findSellersWithinRange(
     // Fetch all approved sellers
     const sellers = await Seller.find({
       status: "Approved",
-    }).select("_id");
+    }).select("_id location latitude longitude serviceRadiusKm");
 
-    // Temporarily return all sellers to make service available everywhere
-    return sellers.map(s => s._id as mongoose.Types.ObjectId);
+    const matchedSellerIds: mongoose.Types.ObjectId[] = [];
+
+    for (const seller of sellers) {
+      let sLat: number | null = null;
+      let sLng: number | null = null;
+
+      // Prioritize GeoJSON location field
+      if (
+        seller.location &&
+        Array.isArray(seller.location.coordinates) &&
+        seller.location.coordinates.length === 2 &&
+        (seller.location.coordinates[0] !== 0 || seller.location.coordinates[1] !== 0)
+      ) {
+        sLng = Number(seller.location.coordinates[0]);
+        sLat = Number(seller.location.coordinates[1]);
+      } else if (seller.latitude && seller.longitude) {
+        const parsedLat = parseFloat(seller.latitude);
+        const parsedLng = parseFloat(seller.longitude);
+        if (!isNaN(parsedLat) && !isNaN(parsedLng) && (parsedLat !== 0 || parsedLng !== 0)) {
+          sLat = parsedLat;
+          sLng = parsedLng;
+        }
+      }
+
+      // Skip seller if coordinates are missing or invalid
+      if (
+        sLat === null ||
+        sLng === null ||
+        isNaN(sLat) ||
+        isNaN(sLng) ||
+        sLat < -90 ||
+        sLat > 90 ||
+        sLng < -180 ||
+        sLng > 180
+      ) {
+        continue;
+      }
+
+      const distance = calculateDistance(userLat, userLng, sLat, sLng);
+      const radiusKm =
+        typeof seller.serviceRadiusKm === "number" && seller.serviceRadiusKm > 0
+          ? seller.serviceRadiusKm
+          : 10;
+
+      if (distance <= radiusKm) {
+        matchedSellerIds.push(seller._id as mongoose.Types.ObjectId);
+      }
+    }
+
+    return matchedSellerIds;
   } catch (error) {
-    console.error("Error finding sellers:", error);
+    console.error("Error finding sellers within range:", error);
     return [];
   }
 }

@@ -5,6 +5,7 @@ import Order from "../../../models/Order";
 import OrderItem from "../../../models/OrderItem";
 import Seller from "../../../models/Seller";
 import Delivery from "../../../models/Delivery";
+import { calculateDistance } from "../../../utils/locationHelper";
 
 /**
  * Get tracking information for an order
@@ -395,50 +396,124 @@ export const getSellersInRadius = asyncHandler(
     const lat = parseFloat(latitude as string);
     const lng = parseFloat(longitude as string);
 
-    if (isNaN(lat) || isNaN(lng)) {
+    if (
+      isNaN(lat) ||
+      isNaN(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180 ||
+      (lat === 0 && lng === 0)
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid latitude or longitude",
       });
     }
 
-    // Use aggregation to find sellers whose radius covers the current point
-    // 1. Get all sellers with locations
-    // 2. Filter by distance <= serviceRadiusKm
-    const sellersInRange = await Seller.aggregate([
-      {
-        $geoNear: {
-          near: { type: "Point", coordinates: [lng, lat] },
-          distanceField: "distanceFromDeliveryBoy", // in meters
-          spherical: true,
-          key: "location",
-          // We can't filter by a field's value in $geoNear directly for maxDistance
-          // so we'll filter in the next stage
-        },
-      },
-      {
-        $addFields: {
-          // serviceRadiusKm is in kilometers, distanceFromDeliveryBoy is in meters
-          radiusInMeters: { $multiply: ["$serviceRadiusKm", 1000] },
-        },
-      },
-      {
-        $match: {
-          $expr: {
-            $lte: ["$distanceFromDeliveryBoy", "$radiusInMeters"],
+    let sellersInRange: any[] = [];
+
+    try {
+      // Primary: Use aggregation with $geoNear
+      sellersInRange = await Seller.aggregate([
+        {
+          $geoNear: {
+            near: { type: "Point", coordinates: [lng, lat] },
+            distanceField: "distanceFromDeliveryBoy", // in meters
+            spherical: true,
+            key: "location",
+            query: {
+              status: "Approved",
+              "location.coordinates": { $ne: [0, 0] },
+            },
           },
         },
-      },
-      {
-        $project: {
-          _id: 1,
-          storeName: 1,
-          address: 1,
-          serviceRadiusKm: 1,
-          distanceFromDeliveryBoy: 1,
+        {
+          $addFields: {
+            // serviceRadiusKm is in kilometers, distanceFromDeliveryBoy is in meters
+            // Safely default to 10km if serviceRadiusKm is missing/null
+            radiusInMeters: {
+              $multiply: [{ $ifNull: ["$serviceRadiusKm", 10] }, 1000],
+            },
+          },
         },
-      },
-    ]);
+        {
+          $match: {
+            $expr: {
+              $lte: ["$distanceFromDeliveryBoy", "$radiusInMeters"],
+            },
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            storeName: 1,
+            address: 1,
+            serviceRadiusKm: { $ifNull: ["$serviceRadiusKm", 10] },
+            distanceFromDeliveryBoy: 1,
+          },
+        },
+      ]);
+    } catch (geoErr) {
+      console.warn("MongoDB $geoNear aggregation failed, falling back to Haversine calculation:", geoErr);
+      // Fallback: Haversine manual calculation
+      const approvedSellers = await Seller.find({ status: "Approved" }).select(
+        "_id storeName address location latitude longitude serviceRadiusKm"
+      );
+
+      for (const seller of approvedSellers) {
+        let sLat: number | null = null;
+        let sLng: number | null = null;
+
+        if (
+          seller.location &&
+          Array.isArray(seller.location.coordinates) &&
+          seller.location.coordinates.length === 2 &&
+          (seller.location.coordinates[0] !== 0 || seller.location.coordinates[1] !== 0)
+        ) {
+          sLng = Number(seller.location.coordinates[0]);
+          sLat = Number(seller.location.coordinates[1]);
+        } else if (seller.latitude && seller.longitude) {
+          const parsedLat = parseFloat(seller.latitude);
+          const parsedLng = parseFloat(seller.longitude);
+          if (!isNaN(parsedLat) && !isNaN(parsedLng) && (parsedLat !== 0 || parsedLng !== 0)) {
+            sLat = parsedLat;
+            sLng = parsedLng;
+          }
+        }
+
+        if (
+          sLat === null ||
+          sLng === null ||
+          isNaN(sLat) ||
+          isNaN(sLng) ||
+          sLat < -90 ||
+          sLat > 90 ||
+          sLng < -180 ||
+          sLng > 180
+        ) {
+          continue;
+        }
+
+        const distKm = calculateDistance(lat, lng, sLat, sLng);
+        const radiusKm =
+          typeof seller.serviceRadiusKm === "number" && seller.serviceRadiusKm > 0
+            ? seller.serviceRadiusKm
+            : 10;
+
+        if (distKm <= radiusKm) {
+          sellersInRange.push({
+            _id: seller._id,
+            storeName: seller.storeName,
+            address: seller.address,
+            serviceRadiusKm: radiusKm,
+            distanceFromDeliveryBoy: Math.round(distKm * 1000), // meters
+          });
+        }
+      }
+
+      sellersInRange.sort((a, b) => a.distanceFromDeliveryBoy - b.distanceFromDeliveryBoy);
+    }
 
     return res.status(200).json({
       success: true,

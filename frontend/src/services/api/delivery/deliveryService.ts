@@ -65,6 +65,16 @@ export const getReturnOrders = async () => {
   return response.data.data;
 };
 
+export const getAvailableOrders = async () => {
+  try {
+    const response = await api.get("/delivery/orders/available");
+    return response.data.data || [];
+  } catch (error) {
+    console.error("Failed to fetch available orders:", error);
+    return [];
+  }
+};
+
 export const getPendingOrders = async () => {
   const response = await api.get("/delivery/orders/pending");
   return response.data.data;

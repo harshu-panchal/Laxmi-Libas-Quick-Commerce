@@ -1,7 +1,7 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
-import { handleOrderAcceptance, handleOrderRejection, debugLog } from '../services/orderNotificationService';
+import { handleOrderAcceptance, handleOrderRejection, debugLog, findAvailableOrdersForDeliveryBoy } from '../services/orderNotificationService';
 import Order from '../models/Order';
 import DeliveryTracking from '../models/DeliveryTracking';
 import Delivery from '../models/Delivery';
@@ -250,6 +250,19 @@ export const initializeSocket = (httpServer: HttpServer) => {
                 message: 'Successfully joined delivery notifications room',
                 deliveryBoyId: normalizedDeliveryBoyId
             });
+
+            // Push active available unassigned orders within radius to the reconnecting/joining delivery partner
+            try {
+                const availableOrders = await findAvailableOrdersForDeliveryBoy(normalizedDeliveryBoyId);
+                if (availableOrders && availableOrders.length > 0) {
+                    debugLog(`📦 [Socket] Emitting ${availableOrders.length} active broadcast order(s) to delivery partner ${normalizedDeliveryBoyId} on join`);
+                    for (const orderData of availableOrders) {
+                        socket.emit('new-order', orderData);
+                    }
+                }
+            } catch (syncErr) {
+                console.error(`Failed to sync available orders for delivery boy ${normalizedDeliveryBoyId}:`, syncErr);
+            }
         });
 
         // Handle order acceptance

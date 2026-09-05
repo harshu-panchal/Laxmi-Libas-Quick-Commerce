@@ -470,8 +470,9 @@ function App() {
                               <AppLayout>
                                 <Suspense fallback={<LoadingSpinner />}>
                                   <Routes>
-                                    <Route path="/" element={<LaxmartEntry />} />
+                                    <Route path="/" element={<Home />} />
                                     <Route path="/user/home" element={<Home />} />
+                                    <Route path="/laxmart-entry" element={<LaxmartEntry />} />
                                     <Route path="/travel" element={<TravelStore />} />
                                     <Route path="/store/travel" element={<Navigate to="/travel" replace />} />
                                     <Route path="/travel/hotels" element={<HotelBooking />} />

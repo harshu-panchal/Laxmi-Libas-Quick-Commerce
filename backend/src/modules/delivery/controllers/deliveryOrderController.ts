@@ -9,6 +9,7 @@ import {
   verifyDeliveryOtp,
 } from "../../../services/deliveryOtpService";
 import { processOrderStatusTransition } from "../../../services/orderService";
+import { findAvailableOrdersForDeliveryBoy } from "../../../services/orderNotificationService";
 
 /**
  * Helper to map order items for response
@@ -191,6 +192,27 @@ export const getPendingOrders = asyncHandler(
       data: formattedOrders,
     });
   },
+);
+
+/**
+ * Get Available Orders awaiting acceptance
+ * Returns orders waiting for delivery partner pickup within their radius
+ */
+export const getAvailableOrders = asyncHandler(
+  async (req: Request, res: Response) => {
+    const deliveryId = req.user?.userId;
+    if (!deliveryId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const availableOrders = await findAvailableOrdersForDeliveryBoy(deliveryId);
+
+    return res.status(200).json({
+      success: true,
+      data: availableOrders,
+      count: availableOrders.length,
+    });
+  }
 );
 
 /**

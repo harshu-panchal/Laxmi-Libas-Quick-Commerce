@@ -2,12 +2,16 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import DeliveryHeader from '../components/DeliveryHeader';
 import DeliveryBottomNav from '../components/DeliveryBottomNav';
-import { getPendingOrders, getDashboardStats } from '../../../services/api/delivery/deliveryService';
+import { getPendingOrders, getAvailableOrders, getDashboardStats } from '../../../services/api/delivery/deliveryService';
+import { useDeliveryOrderNotifications } from '../../../hooks/useDeliveryOrderNotifications';
 import { useDeliverySocket } from '../hooks/useDeliverySocket';
 
 export default function DeliveryPendingOrders() {
   const navigate = useNavigate();
+  const { acceptOrder } = useDeliveryOrderNotifications();
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  const [availableOrders, setAvailableOrders] = useState<any[]>([]);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [capacity, setCapacity] = useState<{ active: number; max: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -15,7 +19,7 @@ export default function DeliveryPendingOrders() {
 
   // Listen for real-time delivery notifications
   useDeliverySocket((notification) => {
-    if (notification.type === 'NEW_ORDER') {
+    if (notification.type === 'NEW_ORDER' || notification.type === 'ORDER_ACCEPTED') {
       setRefreshTrigger(prev => prev + 1);
     }
   });
@@ -23,11 +27,13 @@ export default function DeliveryPendingOrders() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const [data, dash] = await Promise.all([
+        const [data, available, dash] = await Promise.all([
           getPendingOrders(),
+          getAvailableOrders().catch(() => []),
           getDashboardStats().catch(() => null),
         ]);
-        setPendingOrders(data);
+        setPendingOrders(data || []);
+        setAvailableOrders(available || []);
         if (dash && typeof dash.activeOrderCount === 'number') {
           setCapacity({
             active: dash.activeOrderCount,
@@ -43,6 +49,21 @@ export default function DeliveryPendingOrders() {
 
     fetchOrders();
   }, [refreshTrigger]);
+
+  const handleAcceptAvailableOrder = async (orderId: string) => {
+    if (acceptingId) return;
+    setAcceptingId(orderId);
+    try {
+      const res = await acceptOrder(orderId);
+      if (res.success) {
+        setRefreshTrigger(prev => prev + 1);
+      }
+    } catch (e) {
+      console.error('Accept error:', e);
+    } finally {
+      setAcceptingId(null);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -106,6 +127,63 @@ export default function DeliveryPendingOrders() {
             Active deliveries: <span className="font-semibold text-teal-700">{capacity.active}</span> / {capacity.max}
           </p>
         )}
+
+        {/* Available Orders Section */}
+        {availableOrders.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <h3 className="text-neutral-900 font-bold text-base">Available for Pickup</h3>
+              </div>
+              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200">
+                {availableOrders.length} Available
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {availableOrders.map((order) => (
+                <div
+                  key={order.orderId}
+                  className="bg-emerald-50/50 rounded-2xl p-4 shadow-sm border border-emerald-200"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="text-neutral-900 font-bold text-sm">#{order.orderNumber}</p>
+                      <p className="text-neutral-600 text-xs">{order.customerName}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-emerald-700 font-bold text-sm">₹{order.deliveryBoyEarning} Earning</span>
+                      {order.distanceKm && (
+                        <p className="text-[11px] text-neutral-500">{order.distanceKm} km away</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="text-neutral-600 text-xs mb-3 line-clamp-1">
+                    📍 {order.deliveryAddress?.address || ""}, {order.deliveryAddress?.city || ""}
+                  </p>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-emerald-100">
+                    <span className="text-xs text-neutral-500">Order Total: ₹{order.total}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAcceptAvailableOrder(order.orderId);
+                      }}
+                      disabled={acceptingId === order.orderId}
+                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-sm disabled:opacity-50"
+                    >
+                      {acceptingId === order.orderId ? "Accepting..." : "Accept Order"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <h3 className="text-neutral-900 font-bold text-base mb-3">Assigned Orders</h3>
 
         {pendingOrders.length > 0 ? (
           <div className="space-y-3">

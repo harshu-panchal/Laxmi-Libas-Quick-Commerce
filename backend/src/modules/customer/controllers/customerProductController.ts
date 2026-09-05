@@ -6,7 +6,7 @@ import Seller from "../../../models/Seller";
 import HeaderCategory from "../../../models/HeaderCategory";
 import mongoose from "mongoose";
 import { normalizeCity, calculateDistance, getDeliveryTypeByDistance } from "../../../utils/locationUtils";
-// import { findSellersWithinRange } from "../../../utils/locationHelper";
+import { findSellersWithinRange } from "../../../utils/locationHelper";
 
 /**
  * Helper to manually populate the subcategory field for products.
@@ -275,29 +275,25 @@ export const getProducts = async (req: Request, res: Response) => {
     // ── Fetch Quick (location-based) products ───────────────────────────────
     let quickProducts: any[] = [];
     if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
-      // Use MongoDB $nearSphere with the 2dsphere index (max 40km default)
-      const maxRadiusMeters = 40 * 1000; // 40 km
-      const quickQuery = {
-        ...baseQuery,
-        type: { $in: ['quick', 'both'] }, // Laxmart shows all quick-eligible products
-        location: {
-          $nearSphere: {
-            $geometry: { type: 'Point', coordinates: [userLng, userLat] },
-            $maxDistance: maxRadiusMeters,
-          },
-        },
-      };
-      quickProducts = await Product.find(quickQuery)
-        .populate('category', 'name')
-        .populate('categoryId', 'name')
-        .populate('subcategory', 'name')
-        .populate('subCategoryId', 'name')
-        .populate('seller', 'storeName location serviceRadiusKm city')
-        .populate('sellerId', 'storeName location serviceRadiusKm city')
-        .sort(sort)
-        .limit(limitNum)
-        .skip(skip)
-        .lean();
+      const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+      if (nearbySellerIds.length > 0) {
+        const quickQuery = {
+          ...baseQuery,
+          type: { $in: ['quick', 'both'] },
+          seller: { $in: nearbySellerIds },
+        };
+        quickProducts = await Product.find(quickQuery)
+          .populate('category', 'name')
+          .populate('categoryId', 'name')
+          .populate('subcategory', 'name')
+          .populate('subCategoryId', 'name')
+          .populate('seller', 'storeName location serviceRadiusKm city')
+          .populate('sellerId', 'storeName location serviceRadiusKm city')
+          .sort(sort)
+          .limit(limitNum)
+          .skip(skip)
+          .lean();
+      }
     } else if (userCityParam) {
       // City-based fallback for quick delivery
       const normalizedCity = normalizeCity(userCityParam as string);
@@ -465,29 +461,45 @@ export const getProducts = async (req: Request, res: Response) => {
           );
         }
 
-        let resolvedDeliveryType = 'e-comm';
-        let resolvedDeliveryLabel = 'E-comm';
-        let resolvedDeliveryTime = '3-5 days';
+        const sellerRadius =
+          typeof seller?.serviceRadiusKm === "number" && seller.serviceRadiusKm > 0
+            ? seller.serviceRadiusKm
+            : 10;
+        const isWithinRadius =
+          userLat !== null && userLng !== null && distance !== null
+            ? distance <= sellerRadius
+            : false;
+
+        let resolvedDeliveryType = "e-comm";
+        let resolvedDeliveryLabel = "E-comm";
+        let resolvedDeliveryTime = "3-5 days";
 
         const pType = product.type || product.deliveryType;
-        if (pType === 'quick') {
-          resolvedDeliveryType = 'quick';
-          resolvedDeliveryLabel = 'Quick Delivery';
-          resolvedDeliveryTime = '30-45 min';
-        } else if (pType === 'ecommerce' || pType === 'e-comm') {
-          resolvedDeliveryType = 'e-comm';
-          resolvedDeliveryLabel = 'E-comm';
-          resolvedDeliveryTime = '3-5 days';
-        } else if (pType === 'both') {
-          const isNearby = (userLat && userLng && distance !== null && distance <= 40) || (sellerCity && userCity && sellerCity === userCity);
-          if (isNearby) {
-            resolvedDeliveryType = 'quick';
-            resolvedDeliveryLabel = 'Quick Delivery';
-            resolvedDeliveryTime = '30-45 min';
+        if (pType === "quick") {
+          if (isWithinRadius || (!userLat && sellerCity && userCity && sellerCity === userCity)) {
+            resolvedDeliveryType = "quick";
+            resolvedDeliveryLabel = "Quick Delivery";
+            resolvedDeliveryTime = "30-45 min";
           } else {
-            resolvedDeliveryType = 'e-comm';
-            resolvedDeliveryLabel = 'E-comm';
-            resolvedDeliveryTime = '3-5 days';
+            resolvedDeliveryType = "e-comm";
+            resolvedDeliveryLabel = "E-comm";
+            resolvedDeliveryTime = "3-5 days";
+          }
+        } else if (pType === "ecommerce" || pType === "e-comm") {
+          resolvedDeliveryType = "e-comm";
+          resolvedDeliveryLabel = "E-comm";
+          resolvedDeliveryTime = "3-5 days";
+        } else if (pType === "both") {
+          const isNearby =
+            isWithinRadius || (!userLat && sellerCity && userCity && sellerCity === userCity);
+          if (isNearby) {
+            resolvedDeliveryType = "quick";
+            resolvedDeliveryLabel = "Quick Delivery";
+            resolvedDeliveryTime = "30-45 min";
+          } else {
+            resolvedDeliveryType = "e-comm";
+            resolvedDeliveryLabel = "E-comm";
+            resolvedDeliveryTime = "3-5 days";
           }
         }
 

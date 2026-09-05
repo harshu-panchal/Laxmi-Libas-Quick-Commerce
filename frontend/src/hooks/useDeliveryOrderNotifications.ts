@@ -3,6 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { OrderNotificationData } from '../services/api/delivery/deliveryOrderNotificationService';
 import { acceptOrder, rejectOrder } from '../services/api/delivery/deliveryOrderNotificationService';
+import { getAvailableOrders } from '../services/api/delivery/deliveryService';
 import { getSocketBaseURL } from '../services/api/config';
 import { toast } from 'react-hot-toast';
 
@@ -53,6 +54,19 @@ export const useDeliveryOrderNotifications = () => {
         });
     }, []);
 
+    const syncAvailableOrders = useCallback(async () => {
+        try {
+            const orders = await getAvailableOrders();
+            if (Array.isArray(orders) && orders.length > 0) {
+                for (const order of orders) {
+                    handleNewNotification(order);
+                }
+            }
+        } catch (err) {
+            console.warn('Failed to sync available orders:', err);
+        }
+    }, [handleNewNotification]);
+
     const connectSocket = useCallback(() => {
         const deliveryBoyId = user?.id || (user as any)?._id;
         if (!isAuthenticated || user?.userType !== 'Delivery' || !deliveryBoyId) {
@@ -91,6 +105,9 @@ export const useDeliveryOrderNotifications = () => {
 
             // Join delivery notification room
             socket.emit('join-delivery-notifications', deliveryBoyId);
+
+            // Sync available orders from server on connect / reconnect
+            syncAvailableOrders();
         });
 
         socket.on('joined-notifications-room', (data: any) => {
@@ -349,6 +366,7 @@ export const useDeliveryOrderNotifications = () => {
         }
 
         const socket = connectSocket();
+        syncAvailableOrders();
 
         return () => {
             if (reconnectTimeoutRef.current) {
@@ -356,7 +374,7 @@ export const useDeliveryOrderNotifications = () => {
             }
             disconnectSocket();
         };
-    }, [isAuthenticated, user, connectSocket, disconnectSocket]);
+    }, [isAuthenticated, user, connectSocket, disconnectSocket, syncAvailableOrders]);
 
     return {
         currentNotification: state.currentNotification,

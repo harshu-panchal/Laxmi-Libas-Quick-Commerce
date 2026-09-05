@@ -325,19 +325,6 @@ export async function findDeliveryBoysNearLocation(
             }
         }
 
-        // Also include delivery boys who don't have tracking data yet (they might be new)
-        // but give them a default distance
-        const trackedIds = new Set(trackingRecords.map(r => r._id.toString()));
-        for (const db of allDeliveryBoys) {
-            if (!trackedIds.has(db._id.toString())) {
-                // Include untracked delivery boys with a default distance
-                nearbyDeliveryBoys.push({
-                    deliveryBoyId: db._id as mongoose.Types.ObjectId,
-                    distance: radiusKm / 2, // Default to half the radius
-                });
-            }
-        }
-
         // Sort by distance (nearest first)
         nearbyDeliveryBoys.sort((a, b) => a.distance - b.distance);
 
@@ -409,7 +396,9 @@ export async function findDeliveryBoysNearSellerLocations(
             }
 
             hasValidSellerLocation = true;
-            const radius = 40; // Strict 40km radius mandated
+            const radius = (typeof seller.serviceRadiusKm === 'number' && seller.serviceRadiusKm > 0)
+                ? seller.serviceRadiusKm
+                : 10;
             const nearbyBoys = await findDeliveryBoysNearLocation(lat, lng, radius);
 
             for (const boy of nearbyBoys) {
@@ -424,11 +413,11 @@ export async function findDeliveryBoysNearSellerLocations(
         // If no nearby boys found OR no valid seller locations found for any seller
         if (nearbyDeliveryBoyMap.size === 0) {
             if (!hasValidSellerLocation) {
-                debugLog('⚠️ No sellers had valid locations. Notifying all available delivery boys as fallback.');
+                debugLog('⚠️ No sellers had valid locations.');
             } else {
-                debugLog('⚠️ No delivery boys found within 40km radius of any seller. Notifying all available delivery boys as fallback.');
+                debugLog('ℹ️ No delivery boys found within service radius of any seller.');
             }
-            return findAvailableDeliveryBoys();
+            return [];
         }
 
         // Sort by distance and return IDs
@@ -440,7 +429,7 @@ export async function findDeliveryBoysNearSellerLocations(
         return sortedBoys;
     } catch (error) {
         debugLog(`Error finding delivery boys near seller locations: ${error}`);
-        return findAvailableDeliveryBoys(); // Ultimate fallback on error
+        return [];
     }
 }
 
@@ -468,20 +457,11 @@ export async function notifyDeliveryBoysOfNewOrder(
 
         debugLog(`🔔 [Notification] New order ${order.orderNumber} (ID: ${order._id}) accepted by seller. Starting broadcast...`);
         
-        // Find delivery boys near seller locations (within service radius)
+        // Find delivery boys strictly near seller locations (within service radius)
         let nearbyDeliveryBoyIds = await findDeliveryBoysNearSellerLocations(order);
         
-        // Fallback 1: If no delivery boys near seller location, try finding any online delivery boys
         if (nearbyDeliveryBoyIds.length === 0) {
-            debugLog('⚠️ No nearby delivery boys found, falling back to all online delivery boys...');
-            nearbyDeliveryBoyIds = await findAvailableDeliveryBoys();
-        }
-
-        // Fallback 2: If still no online delivery boys, fetch all approved delivery boys
-        if (nearbyDeliveryBoyIds.length === 0) {
-            debugLog('⚠️ No online delivery boys found in DB, fetching all Approved delivery boys as safety fallback...');
-            const allApproved = await Delivery.find({ status: 'Approved' }).select('_id');
-            nearbyDeliveryBoyIds = allApproved.map(db => db._id as mongoose.Types.ObjectId);
+            debugLog(`ℹ️ [Notification] No online delivery boys currently within radius for order ${order.orderNumber}. Order will be available when a partner enters radius or reconnects.`);
         }
 
         // Skip partners who already hold max concurrent active orders (default 3)
@@ -554,10 +534,6 @@ export async function notifyDeliveryBoysOfNewOrder(
             debugLog(`📤 Emitted new-order to delivery boy ID: ${idString} via room: ${roomName}`);
         }
 
-        // Broadast to the general delivery-notifications room as well for safety
-        io.to('delivery-notifications').emit('new-order', orderData);
-        debugLog('📢 Also broadcasted new-order to general delivery-notifications room');
-
         if (notifiedIds.size === 0) {
             debugLog('⚠️ No target delivery boys identified to notify');
             return;
@@ -570,9 +546,6 @@ export async function notifyDeliveryBoysOfNewOrder(
             acceptedBy: null,
         });
 
-        // Only notify individual active delivery boys, not the general room
-        // This prevents offline delivery boys from receiving notifications
-
         console.log(`📢 Notified ${notifiedIds.size} connected delivery boys near seller locations about order ${order.orderNumber}`);
     } catch (error) {
         console.error('Error notifying delivery boys:', error);
@@ -580,7 +553,162 @@ export async function notifyDeliveryBoysOfNewOrder(
 }
 
 /**
+ * Find available broadcast orders within radius for a delivery boy
+ * Used on app launch, reconnect, and polling so orders are never missed
+ */
+export async function findAvailableOrdersForDeliveryBoy(
+    deliveryBoyId: string
+): Promise<any[]> {
+    try {
+        const normalizedDeliveryBoyId = String(deliveryBoyId).trim();
+        if (!mongoose.Types.ObjectId.isValid(normalizedDeliveryBoyId)) {
+            return [];
+        }
+
+        const deliveryBoy = await Delivery.findById(normalizedDeliveryBoyId).select(
+            '_id status isOnline location'
+        );
+
+        if (!deliveryBoy || deliveryBoy.status !== 'Approved' || !deliveryBoy.isOnline) {
+            return [];
+        }
+
+        const maxConcurrent = await getMaxConcurrentOrdersPerBoy();
+        const activeCount = await getActiveOrderCountForDeliveryBoy(normalizedDeliveryBoyId);
+        if (activeCount >= maxConcurrent) {
+            return [];
+        }
+
+        let dbLat: number | null = null;
+        let dbLng: number | null = null;
+
+        if (
+            deliveryBoy.location?.coordinates &&
+            Array.isArray(deliveryBoy.location.coordinates) &&
+            deliveryBoy.location.coordinates.length === 2 &&
+            (deliveryBoy.location.coordinates[0] !== 0 || deliveryBoy.location.coordinates[1] !== 0)
+        ) {
+            dbLng = Number(deliveryBoy.location.coordinates[0]);
+            dbLat = Number(deliveryBoy.location.coordinates[1]);
+        } else {
+            const latestTracking = await DeliveryTracking.findOne({
+                deliveryBoy: deliveryBoy._id,
+                $or: [
+                    { 'currentLocation.latitude': { $exists: true }, 'currentLocation.longitude': { $exists: true } },
+                    { latitude: { $exists: true }, longitude: { $exists: true } }
+                ]
+            }).sort({ updatedAt: -1 });
+
+            if (latestTracking) {
+                dbLat = latestTracking.currentLocation?.latitude ?? latestTracking.latitude ?? null;
+                dbLng = latestTracking.currentLocation?.longitude ?? latestTracking.longitude ?? null;
+            }
+        }
+
+        if (dbLat === null || dbLng === null || isNaN(dbLat) || isNaN(dbLng) || (dbLat === 0 && dbLng === 0)) {
+            return [];
+        }
+
+        const candidateOrders = await Order.find({
+            status: { $in: ['Accepted', 'Preparing', 'Packed', 'Ready for pickup', 'Processing'] },
+            $or: [{ deliveryBoy: null }, { deliveryBoy: { $exists: false } }],
+            orderType: { $ne: 'ecommerce' },
+            deliveryType: { $ne: 'courier' },
+            createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+        })
+        .populate({
+            path: 'items',
+            populate: { path: 'seller', select: 'location latitude longitude serviceRadiusKm storeName' }
+        })
+        .sort({ createdAt: -1 })
+        .limit(30)
+        .lean();
+
+        const availableOrders: any[] = [];
+
+        for (const order of candidateOrders) {
+            const orderIdStr = order._id.toString();
+            const state = notificationStates.get(orderIdStr);
+            if (state?.rejectedDeliveryBoys?.has(normalizedDeliveryBoyId)) {
+                continue;
+            }
+            if (state?.acceptedBy) {
+                continue;
+            }
+
+            let isWithinRange = false;
+            let minDistanceKm = Infinity;
+
+            const sellers: any[] = [];
+            for (const item of ((order.items || []) as any[])) {
+                if (item && item.seller && typeof item.seller === 'object') {
+                    sellers.push(item.seller);
+                }
+            }
+
+            for (const seller of sellers) {
+                let sLat: number | null = null;
+                let sLng: number | null = null;
+
+                if (
+                    seller.location?.coordinates &&
+                    Array.isArray(seller.location.coordinates) &&
+                    seller.location.coordinates.length === 2 &&
+                    (seller.location.coordinates[0] !== 0 || seller.location.coordinates[1] !== 0)
+                ) {
+                    sLng = Number(seller.location.coordinates[0]);
+                    sLat = Number(seller.location.coordinates[1]);
+                } else if (seller.latitude && seller.longitude) {
+                    const parsedLat = parseFloat(seller.latitude);
+                    const parsedLng = parseFloat(seller.longitude);
+                    if (!isNaN(parsedLat) && !isNaN(parsedLng) && (parsedLat !== 0 || parsedLng !== 0)) {
+                        sLat = parsedLat;
+                        sLng = parsedLng;
+                    }
+                }
+
+                if (sLat !== null && sLng !== null && !isNaN(sLat) && !isNaN(sLng)) {
+                    const dist = calculateDistance(sLat, sLng, dbLat, dbLng);
+                    const radius = (typeof seller.serviceRadiusKm === 'number' && seller.serviceRadiusKm > 0)
+                        ? seller.serviceRadiusKm
+                        : 10;
+                    if (dist <= radius) {
+                        isWithinRange = true;
+                        if (dist < minDistanceKm) {
+                            minDistanceKm = dist;
+                        }
+                    }
+                }
+            }
+
+            if (isWithinRange) {
+                const earning = await calculateEstimatedDeliveryBoyEarning(order);
+                availableOrders.push({
+                    orderId: order._id.toString(),
+                    orderNumber: order.orderNumber,
+                    customerName: order.customerName,
+                    customerPhone: order.customerPhone,
+                    deliveryAddress: order.deliveryAddress,
+                    total: order.total,
+                    subtotal: order.subtotal,
+                    shipping: order.shipping,
+                    deliveryBoyEarning: earning,
+                    distanceKm: Math.round(minDistanceKm * 10) / 10,
+                    createdAt: order.createdAt
+                });
+            }
+        }
+
+        return availableOrders;
+    } catch (error) {
+        console.error('Error finding available orders for delivery boy:', error);
+        return [];
+    }
+}
+
+/**
  * Handle order acceptance by a delivery boy
+ * Uses atomic findOneAndUpdate to prevent race conditions when two partners tap Accept
  */
 export async function handleOrderAcceptance(
     io: SocketIOServer,
@@ -589,86 +717,81 @@ export async function handleOrderAcceptance(
 ): Promise<{ success: boolean; message: string }> {
     debugLog(`🚀 [DEBUG_ACCEPT_START] orderId=${orderId}, deliveryBoyId=${deliveryBoyId}`);
     try {
-        const state = notificationStates.get(orderId);
         const normalizedDeliveryBoyId = String(deliveryBoyId).trim();
+        if (!mongoose.Types.ObjectId.isValid(normalizedDeliveryBoyId)) {
+            return { success: false, message: 'Invalid delivery partner ID' };
+        }
+        const boyObjectId = new mongoose.Types.ObjectId(normalizedDeliveryBoyId);
 
-        // 1. In-Memory Check (Preferred)
+        const state = notificationStates.get(orderId);
+
+        // Check in-memory state
         if (state) {
-            // Check if already accepted in memory
-            if (state.acceptedBy) {
-                return { success: false, message: 'Order already accepted by another delivery boy' };
+            if (state.acceptedBy && state.acceptedBy !== normalizedDeliveryBoyId) {
+                return { success: false, message: 'Order already accepted by another delivery partner' };
             }
-
-            // If this delivery boy was not in the initial notified list (e.g. they received it via general broadcast)
-            // we allow them to accept it anyway since they clearly received the notification.
-            // REGARDLESS of notified list, allow acceptance
-            if (!state.notifiedDeliveryBoys.has(normalizedDeliveryBoyId)) {
-                debugLog(`🛡️ [DEBUG_BYPASS] Allowing non-notified boy: ${normalizedDeliveryBoyId}`);
-                state.notifiedDeliveryBoys.add(normalizedDeliveryBoyId);
-            }
-
-            // Check if this delivery boy already rejected
             if (state.rejectedDeliveryBoys.has(normalizedDeliveryBoyId)) {
                 return { success: false, message: 'You have already rejected this order' };
             }
-
-            // Mark as accepted in memory
-            state.acceptedBy = normalizedDeliveryBoyId;
-        } else {
-            console.log(`⚠️ Notification state missing for order ${orderId}. Checking database for fallback...`);
-            // 2. Database Fallback (For server restarts/stale notifications)
-            // We skip "notified" and "rejected" checks because that data is lost.
-            // We assume if they have the ID, they were notified effectively.
         }
 
-        // Update order in database
-        const order = await Order.findById(orderId);
-        if (!order) {
-            return { success: false, message: 'Order not found' };
-        }
-
-        // Prevent acceptance of courier / ecommerce orders
-        if (
-            order.orderType === 'ecommerce' ||
-            order.deliveryType === 'courier' ||
-            (order.deliveryFlow && order.deliveryFlow !== 'auto')
-        ) {
-            return { success: false, message: 'This order is not for local delivery' };
-        }
-
-        // Already assigned — allow same partner to accept again (e.g. after auto-assign)
-        if (order.deliveryBoy) {
-            if (order.deliveryBoy.toString() === normalizedDeliveryBoyId) {
-                return { success: true, message: 'Order already assigned to you' };
-            }
-            return { success: false, message: 'Order already assigned to another delivery boy' };
-        }
-
+        // Capacity check
         const maxConcurrent = await getMaxConcurrentOrdersPerBoy();
         const activeCount = await getActiveOrderCountForDeliveryBoy(normalizedDeliveryBoyId);
         if (activeCount >= maxConcurrent) {
             return {
                 success: false,
-                message: `You already have ${activeCount} active orders (maximum ${maxConcurrent}). Complete or deliver one before accepting more.`,
+                message: `You already have ${activeCount} active orders (maximum ${maxConcurrent}). Complete one before accepting more.`,
             };
         }
 
-        // Assign order to delivery boy
-        order.deliveryBoy = new mongoose.Types.ObjectId(normalizedDeliveryBoyId);
-        order.deliveryBoyStatus = 'Assigned';
-        order.assignedAt = new Date();
-        order.status = 'Assigned'; // Use 'Assigned' instead of 'Processed' to match frontend filter
+        // ATOMIC MongoDB assignment
+        const assignedOrder = await Order.findOneAndUpdate(
+            {
+                _id: orderId,
+                $or: [
+                    { deliveryBoy: null },
+                    { deliveryBoy: { $exists: false } },
+                    { deliveryBoy: boyObjectId } // Idempotent re-acceptance
+                ],
+                status: { $in: ['Accepted', 'Preparing', 'Packed', 'Ready for pickup', 'Processing', 'Assigned'] },
+                orderType: { $ne: 'ecommerce' },
+                deliveryType: { $ne: 'courier' }
+            },
+            {
+                $set: {
+                    deliveryBoy: boyObjectId,
+                    deliveryBoyStatus: 'Assigned',
+                    assignedAt: new Date(),
+                    status: 'Assigned'
+                }
+            },
+            { new: true }
+        );
 
-        await order.save();
-        debugLog(`✅ [handleOrderAcceptance] Order ${orderId} saved with deliveryBoy ${normalizedDeliveryBoyId}`);
+        if (!assignedOrder) {
+            const currentOrder = await Order.findById(orderId).select('deliveryBoy orderNumber status');
+            if (!currentOrder) {
+                return { success: false, message: 'Order not found' };
+            }
+            if (currentOrder.deliveryBoy && currentOrder.deliveryBoy.toString() !== normalizedDeliveryBoyId) {
+                return { success: false, message: 'Order was just accepted by another delivery partner' };
+            }
+            return { success: false, message: 'Order is no longer available for assignment' };
+        }
 
-        // Emit order-accepted event to stop notifications for all delivery boys
+        if (state) {
+            state.acceptedBy = normalizedDeliveryBoyId;
+        }
+
+        debugLog(`✅ [handleOrderAcceptance] Order ${orderId} atomically assigned to ${normalizedDeliveryBoyId}`);
+
+        // Broadcast order-accepted event to clear notifications across all listening delivery boys
         io.to('delivery-notifications').emit('order-accepted', {
             orderId,
             acceptedBy: normalizedDeliveryBoyId,
         });
 
-        // Also emit to individual rooms (notifiedId is already a string from Set)
         if (state) {
             for (const notifiedId of state.notifiedDeliveryBoys) {
                 const notifiedIdString = String(notifiedId).trim();
@@ -677,38 +800,33 @@ export async function handleOrderAcceptance(
                     acceptedBy: normalizedDeliveryBoyId,
                 });
             }
-            // Clean up notification state
             notificationStates.delete(orderId);
         } else {
-            // If no state, we can't emit to specific originally notified list,
-            // but 'delivery-notifications' room covers the general case.
-            // We can also try to emit to the accepting delivery boy just in case
             io.to(`delivery-${normalizedDeliveryBoyId}`).emit('order-accepted', {
                 orderId,
                 acceptedBy: normalizedDeliveryBoyId,
             });
         }
 
-        // Emit delivery-boy-accepted event to customer for tracking
+        // Customer real-time notification
         io.to(`order-${orderId}`).emit('delivery-boy-accepted', {
             orderId,
             deliveryBoyId: normalizedDeliveryBoyId,
-            message: 'Delivery boy accepted your order. Tracking started.',
+            message: 'Delivery partner accepted your order. Tracking started.',
         });
 
         try {
             const { notifyCustomerOrderUpdate } = await import('./customerOrderNotificationService');
             await notifyCustomerOrderUpdate(
                 io,
-                order,
+                assignedOrder,
                 'Delivery partner assigned',
-                `A delivery partner accepted order #${order.orderNumber} and is on the way.`
+                `A delivery partner accepted order #${assignedOrder.orderNumber} and is on the way.`
             );
         } catch (custErr) {
             console.error('Customer notification after delivery accept failed:', custErr);
         }
 
-        console.log(`✅ Order ${orderId} accepted by delivery boy ${normalizedDeliveryBoyId} ${state ? '(Memory)' : '(DB Fallback)'}`);
         return { success: true, message: 'Order accepted successfully' };
     } catch (error) {
         debugLog(`❌ [handleOrderAcceptance] Error: ${error}`);
