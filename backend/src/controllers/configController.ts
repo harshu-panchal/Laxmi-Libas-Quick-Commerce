@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import AppSettings from "../models/AppSettings";
+import PaymentMethod from "../models/PaymentMethod";
 
 /**
  * Get public configuration like Google Maps Key
@@ -8,6 +9,13 @@ export const getPublicConfig = async (_req: Request, res: Response) => {
   try {
     const settings = await AppSettings.getSettings();
     
+    // Fetch active payment methods status
+    const paymentMethods = await PaymentMethod.find({});
+    const codMethod = paymentMethods.find((pm) => pm.type === "COD");
+    const onlineMethod = paymentMethods.find(
+      (pm) => pm.type === "Online" || pm.provider?.toLowerCase() === "phonepe"
+    );
+
     // Only return safe, public configuration
     res.status(200).json({
       success: true,
@@ -30,6 +38,10 @@ export const getPublicConfig = async (_req: Request, res: Response) => {
         invoiceFooter: settings.invoiceFooter,
         gstNumber: settings.gstNumber,
         socialLinks: settings.socialLinks,
+        paymentMethods: {
+          cod: codMethod ? codMethod.isActive : true,
+          online: onlineMethod ? onlineMethod.isActive : true,
+        },
       }
     });
   } catch (error: any) {

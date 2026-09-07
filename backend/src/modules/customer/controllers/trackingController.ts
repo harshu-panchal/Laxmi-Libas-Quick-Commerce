@@ -430,10 +430,9 @@ export const getSellersInRadius = asyncHandler(
         },
         {
           $addFields: {
-            // serviceRadiusKm is in kilometers, distanceFromDeliveryBoy is in meters
-            // Safely default to 10km if serviceRadiusKm is missing/null
+            // Delivery partner service radius strictly capped at 5km (5000 meters)
             radiusInMeters: {
-              $multiply: [{ $ifNull: ["$serviceRadiusKm", 10] }, 1000],
+              $multiply: [{ $min: [{ $ifNull: ["$serviceRadiusKm", 5] }, 5] }, 1000],
             },
           },
         },
@@ -498,8 +497,8 @@ export const getSellersInRadius = asyncHandler(
         const distKm = calculateDistance(lat, lng, sLat, sLng);
         const radiusKm =
           typeof seller.serviceRadiusKm === "number" && seller.serviceRadiusKm > 0
-            ? seller.serviceRadiusKm
-            : 10;
+            ? Math.min(seller.serviceRadiusKm, 5)
+            : 5;
 
         if (distKm <= radiusKm) {
           sellersInRange.push({

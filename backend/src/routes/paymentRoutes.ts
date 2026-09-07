@@ -9,8 +9,61 @@ import {
 import { notifySellersOfOrderUpdate } from '../services/sellerNotificationService';
 import { Server as SocketIOServer } from 'socket.io';
 import mongoose from 'mongoose';
+import PaymentMethod from '../models/PaymentMethod';
 
 const router = Router();
+
+/**
+ * @desc    Public: Get available payment methods and their active statuses
+ * @route   GET /api/payment/methods or /api/payment-methods
+ * @access  Public
+ */
+router.get('/methods', async (_req: Request, res: Response) => {
+    try {
+        let paymentMethods = await PaymentMethod.find({}).sort({ order: 1 });
+
+        if (paymentMethods.length === 0) {
+            const defaults = [
+                {
+                    name: "Cash On Delivery (COD)",
+                    type: "COD",
+                    description: "Pay when you receive your order",
+                    isActive: true,
+                    order: 1,
+                },
+                {
+                    name: "PhonePe",
+                    type: "Online",
+                    provider: "phonepe",
+                    description: "Pay securely with PhonePe",
+                    isActive: true,
+                    order: 2,
+                }
+            ];
+            await PaymentMethod.insertMany(defaults);
+            paymentMethods = await PaymentMethod.find({}).sort({ order: 1 });
+        }
+
+        const data = paymentMethods.map((pm: any) => ({
+            id: pm._id,
+            name: pm.name,
+            type: pm.type,
+            provider: pm.provider,
+            isActive: pm.isActive,
+            description: pm.description,
+        }));
+
+        return res.status(200).json({
+            success: true,
+            data,
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to fetch payment methods',
+        });
+    }
+});
 
 /**
  * @desc    🎯 Rebuild Phase: Create Payment

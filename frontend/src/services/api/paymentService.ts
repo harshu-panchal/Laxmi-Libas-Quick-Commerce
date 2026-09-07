@@ -117,3 +117,27 @@ export const checkUnifiedStatus = async (orderId: string) => {
         throw error;
     }
 };
+
+// ─── 5. Public Payment Methods ────────────────────────────────────────────────
+
+export interface PublicPaymentMethod {
+    id: string;
+    name: string;
+    type: string;
+    provider?: string;
+    isActive: boolean;
+    description?: string;
+}
+
+export const getPublicPaymentMethods = async (): Promise<{ success: boolean; data: PublicPaymentMethod[] }> => {
+    try {
+        const response = await api.get('/payment-methods');
+        return response.data;
+    } catch (error: any) {
+        console.warn('[PaymentService] getPublicPaymentMethods error, falling back:', error?.message);
+        return {
+            success: false,
+            data: []
+        };
+    }
+};

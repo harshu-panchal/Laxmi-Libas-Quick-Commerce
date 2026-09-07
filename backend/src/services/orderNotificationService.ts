@@ -221,10 +221,13 @@ async function findDeliveryBoysNearLocationManual(
     return nearby;
 }
 
+/** Maximum dispatch/search radius for delivery partners around seller store (5 km) */
+export const MAX_DELIVERY_BOY_RADIUS_KM = 5;
+
 export async function findDeliveryBoysNearLocation(
     latitude: number,
     longitude: number,
-    radiusKm: number = 10
+    radiusKm: number = MAX_DELIVERY_BOY_RADIUS_KM
 ): Promise<{ deliveryBoyId: mongoose.Types.ObjectId; distance: number }[]> {
     try {
         // 1. Try to find delivery boys using the new GeoJSON location field in Delivery model
@@ -396,9 +399,10 @@ export async function findDeliveryBoysNearSellerLocations(
             }
 
             hasValidSellerLocation = true;
+            // Delivery boy range must strictly be within 5km of the seller
             const radius = (typeof seller.serviceRadiusKm === 'number' && seller.serviceRadiusKm > 0)
-                ? seller.serviceRadiusKm
-                : 10;
+                ? Math.min(seller.serviceRadiusKm, MAX_DELIVERY_BOY_RADIUS_KM)
+                : MAX_DELIVERY_BOY_RADIUS_KM;
             const nearbyBoys = await findDeliveryBoysNearLocation(lat, lng, radius);
 
             for (const boy of nearbyBoys) {
@@ -669,9 +673,10 @@ export async function findAvailableOrdersForDeliveryBoy(
 
                 if (sLat !== null && sLng !== null && !isNaN(sLat) && !isNaN(sLng)) {
                     const dist = calculateDistance(sLat, sLng, dbLat, dbLng);
+                    // Delivery boy range must strictly be within 5km of the seller
                     const radius = (typeof seller.serviceRadiusKm === 'number' && seller.serviceRadiusKm > 0)
-                        ? seller.serviceRadiusKm
-                        : 10;
+                        ? Math.min(seller.serviceRadiusKm, MAX_DELIVERY_BOY_RADIUS_KM)
+                        : MAX_DELIVERY_BOY_RADIUS_KM;
                     if (dist <= radius) {
                         isWithinRange = true;
                         if (dist < minDistanceKm) {

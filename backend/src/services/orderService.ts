@@ -11,6 +11,7 @@ import { notifySellersOfOrderUpdate } from "./sellerNotificationService";
 import { sendNotification, sendBroadcastNotification } from "./notificationService";
 import { Server as SocketIOServer } from "socket.io";
 import AppSettings from "../models/AppSettings";
+import PaymentMethod from "../models/PaymentMethod";
 import { calculateCustomerDeliveryFee } from "./deliveryFeeService";
 
 export const finalizeOrderCreation = async (
@@ -88,8 +89,12 @@ export const finalizeOrderCreation = async (
 
     const parentOrderId = `PARENT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     
-    // For COD, lock stock now. For Online, it was locked during PaymentIntent creation.
+    // For COD, verify that COD is active in settings before proceeding.
     if (paymentMethod === 'COD') {
+        const codConfig = await PaymentMethod.findOne({ type: 'COD' });
+        if (codConfig && !codConfig.isActive) {
+            throw new Error("Cash on Delivery (COD) is currently disabled.");
+        }
         await InventoryService.lockProductStock(userId, items);
     }
 

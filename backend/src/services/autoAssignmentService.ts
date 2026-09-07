@@ -24,8 +24,8 @@ export const autoAssignDeliveryBoy = async (orderId: string, io?: SocketIOServer
         return { success: false, message: "Order delivery location coordinates missing" };
     }
 
-    // Find nearest online and approved delivery boy within 10km
-    const maxDistanceInMeters = 10000; 
+    // Find nearest online and approved delivery boy within 5km
+    const maxDistanceInMeters = 5000; 
     
     let nearbyDeliveryBoys: any[] = [];
     try {

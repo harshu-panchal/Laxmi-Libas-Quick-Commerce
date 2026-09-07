@@ -33,13 +33,13 @@ import GoogleMapsLocationPicker from "../../components/GoogleMapsLocationPicker"
 import { getProducts } from "../../services/api/customerProductService";
 import { addToWishlist } from "../../services/api/customerWishlistService";
 import { updateProfile } from "../../services/api/customerService";
-import { createPhonePeOrder } from "../../services/api/paymentService";
+import { createPhonePeOrder, getPublicPaymentMethods } from "../../services/api/paymentService";
 import { calculateProductPrice } from "../../utils/priceUtils";
 import { createOrder } from "../../services/api/customerOrderService";
 import { normalizeCity } from "../../utils/locationUtils";
 
 /** Set VITE_ENABLE_COD=false in .env to disable Cash on Delivery at checkout (enabled by default) */
-const CHECKOUT_COD_ENABLED =
+const ENV_COD_ENABLED =
   import.meta.env.VITE_ENABLE_COD !== "false";
 
 // const STORAGE_KEY = 'saved_address'; // Removed
@@ -186,6 +186,42 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState<"Online" | "COD">(
     "Online",
   );
+  const [isCodEnabled, setIsCodEnabled] = useState<boolean>(ENV_COD_ENABLED);
+  const [isOnlineEnabled, setIsOnlineEnabled] = useState<boolean>(true);
+
+  // Fetch active payment methods configuration from backend
+  useEffect(() => {
+    const fetchPaymentMethodsConfig = async () => {
+      try {
+        const res = await getPublicPaymentMethods();
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const codMethod = res.data.find(
+            (m) => m.type === "COD" || m.name?.toLowerCase().includes("cash on delivery")
+          );
+          const onlineMethod = res.data.find(
+            (m) => m.type === "Online" || m.provider?.toLowerCase() === "phonepe" || m.name?.toLowerCase().includes("phonepe")
+          );
+
+          const codActive = codMethod ? codMethod.isActive : true;
+          const onlineActive = onlineMethod ? onlineMethod.isActive : true;
+          const effectiveCod = codActive && ENV_COD_ENABLED;
+
+          setIsCodEnabled(effectiveCod);
+          setIsOnlineEnabled(onlineActive);
+
+          // If COD is inactive and currently selected, fallback to Online
+          if (!effectiveCod) {
+            setPaymentMethod("Online");
+          } else if (!onlineActive) {
+            setPaymentMethod("COD");
+          }
+        }
+      } catch (err) {
+        console.warn("[Checkout] Failed to load payment methods config:", err);
+      }
+    };
+    fetchPaymentMethodsConfig();
+  }, []);
 
   // Payment State
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
@@ -1782,47 +1818,49 @@ export default function Checkout() {
         <h2 className="text-sm font-bold text-neutral-900 mb-3">
           Payment Method
         </h2>
-        <div className={`grid gap-3 ${CHECKOUT_COD_ENABLED ? "grid-cols-2" : "grid-cols-1"}`}>
-          <button
-            type="button"
-            onClick={() => setPaymentMethod("Online")}
-            className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all w-full relative overflow-hidden ${
-              paymentMethod === "Online"
-                ? "border-primary-dark bg-yellow-50 text-yellow-700"
-                : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"
-            }`}
-          >
-            {paymentMethod === "Online" && (
-              <div className="absolute top-2 right-2 flex items-center gap-1 bg-primary-dark text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                Selected
-              </div>
-            )}
-            <div
-              className={`w-10 h-10 rounded-full mb-2.5 flex items-center justify-center shadow-md ${
-                paymentMethod === "Online" ? "bg-primary-dark" : "bg-neutral-200"
+        <div className={`grid gap-3 ${isCodEnabled && isOnlineEnabled ? "grid-cols-2" : "grid-cols-1"}`}>
+          {isOnlineEnabled && (
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("Online")}
+              className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all w-full relative overflow-hidden ${
+                paymentMethod === "Online"
+                  ? "border-primary-dark bg-yellow-50 text-yellow-700"
+                  : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"
               }`}
             >
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke={paymentMethod === "Online" ? "white" : "currentColor"}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+              {paymentMethod === "Online" && (
+                <div className="absolute top-2 right-2 flex items-center gap-1 bg-primary-dark text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                  Selected
+                </div>
+              )}
+              <div
+                className={`w-10 h-10 rounded-full mb-2.5 flex items-center justify-center shadow-md ${
+                  paymentMethod === "Online" ? "bg-primary-dark" : "bg-neutral-200"
+                }`}
               >
-                <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-                <line x1="1" y1="10" x2="23" y2="10" />
-              </svg>
-            </div>
-            <span className="text-sm font-bold uppercase">Online</span>
-            <p className="text-[10px] mt-1 font-medium opacity-80 text-center">
-              UPI, Cards, NetBanking
-            </p>
-          </button>
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke={paymentMethod === "Online" ? "white" : "currentColor"}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                  <line x1="1" y1="10" x2="23" y2="10" />
+                </svg>
+              </div>
+              <span className="text-sm font-bold uppercase">Online</span>
+              <p className="text-[10px] mt-1 font-medium opacity-80 text-center">
+                UPI, Cards, NetBanking
+              </p>
+            </button>
+          )}
 
-          {CHECKOUT_COD_ENABLED && (
+          {isCodEnabled && (
             <button
               type="button"
               onClick={() => setPaymentMethod("COD")}

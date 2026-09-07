@@ -97,6 +97,10 @@ router.post("/dev/replay-seller-notify/:orderId", async (req, res) => {
 
 // Public Configuration routes
 router.get("/config/public", configController.getPublicConfig);
+router.use("/payment-methods", (req, res, next) => {
+  req.url = "/methods" + (req.url === "/" ? "" : req.url);
+  paymentRoutes(req, res, next);
+});
 
 // Authentication routes
 router.use("/auth/admin", adminAuthRoutes);
