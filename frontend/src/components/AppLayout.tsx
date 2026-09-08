@@ -424,7 +424,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           )}
 
           {/* Fixed Bottom Navigation - Mobile Only, Hidden on checkout pages */}
-          {showFooter && location.pathname !== '/' && (
+          {showFooter && (
             <nav
               className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-neutral-100 shadow-[0_-1px_10px_rgba(0,0,0,0.02)] z-50 md:hidden pb-[env(safe-area-inset-bottom,20px)]"
             >
