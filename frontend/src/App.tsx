@@ -21,9 +21,8 @@ import RouteTransition from "./components/RouteTransition";
 import { useEffect } from "react";
 import { initializePushNotifications, setupForegroundNotificationHandler } from "./services/pushNotificationService";
 
-// Critical routes - load immediately (Home, LaxmartEntry)
+// Critical routes - load immediately (Home)
 import Home from "./modules/user/Home";
-import LaxmartEntry from "./modules/user/LaxmartEntry";
 
 // Route-level Dynamic lazy loading for TRAVEL & HOTEL Modules
 const TravelStore = lazy(() => import("./modules/user/TravelStore"));
@@ -470,9 +469,9 @@ function App() {
                               <AppLayout>
                                 <Suspense fallback={<LoadingSpinner />}>
                                   <Routes>
-                                    <Route path="/" element={<Home />} />
+                                    <Route path="/" element={<Navigate to="/user/home" replace />} />
                                     <Route path="/user/home" element={<Home />} />
-                                    <Route path="/laxmart-entry" element={<LaxmartEntry />} />
+                                    <Route path="/laxmart-entry" element={<Navigate to="/user/home" replace />} />
                                     <Route path="/travel" element={<TravelStore />} />
                                     <Route path="/store/travel" element={<Navigate to="/travel" replace />} />
                                     <Route path="/travel/hotels" element={<HotelBooking />} />
