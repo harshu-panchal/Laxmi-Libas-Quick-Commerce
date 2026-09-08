@@ -371,12 +371,13 @@ export default function ProductDetail() {
       return;
     }
 
-    const productType = product?.type || product?.deliveryType;
+    const isQuickAvailable = (product as any)?.deliveryType === "quick" ||
+      ((product as any)?.quickDeliveryAvailable === true && (product as any)?.deliveryType !== "e-comm");
     let selectedDeliveryType: "quick" | "ecommerce" = "quick";
 
-    if (productType === "ecommerce") {
+    if (!isQuickAvailable || product?.type === "ecommerce" || (product as any)?.deliveryType === "e-comm" || (product as any)?.deliveryType === "ecommerce") {
       selectedDeliveryType = "ecommerce";
-    } else if (productType === "quick" || productType === "both") {
+    } else {
       selectedDeliveryType = "quick";
     }
 

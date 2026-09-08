@@ -1642,8 +1642,10 @@ export default function Checkout() {
                       <span className="text-[8px] text-neutral-500">(85)</span>
                     </div>
 
-                    <div className="text-[9px] text-neutral-600 mb-0.5">
-                      20 MINS
+                    <div className="text-[9px] text-neutral-600 mb-0.5 font-medium">
+                      {(product.deliveryType === 'ecommerce' || product.deliveryType === 'e-comm' || product.type === 'ecommerce' || (product as any).quickDeliveryAvailable === false) 
+                        ? '🚚 3-5 DAYS' 
+                        : '⚡ 20-30 MINS'}
                     </div>
 
                     {/* Discount - Blue Text */}

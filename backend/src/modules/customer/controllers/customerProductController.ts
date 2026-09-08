@@ -319,36 +319,37 @@ export const getProducts = async (req: Request, res: Response) => {
         .lean();
     }
 
-    // ── Fetch Ecommerce (pincode-based) products ────────────────────────────
-    // Fetch pincode-specific products when user pincode is available, or All India products if pincode was passed
+    // ── Fetch Ecommerce products ────────────────────────────
     let ecommerceProducts: any[] = [];
+    const universalPincodeConditions: any[] = [
+      { availablePincodes: "*" },
+      { availablePincodes: "all" },
+      { availablePincodes: "national" },
+      { availablePincodes: { $regex: /^(all|national|india|any|global|unrestricted|every|world)/i } }
+    ];
     if (userPincode) {
-      const universalPincodeConditions: any[] = [
-        { availablePincodes: userPincode },
-        { availablePincodes: "*" },
-        { availablePincodes: "all" },
-        { availablePincodes: "national" },
-        { availablePincodes: { $regex: /^(all|national|india|any|global|unrestricted|every|world)/i } }
-      ];
-
-      const ecomQuery = {
-        ...baseQuery,
-        type: { $in: ['ecommerce', 'both'] },
-        $or: universalPincodeConditions
-      };
-
-      ecommerceProducts = await Product.find(ecomQuery)
-        .populate('category', 'name')
-        .populate('categoryId', 'name')
-        .populate('subcategory', 'name')
-        .populate('subCategoryId', 'name')
-        .populate('seller', 'storeName location serviceRadiusKm')
-        .populate('sellerId', 'storeName location serviceRadiusKm')
-        .sort(sort)
-        .limit(limitNum)
-        .skip(skip)
-        .lean();
+      universalPincodeConditions.push({ availablePincodes: userPincode });
     }
+
+    const ecomQuery: any = {
+      ...baseQuery,
+      type: { $in: ['ecommerce', 'both'] },
+    };
+    if (userPincode) {
+      ecomQuery.$or = universalPincodeConditions;
+    }
+
+    ecommerceProducts = await Product.find(ecomQuery)
+      .populate('category', 'name')
+      .populate('categoryId', 'name')
+      .populate('subcategory', 'name')
+      .populate('subCategoryId', 'name')
+      .populate('seller', 'storeName location serviceRadiusKm city')
+      .populate('sellerId', 'storeName location serviceRadiusKm city')
+      .sort(sort)
+      .limit(limitNum)
+      .skip(skip)
+      .lean();
 
     // ── If no location and no pincode given, fall back to all active products ───────
     let fallbackProducts: any[] = [];
@@ -358,8 +359,8 @@ export const getProducts = async (req: Request, res: Response) => {
         .populate('categoryId', 'name')
         .populate('subcategory', 'name')
         .populate('subCategoryId', 'name')
-        .populate('seller', 'storeName')
-        .populate('sellerId', 'storeName')
+        .populate('seller', 'storeName location serviceRadiusKm city')
+        .populate('sellerId', 'storeName location serviceRadiusKm city')
         .sort(sort)
         .limit(limitNum)
         .skip(skip)
@@ -368,9 +369,6 @@ export const getProducts = async (req: Request, res: Response) => {
 
     // ── Merge and deduplicate by _id ─────────────────────────────────────────
     let allRaw = [...quickProducts, ...ecommerceProducts, ...fallbackProducts];
-
-    // Note: If user provided latitude/longitude or pincode, strictly respect the radius/pincode filter!
-    // Do NOT fall back to showing all sellers when the customer is outside the seller's service radius.
 
     const seen = new Set<string>();
     const hybridProducts = allRaw
@@ -381,20 +379,33 @@ export const getProducts = async (req: Request, res: Response) => {
         return true;
       })
       .map((product: any) => {
-        const nearbyAvailable  = quickProducts.some((q: any) => q._id.toString() === product._id.toString());
-        const ecommerceAvailable = ecommerceProducts.some((e: any) => e._id.toString() === product._id.toString());
         const seller = product.seller as any;
         const sellerCity = seller?.city ? normalizeCity(seller.city) : '';
         const userCity = userCityParam ? normalizeCity(userCityParam as string) : '';
         
         let distance = null;
-        if (userLat && userLng && seller?.location?.coordinates) {
-          distance = calculateDistance(
-            userLat, 
-            userLng, 
-            seller.location.coordinates[1], // lat
-            seller.location.coordinates[0]  // lng
-          );
+        if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng) && seller) {
+          let sLat: number | null = null;
+          let sLng: number | null = null;
+          if (
+            seller.location?.coordinates &&
+            Array.isArray(seller.location.coordinates) &&
+            seller.location.coordinates.length === 2 &&
+            (seller.location.coordinates[0] !== 0 || seller.location.coordinates[1] !== 0)
+          ) {
+            sLng = Number(seller.location.coordinates[0]);
+            sLat = Number(seller.location.coordinates[1]);
+          } else if (seller.latitude && seller.longitude) {
+            const parsedLat = parseFloat(seller.latitude);
+            const parsedLng = parseFloat(seller.longitude);
+            if (!isNaN(parsedLat) && !isNaN(parsedLng) && (parsedLat !== 0 || parsedLng !== 0)) {
+              sLat = parsedLat;
+              sLng = parsedLng;
+            }
+          }
+          if (sLat !== null && sLng !== null) {
+            distance = calculateDistance(userLat, userLng, sLat, sLng);
+          }
         }
 
         const sellerRadius =
@@ -406,49 +417,46 @@ export const getProducts = async (req: Request, res: Response) => {
             ? distance <= sellerRadius
             : false;
 
+        const isNearby =
+          isWithinRadius || (!userLat && sellerCity && userCity && sellerCity === userCity);
+
+        const pType: string = (product.type || (product as any).deliveryType || "") as string;
         let resolvedDeliveryType = "e-comm";
         let resolvedDeliveryLabel = "E-comm";
         let resolvedDeliveryTime = "3-5 days";
 
-        const pType = product.type || product.deliveryType;
-        if (pType === "quick") {
-          if (isWithinRadius || (!userLat && sellerCity && userCity && sellerCity === userCity)) {
+        if (isNearby) {
+          if (pType === "quick" || pType === "both") {
             resolvedDeliveryType = "quick";
             resolvedDeliveryLabel = "Quick Delivery";
-            resolvedDeliveryTime = "30-45 min";
+            resolvedDeliveryTime = "20-30 min";
           } else {
             resolvedDeliveryType = "e-comm";
             resolvedDeliveryLabel = "E-comm";
             resolvedDeliveryTime = "3-5 days";
           }
-        } else if (pType === "ecommerce" || pType === "e-comm") {
+        } else {
+          // Seller is OUTSIDE customer service radius!
+          // NEVER mark as quick delivery, always route to e-comm
           resolvedDeliveryType = "e-comm";
           resolvedDeliveryLabel = "E-comm";
           resolvedDeliveryTime = "3-5 days";
-        } else if (pType === "both") {
-          const isNearby =
-            isWithinRadius || (!userLat && sellerCity && userCity && sellerCity === userCity);
-          if (isNearby) {
-            resolvedDeliveryType = "quick";
-            resolvedDeliveryLabel = "Quick Delivery";
-            resolvedDeliveryTime = "30-45 min";
-          } else {
-            resolvedDeliveryType = "e-comm";
-            resolvedDeliveryLabel = "E-comm";
-            resolvedDeliveryTime = "3-5 days";
-          }
         }
+
+        const quickAvailable = isNearby && (pType === "quick" || pType === "both");
+        const ecommerceAvailable = pType === "both" || pType === "ecommerce" || pType === "e-comm";
 
         return {
           productId: product._id,
           ...product,
           distance,
-          nearbyAvailable: resolvedDeliveryType === 'quick',
+          nearbyAvailable: quickAvailable,
           ecommerceAvailable,
-          quickDeliveryAvailable: resolvedDeliveryType === 'quick',
+          quickDeliveryAvailable: quickAvailable,
           isSameCity: sellerCity === userCity,
           deliveryType: resolvedDeliveryType,
           deliveryLabel: resolvedDeliveryLabel,
+          deliveryTime: resolvedDeliveryTime,
           quickPrice: product.discPrice || product.price,
           ecommercePrice: product.discPrice || product.price,
           deliveryTimeQuick: resolvedDeliveryTime,
@@ -546,9 +554,41 @@ export const getProductById = async (req: Request, res: Response) => {
 
       if (sLat !== null && sLng !== null) {
         distanceKm = calculateDistance(userLat, userLng, sLat, sLng);
-        if (product.type === 'quick' || product.deliveryType === 'quick') {
-          isAvailableAtLocation = distanceKm <= sellerRadius;
-        }
+      }
+    }
+
+    const userCity = req.query.city ? normalizeCity(req.query.city as string) : '';
+    const sellerCity = seller?.city ? normalizeCity(seller.city) : '';
+    const isWithinRadius = (userLat !== null && userLng !== null && distanceKm !== null)
+      ? distanceKm <= sellerRadius
+      : false;
+    const isNearby = isWithinRadius || (!userLat && sellerCity && userCity && sellerCity === userCity);
+
+    let resolvedDeliveryType = "e-comm";
+    let quickDeliveryAvailable = false;
+    const pType: string = (product.type || (product as any).deliveryType || "") as string;
+
+    if (isNearby) {
+      if (pType === "quick" || pType === "both") {
+        resolvedDeliveryType = "quick";
+        quickDeliveryAvailable = true;
+        isAvailableAtLocation = true;
+      } else {
+        resolvedDeliveryType = "e-comm";
+        quickDeliveryAvailable = false;
+        isAvailableAtLocation = true;
+      }
+    } else {
+      // Out of range!
+      if (pType === "both" || pType === "ecommerce" || pType === "e-comm") {
+        resolvedDeliveryType = "e-comm";
+        quickDeliveryAvailable = false;
+        isAvailableAtLocation = true;
+      } else {
+        // Pure quick commerce product, seller is far away
+        resolvedDeliveryType = "e-comm";
+        quickDeliveryAvailable = false;
+        isAvailableAtLocation = false;
       }
     }
 
@@ -594,19 +634,6 @@ export const getProductById = async (req: Request, res: Response) => {
       similarProductsQuery.category = categoryId;
     }
 
-    // Location filtering for similar products removed as per user request
-    /*
-    if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
-      const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
-      if (nearbySellerIds.length > 0) {
-        similarProductsQuery.seller = { $in: nearbySellerIds };
-      } else {
-        // No sellers nearby, return empty similar products
-        similarProductsQuery.seller = { $in: [] };
-      }
-    }
-    */
-
     const similarProducts = await Product.find(similarProductsQuery)
       .limit(6)
       .select(
@@ -635,6 +662,11 @@ export const getProductById = async (req: Request, res: Response) => {
       success: true,
       data: {
         ...productObj,
+        deliveryType: resolvedDeliveryType,
+        quickDeliveryAvailable,
+        nearbyAvailable: quickDeliveryAvailable,
+        ecommerceAvailable: pType === "both" || pType === "ecommerce" || pType === "e-comm",
+        distance: distanceKm,
         similarProducts: similarProductsObj,
         colorVariations, // Include color variations for the thumbnails UI
         isAvailableAtLocation, // Add availability flag to response

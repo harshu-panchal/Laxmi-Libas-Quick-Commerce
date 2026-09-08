@@ -177,7 +177,8 @@ export default function ProductCard({
   };
 
   const handleAdd = async (e: React.MouseEvent) => {
-    const isQuick = (product as any).isQuickEligible === true || (product as any).deliveryType === 'quick' || product.type === 'quick' || product.type === 'both';
+    const isQuick = (product as any).deliveryType === 'quick' ||
+      ((product as any).quickDeliveryAvailable === true && (product as any).deliveryType !== 'e-comm');
     handleAddType(e, isQuick ? 'quick' : 'ecommerce');
   };
 
@@ -251,8 +252,10 @@ export default function ProductCard({
   };
 
   // Distance and schema-based delivery logic
-  const pDeliveryType = (product as any).deliveryType || product.type;
-  const isEcomm = pDeliveryType === 'e-comm' || pDeliveryType === 'ecommerce';
+  const isQuickAvailable = (product as any).deliveryType === 'quick' ||
+    ((product as any).quickDeliveryAvailable === true && (product as any).deliveryType !== 'e-comm');
+  const isEcomm = !isQuickAvailable || (product as any).deliveryType === 'e-comm' || (product as any).deliveryType === 'ecommerce';
+  const showBothBadge = isQuickAvailable && (product.type === 'both' || (product as any).ecommerceAvailable === true);
   const productVideoUrl = ((product as any).productVideoUrl || '').trim();
   const showCardVideo = Boolean(productVideoUrl) && !videoLoadFailed;
 
@@ -317,13 +320,13 @@ export default function ProductCard({
         <div className="p-2 md:p-3 flex-1 flex flex-col">
           {/* Delivery Logic Badge */}
           <div className="flex items-center gap-1 mb-1">
-            {isEcomm ? (
+            {!isQuickAvailable || (isEcomm && !showBothBadge) ? (
               <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 rounded-md">
                 <span className="text-[7px] md:text-[8px] font-black text-blue-600 uppercase tracking-tighter">
-                  🚚 E-Comm
+                  🚚 E-Comm (3-5 days)
                 </span>
               </div>
-            ) : pDeliveryType === 'both' ? (
+            ) : showBothBadge ? (
               <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-50 rounded-md">
                 <span className="text-[7px] md:text-[8px] font-black text-purple-600 uppercase tracking-tighter flex items-center gap-0.5">
                   ⚡ Quick & 🚚 E-Comm

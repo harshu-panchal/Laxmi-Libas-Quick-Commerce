@@ -13,6 +13,7 @@ import { Server as SocketIOServer } from "socket.io";
 import AppSettings from "../models/AppSettings";
 import PaymentMethod from "../models/PaymentMethod";
 import { calculateCustomerDeliveryFee } from "./deliveryFeeService";
+import { calculateDistance } from "../utils/locationHelper";
 
 export const finalizeOrderCreation = async (
   userId: string,
@@ -51,36 +52,58 @@ export const finalizeOrderCreation = async (
       const product = productsMap.get(prodId.toString());
       if (!product) throw new Error(`Product ${prodId} not found`);
 
-      const seller = await Seller.findById(product.seller).select('city');
+      const seller = await Seller.findById(product.seller).select('city location latitude longitude serviceRadiusKm');
       const sellerCity = seller?.city ? normalizeCity(seller.city) : '';
       const customerCity = address.city ? normalizeCity(address.city) : '';
 
-      // Determine order type based on product configuration: [v2 - city check removed for explicit quick products]
-      // RULE 1: If product is explicitly marked as 'quick' or 'both', ALWAYS treat as quick
-      //         (seller listed it as quick-deliverable, city check is NOT required)
-      // RULE 2: If product.deliveryType is 'quick' but product.type is not explicitly set,
-      //         use city match as a secondary gating check
-      // RULE 3: Frontend explicit override takes priority
+      // Check distance if coordinates are present
+      let isWithinRadius = false;
+      if (deliveryLat && deliveryLng && seller) {
+        let sLat: number | null = null;
+        let sLng: number | null = null;
+        if (
+          seller.location?.coordinates &&
+          Array.isArray(seller.location.coordinates) &&
+          seller.location.coordinates.length === 2 &&
+          (seller.location.coordinates[0] !== 0 || seller.location.coordinates[1] !== 0)
+        ) {
+          sLng = Number(seller.location.coordinates[0]);
+          sLat = Number(seller.location.coordinates[1]);
+        } else if (seller.latitude && seller.longitude) {
+          const parsedLat = parseFloat(seller.latitude);
+          const parsedLng = parseFloat(seller.longitude);
+          if (!isNaN(parsedLat) && !isNaN(parsedLng) && (parsedLat !== 0 || parsedLng !== 0)) {
+            sLat = parsedLat;
+            sLng = parsedLng;
+          }
+        }
+        if (sLat !== null && sLng !== null) {
+          const dist = calculateDistance(deliveryLat, deliveryLng, sLat, sLng);
+          const radius = (typeof seller.serviceRadiusKm === 'number' && seller.serviceRadiusKm > 0) ? seller.serviceRadiusKm : 10;
+          isWithinRadius = dist <= radius;
+        }
+      } else if (sellerCity && customerCity && sellerCity === customerCity) {
+        isWithinRadius = true;
+      }
+
+      // Determine order type: only genuine local sellers within service radius can be 'quick'
       let decidedType = 'ecommerce';
 
-      // Frontend explicit override (highest priority)
       if (item.selectedDeliveryType === 'ecommerce' || item.selectedDeliveryType === 'standard') {
         decidedType = 'ecommerce';
       } else if (item.selectedDeliveryType === 'quick') {
-        // Frontend says quick → trust it
-        decidedType = 'quick';
-      } else if (product.type === 'quick' || product.type === 'both') {
-        // Product is explicitly listed as quick/both → ALWAYS quick, no city check required
-        decidedType = 'quick';
-        console.log(`[OrderType] Product ${product.productName} is type=${product.type} → quick order (no city check needed)`);
-      } else if (product.deliveryType === 'quick') {
-        // Auto-detect via deliveryType: use city proximity check
-        if (sellerCity && customerCity && sellerCity === customerCity) {
+        if (isWithinRadius) {
           decidedType = 'quick';
-          console.log(`[OrderType] Product ${product.productName} deliveryType=quick, cities match (${sellerCity}) → quick order`);
+        } else if (product.type === 'both' || product.deliveryType === 'both' || product.type === 'ecommerce' || product.deliveryType === 'e-comm') {
+          decidedType = 'ecommerce';
+          console.log(`[OrderType] Product ${product.productName} requested quick, but seller is out of range (${sellerCity} vs ${customerCity}) → routed to ecommerce`);
         } else {
-          console.log(`[OrderType] Product ${product.productName} deliveryType=quick but city mismatch (seller: ${sellerCity || 'N/A'}, customer: ${customerCity || 'N/A'}) → ecommerce`);
+          throw new Error(`Product "${product.productName}" is only available for quick delivery within the seller's local service area.`);
         }
+      } else if (isWithinRadius && (product.type === 'quick' || product.type === 'both' || product.deliveryType === 'quick')) {
+        decidedType = 'quick';
+      } else {
+        decidedType = 'ecommerce';
       }
       
       if (decidedType === 'quick') quickItems.push(item);

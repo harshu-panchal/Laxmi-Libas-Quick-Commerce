@@ -423,6 +423,9 @@ export const getHomeContent = async (req: Request, res: Response) => {
       .map((item: any) => {
         const product = item.product;
         const isAvailable = true;
+        const sellerIdStr = product.seller?.toString();
+        const isSellerNearby = nearbySellerIds ? nearbySellerIds.some((id: any) => id.toString() === sellerIdStr) : false;
+        const isQuick = isSellerNearby && (product.type === 'quick' || product.type === 'both' || product.deliveryType === 'quick');
 
         return {
           id: product._id.toString(),
@@ -438,7 +441,9 @@ export const getHomeContent = async (req: Request, res: Response) => {
           subcategory: product.subcategory?.toString() || "",
           status: product.status,
           publish: product.publish,
-          deliveryType: product.deliveryType || product.type || "quick",
+          deliveryType: isQuick ? "quick" : "e-comm",
+          quickDeliveryAvailable: isQuick,
+          nearbyAvailable: isQuick,
           isAvailable,
           seller: product.seller,
         };
@@ -999,11 +1004,7 @@ export const getStoreProducts = async (req: Request, res: Response) => {
       
       let validSellers = nearbySellerIds.filter(id => approvedIds.includes(id.toString()));
       
-      if (validSellers.length === 0) {
-        console.log(`[getStoreProducts] No sellers found within local range of customer. Falling back to show all approved sellers.`);
-        validSellers = approvedSellers.map(s => s._id);
-      }
-      
+      // If customer is outside range of all sellers, strictly return empty nearby sellers (do not fallback to distant sellers!)
       query.seller = { $in: validSellers };
     } else {
       // If no location provided, still show all products (but only from approved sellers)
@@ -1029,7 +1030,17 @@ export const getStoreProducts = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
-      data: products.map(p => ({ ...p, isAvailable: true })),
+      data: products.map(p => {
+        const pType = (p as any).type || (p as any).deliveryType;
+        const isQuick = pType === 'quick' || pType === 'both';
+        return {
+          ...p,
+          isAvailable: true,
+          deliveryType: isQuick ? 'quick' : 'e-comm',
+          quickDeliveryAvailable: isQuick,
+          nearbyAvailable: isQuick,
+        };
+      }),
       shop: shopData,
       pagination: {
         page: 1,
