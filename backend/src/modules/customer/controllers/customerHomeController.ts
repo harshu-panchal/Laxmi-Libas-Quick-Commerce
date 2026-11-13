@@ -769,10 +769,167 @@ export const getHomeContent = async (req: Request, res: Response) => {
       .sort({ order: 1 })
       .lean();
 
+    // Helper to format products for home sections
+    const formatProduct = (p: any) => {
+      const isNearby = nearbySellerIds ? nearbySellerIds.some((id: any) => id.toString() === (p.seller?._id || p.seller)?.toString()) : true;
+      const pType = p.type || p.deliveryType || "e-comm";
+      const isQuick = isNearby && (pType === "quick" || pType === "both");
+
+      return {
+        id: p._id.toString(),
+        _id: p._id.toString(),
+        productId: p._id.toString(),
+        name: p.productName,
+        productName: p.productName,
+        image: p.mainImage,
+        mainImage: p.mainImage,
+        imageUrl: p.mainImage,
+        galleryImages: p.galleryImages || [],
+        price: p.discPrice || p.price,
+        discPrice: p.discPrice || p.price,
+        mrp: p.mrp || p.compareAtPrice || p.price,
+        discount: p.discount || (p.mrp && p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : (p.compareAtPrice && p.price ? Math.round(((p.compareAtPrice - p.price) / p.compareAtPrice) * 100) : 0)),
+        rating: p.rating || 4.5,
+        reviewsCount: p.reviewsCount || 15,
+        pack: p.pack || p.size || "",
+        brandName: p.brandName || "",
+        category: p.category,
+        subcategory: p.subcategory,
+        deliveryType: isQuick ? "quick" : "e-comm",
+        deliveryLabel: isQuick ? "Quick Delivery" : "E-comm",
+        deliveryTime: isQuick ? "20-30 min" : "3-5 days",
+        quickDeliveryAvailable: isQuick,
+        nearbyAvailable: isQuick,
+        isAvailable: true,
+        status: p.status,
+        publish: p.publish,
+        stock: p.stock ?? 10
+      };
+    };
+
+    // 1. Dynamic Bestseller categories fallback if bestsellerCards is empty
+    let finalBestsellers = bestsellers;
+    if (!finalBestsellers || finalBestsellers.length === 0) {
+      const popularCats = await Category.find({ status: "Active", parentId: null })
+        .select("_id name slug image")
+        .sort({ order: 1 })
+        .limit(8)
+        .lean();
+
+      const dynamicBestsellers = await Promise.all(
+        popularCats.map(async (cat: any) => {
+          const childCats = await Category.find({ parentId: cat._id }).select("_id").lean();
+          const allCatIds = [cat._id, ...childCats.map(c => c._id)];
+
+          const categoryProducts = await Product.find({
+            category: { $in: allCatIds },
+            status: "Active",
+            publish: true,
+          })
+            .select("productName mainImage galleryImages")
+            .sort({ createdAt: -1 })
+            .limit(4)
+            .lean();
+
+          if (categoryProducts.length === 0) return null;
+
+          const productImages: string[] = [];
+          categoryProducts.forEach((p: any) => {
+            if (p.mainImage) productImages.push(p.mainImage);
+            else if (p.galleryImages && p.galleryImages.length > 0) productImages.push(p.galleryImages[0]);
+          });
+          while (productImages.length < 4 && productImages.length > 0) {
+            productImages.push(productImages[0]);
+          }
+
+          return {
+            id: cat._id.toString(),
+            categoryId: cat._id.toString(),
+            name: cat.name,
+            slug: cat.slug || cat._id.toString(),
+            productImages: productImages.slice(0, 4),
+            productCount: categoryProducts.length,
+          };
+        })
+      );
+      finalBestsellers = dynamicBestsellers.filter(Boolean);
+    }
+
+    // 2. Fetch Best Seller Products (top active products for rich product carousel)
+    const rawBestsellerProducts = await Product.find({ status: "Active", publish: true })
+      .populate("category", "name slug")
+      .populate("seller", "storeName location serviceRadiusKm city")
+      .sort({ rating: -1, createdAt: -1 })
+      .limit(12)
+      .lean();
+    const formattedBestsellerProducts = rawBestsellerProducts.map(formatProduct);
+
+    // 3. Fetch Deals of the Day (products with highest discount or marked dealOfDay)
+    const rawDealsProducts = await Product.find({ status: "Active", publish: true, discount: { $gt: 0 } })
+      .populate("category", "name slug")
+      .populate("seller", "storeName location serviceRadiusKm city")
+      .sort({ discount: -1, createdAt: -1 })
+      .limit(12)
+      .lean();
+    let formattedDealsOfDay = rawDealsProducts.map(formatProduct);
+    if (formattedDealsOfDay.length < 4) {
+      const fallbackDeals = await Product.find({ status: "Active", publish: true })
+        .populate("category", "name slug")
+        .populate("seller", "storeName location serviceRadiusKm city")
+        .sort({ createdAt: 1 })
+        .limit(8)
+        .lean();
+      formattedDealsOfDay = fallbackDeals.map(p => {
+        const item = formatProduct(p);
+        if (!item.discount || item.discount === 0) {
+          item.discount = 15;
+          item.mrp = Math.round(item.price * 1.18);
+        }
+        return item;
+      });
+    }
+
+    // 4. Fetch Trending Now Products
+    const rawTrendingProducts = await Product.find({ status: "Active", publish: true })
+      .populate("category", "name slug")
+      .populate("seller", "storeName location serviceRadiusKm city")
+      .sort({ createdAt: -1 })
+      .limit(12)
+      .lean();
+    const formattedTrendingProducts = rawTrendingProducts.map(formatProduct);
+
+    // 5. Fetch New Arrivals
+    const rawNewArrivals = await Product.find({ status: "Active", publish: true })
+      .populate("category", "name slug")
+      .populate("seller", "storeName location serviceRadiusKm city")
+      .sort({ createdAt: -1 })
+      .skip(6)
+      .limit(12)
+      .lean();
+    const formattedNewArrivals = rawNewArrivals.map(formatProduct);
+
+    // 6. Category Highlights for "Shop By Category" grid
+    const rawParentCategories = await Category.find({ status: "Active", parentId: null })
+      .select("_id name slug image")
+      .sort({ order: 1 })
+      .limit(12)
+      .lean();
+    const categoryHighlights = rawParentCategories.map((c: any) => ({
+      id: c._id.toString(),
+      name: c.name,
+      slug: c.slug || c._id.toString(),
+      image: c.image || "",
+    }));
+
     res.status(200).json({
       success: true,
       data: {
-        bestsellers,
+        bestsellers: finalBestsellers,
+        bestsellerProducts: formattedBestsellerProducts,
+        trendingProducts: formattedTrendingProducts,
+        dealsOfDay: formattedDealsOfDay,
+        newArrivals: formattedNewArrivals,
+        categoryHighlights,
         lowestPrices: validLowestPricesProducts,
         categories,
         homeSections: dynamicSections,
