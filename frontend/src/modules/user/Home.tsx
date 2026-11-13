@@ -6,6 +6,7 @@ import BannerSlider from "./components/BannerSlider";
 import CategoryTileSection from "./components/CategoryTileSection";
 import FeaturedThisWeek from "./components/FeaturedThisWeek";
 import ProductCard from "./components/ProductCard";
+import HomeSectionsEnhancer from "./components/HomeSectionsEnhancer";
 import { getHomeContent } from "../../services/api/customerHomeService";
 import { getHeaderCategoriesPublic } from "../../services/api/headerCategoryService";
 import { getCategories } from "../../services/api/customerProductService";
@@ -34,6 +35,11 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [homeData, setHomeData] = useState<any>({
     bestsellers: [],
+    bestsellerProducts: [],
+    dealsOfDay: [],
+    trendingProducts: [],
+    newArrivals: [],
+    categoryHighlights: [],
     categories: [],
     homeSections: [], // Dynamic sections created by admin
     shops: [],
@@ -474,39 +480,38 @@ export default function Home() {
           </div>
         )}
 
-        {/* Bestsellers Section - Hidden as per request */}
+        {/* All Tab - Rich & Attractive Sections (Best Sellers, Deals of Day, Top Categories, Trending, Stores & Feed) */}
         {activeTab === "all" && (
           <>
-            {/* Bestsellers Section - Restored as per request */}
-            <div className="mt-2 md:mt-4">
-              <CategoryTileSection
-                title="Bestsellers"
-                tiles={
-                  homeData.bestsellers && homeData.bestsellers.length > 0
-                    ? homeData.bestsellers
+            {/* Rich sections: Trust Badges, Best Sellers, Deals of the Day, Category Collections, Trending, Promise Banner & Store Catalog */}
+            <HomeSectionsEnhancer
+              homeData={homeData}
+              saveScrollPosition={saveScrollPosition}
+            />
+
+            {/* Popular Bestseller Category Tiles */}
+            {homeData.bestsellers && homeData.bestsellers.length > 0 && (
+              <div className="mt-2 md:mt-4">
+                <CategoryTileSection
+                  title="Category Bestsellers"
+                  tiles={
+                    homeData.bestsellers
                       .slice(0, 6)
-                      .map((card: any) => {
-                        // Bestseller cards have categoryId and productImages array from backend
-                        return {
-                          id: card.id,
-                          categoryId: card.categoryId,
-                          name: card.name || "Category",
-                          productImages: card.productImages || [],
-                          productCount: card.productCount || 0,
-                        };
-                      })
-                    : []
-                }
-                columns={3}
-                showProductCount={true}
-              />
-            </div>
+                      .map((card: any) => ({
+                        id: card.id,
+                        categoryId: card.categoryId,
+                        name: card.name || "Category",
+                        productImages: card.productImages || [],
+                        productCount: card.productCount || 0,
+                      }))
+                  }
+                  columns={3}
+                  showProductCount={true}
+                />
+              </div>
+            )}
 
-            {/* Featured this week Section - Hidden as per request */}
-            {/* Featured this week Section - Restored as per request */}
-            <FeaturedThisWeek />
-
-            {/* Shop by Store Section - Restored as per request */}
+            {/* Shop by Store Section */}
             <div className="mb-6 mt-6 md:mb-8 md:mt-8">
               <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight">
                 Shop by Store

@@ -90,6 +90,134 @@ const populateProductsSubcategory = async (products: any[]) => {
   return products;
 };
 
+const escapeRegex = (str: string) => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+
+/**
+ * Builds a comprehensive search condition matching exact name, SKU, barcode, tags, brand,
+ * category names, attributes, and multi-word token combinations.
+ */
+const buildSearchCondition = async (searchStr: string) => {
+  const trimmed = searchStr.trim();
+  if (!trimmed) return null;
+
+  const escaped = escapeRegex(trimmed);
+  const phraseRegex = new RegExp(escaped, 'i');
+
+  // Also check if any Category matches this search term (e.g. "Saree", "Uniform", "Footwear")
+  const matchingCategories = await Category.find({
+    name: { $regex: phraseRegex }
+  }).select('_id').lean();
+  const matchedCatIds = matchingCategories.map(c => c._id);
+
+  // Split words for multi-word search (e.g. "dav shirt" or "blue saree")
+  const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+  
+  const searchOrConditions: any[] = [
+    { productName: { $regex: phraseRegex } },
+    { smallDescription: { $regex: phraseRegex } },
+    { description: { $regex: phraseRegex } },
+    { tags: { $regex: phraseRegex } },
+    { brandName: { $regex: phraseRegex } },
+    { sku: { $regex: phraseRegex } },
+    { barcode: { $regex: phraseRegex } },
+    { pack: { $regex: phraseRegex } },
+    { color: { $regex: phraseRegex } },
+    { fabric: { $regex: phraseRegex } },
+    { material: { $regex: phraseRegex } }
+  ];
+
+  if (matchedCatIds.length > 0) {
+    searchOrConditions.push({ category: { $in: matchedCatIds } });
+    searchOrConditions.push({ categoryId: { $in: matchedCatIds } });
+    searchOrConditions.push({ subcategory: { $in: matchedCatIds } });
+    searchOrConditions.push({ subCategoryId: { $in: matchedCatIds } });
+  }
+
+  // If multiple words, also match where all words appear
+  if (words.length > 1) {
+    const wordAndCondition = {
+      $and: words.map(w => {
+        const wRegex = new RegExp(escapeRegex(w), 'i');
+        return {
+          $or: [
+            { productName: { $regex: wRegex } },
+            { smallDescription: { $regex: wRegex } },
+            { description: { $regex: wRegex } },
+            { tags: { $regex: wRegex } },
+            { brandName: { $regex: wRegex } },
+            { color: { $regex: wRegex } },
+            { fabric: { $regex: wRegex } },
+            { material: { $regex: wRegex } }
+          ]
+        };
+      })
+    };
+    searchOrConditions.push(wordAndCondition);
+  }
+
+  return { $or: searchOrConditions };
+};
+
+/**
+ * Score and sort products by relevance so exact product matches are ALWAYS first!
+ */
+const rankProductsByRelevance = (products: any[], searchStr: string) => {
+  if (!searchStr || !products || products.length === 0) return products;
+  const query = searchStr.trim().toLowerCase();
+  const escapedQuery = escapeRegex(query);
+  const wordBoundaryRegex = new RegExp(`\\b${escapedQuery}\\b`, 'i');
+  const startsWithRegex = new RegExp(`^${escapedQuery}`, 'i');
+  const tokens = query.split(/\s+/).filter(Boolean);
+
+  return [...products].sort((a, b) => {
+    const nameA = (a.productName || a.name || '').toLowerCase();
+    const nameB = (b.productName || b.name || '').toLowerCase();
+    const skuA = (a.sku || '').toLowerCase();
+    const skuB = (b.sku || '').toLowerCase();
+    const barcodeA = (a.barcode || '').toLowerCase();
+    const barcodeB = (b.barcode || '').toLowerCase();
+
+    // 1. Exact match on Product Name (Score: 1000)
+    const exactNameA = nameA === query ? 1000 : 0;
+    const exactNameB = nameB === query ? 1000 : 0;
+    if (exactNameA !== exactNameB) return exactNameB - exactNameA;
+
+    // 2. Exact match on SKU or Barcode (Score: 900)
+    const exactCodeA = (skuA === query || barcodeA === query) ? 900 : 0;
+    const exactCodeB = (skuB === query || barcodeB === query) ? 900 : 0;
+    if (exactCodeA !== exactCodeB) return exactCodeB - exactCodeA;
+
+    // 3. Product Name starts with query (Score: 800)
+    const startsA = startsWithRegex.test(nameA) ? 800 : 0;
+    const startsB = startsWithRegex.test(nameB) ? 800 : 0;
+    if (startsA !== startsB) return startsB - startsA;
+
+    // 4. Exact word match in Product Name (Score: 700)
+    const wordA = wordBoundaryRegex.test(nameA) ? 700 : 0;
+    const wordB = wordBoundaryRegex.test(nameB) ? 700 : 0;
+    if (wordA !== wordB) return wordB - wordA;
+
+    // 5. Contains full query in Product Name (Score: 600)
+    const containsA = nameA.includes(query) ? 600 : 0;
+    const containsB = nameB.includes(query) ? 600 : 0;
+    if (containsA !== containsB) return containsB - containsA;
+
+    // 6. Contains all query tokens in Product Name (Score: 500)
+    if (tokens.length > 1) {
+      const allTokensA = tokens.every(t => nameA.includes(t)) ? 500 : 0;
+      const allTokensB = tokens.every(t => nameB.includes(t)) ? 500 : 0;
+      if (allTokensA !== allTokensB) return allTokensB - allTokensA;
+    }
+
+    // 7. Brand / Tag match
+    const brandA = (a.brandName || '').toLowerCase().includes(query) ? 300 : 0;
+    const brandB = (b.brandName || '').toLowerCase().includes(query) ? 300 : 0;
+    if (brandA !== brandB) return brandB - brandA;
+
+    return 0;
+  });
+};
+
 // Get products with hybrid filtering (Smart Decision Engine)
 export const getProducts = async (req: Request, res: Response) => {
   try {
@@ -237,27 +365,16 @@ export const getProducts = async (req: Request, res: Response) => {
       }
     }
 
-    if (andConditions.length > 0) {
-      baseQuery.$and = andConditions;
-    }
-
     // Support text-based search with regex for better partial matches and single-character searches
     if (search && String(search).trim()) {
-      const searchStr = String(search).trim();
-      const searchRegex = new RegExp(searchStr, "i");
-      
-      andConditions.push({
-        $or: [
-          { productName: { $regex: searchRegex } },
-          { smallDescription: { $regex: searchRegex } },
-          { description: { $regex: searchRegex } },
-          { tags: { $regex: searchRegex } },
-          { brandName: { $regex: searchRegex } },
-          { sku: { $regex: searchRegex } },
-          { barcode: { $regex: searchRegex } },
-          { pack: { $regex: searchRegex } }
-        ]
-      });
+      const searchCondition = await buildSearchCondition(String(search).trim());
+      if (searchCondition) {
+        andConditions.push(searchCondition);
+      }
+    }
+
+    if (andConditions.length > 0) {
+      baseQuery.$and = andConditions;
     }
 
     let sort: any = { createdAt: -1 };
@@ -370,6 +487,22 @@ export const getProducts = async (req: Request, res: Response) => {
     // ── Merge and deduplicate by _id ─────────────────────────────────────────
     let allRaw = [...quickProducts, ...ecommerceProducts, ...fallbackProducts];
 
+    // When searching, if location/pincode filtering yielded 0 products, search across all products matching baseQuery
+    if (search && String(search).trim() && allRaw.length === 0) {
+      const searchFallback = await Product.find(baseQuery)
+        .populate('category', 'name')
+        .populate('categoryId', 'name')
+        .populate('subcategory', 'name')
+        .populate('subCategoryId', 'name')
+        .populate('seller', 'storeName location serviceRadiusKm city')
+        .populate('sellerId', 'storeName location serviceRadiusKm city')
+        .sort(sort)
+        .limit(limitNum)
+        .skip(skip)
+        .lean();
+      allRaw.push(...searchFallback);
+    }
+
     const seen = new Set<string>();
     const hybridProducts = allRaw
       .filter((p: any) => {
@@ -465,7 +598,11 @@ export const getProducts = async (req: Request, res: Response) => {
       });
 
     // Manually populate subcategories to support both Category & SubCategory models
-    const populatedHybridProducts = await populateProductsSubcategory(hybridProducts);
+    let populatedHybridProducts = await populateProductsSubcategory(hybridProducts);
+
+    if (search && String(search).trim()) {
+      populatedHybridProducts = rankProductsByRelevance(populatedHybridProducts, String(search).trim());
+    }
 
     return res.status(200).json({ success: true, data: populatedHybridProducts });
 
@@ -861,27 +998,16 @@ export const getQuickProducts = async (req: Request, res: Response) => {
       }
     }
 
-    if (quickAndConditions.length > 0) {
-      query.$and = quickAndConditions;
-    }
-
     // Support text-based search with regex for better partial matches and single-character searches
     if (search && String(search).trim()) {
-      const searchStr = String(search).trim();
-      const searchRegex = new RegExp(searchStr, "i");
-      
-      quickAndConditions.push({
-        $or: [
-          { productName: { $regex: searchRegex } },
-          { smallDescription: { $regex: searchRegex } },
-          { description: { $regex: searchRegex } },
-          { tags: { $regex: searchRegex } },
-          { brandName: { $regex: searchRegex } },
-          { sku: { $regex: searchRegex } },
-          { barcode: { $regex: searchRegex } },
-          { pack: { $regex: searchRegex } }
-        ]
-      });
+      const searchCondition = await buildSearchCondition(String(search).trim());
+      if (searchCondition) {
+        quickAndConditions.push(searchCondition);
+      }
+    }
+
+    if (quickAndConditions.length > 0) {
+      query.$and = quickAndConditions;
     }
 
     // Filter by coordinates within seller service radius, or by city, or fallback to all approved sellers
@@ -922,7 +1048,7 @@ export const getQuickProducts = async (req: Request, res: Response) => {
       sort = { createdAt: -1 };
     }
 
-    const [products, total] = await Promise.all([
+    let [products, total] = await Promise.all([
       Product.find(query)
         .populate('category', 'name')
         .populate('categoryId', 'name')
@@ -936,6 +1062,25 @@ export const getQuickProducts = async (req: Request, res: Response) => {
         .lean(),
       Product.countDocuments(query)
     ]);
+
+    // If searching in quick and no products found with location constraints, try without seller location constraint
+    if (search && String(search).trim() && products.length === 0) {
+      const fallbackQuery = { ...query };
+      delete fallbackQuery.seller;
+      const fallbackProducts = await Product.find(fallbackQuery)
+        .populate('category', 'name')
+        .populate('categoryId', 'name')
+        .populate('subcategory', 'name')
+        .populate('subCategoryId', 'name')
+        .populate('seller', 'storeName location city status')
+        .populate('sellerId', 'storeName location city status')
+        .sort(sort)
+        .skip(skip)
+        .limit(limitNum)
+        .lean();
+      products = fallbackProducts;
+      total = fallbackProducts.length;
+    }
 
     // Format products consistent with getProducts mapping
     const formattedProducts = products.map((product: any) => {
@@ -993,7 +1138,11 @@ export const getQuickProducts = async (req: Request, res: Response) => {
     });
 
     // Manually populate subcategories to support both Category & SubCategory models
-    const populatedFormattedProducts = await populateProductsSubcategory(formattedProducts);
+    let populatedFormattedProducts = await populateProductsSubcategory(formattedProducts);
+
+    if (search && String(search).trim()) {
+      populatedFormattedProducts = rankProductsByRelevance(populatedFormattedProducts, String(search).trim());
+    }
 
     return res.status(200).json({
       success: true,
